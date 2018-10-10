@@ -300,3 +300,22 @@ class KafkaStorage(Storage):
                   len(msg), timestamp, self.topic)
 
         return  # the message has been send to kafka
+
+
+class MetricPackage:
+    """Wraps storage to pack metrics from diffrent sources and apply common labels
+    before send."""
+    def __init__(self, storage: Storage):
+        self.storage = storage
+        self.metrics: List[Metric] = []
+
+    def add_metrics(self, *metrics_args: List[Metric]):
+        for metrics in metrics_args:
+            self.metrics.extend(metrics)
+
+    def send(self, common_labels: Dict[str, str] = None):
+        """Apply common_labels and send using storage from constructor. """
+        if common_labels:
+            for metric in self.metrics:
+                metric.labels.update(common_labels)
+        self.storage.store(self.metrics)

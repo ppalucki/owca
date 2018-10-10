@@ -97,6 +97,12 @@ def test_collect_topology_information_2_cores_per_socket_all_cpus_online(*mocks)
     assert (4, 4, 2) == collect_topology_information()
 
 
+@patch('builtins.open', new=create_open_mock({
+    "/sys/fs/resctrl/info/L3/cbm_mask": "fffff",
+    "/sys/fs/resctrl/info/L3/min_cbm_bits": "2",
+    "/proc/stat": "parsed value mocked below",
+    "/proc/meminfo": "parsed value mocked below",
+}))
 @patch('owca.platforms.get_owca_version', return_value="0.1")
 @patch('socket.gethostname', return_value="test_host")
 @patch('owca.platforms.parse_proc_meminfo', return_value=1337)
@@ -104,8 +110,8 @@ def test_collect_topology_information_2_cores_per_socket_all_cpus_online(*mocks)
 @patch('owca.platforms.collect_topology_information', return_value=(2, 1, 1))
 @patch('time.time', return_value=1536071557.123456)
 def test_collect_platform_information(*mocks):
-    assert collect_platform_information() == (
-        Platform(1, 1, 2, {0: 100, 1: 200}, 1337, 1536071557.123456),
+    assert collect_platform_information(rdt_enabled=True) == (
+        Platform(1, 1, 2, {0: 100, 1: 200}, 1337, 1536071557.123456, 'fffff', '2'),
         [
             Metric.create_metric_with_metadata(
                 name=MetricName.MEM_USAGE, value=1337

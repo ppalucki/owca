@@ -40,7 +40,7 @@ class Task(ABC):
         """Task metadata expressed as labels."""
 
     @abstractproperty
-    def resources(self) -> Dict[str, str]:
+    def resources(self) -> Dict[str, float]:
         """Initial resources assigned accorind task definition. """
 
 

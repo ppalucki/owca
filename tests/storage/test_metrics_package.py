@@ -12,20 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-from owca.cbm_bits import check_cbm_bits
 
-def test_check_cbm_bits_success():
-    check_cbm_bits('ff00', 'ffff', '1')
+from unittest.mock import Mock
 
-def test_check_cbm_bits_gap():
-    with pytest.raises(ValueError):
-        check_cbm_bits('f0f', 'ffff', '1')
+from owca.storage import MetricPackage, Storage
+from owca.metrics import Metric
 
-def test_check_not_enough_cbm_bits():
-    with pytest.raises(ValueError):
-        check_cbm_bits('0', 'ffff', '1')
+def test_metrics_package():
+    m1 = Metric(name='average_latency_miliseconds', value=8)
+    storage = Mock(spec=Storage)
+    mp = MetricPackage(storage)
+    mp.add_metrics([m1])
+    mp.send(dict(foo='label_val'))
+    assert storage.store.call_count == 1
+    storage.store.assert_called_once_with(
+        [Metric(name='average_latency_miliseconds', value=8, 
+                labels={'foo': 'label_val'}, type=None, help=None)]
+    )
 
-def test_check_too_big_mask():
-    with pytest.raises(ValueError):
-        check_cbm_bits('ffffff', 'ffff', '1')
+

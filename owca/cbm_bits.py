@@ -13,11 +13,10 @@
 # limitations under the License.
 
 
-import os
-
-
-def check_cbm_bits(mask, info_path='/sys/fs/resctrl/info/L3'):
-    if mask > get_max_mask(info_path):
+def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
+    mask = int(mask, 16)
+    cbm_mask = int(cbm_mask, 16)
+    if  mask > cbm_mask:
         raise ValueError('Mask is bigger than allowed')
 
     bin_mask = format(mask, 'b')
@@ -39,21 +38,8 @@ def check_cbm_bits(mask, info_path='/sys/fs/resctrl/info/L3'):
 
             previous = bit
 
-    min_cbm_bits = get_min_cbm_bits(info_path)
+    min_cbm_bits = int(min_cbm_bits)
     if number_of_cbm_bits < min_cbm_bits:
         raise ValueError(str(number_of_cbm_bits) +
                          " cbm bits. Requires minimum " +
                          str(min_cbm_bits))
-
-
-def get_min_cbm_bits(info_path):
-    min_cbm_bits_path = os.path.join(info_path, 'min_cbm_bits')
-    with open(min_cbm_bits_path, 'r') as f:
-        min_cbm_bits = f.read()
-    return int(min_cbm_bits)
-
-
-def get_max_mask(info_path):
-    max_mask_path = os.path.join(info_path, 'cbm_mask')
-    max_mask = open(max_mask_path, 'r').read()
-    return int(max_mask, 16)
