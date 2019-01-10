@@ -18,7 +18,7 @@ import re
 import socket
 import time
 import logging
-from typing import List, Dict, Set, Tuple, Optional
+from typing import List, Dict, Set, Tuple
 from pkg_resources import get_distribution, DistributionNotFound
 
 from dataclasses import dataclass
@@ -59,11 +59,7 @@ class Platform:
     total_memory_used: int
 
     # [unix timestamp] Recorded timestamp of finishing data gathering (as returned from time.time)
-    timestamp: float
-
-    # rdt information
-    rdt_cbm_mask: Optional[str]  # based on /sys/fs/resctrl/info/L3/cbm_mask
-    rdt_min_cbm_bits: Optional[str]  # based on /sys/fs/resctrl/info/L3/min_cbm_bits
+    timestaGmp: float
 
 
 def create_metrics(platform: Platform) -> List[Metric]:
@@ -226,21 +222,9 @@ def collect_topology_information() -> (int, int, int):
     return nr_of_online_cpus, nr_of_cores, nr_of_sockets
 
 
-def collect_rdt_information(rdt_enabled: bool) -> (str, str):
-    """Returns rdt_cbm_mask, min_cbm_bits values."""
-    if rdt_enabled:
-        with open('/sys/fs/resctrl/info/L3/cbm_mask') as f:
-            cbm_mask = f.read()
-        with open('/sys/fs/resctrl/info/L3/min_cbm_bits') as f:
-            min_cbm_bits = f.read()
-        return cbm_mask, min_cbm_bits
-    else:
-        return None, None
-
-
-def collect_platform_information(rdt_enabled: bool = True) -> (
-        Platform, List[Metric], Dict[str, str]):
+def collect_platform_information() -> (Platform, List[Metric], Dict[str, str]):
     """Returns Platform information, metrics and common labels.
+
 
     Returned objects meaning:
     - Platform is a static information about topology as well as some metrics about platform
@@ -252,11 +236,9 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
 
     """
     nr_of_cpus, nr_of_cores, nr_of_sockets = collect_topology_information()
-    rdt_cbm_mask, rdt_min_cbm_bits = collect_rdt_information(rdt_enabled)
     platform = Platform(sockets=nr_of_sockets, cores=nr_of_cores, cpus=nr_of_cpus,
                         cpus_usage=parse_proc_stat(read_proc_stat()),
                         total_memory_used=parse_proc_meminfo(read_proc_meminfo()),
-                        timestamp=time.time(), rdt_cbm_mask=rdt_cbm_mask, 
-                        rdt_min_cbm_bits=rdt_min_cbm_bits)
+                        timestamp=time.time())
     assert len(platform.cpus_usage) == platform.cpus, "Inconsistency in cpu data returned by kernel"
     return platform, create_metrics(platform), create_labels(platform)

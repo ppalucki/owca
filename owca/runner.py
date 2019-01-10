@@ -170,8 +170,8 @@ class BaseRunnerMixin:
             ])
         return statistics_metrics
 
-    def get_allocations_statistics_metrics(self, tasks_allocations, 
-               allocation_duration, ignored_allocations_count: int):
+    def get_allocations_statistics_metrics(self, tasks_allocations,
+                                           allocation_duration, ignored_allocations_count: int):
         """Extra external plugin allocaton statistics."""
         if len(tasks_allocations):
             self.allocations_counter += len(tasks_allocations)
@@ -331,7 +331,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                             task_ids_to_remove.add(task_id)
                             ignored_allocations += 1
 
-        new_tasks_allocations = {t: a for t, a in new_tasks_allocations.items()
+            new_tasks_allocations = {t: a for t, a in new_tasks_allocations.items()
                                  if not t in task_ids_to_remove}
         return ignored_allocations, new_tasks_allocations
 

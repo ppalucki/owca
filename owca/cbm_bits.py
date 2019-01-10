@@ -16,7 +16,7 @@
 def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
     mask = int(mask, 16)
     cbm_mask = int(cbm_mask, 16)
-    if  mask > cbm_mask:
+    if mask > cbm_mask:
         raise ValueError('Mask is bigger than allowed')
 
     bin_mask = format(mask, 'b')

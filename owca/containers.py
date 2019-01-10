@@ -143,7 +143,7 @@ class ContainerManager:
         else:
             self.resgroups_containers_relation = {}
 
-    def _get_container_by_taskid(self, task_id):
+    def _get_container_by_taskid(self, task_id) -> Optional[Container]:
         for task, container in self.containers.items():
             if task.task_id == task_id:
                 return container
@@ -165,8 +165,10 @@ class ContainerManager:
             tasks, list(self.containers.values()))
 
         if containers_to_cleanup:
-            log.debug('sync_containers_state: cleaning up %d containers', len(containers_to_cleanup))
-            log.log(logger.TRACE, 'sync_containers_state: containers_to_cleanup=%r', containers_to_cleanup)
+            log.debug('sync_containers_state: cleaning up %d containers',
+                      len(containers_to_cleanup))
+            log.log(logger.TRACE, 'sync_containers_state: containers_to_cleanup=%r',
+                    containers_to_cleanup)
 
         # Cleanup and remove orphaned containers (cleanup).
         for container_to_cleanup in containers_to_cleanup:
@@ -236,9 +238,9 @@ class ContainerManager:
             r = ""
             for resgroup_name, (resgroup, containers) in self.resgroups_containers_relation.items():
                 c_ = [container.cgroup_path for container in containers]
-                r += "  \'{}\' -> [{}]\n".format(resgroup_name, ", ".join(c_))
+                r += " \'{}\' -> [{}]\n".format(resgroup_name, ", ".join(c_))
             return r.rstrip()
-            
+
         log.debug('reassign_resgroups: before:\n{}'.format(_relations_to_string()))
 
         for task_id, task_allocation in tasks_allocations.items():
@@ -251,24 +253,26 @@ class ContainerManager:
 
                 task_rdt_allocation = task_allocation[AllocationType.RDT]
 
-                # Firstly remove from previous resgroup and remove resgroup if not neccessary anymore.
+                # Firstly remove from previous resgroup.
                 self.resgroups_containers_relation[container.resgroup.name][1].remove(container)
 
                 # Cleanup & remove empty (non-root) group.
                 if not self.resgroups_containers_relation[container.resgroup.name][1]:
                     if container.resgroup.name != RESCTRL_ROOT_NAME:
-                        log.debug('reassign_resgroups: removing empty resgroup: %r', container.resgroup.name)
+                        log.debug('reassign_resgroups: removing empty resgroup: %r',
+                                  container.resgroup.name)
                         self.resgroups_containers_relation[container.resgroup.name][0].cleanup()
                         del self.resgroups_containers_relation[container.resgroup.name]
 
                 if task_rdt_allocation.name in self.resgroups_containers_relation:
-                    # Move container to existing resgroup 
+                    # Move container to existing resgroup.
                     log.debug('reassign_resgroups: move to resgroup: %r', task_rdt_allocation)
                     container.change_resgroup(self._get_resgroup_by_name(task_rdt_allocation.name))
                     self.resgroups_containers_relation[task_rdt_allocation.name][1].add(container)
                 else:
                     # Creation of a new resgroup.
-                    new_resgroup_name = (task_rdt_allocation.name if task_rdt_allocation.name is not None else task_id)
+                    new_resgroup_name = (task_rdt_allocation.name
+                                         if task_rdt_allocation.name is not None else task_id)
                     log.debug('reassign_resgroups: create resgroup: %r', new_resgroup_name)
                     new_resgroup = ResGroup(name=new_resgroup_name)
                     self.resgroups_containers_relation[new_resgroup_name] = \
