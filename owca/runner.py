@@ -332,7 +332,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                             ignored_allocations += 1
 
             new_tasks_allocations = {t: a for t, a in new_tasks_allocations.items()
-                                 if not t in task_ids_to_remove}
+                                     if t not in task_ids_to_remove}
         return ignored_allocations, new_tasks_allocations
 
     def run(self):
@@ -379,7 +379,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             allocations_package.add_metrics(
                 allocations_metrics,
                 extra_metrics,
-                self.get_allocations_statistics_metrics(new_tasks_allocations, 
+                self.get_allocations_statistics_metrics(new_tasks_allocations,
                                                         allocate_duration, ignored_allocations),
             )
             allocations_package.send(common_labels)

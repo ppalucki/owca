@@ -67,7 +67,7 @@ def test_add_tasks(*args):
 }))
 def test_sync_no_space_left_on_device(makedirs_mock, exists_mock, log_warning_mock):
     with pytest.raises(Exception, match='Limit of workloads reached'):
-        resgroup = ResGroup("best_efforts")
+        ResGroup("best_efforts")
 
 
 @patch('builtins.open', new=create_open_mock({

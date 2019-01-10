@@ -256,7 +256,7 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     platform = Platform(sockets=nr_of_sockets, cores=nr_of_cores, cpus=nr_of_cpus,
                         cpus_usage=parse_proc_stat(read_proc_stat()),
                         total_memory_used=parse_proc_meminfo(read_proc_meminfo()),
-                        timestamp=time.time(), rdt_cbm_mask=rdt_cbm_mask, 
+                        timestamp=time.time(), rdt_cbm_mask=rdt_cbm_mask,
                         rdt_min_cbm_bits=rdt_min_cbm_bits)
     assert len(platform.cpus_usage) == platform.cpus, "Inconsistency in cpu data returned by kernel"
     return platform, create_metrics(platform), create_labels(platform)

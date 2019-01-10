@@ -15,16 +15,20 @@
 import pytest
 from owca.cbm_bits import check_cbm_bits
 
+
 def test_check_cbm_bits_success():
     check_cbm_bits('ff00', 'ffff', '1')
+
 
 def test_check_cbm_bits_gap():
     with pytest.raises(ValueError):
         check_cbm_bits('f0f', 'ffff', '1')
 
+
 def test_check_not_enough_cbm_bits():
     with pytest.raises(ValueError):
         check_cbm_bits('0', 'ffff', '1')
+
 
 def test_check_too_big_mask():
     with pytest.raises(ValueError):

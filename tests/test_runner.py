@@ -141,6 +141,7 @@ def test_detection_runner_containers_state(*mocks):
 
     runner.wait_or_finish.assert_called_once()
 
+
 @pytest.mark.skip('WIP')
 @patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
 @patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')

@@ -18,6 +18,7 @@ from unittest.mock import Mock
 from owca.storage import MetricPackage, Storage
 from owca.metrics import Metric
 
+
 def test_metrics_package():
     m1 = Metric(name='average_latency_miliseconds', value=8)
     storage = Mock(spec=Storage)
@@ -26,8 +27,6 @@ def test_metrics_package():
     mp.send(dict(foo='label_val'))
     assert storage.store.call_count == 1
     storage.store.assert_called_once_with(
-        [Metric(name='average_latency_miliseconds', value=8, 
+        [Metric(name='average_latency_miliseconds', value=8,
                 labels={'foo': 'label_val'}, type=None, help=None)]
     )
-
-

@@ -17,6 +17,7 @@ from owca.platforms import Platform
 
 log = logging.getLogger(__name__)
 
+
 @dataclass
 class StaticAllocator(Allocator):
     """
@@ -71,8 +72,7 @@ class StaticAllocator(Allocator):
         else:
             log.info('found %i tasks with labels: ', len(tasks_labels))
             for task_id, labels in tasks_labels.items():
-                log.debug('%s', ' '.join('%s=%s'%(k, v) for k, v in sorted(labels.items())))
-
+                log.debug('%s', ' '.join('%s=%s' % (k, v) for k, v in sorted(labels.items())))
 
             # Load configuration and
             rules = load_config(self.config)
@@ -90,7 +90,7 @@ class StaticAllocator(Allocator):
                     continue
 
                 log.info('StaticAllocator(%s): processing %s rule.', rule_idx,
-                          '(%s)' % rule['name'] if 'name' in rule else '')
+                         '(%s)' % rule['name'] if 'name' in rule else '')
 
                 new_task_allocations = rule['allocations']
                 if 'rdt' in new_task_allocations:
@@ -112,7 +112,7 @@ class StaticAllocator(Allocator):
                             if re.match(str(labels[label_name]), task_labels[label_name]):
                                 match_task_ids.add(task_id)
                                 log.debug('StaticAllocator(%s):  match task %r by label=%s',
-                                         rule_idx, task_id, label_name)
+                                          rule_idx, task_id, label_name)
                 else:
                     # no labes and no match id - matche everything
                     log.debug('StaticAllocator(%s):  match all tasks', rule_idx)
@@ -127,11 +127,11 @@ class StaticAllocator(Allocator):
                 for match_task_id in match_task_ids:
                     this_rule_tasks_allocations[match_task_id] = new_task_allocations
 
-                new_tasks_allocations, resulting_this_task_allocations = _calculate_tasks_allocations(
-                    new_tasks_allocations, this_rule_tasks_allocations)
+                new_tasks_allocations, resulting_this_task_allocations = \
+                    _calculate_tasks_allocations(new_tasks_allocations, this_rule_tasks_allocations)
 
                 log.debug('StaticAllocator(%s): this rule resulting allocations: \n %s', rule_idx,
-                         pprint.pformat(resulting_this_task_allocations))
+                          pprint.pformat(resulting_this_task_allocations))
 
             log.debug('StaticAllocator: final tasks allocations: \n %s',
                       pprint.pformat(new_tasks_allocations))
