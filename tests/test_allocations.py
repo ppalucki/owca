@@ -47,7 +47,7 @@ r = AllocationType.RDT
         ({r: RDTAllocation(name='x', l3='ff')}, {r: RDTAllocation(name='x', l3='dd')},
          {r: RDTAllocation(name='x', l3='dd')}, {r: RDTAllocation(name='x', l3='dd')}),
         ({r: RDTAllocation(name='x', l3='dd', mb='ff')}, {r: RDTAllocation(name='x', mb='ff')},
-         {r: RDTAllocation(name='x', l3='dd', mb='ff')}, {r: RDTAllocation(name='x', mb='ff')}),
+         {r: RDTAllocation(name='x', l3='dd', mb='ff')}, {r: RDTAllocation(name='x')}),
     ))
 def test_calculate_task_allocations(
         old_task_allocations, new_task_allocations,
