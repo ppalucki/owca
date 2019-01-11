@@ -219,9 +219,9 @@ class ResGroup:
         with open(os.path.join(self.fullpath, SCHEMATA)) as schemata:
             for line in schemata:
                 if 'MB' in line:
-                    rdt_allocations.mb = line.rstrip()
+                    rdt_allocations.mb = line.strip()
                 elif 'L3' in line:
-                    rdt_allocations.l3 = line.rstrip()
+                    rdt_allocations.l3 = line.strip()
 
         return {AllocationType.RDT: rdt_allocations}
 

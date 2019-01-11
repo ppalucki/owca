@@ -9,7 +9,7 @@ import dataclasses
 from dataclasses import dataclass
 
 from owca.allocators import Allocator, TasksAllocations, RDTAllocation, \
-    _calculate_tasks_allocations
+    _calculate_tasks_allocations, AllocationType
 from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
@@ -94,7 +94,8 @@ class StaticAllocator(Allocator):
 
                 new_task_allocations = rule['allocations']
                 if 'rdt' in new_task_allocations:
-                    new_task_allocations['rdt'] = RDTAllocation(**new_task_allocations['rdt'])
+                    new_task_allocations[AllocationType.RDT] = RDTAllocation(
+                        **new_task_allocations['rdt'])
 
                 # If match is by task_id just use it instead of labels
                 match_task_ids = set()

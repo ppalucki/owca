@@ -4,7 +4,7 @@
     cpu_quota: 0.5 
     rdt:
         name: ''
-        l3: 'L3:0=fff;1=00fff'
+        l3: 'L3:0=00fff;1=00fff'
 
 - name: not for first task
   labels:
@@ -14,4 +14,4 @@
     cpu_quota: 1.
     rdt:
         name: 'be'
-        l3: 'L3:0=1;1=fffff'
+        l3: 'L3:0=00002;1=fffff'
