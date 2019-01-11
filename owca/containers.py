@@ -296,7 +296,8 @@ class ContainerManager:
         """
         all_allocations, resulting_allocations = _calculate_tasks_allocations(
                 old_allocations, new_allocations)
-        log.log(logger.TRACE, 'sync_allocations: Resulting allocations to execute: %r', resulting_allocations)
+        log.log(logger.TRACE, 'sync_allocations: Resulting allocations to execute: %r',
+                resulting_allocations)
 
         if self.rdt_enabled:
             self._reassign_resgroups(resulting_allocations)

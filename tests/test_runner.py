@@ -153,10 +153,9 @@ def test_detection_runner_containers_state(*mocks):
 @patch('owca.containers.Cgroup.perform_allocations')
 @patch('time.time', return_value=1234567890.123)
 def test_allocation_runner_containers_state(*mocks):
-    """
-    @TODO describe the test
-    """
-    task_labels_sanitized_with_task_id = {'task_id': 'task-id-/t1'}
+    """"""
+
+    # task_labels_sanitized_with_task_id = {'task_id': 'task-id-/t1'}
 
     # Node mock
     node_mock = Mock(spec=MesosNode, get_tasks=Mock(return_value=[
@@ -183,7 +182,8 @@ def test_allocation_runner_containers_state(*mocks):
                 {
                     'task-id-/t1': {
                         AllocationType.QUOTA: 1000,
-                        AllocationType.RDT: RDTAllocation(name='only_group', l3='L3:0=00fff;1=0ffff')
+                        AllocationType.RDT:
+                            RDTAllocation(name='only_group', l3='L3:0=00fff;1=0ffff')
                     }
                 }, [], []
             )
@@ -202,7 +202,6 @@ def test_allocation_runner_containers_state(*mocks):
         allocator=allocator_mock,
         extra_labels=extra_labels,
     )
-        
     # Mock one of the methods.
     AllocationRunner.configure_rdt = Mock(return_value=True)
 
@@ -210,21 +209,19 @@ def test_allocation_runner_containers_state(*mocks):
 
     platform_mock = Mock(spec=platforms.Platform)
 
-
     # first run
     with patch('owca.platforms.collect_platform_information', return_value=(
             platform_mock, [metric('platform-cpu-usage')], {})):
-        import ipdb; ipdb.set_trace()
         runner.run()
 
     assert (len(runner.containers_manager.resgroups_containers_relation['only_group'][1]) == 1)
 
     # second run
     runner.node = Mock(spec=MesosNode, get_tasks=Mock(return_value=[
-        task('/t1', resources=dict(cpus=8.), labels={}), task('/t2', resources=dict(cpus=9.), labels={})]))
+        task('/t1', resources=dict(cpus=8.), labels={}),
+        task('/t2', resources=dict(cpus=9.), labels={})]))
     with patch('owca.platforms.collect_platform_information', return_value=(
             platform_mock, [metric('platform-cpu-usage')], {})):
-        import ipdb; ipdb.set_trace()
         runner.run()
 
     assert (len(runner.containers_manager.resgroups_containers_relation['only_group'][1]) == 1)

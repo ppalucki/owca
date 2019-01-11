@@ -187,8 +187,10 @@ def _calculate_task_allocations_changeset(
         -> Tuple[TaskAllocations, TaskAllocations]:
     """Return tuple of resource allocation (changeset) per task.
     """
-    log.debug('_calculate_task_allocations: -> old_task_allocations=\n%s', pformat(old_task_allocations))
-    log.debug('_calculate_task_allocations: -> new_task_allocations=\n%s', pformat(new_task_allocations))
+    log.debug('_calculate_task_allocations: -> old_task_allocations=\n%s',
+              pformat(old_task_allocations))
+    log.debug('_calculate_task_allocations: -> new_task_allocations=\n%s',
+              pformat(new_task_allocations))
     all_task_allocations: TaskAllocations = dict(old_task_allocations)
     resulting_task_allocations: TaskAllocations = {}
 
@@ -209,8 +211,10 @@ def _calculate_task_allocations_changeset(
                 target_task_allocations[allocation_type] = value
                 task_allocations_changeset[allocation_type] = value
 
-    log.debug('_calculate_task_allocations: <- all_task_allocations=\n%s', pformat(all_task_allocations))
-    log.debug('_calculate_task_allocations: <- resulting_task_allocations=\n%s', pformat(resulting_task_allocations))
+    log.debug('_calculate_task_allocations: <- all_task_allocations=\n%s',
+              pformat(all_task_allocations))
+    log.debug('_calculate_task_allocations: <- resulting_task_allocations=\n%s',
+              pformat(resulting_task_allocations))
     return all_task_allocations, resulting_task_allocations
 
 
