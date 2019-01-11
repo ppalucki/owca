@@ -14,54 +14,53 @@
 
 import pytest
 
-from owca.allocators import _calculate_task_allocations, _calculate_tasks_allocations, \
-    RDTAllocation, AllocationType, convert_tasks_allocations_to_metrics, \
-    _parse_schemata_file_domains, _count_enabled_bits, _merge_rdt_allocation
+from owca.allocators import _calculate_task_allocations_changeset, \
+    _calculate_tasks_allocations_changeset, RDTAllocation, AllocationType, \
+    _convert_tasks_allocations_to_metrics, _parse_schemata_file_domains, \
+    _count_enabled_bits, _merge_rdt_allocation
 from owca.metrics import Metric, MetricType
 
-r = AllocationType.RDT
-
 
 @pytest.mark.parametrize(
-    'old_task_allocations,new_task_allocations,'
-    'expected_all_task_allocations,expected_resulting_task_allocations', (
-        ({}, {},
-         {}, {}),
-        ({'a': 0.2}, {},
-         {'a': 0.2}, {}),
-        ({'a': 0.2}, {'a': 0.2},
-         {'a': 0.2}, {}),
-        ({'b': 2}, {'b': 3},
-         {'b': 3}, {'b': 3}),
-        ({'a': 0.2, 'b': 0.4}, {'a': 0.2, 'b': 0.5},
-         {'a': 0.2, 'b': 0.5}, {'b': 0.5}),
-        ({}, {'a': 0.2, 'b': 0.5},
-         {'a': 0.2, 'b': 0.5}, {'a': 0.2, 'b': 0.5}),
-        # RDTAllocations
-        ({}, {r: RDTAllocation(name='', l3='ff')},
-         {r: RDTAllocation(name='', l3='ff')}, {r: RDTAllocation(name='', l3='ff')}),
-        ({r: RDTAllocation(name='', l3='ff')}, {},
-         {r: RDTAllocation(name='', l3='ff')}, {}),
-        ({r: RDTAllocation(name='', l3='ff')}, {r: RDTAllocation(name='x', l3='ff')},
-         {r: RDTAllocation(name='x', l3='ff')}, {r: RDTAllocation(name='x', l3='ff')}),
-        ({r: RDTAllocation(name='x', l3='ff')}, {r: RDTAllocation(name='x', l3='dd')},
-         {r: RDTAllocation(name='x', l3='dd')}, {r: RDTAllocation(name='x', l3='dd')}),
-        ({r: RDTAllocation(name='x', l3='dd', mb='ff')}, {r: RDTAllocation(name='x', mb='ff')},
-         {r: RDTAllocation(name='x', l3='dd', mb='ff')}, {r: RDTAllocation(name='x')}),
+    'current_task_allocations,new_task_allocations,'
+    'expected_target_task_allocations,expected_task_allocations_changeset', (
+     ({}, {},
+      {}, {}),
+     ({'a': 0.2}, {},
+      {'a': 0.2}, {}),
+     ({'a': 0.2}, {'a': 0.2},
+      {'a': 0.2}, {}),
+     ({'b': 2}, {'b': 3},
+      {'b': 3}, {'b': 3}),
+     ({'a': 0.2, 'b': 0.4}, {'a': 0.2, 'b': 0.5},
+      {'a': 0.2, 'b': 0.5}, {'b': 0.5}),
+     ({}, {'a': 0.2, 'b': 0.5},
+      {'a': 0.2, 'b': 0.5}, {'a': 0.2, 'b': 0.5}),
+     # RDTAllocations
+     ({}, {"rdt": RDTAllocation(name='', l3='ff')},
+      {"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='', l3='ff')}),
+     ({"rdt": RDTAllocation(name='', l3='ff')}, {},
+      {"rdt": RDTAllocation(name='', l3='ff')}, {}),
+     ({"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')},
+      {"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')}),
+     ({"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='dd')},
+      {"rdt": RDTAllocation(name='x', l3='dd')}, {"rdt": RDTAllocation(name='x', l3='dd')}),
+     ({"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, {"rdt": RDTAllocation(name='x', mb='ff')},
+      {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, {}),
     ))
 def test_calculate_task_allocations(
-        old_task_allocations, new_task_allocations,
-        expected_all_task_allocations, expected_resulting_task_allocations):
-    all_task_allocations, resulting_task_allocations = _calculate_task_allocations(
-        old_task_allocations, new_task_allocations
+        current_task_allocations, new_task_allocations,
+        expected_target_task_allocations, expected_task_allocations_changeset):
+    target_task_allocations, task_allocations_changeset = _calculate_task_allocations_changeset(
+        current_task_allocations, new_task_allocations
     )
-    assert all_task_allocations == expected_all_task_allocations
-    assert resulting_task_allocations == expected_resulting_task_allocations
+    assert target_task_allocations == expected_target_task_allocations
+    assert task_allocations_changeset == expected_task_allocations_changeset
 
 
 @pytest.mark.parametrize(
-    'old_tasks_allocations,new_tasks_allocations,'
-    'expected_all_tasks_allocations,expected_resulting_tasks_allocations', (
+    'current_tasks_allocations,new_tasks_allocations,'
+    'expected_target_tasks_allocations,expected_tasks_allocations_changeset', (
         ({}, {},
          {}, {}),
         (dict(t1={'a': 2}), {},
@@ -69,15 +68,15 @@ def test_calculate_task_allocations(
         (dict(t1={'a': 1}), dict(t1={'b': 2}, t2={'b': 3}),
          dict(t1={'a': 1, 'b': 2}, t2={'b': 3}), dict(t1={'b': 2}, t2={'b': 3})),
     ))
-def test_calculate_tasks_allocations(
-        old_tasks_allocations, new_tasks_allocations,
-        expected_all_tasks_allocations, expected_resulting_tasks_allocations
+def test_calculate_tasks_allocations_changeset(
+        current_tasks_allocations, new_tasks_allocations,
+        expected_target_tasks_allocations, expected_tasks_allocations_changeset
 ):
-    all_tasks_allocations, resulting_tasks_allocations = _calculate_tasks_allocations(
-        old_tasks_allocations, new_tasks_allocations
+    target_tasks_allocations, tasks_allocations_changeset = _calculate_tasks_allocations_changeset(
+        current_tasks_allocations, new_tasks_allocations
     )
-    assert all_tasks_allocations == expected_all_tasks_allocations
-    assert resulting_tasks_allocations == expected_resulting_tasks_allocations
+    assert target_tasks_allocations == expected_target_tasks_allocations
+    assert tasks_allocations_changeset == expected_tasks_allocations_changeset
 
 
 @pytest.mark.parametrize('hexstr,expected_bits_count', (
@@ -195,13 +194,13 @@ def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, expected
     ]),
 ))
 def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics):
-    metrics_got = convert_tasks_allocations_to_metrics(tasks_allocations)
+    metrics_got = _convert_tasks_allocations_to_metrics(tasks_allocations)
     assert metrics_got == expected_metrics
 
 
 @pytest.mark.parametrize(
-    'old_rdt_alloaction, new_rdt_allocation,'
-    'expected_all_rdt_allocation,expected_resulting_rdt_allocation', (
+    'current_rdt_alloaction, new_rdt_allocation,'
+    'expected_target_rdt_allocation,expected_rdt_allocation_changeset', (
         (None, RDTAllocation(),
          RDTAllocation(), RDTAllocation()),
         (RDTAllocation(name=''), RDTAllocation(),  # empty group overrides existing
@@ -217,10 +216,10 @@ def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics
     )
 )
 def test_merge_rdt_allocations1(
-        old_rdt_alloaction, new_rdt_allocation,
-        expected_all_rdt_allocation, expected_resulting_rdt_allocation):
-    got_all_rdt_allocation, got_resulting_rdt_alloction = _merge_rdt_allocation(old_rdt_alloaction,
-                                                                                new_rdt_allocation)
+        current_rdt_alloaction, new_rdt_allocation,
+        expected_target_rdt_allocation, expected_rdt_allocation_changeset):
+    got_target_rdt_allocation, got_rdt_alloction_changeset = \
+        _merge_rdt_allocation(current_rdt_alloaction, new_rdt_allocation)
 
-    assert got_all_rdt_allocation == expected_all_rdt_allocation
-    assert got_resulting_rdt_alloction == expected_resulting_rdt_allocation
+    assert got_target_rdt_allocation == expected_target_rdt_allocation
+    assert got_rdt_alloction_changeset == expected_rdt_allocation_changeset

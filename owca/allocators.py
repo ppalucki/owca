@@ -13,6 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from enum import Enum
+from pprint import pformat
 from typing import List, Dict, Union, Tuple, Optional
 import logging
 
@@ -126,7 +127,7 @@ class NOPAllocator(Allocator):
 # private logic to handle allocations
 # -----------------------------------------------------------------------
 
-def convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -> List[Metric]:
+def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -> List[Metric]:
     """Takes allocations on input and convert them to something that can be
     stored persistently as metrics adding help/type fields and labels.
 
@@ -155,87 +156,110 @@ def convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) ->
     return metrics
 
 
-def _merge_rdt_allocation(old_rdt_allocation: Optional[RDTAllocation],
+def _merge_rdt_allocation(current_rdt_allocation: Optional[RDTAllocation],
                           new_rdt_allocation: RDTAllocation)\
         -> Tuple[RDTAllocation, RDTAllocation]:
-    """Merge two RDTAllocation objects (old and new) and return sum of the alloctions
-    (all_rdt_allaction) and allocations that need to be applied now (resulting_rdt_alloaction)."""
+    """Merge RDTAllocation objects and return sum of the allocations
+    (target_rdt_allaction) and allocations that need to be updated
+    (rdt_alloaction_changeset)."""
     # new name, then new allocation will be used (overwrite) but no merge
-    if old_rdt_allocation is None or old_rdt_allocation.name != new_rdt_allocation.name:
+    if current_rdt_allocation is None or current_rdt_allocation.name != new_rdt_allocation.name:
         return new_rdt_allocation, new_rdt_allocation
     else:
-        all_rdt_allocation = RDTAllocation(
-            name=old_rdt_allocation.name,
-            l3=new_rdt_allocation.l3 or old_rdt_allocation.l3,
-            mb=new_rdt_allocation.mb or old_rdt_allocation.mb,
+        target_rdt_allocation = RDTAllocation(
+            name=current_rdt_allocation.name,
+            l3=new_rdt_allocation.l3 or current_rdt_allocation.l3,
+            mb=new_rdt_allocation.mb or current_rdt_allocation.mb,
         )
-        resulting_rdt_allocation = RDTAllocation(
+        rdt_allocation_changeset = RDTAllocation(
             name=new_rdt_allocation.name,
         )
-        if old_rdt_allocation.l3 != new_rdt_allocation.l3:
-            resulting_rdt_allocation.l3 = new_rdt_allocation.l3
-        if old_rdt_allocation.mb != new_rdt_allocation.mb:
-            resulting_rdt_allocation.mb = new_rdt_allocation.mb
-        return all_rdt_allocation, resulting_rdt_allocation
+        if current_rdt_allocation.l3 != new_rdt_allocation.l3:
+            rdt_allocation_changeset.l3 = new_rdt_allocation.l3
+        if current_rdt_allocation.mb != new_rdt_allocation.mb:
+            rdt_allocation_changeset.mb = new_rdt_allocation.mb
+        return target_rdt_allocation, rdt_allocation_changeset
 
 
-def _calculate_task_allocations(
-        old_task_allocations: TaskAllocations,
+def _calculate_task_allocations_changeset(
+        current_task_allocations: TaskAllocations,
         new_task_allocations: TaskAllocations)\
         -> Tuple[TaskAllocations, TaskAllocations]:
-    """Return allocations difference on single task level.
-    all - are the sum of existing and new
-    resulting - are just new allocaitons
+    """Return tuple of resource allocation (changeset) per task.
     """
-    all_task_allocations: TaskAllocations = dict(old_task_allocations)
-    resulting_task_allocations: TaskAllocations = {}
+    log.debug('_calculate_task_allocations_changeset: -> current_task_allocations=\n%s',
+              pformat(current_task_allocations))
+    log.debug('_calculate_task_allocations_changeset: -> new_task_allocations=\n%s',
+              pformat(new_task_allocations))
+    target_task_allocations: TaskAllocations = dict(current_task_allocations)
+    task_allocations_changeset: TaskAllocations = {}
 
     for allocation_type, value in new_task_allocations.items():
+        if not isinstance(value, Enum):
+            log.warning('improper allocation type: got %r', allocation_type)
         # treat rdt diffrently
         if allocation_type == AllocationType.RDT:
-            old_rdt_allocation = old_task_allocations.get(AllocationType.RDT)
-            all_rdt_allocation, resulting_rdt_allocation = \
+            old_rdt_allocation = current_task_allocations.get(AllocationType.RDT)
+            target_rdt_allocation, rdt_allocation_changeset = \
                 _merge_rdt_allocation(old_rdt_allocation, value)
-            all_task_allocations[AllocationType.RDT] = all_rdt_allocation
-            resulting_task_allocations[AllocationType.RDT] = resulting_rdt_allocation
+            target_task_allocations[AllocationType.RDT] = target_rdt_allocation
+            if rdt_allocation_changeset.l3 is not None or rdt_allocation_changeset.mb is not None:
+                task_allocations_changeset[AllocationType.RDT] = rdt_allocation_changeset
         else:
-            if allocation_type not in all_task_allocations or \
-                    all_task_allocations[allocation_type] != value:
-                all_task_allocations[allocation_type] = value
-                resulting_task_allocations[allocation_type] = value
+            if allocation_type not in target_task_allocations or \
+                    target_task_allocations[allocation_type] != value:
+                target_task_allocations[allocation_type] = value
+                task_allocations_changeset[allocation_type] = value
 
-    return all_task_allocations, resulting_task_allocations
+    log.debug('_calculate_task_allocations_changeset: <- target_task_allocations=\n%s',
+              pformat(target_task_allocations))
+    log.debug('_calculate_task_allocations_changeset: <- task_allocations_changeset=\n%s',
+              pformat(task_allocations_changeset))
+    return target_task_allocations, task_allocations_changeset
 
 
-def _calculate_tasks_allocations(
-        old_tasks_allocations: TasksAllocations, new_tasks_allocations: TasksAllocations) \
+def _calculate_tasks_allocations_changeset(
+        current_tasks_allocations: TasksAllocations, new_tasks_allocations: TasksAllocations) \
         -> Tuple[TasksAllocations, TasksAllocations]:
-    """Return all_allocations that are the effect on applied new_allocations on
-    old_allocations, additionally returning allocations that need to be applied just now.
+    """Return tasks allocations that need to be applied.
+    Takes as input:
+    1) current_tasks_allocations: currently applied allocations in the system,
+    2) new_tasks_allocations: new to be applied allocations
+
+    and outputs:
+    1) target_tasks_allocations: the list of all allocations which will
+    be applied in the system in next step:
+       so it is a sum of inputs (if the are conflicting allocations
+       in both inputs the value is taken from new_tasks_allocations).
+    2) tasks_allocations_changeset: only allocations from
+       new_tasks_allocations which are not contained already
+       in current_tasks_allocations (set difference
+       of input new_tasks_allocations and input current_tasks_allocations)
     """
-    all_tasks_allocations: TasksAllocations = {}
-    resulting_tasks_allocations: TasksAllocations = {}
+    target_tasks_allocations: TasksAllocations = {}
+    tasks_allocations_changeset: TasksAllocations = {}
 
     # check and merge & overwrite with old allocations
-    for task_id, old_task_allocations in old_tasks_allocations.items():
+    for task_id, current_task_allocations in current_tasks_allocations.items():
         if task_id in new_tasks_allocations:
             new_task_allocations = new_tasks_allocations[task_id]
-            all_task_allocations, resulting_task_allocations = _calculate_task_allocations(
-                old_task_allocations, new_task_allocations)
-            all_tasks_allocations[task_id] = all_task_allocations
-            resulting_tasks_allocations[task_id] = resulting_task_allocations
+            target_task_allocations, changeset_task_allocations = \
+                _calculate_task_allocations_changeset(current_task_allocations,
+                                                      new_task_allocations)
+            target_tasks_allocations[task_id] = target_task_allocations
+            tasks_allocations_changeset[task_id] = changeset_task_allocations
         else:
-            all_tasks_allocations[task_id] = old_task_allocations
+            target_tasks_allocations[task_id] = current_task_allocations
 
     # if there are any new_allocations on task level that yet not exists in old_allocations
     # then just add them to both list
-    only_new_tasks_ids = set(new_tasks_allocations) - set(old_tasks_allocations)
+    only_new_tasks_ids = set(new_tasks_allocations) - set(current_tasks_allocations)
     for only_new_task_id in only_new_tasks_ids:
         task_allocations = new_tasks_allocations[only_new_task_id]
-        all_tasks_allocations[only_new_task_id] = task_allocations
-        resulting_tasks_allocations[only_new_task_id] = task_allocations
+        target_tasks_allocations[only_new_task_id] = task_allocations
+        tasks_allocations_changeset[only_new_task_id] = task_allocations
 
-    return all_tasks_allocations, resulting_tasks_allocations
+    return target_tasks_allocations, tasks_allocations_changeset
 
 
 def _parse_schemata_file_domains(line: str) -> Dict[str, str]:
