@@ -195,8 +195,6 @@ def _calculate_task_allocations_changeset(
     task_allocations_changeset: TaskAllocations = {}
 
     for allocation_type, value in new_task_allocations.items():
-        if not isinstance(value, Enum):
-            log.warning('improper allocation type: got %r', allocation_type)
         # treat rdt diffrently
         if allocation_type == AllocationType.RDT:
             old_rdt_allocation = current_task_allocations.get(AllocationType.RDT)
