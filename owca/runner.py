@@ -359,9 +359,9 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             log.info('Allocations received: %d%s', len(new_tasks_allocations),
                      ' (%i invalid ignored)' % ignored_allocations if ignored_allocations else '')
 
-            all_tasks_allocations = self.containers_manager.sync_allocations(
-                old_allocations=tasks_allocations,
-                new_allocations=new_tasks_allocations,
+            target_tasks_allocations = self.containers_manager.sync_allocations(
+                current_tasks_allocations=tasks_allocations,
+                new_tasks_allocations=new_tasks_allocations,
             )
 
             # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
@@ -374,7 +374,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             anomalies_package.send(common_labels)
 
             # Store allocations information
-            allocations_metrics = convert_tasks_allocations_to_metrics(all_tasks_allocations)
+            allocations_metrics = convert_tasks_allocations_to_metrics(target_tasks_allocations)
             allocations_package = MetricPackage(self.allocations_storage)
             allocations_package.add_metrics(
                 allocations_metrics,

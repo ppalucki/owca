@@ -159,8 +159,8 @@ def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -
 def _merge_rdt_allocation(current_rdt_allocation: Optional[RDTAllocation],
                           new_rdt_allocation: RDTAllocation)\
         -> Tuple[RDTAllocation, RDTAllocation]:
-    """Merge RDTAllocation objects and return sum of the allocations
-    (target_rdt_allaction) and allocations that need to be updated
+    """Merge two RDTAllocation objects (old and new) and return sum of the alloctions
+    (target_rdt_allaction) and allocations that need to be applied now
     (rdt_alloaction_changeset)."""
     # new name, then new allocation will be used (overwrite) but no merge
     if current_rdt_allocation is None or current_rdt_allocation.name != new_rdt_allocation.name:
@@ -185,14 +185,14 @@ def _calculate_task_allocations_changeset(
         current_task_allocations: TaskAllocations,
         new_task_allocations: TaskAllocations)\
         -> Tuple[TaskAllocations, TaskAllocations]:
-    """Return tuple of resource allocation (changeset) per task.
+    """Return allocations difference (changeset) on single task scope.
     """
-    log.debug('_calculate_task_allocations: -> old_task_allocations=\n%s',
-              pformat(old_task_allocations))
-    log.debug('_calculate_task_allocations: -> new_task_allocations=\n%s',
+    log.debug('_calculate_task_allocations_changeset: -> current_task_allocations=\n%s',
+              pformat(current_task_allocations))
+    log.debug('_calculate_task_allocations_changeset: -> new_task_allocations=\n%s',
               pformat(new_task_allocations))
-    all_task_allocations: TaskAllocations = dict(old_task_allocations)
-    resulting_task_allocations: TaskAllocations = {}
+    target_task_allocations: TaskAllocations = dict(current_task_allocations)
+    task_allocations_changeset: TaskAllocations = {}
 
     for allocation_type, value in new_task_allocations.items():
         if not isinstance(value, Enum):
@@ -203,19 +203,18 @@ def _calculate_task_allocations_changeset(
             target_rdt_allocation, rdt_allocation_changeset = \
                 _merge_rdt_allocation(old_rdt_allocation, value)
             target_task_allocations[AllocationType.RDT] = target_rdt_allocation
-            if rdt_allocation_changeset.l3 is not None or rdt_allocation_changeset.mb is not None:
-                task_allocations_changeset[AllocationType.RDT] = rdt_allocation_changeset
+            task_allocations_changeset[AllocationType.RDT] = rdt_allocation_changeset
         else:
             if allocation_type not in target_task_allocations or \
                     target_task_allocations[allocation_type] != value:
                 target_task_allocations[allocation_type] = value
                 task_allocations_changeset[allocation_type] = value
 
-    log.debug('_calculate_task_allocations: <- all_task_allocations=\n%s',
-              pformat(all_task_allocations))
-    log.debug('_calculate_task_allocations: <- resulting_task_allocations=\n%s',
-              pformat(resulting_task_allocations))
-    return all_task_allocations, resulting_task_allocations
+    log.debug('_calculate_task_allocations_changeset: <- target_task_allocations=\n%s',
+              pformat(target_task_allocations))
+    log.debug('_calculate_task_allocations_changeset: <- task_allocations_changeset=\n%s',
+              pformat(task_allocations_changeset))
+    return target_task_allocations, task_allocations_changeset
 
 
 def _calculate_tasks_allocations_changeset(

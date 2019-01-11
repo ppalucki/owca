@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 from owca import logger
 from owca.allocators import AllocationConfiguration, TaskAllocations, TasksAllocations, \
-    _calculate_tasks_allocations, AllocationType
+    _calculate_tasks_allocations_changeset, AllocationType
 from owca.nodes import Task
 from owca.resctrl import ResGroup, ResGroupName, RESCTRL_ROOT_NAME
 from owca.cgroups import Cgroup
@@ -286,24 +286,24 @@ class ContainerManager:
         for container in self.containers.values():
             container.cleanup()
 
-    def sync_allocations(self, old_allocations: TasksAllocations,
-                         new_allocations: TasksAllocations):
+    def sync_allocations(self, current_tasks_allocations: TasksAllocations,
+                         new_tasks_allocations: TasksAllocations):
         """After new allocations returned from allocate function, calculate the difference
         between actual state and expected and execute nessesary steps to apply required changes
         to system.
         Required changes to system means:
         - created if nesseasry RdtGroups
         """
-        all_allocations, resulting_allocations = _calculate_tasks_allocations(
-                old_allocations, new_allocations)
-        log.log(logger.TRACE, 'sync_allocations: Resulting allocations to execute: %r',
-                resulting_allocations)
+        target_tasks_allocations, tasks_allocations_changeset = \
+            _calculate_tasks_allocations_changeset(current_tasks_allocations, new_tasks_allocations)
+        log.log(logger.TRACE, 'sync_allocations: tasks allocations changeset to execute: %r',
+                tasks_allocations_changeset)
 
         if self.rdt_enabled:
-            self._reassign_resgroups(resulting_allocations)
-        self._perfom_allocations(resulting_allocations)
+            self._reassign_resgroups(tasks_allocations_changeset)
+        self._perfom_allocations(tasks_allocations_changeset)
 
-        return all_allocations
+        return target_tasks_allocations
 
 
 def _calculate_desired_state(

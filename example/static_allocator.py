@@ -9,7 +9,7 @@ import dataclasses
 from dataclasses import dataclass
 
 from owca.allocators import Allocator, TasksAllocations, RDTAllocation, \
-    _calculate_tasks_allocations, AllocationType
+    _calculate_tasks_allocations_changeset, AllocationType
 from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
@@ -30,7 +30,7 @@ class StaticAllocator(Allocator):
 
     if there is not labels or any label match to task labels, then allocations are exectuted.
     If there is multiple matching rules all allocations are merged using
-    _calculate_task_allocations.
+    _calculate_task_allocations_changeset.
 
     """
 
@@ -128,11 +128,12 @@ class StaticAllocator(Allocator):
                 for match_task_id in match_task_ids:
                     this_rule_tasks_allocations[match_task_id] = new_task_allocations
 
-                new_tasks_allocations, resulting_this_task_allocations = \
-                    _calculate_tasks_allocations(new_tasks_allocations, this_rule_tasks_allocations)
+                new_tasks_allocations, this_task_allocations_changeset = \
+                    _calculate_tasks_allocations_changeset(new_tasks_allocations,
+                                                           this_rule_tasks_allocations)
 
-                log.debug('StaticAllocator(%s): this rule resulting allocations: \n %s', rule_idx,
-                          pprint.pformat(resulting_this_task_allocations))
+                log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s', rule_idx,
+                          pprint.pformat(this_task_allocations_changeset))
 
             log.debug('StaticAllocator: final tasks allocations: \n %s',
                       pprint.pformat(new_tasks_allocations))
