@@ -16,7 +16,7 @@ import pytest
 
 from owca.allocators import _calculate_task_allocations_changeset, \
     _calculate_tasks_allocations_changeset, RDTAllocation, AllocationType, \
-    convert_tasks_allocations_to_metrics, _parse_schemata_file_domains, \
+    _convert_tasks_allocations_to_metrics, _parse_schemata_file_domains, \
     _count_enabled_bits, _merge_rdt_allocation
 from owca.metrics import Metric, MetricType
 
@@ -24,37 +24,37 @@ from owca.metrics import Metric, MetricType
 @pytest.mark.parametrize(
     'current_task_allocations,new_task_allocations,'
     'expected_target_task_allocations,expected_task_allocations_changeset', (
-        ({}, {},
-         {}, {}),
-        ({'a': 0.2}, {},
-         {'a': 0.2}, {}),
-        ({'a': 0.2}, {'a': 0.2},
-         {'a': 0.2}, {}),
-        ({'b': 2}, {'b': 3},
-         {'b': 3}, {'b': 3}),
-        ({'a': 0.2, 'b': 0.4}, {'a': 0.2, 'b': 0.5},
-         {'a': 0.2, 'b': 0.5}, {'b': 0.5}),
-        ({}, {'a': 0.2, 'b': 0.5},
-         {'a': 0.2, 'b': 0.5}, {'a': 0.2, 'b': 0.5}),
-        # RDTAllocations
-        ({}, {r: RDTAllocation(name='', l3='ff')},
-         {r: RDTAllocation(name='', l3='ff')}, {r: RDTAllocation(name='', l3='ff')}),
-        ({r: RDTAllocation(name='', l3='ff')}, {},
-         {r: RDTAllocation(name='', l3='ff')}, {}),
-        ({r: RDTAllocation(name='', l3='ff')}, {r: RDTAllocation(name='x', l3='ff')},
-         {r: RDTAllocation(name='x', l3='ff')}, {r: RDTAllocation(name='x', l3='ff')}),
-        ({r: RDTAllocation(name='x', l3='ff')}, {r: RDTAllocation(name='x', l3='dd')},
-         {r: RDTAllocation(name='x', l3='dd')}, {r: RDTAllocation(name='x', l3='dd')}),
-        ({r: RDTAllocation(name='x', l3='dd', mb='ff')}, {r: RDTAllocation(name='x', mb='ff')},
-         {r: RDTAllocation(name='x', l3='dd', mb='ff')}, {r: RDTAllocation(name='x')}),
+     ({}, {},
+      {}, {}),
+     ({'a': 0.2}, {},
+      {'a': 0.2}, {}),
+     ({'a': 0.2}, {'a': 0.2},
+      {'a': 0.2}, {}),
+     ({'b': 2}, {'b': 3},
+      {'b': 3}, {'b': 3}),
+     ({'a': 0.2, 'b': 0.4}, {'a': 0.2, 'b': 0.5},
+      {'a': 0.2, 'b': 0.5}, {'b': 0.5}),
+     ({}, {'a': 0.2, 'b': 0.5},
+      {'a': 0.2, 'b': 0.5}, {'a': 0.2, 'b': 0.5}),
+     # RDTAllocations
+     ({}, {"rdt": RDTAllocation(name='', l3='ff')},
+      {"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='', l3='ff')}),
+     ({"rdt": RDTAllocation(name='', l3='ff')}, {},
+      {"rdt": RDTAllocation(name='', l3='ff')}, {}),
+     ({"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')},
+      {"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')}),
+     ({"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='dd')},
+      {"rdt": RDTAllocation(name='x', l3='dd')}, {"rdt": RDTAllocation(name='x', l3='dd')}),
+     ({"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, {"rdt": RDTAllocation(name='x', mb='ff')},
+      {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, {}),
     ))
 def test_calculate_task_allocations(
         current_task_allocations, new_task_allocations,
         expected_target_task_allocations, expected_task_allocations_changeset):
-    all_task_allocations, task_allocations_changeset = _calculate_task_allocations_changeset(
+    target_task_allocations, task_allocations_changeset = _calculate_task_allocations_changeset(
         current_task_allocations, new_task_allocations
     )
-    assert all_task_allocations == expected_target_task_allocations
+    assert target_task_allocations == expected_target_task_allocations
     assert task_allocations_changeset == expected_task_allocations_changeset
 
 
@@ -72,10 +72,10 @@ def test_calculate_tasks_allocations_changeset(
         current_tasks_allocations, new_tasks_allocations,
         expected_target_tasks_allocations, expected_tasks_allocations_changeset
 ):
-    all_tasks_allocations, tasks_allocations_changeset = _calculate_tasks_allocations_changeset(
+    target_tasks_allocations, tasks_allocations_changeset = _calculate_tasks_allocations_changeset(
         current_tasks_allocations, new_tasks_allocations
     )
-    assert all_tasks_allocations == expected_target_tasks_allocations
+    assert target_tasks_allocations == expected_target_tasks_allocations
     assert tasks_allocations_changeset == expected_tasks_allocations_changeset
 
 

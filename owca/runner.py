@@ -28,7 +28,7 @@ from owca.detectors import (TasksMeasurements, TasksResources,
                             TasksLabels, convert_anomalies_to_metrics,
                             update_anomalies_metrics_with_task_information
                             )
-from owca.allocators import Allocator, TasksAllocations, convert_tasks_allocations_to_metrics, \
+from owca.allocators import Allocator, TasksAllocations, _convert_tasks_allocations_to_metrics, \
     AllocationConfiguration, AllocationType, _parse_schemata_file_domains
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
@@ -374,7 +374,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             anomalies_package.send(common_labels)
 
             # Store allocations information
-            allocations_metrics = convert_tasks_allocations_to_metrics(target_tasks_allocations)
+            allocations_metrics = _convert_tasks_allocations_to_metrics(target_tasks_allocations)
             allocations_package = MetricPackage(self.allocations_storage)
             allocations_package.add_metrics(
                 allocations_metrics,
