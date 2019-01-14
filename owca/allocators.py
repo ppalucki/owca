@@ -35,7 +35,7 @@ class AllocationType(str, Enum):
     RDT = 'rdt'
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class RDTAllocation:
     # defaults to TaskId from TasksAllocations
     name: str = None
@@ -99,9 +99,10 @@ class AllocationConfiguration:
     # Number of shares to set, when ``cpu_shares`` allocation is set to 1.0.
     cpu_shares_max: int = 10000
 
-    # Default Allocation for default root group
-    default_rdt_allocation: RDTAllocation = None
-
+    # Default Allocation for default root group during initilization.
+    # It will be used as default for all tasks (None will set to maximum available value).
+    default_rdt_l3: str = None
+    default_rdt_mb: str = None
 
 class Allocator(ABC):
 
@@ -190,9 +191,6 @@ def _calculate_task_allocations_changeset(
         -> Tuple[TaskAllocations, TaskAllocations]:
     """Return tuple of resource allocation (changeset) per task.
     """
-    log.debug('_calculate_task_allocations_changeset():'+
-              '\ncurrent_task_allocations=\n%s\nnew_task_allocations=\n%s',
-              pformat(current_task_allocations), pformat(new_task_allocations))
     target_task_allocations: TaskAllocations = dict(current_task_allocations)
     task_allocations_changeset: TaskAllocations = {}
 
@@ -211,9 +209,13 @@ def _calculate_task_allocations_changeset(
                 target_task_allocations[allocation_type] = value
                 task_allocations_changeset[allocation_type] = value
 
-    log.debug('_calculate_task_allocations_changeset():\ntarget_task_allocations=\n%s'+
-              '\ntask_allocations_changeset=\n%s',
-              pformat(target_task_allocations), pformat(task_allocations_changeset))
+    if task_allocations_changeset:
+        log.debug('_calculate_task_allocations_changeset():'+
+                  '\ncurrent_task_allocations=\n%s\nnew_task_allocations=\n%s',
+                  pformat(current_task_allocations), pformat(new_task_allocations))
+        log.debug('_calculate_task_allocations_changeset():\ntarget_task_allocations=\n%s'+
+                  '\ntask_allocations_changeset=\n%s',
+                  pformat(target_task_allocations), pformat(task_allocations_changeset))
     return target_task_allocations, task_allocations_changeset
 
 

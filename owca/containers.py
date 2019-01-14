@@ -108,16 +108,16 @@ class Container:
         allocations: TaskAllocations = dict()
         allocations.update(self.cgroup.get_allocations())
         if self.rdt_enabled:
-            allocations.update(self.resgroup.get_allocations())
+            allocations.update(self.resgroup.get_allocations(self.resgroup.name))
 
         log.debug('get_allocations: task=%s resgroup=%r allocations:\n%s', 
                   self.task_name, self.resgroup, pprint.pformat(allocations))
 
         return allocations
 
-    def perform_allocations(self, allocations: TaskAllocations):
+    def perform_allocations(self, allocations: TaskAllocations, allocate_rdt=True):
         self.cgroup.perform_allocations(allocations)
-        if self.rdt_enabled:
+        if self.rdt_enabled and allocate_rdt:
             self.resgroup.perform_allocations(allocations)
 
     def __hash__(self):
@@ -228,10 +228,21 @@ class ContainerManager:
 
     @trace(log)
     def _perfom_allocations(self, tasks_allocations):
+        executed_rdt_allocations = set()
         for task, container in self.containers.items():
             if task.task_id in tasks_allocations:
                 task_allocations = tasks_allocations[task.task_id]
-                container.perform_allocations(task_allocations)
+
+                # Do not execute the same rdt allocation (with the same name)
+                # over and over again.
+                if task_allocations.get('rdt') is not None and \
+                    not task_allocations['rdt'] in executed_rdt_allocations:
+                    allocate_rdt = True
+                    executed_rdt_allocations.add(task_allocations['rdt'])
+                else:
+                    allocate_rdt = False
+
+                container.perform_allocations(task_allocations, allocate_rdt=allocate_rdt)
 
     # Managing resgroup and containers relation
     def _get_resgroup_by_name(self, name):
@@ -245,11 +256,13 @@ class ContainerManager:
         def _relations_to_string():
             r = ""
             for resgroup_name, (resgroup, containers) in self.resgroups_containers_relation.items():
-                c_ = [container.cgroup_path for container in containers]
-                r += " \'{}\' -> [{}]\n".format(resgroup_name, ", ".join(c_))
+                task_names = [container.task_name for container in containers]
+                r += " \'{}\' -> [{}]\n".format(resgroup_name, ", ".join(task_names))
             return r.rstrip()
 
-        log.debug('reassign_resgroups: before:\n{}'.format(_relations_to_string()))
+        # for debugging
+        before_value = _relations_to_string()
+        reassigments_count = 0
 
         for task_id, task_allocation in tasks_allocations.items():
             if AllocationType.RDT in task_allocation:
@@ -261,6 +274,12 @@ class ContainerManager:
 
                 task_rdt_allocation = task_allocation[AllocationType.RDT]
 
+                # Skip allocations than remain in the same rdt group.
+                if container.resgroup.name == task_rdt_allocation.name:
+                    continue
+
+                ### REMOVE FROM INITIAL PLACE
+
                 # Firstly remove from previous resgroup.
                 self.resgroups_containers_relation[container.resgroup.name][1].remove(container)
 
@@ -271,6 +290,9 @@ class ContainerManager:
                                   container.resgroup.name)
                         self.resgroups_containers_relation[container.resgroup.name][0].cleanup()
                         del self.resgroups_containers_relation[container.resgroup.name]
+
+
+                ### PUT SOMEWEHERE ELSE
 
                 if task_rdt_allocation.name in self.resgroups_containers_relation:
                     # Move container to existing resgroup.
@@ -287,7 +309,12 @@ class ContainerManager:
                         (new_resgroup, {container})
                     container.change_resgroup(new_resgroup)
 
-        log.debug('reassign_resgroups: after:\n{}'.format(_relations_to_string()))
+                reassigments_count += 1
+
+        log.debug('reassign_resgroups: reassigments: %i', reassigments_count)
+        if reassigments_count:
+            log.debug('reassign_resgroups: before:\n%s', before_value)
+            log.debug('reassign_resgroups: after:\n%s', _relations_to_string())
 
     def cleanup(self):
         # cleanup

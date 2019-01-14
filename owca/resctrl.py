@@ -39,11 +39,22 @@ RDT_LC = 'rdt_LC'
 
 log = logging.getLogger(__name__)
 
+def get_max_rdt_values(cbm_mask, platform_sockets):
 
-def cleanup_resctrl():
+    max_rdt_l3 = []
+    max_rdt_mb = []
+
+    for dom_id in range(platform_sockets):
+        max_rdt_l3.append('%i=%s' % (dom_id, cbm_mask))
+        max_rdt_mb.append('%i=100' % dom_id)
+
+    return 'L3:'+';'.join(max_rdt_l3), 'MB:'+':'.join(max_rdt_mb)
+
+
+def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
     """Remove taskless subfolders at resctrl folders to free scarce CLOS and RMID resources. """
 
-    def _clean_taskless_folders(initialdir, subfolder, resource_recycled):
+    def _remove_folders(initialdir, subfolder):
         for entry in os.listdir(os.path.join(initialdir, subfolder)):
             # Path to folder e.g. mesos-xxx represeting running container.
             directory_path = os.path.join(BASE_RESCTRL_PATH, subfolder, entry)
@@ -51,22 +62,38 @@ def cleanup_resctrl():
             if os.path.isdir(directory_path):
                 # Examine tasks file
                 resctrl_tasks_path = os.path.join(directory_path, TASKS_FILENAME)
-                tasks = ''
                 if not os.path.exists(resctrl_tasks_path):
                     # Skip metadata folders e.g. info.
                     continue
-                with open(resctrl_tasks_path) as f:
-                    tasks += f.read()
-                if len(tasks.split()) == 0:
-                    log.warning('Found taskless (empty) mon group at %r - recycle %s resource.'
-                                % (directory_path, resource_recycled))
-                    log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
-                            directory_path)
-                    os.rmdir(directory_path)
+                log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.'
+                            , directory_path)
+                log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
+                        directory_path)
+                os.rmdir(directory_path)
 
     # Remove all monitoring groups for both CLOS and RMID.
-    _clean_taskless_folders(BASE_RESCTRL_PATH, '', resource_recycled='CLOS')
-    _clean_taskless_folders(BASE_RESCTRL_PATH, MON_GROUPS, resource_recycled='RMID')
+    _remove_folders(BASE_RESCTRL_PATH, MON_GROUPS)
+    # Remove all resctrl groups.
+    _remove_folders(BASE_RESCTRL_PATH, '')
+
+    # Reinitialize default values for RDT.
+    if root_rdt_l3 is not None:
+        with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
+            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_l3)
+            try:
+                schemata.write(bytes(root_rdt_l3 + '\n', encoding='utf-8'))
+                schemata.flush()
+            except OSError as e:
+                log.error('Cannot set l3 cache allocation: {}'.format(e))
+
+    if root_rdt_mb is not None:
+        with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
+            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_l3)
+            try:
+                schemata.write(bytes(root_rdt_l3 + '\n', encoding='utf-8'))
+                schemata.flush()
+            except OSError as e:
+                log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))
 
 
 def check_resctrl():
@@ -217,8 +244,8 @@ class ResGroup:
 
         return {MetricName.MEM_BW: mbm_total, MetricName.LLC_OCCUPANCY: llc_occupancy}
 
-    def get_allocations(self):
-        rdt_allocations = RDTAllocation()
+    def get_allocations(self, resgroup_name):
+        rdt_allocations = RDTAllocation(name=resgroup_name)
         with open(os.path.join(self.fullpath, SCHEMATA)) as schemata:
             for line in schemata:
                 if 'MB' in line:

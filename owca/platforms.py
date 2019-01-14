@@ -230,9 +230,9 @@ def collect_rdt_information(rdt_enabled: bool) -> (str, str):
     """Returns rdt_cbm_mask, min_cbm_bits values."""
     if rdt_enabled:
         with open('/sys/fs/resctrl/info/L3/cbm_mask') as f:
-            cbm_mask = f.read()
+            cbm_mask = f.read().strip()
         with open('/sys/fs/resctrl/info/L3/min_cbm_bits') as f:
-            min_cbm_bits = f.read()
+            min_cbm_bits = f.read().strip()
         return cbm_mask, min_cbm_bits
     else:
         return None, None

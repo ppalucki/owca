@@ -34,7 +34,7 @@ from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
 from owca.logger import trace
-from owca.resctrl import check_resctrl, cleanup_resctrl
+from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -60,7 +60,7 @@ class BaseRunnerMixin:
 
     def __init__(self, rdt_enabled: bool,
                  allocation_configuration: Optional[AllocationConfiguration]):
-        platform_cpus, _, _ = platforms.collect_topology_information()
+        platform_cpus, _, platform_sockets = platforms.collect_topology_information()
         self.containers_manager = ContainerManager(
             rdt_enabled,
             platform_cpus=platform_cpus,
@@ -72,6 +72,7 @@ class BaseRunnerMixin:
         self.anomaly_counter = 0
         self.allocations_counter = 0
         self.rdt_enabled = rdt_enabled  # as mixin it can override the value from base class
+        self.allocation_configuration = allocation_configuration
 
     def configure_rdt(self, rdt_enabled, ignore_privileges_check: bool):
         """Check required permission for using rdt and initilize subsystem.
@@ -83,7 +84,10 @@ class BaseRunnerMixin:
                         'and resctrl synchronization')
         else:
             # Resctrl is enabled and available - cleanup previous runs.
-            cleanup_resctrl()
+            platform, _, _ = platforms.collect_platform_information()
+            max_rdt_l3, max_rdt_mb = get_max_rdt_values(platform.rdt_cbm_mask, platform.sockets)
+            cleanup_resctrl(self.allocation_configuration.default_rdt_l3 or max_rdt_l3, 
+                            self.allocation_configuration.default_rdt_mb or max_rdt_mb)
 
         if ignore_privileges_check:
             return True
