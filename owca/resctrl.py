@@ -112,6 +112,9 @@ class ResGroup:
             log.debug('creating restrcl group %r', self.name)
             self._create_controlgroup_directory()
 
+    def __repr__(self):
+        return 'ResGroup(name=%r, fullpath=%r)' % (self.name, self.fullpath)
+
     def _get_mongroup_fullpath(self, mongroup_name) -> str:
         return os.path.join(self.fullpath, MON_GROUPS, mongroup_name)
 

@@ -17,6 +17,7 @@ from pprint import pformat
 from typing import List, Dict, Union, Tuple, Optional
 import logging
 
+from owca.logger import trace
 from owca.metrics import Metric, MetricType
 from owca.mesos import TaskId
 from owca.platforms import Platform
@@ -156,6 +157,7 @@ def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -
     return metrics
 
 
+@trace(log, verbose=True)
 def _merge_rdt_allocation(current_rdt_allocation: Optional[RDTAllocation],
                           new_rdt_allocation: RDTAllocation)\
         -> Tuple[RDTAllocation, RDTAllocation]:
@@ -181,16 +183,16 @@ def _merge_rdt_allocation(current_rdt_allocation: Optional[RDTAllocation],
         return target_rdt_allocation, rdt_allocation_changeset
 
 
+@trace(log, verbose=False)
 def _calculate_task_allocations_changeset(
         current_task_allocations: TaskAllocations,
         new_task_allocations: TaskAllocations)\
         -> Tuple[TaskAllocations, TaskAllocations]:
     """Return tuple of resource allocation (changeset) per task.
     """
-    log.debug('_calculate_task_allocations_changeset: -> current_task_allocations=\n%s',
-              pformat(current_task_allocations))
-    log.debug('_calculate_task_allocations_changeset: -> new_task_allocations=\n%s',
-              pformat(new_task_allocations))
+    log.debug('_calculate_task_allocations_changeset():'+
+              '\ncurrent_task_allocations=\n%s\nnew_task_allocations=\n%s',
+              pformat(current_task_allocations), pformat(new_task_allocations))
     target_task_allocations: TaskAllocations = dict(current_task_allocations)
     task_allocations_changeset: TaskAllocations = {}
 
@@ -209,10 +211,9 @@ def _calculate_task_allocations_changeset(
                 target_task_allocations[allocation_type] = value
                 task_allocations_changeset[allocation_type] = value
 
-    log.debug('_calculate_task_allocations_changeset: <- target_task_allocations=\n%s',
-              pformat(target_task_allocations))
-    log.debug('_calculate_task_allocations_changeset: <- task_allocations_changeset=\n%s',
-              pformat(task_allocations_changeset))
+    log.debug('_calculate_task_allocations_changeset():\ntarget_task_allocations=\n%s'+
+              '\ntask_allocations_changeset=\n%s',
+              pformat(target_task_allocations), pformat(task_allocations_changeset))
     return target_task_allocations, task_allocations_changeset
 
 

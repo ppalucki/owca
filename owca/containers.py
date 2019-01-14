@@ -15,12 +15,14 @@
 
 from typing import List, Optional, Dict, Tuple, Set
 import logging
+import pprint
 
 from dataclasses import dataclass
 
 from owca import logger
 from owca.allocators import AllocationConfiguration, TaskAllocations, TasksAllocations, \
     _calculate_tasks_allocations_changeset, AllocationType
+from owca.logger import trace
 from owca.nodes import Task
 from owca.resctrl import ResGroup, ResGroupName, RESCTRL_ROOT_NAME
 from owca.cgroups import Cgroup
@@ -107,6 +109,10 @@ class Container:
         allocations.update(self.cgroup.get_allocations())
         if self.rdt_enabled:
             allocations.update(self.resgroup.get_allocations())
+
+        log.debug('get_allocations: task=%s resgroup=%r allocations:\n%s', 
+                  self.task_name, self.resgroup, pprint.pformat(allocations))
+
         return allocations
 
     def perform_allocations(self, allocations: TaskAllocations):
@@ -220,6 +226,7 @@ class ContainerManager:
 
         return self.containers
 
+    @trace(log)
     def _perfom_allocations(self, tasks_allocations):
         for task, container in self.containers.items():
             if task.task_id in tasks_allocations:
@@ -231,6 +238,7 @@ class ContainerManager:
         assert self.rdt_enabled
         return self.resgroups_containers_relation[name][0]
 
+    @trace(log, verbose=False)
     def _reassign_resgroups(self, tasks_allocations):
         """Manage container to resgroup relation according provided _allocations."""
 
@@ -286,6 +294,7 @@ class ContainerManager:
         for container in self.containers.values():
             container.cleanup()
 
+    @trace(log, verbose=False)
     def sync_allocations(self, current_tasks_allocations: TasksAllocations,
                          new_tasks_allocations: TasksAllocations):
         """After new allocations returned from allocate function, calculate the difference
@@ -294,13 +303,20 @@ class ContainerManager:
         Required changes to system means:
         - created if nesseasry RdtGroups
         """
+        log.debug('sync_allocations: tasks: current=%i new=%i', 
+                  len(current_tasks_allocations), len(new_tasks_allocations))
+
         target_tasks_allocations, tasks_allocations_changeset = \
             _calculate_tasks_allocations_changeset(current_tasks_allocations, new_tasks_allocations)
+        log.debug('sync_allocations: number of tasks_allocations_changeset = %i', 
+                  len(tasks_allocations_changeset))
         log.log(logger.TRACE, 'sync_allocations: tasks allocations changeset to execute: %r',
                 tasks_allocations_changeset)
 
+        # Syncing real part (resctrl groups are created/removed and cgroups files are written).
         if self.rdt_enabled:
             self._reassign_resgroups(tasks_allocations_changeset)
+
         self._perfom_allocations(tasks_allocations_changeset)
 
         return target_tasks_allocations

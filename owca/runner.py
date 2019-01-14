@@ -33,6 +33,7 @@ from owca.allocators import Allocator, TasksAllocations, _convert_tasks_allocati
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
+from owca.logger import trace
 from owca.resctrl import check_resctrl, cleanup_resctrl
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
@@ -70,6 +71,7 @@ class BaseRunnerMixin:
         self.anomaly_last_occurence = None
         self.anomaly_counter = 0
         self.allocations_counter = 0
+        self.rdt_enabled = rdt_enabled  # as mixin it can override the value from base class
 
     def configure_rdt(self, rdt_enabled, ignore_privileges_check: bool):
         """Check required permission for using rdt and initilize subsystem.
@@ -101,47 +103,6 @@ class BaseRunnerMixin:
         """
         time.sleep(delay)
         return True
-
-    def _prepare_tasks_data(self, containers: Dict[Task, Container]) -> Tuple[
-            List[Metric], TasksMeasurements, TasksResources, TasksLabels, TasksAllocations]:
-        """ Based on containers, preapre all nessesary data for allocation and detection logic,
-        including, measurements, resources, labels and derived metrics.
-        """
-        # Prepare empty structures for return all the information.
-        tasks_measurements: TasksMeasurements = {}
-        tasks_resources: TasksResources = {}
-        tasks_labels: TasksLabels = {}
-        tasks_metrics: List[Metric] = []
-        tasks_allocations: TasksAllocations = {}
-
-        for task, container in containers.items():
-            # Task measurements and mesurements based metrics.
-            task_measurements = container.get_measurements()
-            task_metrics = create_metrics(task_measurements)
-
-            # Prepare tasks labels based on tasks metadata labels and task id.
-            task_labels = {
-                sanitize_mesos_label(label_key): label_value
-                for label_key, label_value
-                in task.labels.items()
-            }
-            task_labels['task_id'] = task.task_id
-
-            # Task allocations.
-            task_allocations = container.get_allocations()
-
-            # Decorate metrics with task specifc labels.
-            for task_metric in task_metrics:
-                task_metric.labels.update(task_labels)
-
-            # Aggregate over all tasks.
-            tasks_labels[task.task_id] = task_labels
-            tasks_measurements[task.task_id] = task_measurements
-            tasks_resources[task.task_id] = task.resources
-            tasks_metrics += task_metrics
-            tasks_allocations[task.task_id] = task_allocations
-
-        return tasks_metrics, tasks_measurements, tasks_resources, tasks_labels, tasks_allocations
 
     def get_internal_metrics(self, tasks):
         """Internal owca metrics."""
@@ -191,12 +152,13 @@ class BaseRunnerMixin:
 
         return statistics_metrics
 
+    @trace(log, verbose=False)
     def _prepare_input_data_and_send_metrics_package(self, node: nodes.Node,
                                                      metrics_storage: storage.Storage,
                                                      extra_labels: Dict[str, str]) -> \
             Tuple[platforms.Platform, TasksMeasurements, TasksResources, TasksLabels,
                   TasksAllocations, Dict[str, str]]:
-        """Prepare """
+        """Prepare data required for both detect() and allocate() methods."""
 
         # Collect information about tasks running on node.
         tasks = node.get_tasks()
@@ -216,16 +178,61 @@ class BaseRunnerMixin:
         common_labels = dict(platform_labels, **extra_labels)
 
         # Tasks informations
-        (tasks_metrics, tasks_measurements, tasks_resources, tasks_labels, tasks_allocations
-         ) = self._prepare_tasks_data(containers)
+        (tasks_metrics, tasks_measurements, tasks_resources, tasks_labels,
+         current_tasks_allocations) = _prepare_tasks_data(containers)
         metrics_package.add_metrics(tasks_metrics)
         metrics_package.send(common_labels)
 
         return (platform, tasks_measurements, tasks_resources,
-                tasks_labels, tasks_allocations, common_labels)
+                tasks_labels, current_tasks_allocations, common_labels)
 
     def cleanup(self):
         self.containers_manager.cleanup()
+
+
+@trace(log, verbose=False)
+def _prepare_tasks_data(containers: Dict[Task, Container]) -> Tuple[
+        List[Metric], TasksMeasurements, TasksResources, TasksLabels, TasksAllocations]:
+    """ Based on containers, preapre all nessesary data for allocation and detection logic,
+    including, measurements, resources, labels and derived metrics.
+    In runner to fullfil common data requirments for Allocator and Detector class.
+    """
+    # Prepare empty structures for return all the information.
+    tasks_measurements: TasksMeasurements = {}
+    tasks_resources: TasksResources = {}
+    tasks_labels: TasksLabels = {}
+    tasks_metrics: List[Metric] = []
+    current_tasks_allocations: TasksAllocations = {}
+
+    for task, container in containers.items():
+        # Task measurements and mesurements based metrics.
+        task_measurements = container.get_measurements()
+        task_metrics = create_metrics(task_measurements)
+
+        # Prepare tasks labels based on tasks metadata labels and task id.
+        task_labels = {
+            sanitize_mesos_label(label_key): label_value
+            for label_key, label_value
+            in task.labels.items()
+        }
+        task_labels['task_id'] = task.task_id
+
+        # Task allocations.
+        task_allocations = container.get_allocations()
+
+        # Decorate metrics with task specifc labels.
+        for task_metric in task_metrics:
+            task_metric.labels.update(task_labels)
+
+        # Aggregate over all tasks.
+        tasks_labels[task.task_id] = task_labels
+        tasks_measurements[task.task_id] = task_measurements
+        tasks_resources[task.task_id] = task.resources
+        tasks_metrics += task_metrics
+        current_tasks_allocations[task.task_id] = task_allocations
+
+    return (tasks_metrics, tasks_measurements, tasks_resources, tasks_labels,
+            current_tasks_allocations)
 
 
 @dataclass
@@ -299,6 +306,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
     def __post_init__(self):
         BaseRunnerMixin.__init__(self, self.rdt_enabled, self.allocation_configuration)
 
+    @trace(log, verbose=False)
     def _ignore_invalid_allocations(self, platform: platforms.Platform,
                                     new_tasks_allocations: TasksAllocations) -> (
                                         int, TasksAllocations):
@@ -335,6 +343,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                                      if t not in task_ids_to_remove}
         return ignored_allocations, new_tasks_allocations
 
+    @trace(log, verbose=False)
     def run(self):
         if not self.configure_rdt(self.rdt_enabled, self.ignore_privileges_check):
             return
@@ -342,14 +351,15 @@ class AllocationRunner(Runner, BaseRunnerMixin):
         while True:
             # Prepare algorithm inputs and send input based metrics.
             platform, tasks_measurements, tasks_resources, \
-                tasks_labels, tasks_allocations, common_labels = \
+                tasks_labels, current_tasks_allocations, common_labels = \
                 self._prepare_input_data_and_send_metrics_package(
                     self.node, self.metrics_storage, self.extra_labels)
 
             # Allocator callback
             allocate_start = time.time()
             new_tasks_allocations, anomalies, extra_metrics = self.allocator.allocate(
-                platform, tasks_measurements, tasks_resources, tasks_labels, tasks_allocations)
+                platform, tasks_measurements, tasks_resources, tasks_labels,
+                current_tasks_allocations)
             allocate_duration = time.time() - allocate_start
 
             ignored_allocations, new_tasks_allocations = \
@@ -360,7 +370,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                      ' (%i invalid ignored)' % ignored_allocations if ignored_allocations else '')
 
             target_tasks_allocations = self.containers_manager.sync_allocations(
-                current_tasks_allocations=tasks_allocations,
+                current_tasks_allocations=current_tasks_allocations,
                 new_tasks_allocations=new_tasks_allocations,
             )
 

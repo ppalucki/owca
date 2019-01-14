@@ -212,7 +212,9 @@ def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics
         (RDTAllocation(l3='x'), RDTAllocation(l3='x', mb='y'),
          RDTAllocation(l3='x', mb='y'), RDTAllocation(mb='y')),
         (RDTAllocation(l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y'),
-         RDTAllocation(name='new', l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y'))
+         RDTAllocation(name='new', l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y')),
+        (RDTAllocation(l3='x'), RDTAllocation(name='', l3='x'),
+         RDTAllocation(name='', l3='x'), RDTAllocation(name='', l3='x'))
     )
 )
 def test_merge_rdt_allocations1(

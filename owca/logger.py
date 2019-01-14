@@ -85,7 +85,7 @@ def init_logging(level: str, package_name: str):
     )
 
 
-def trace(log):
+def trace(log, verbose=True):
     """Decorator to trace calling of given function reporting all arguments, returned value
     and time of executions.
 
@@ -108,9 +108,16 @@ def trace(log):
     def _trace(func):
         def __trace(*args, **kw):
             s = time.time()
-            log.log(TRACE, '-> %s(args=%r, kw=%r)', func.__name__, args, kw)
+            if verbose:
+                log.log(TRACE, '-> %s(args=%r, kw=%r)', func.__name__, args, kw)
+            else:
+                log.log(TRACE, '-> %s(...)', func.__name__)
+
             rv = func(*args, **kw)
-            log.log(TRACE, '<- %s(...) = %r (time=%.2fs)', func.__name__, rv, time.time() - s)
+            if verbose:
+                log.log(TRACE, '<- %s(...) = %r (time=%.2fs)', func.__name__, rv, time.time() - s)
+            else:
+                log.log(TRACE, '<- %s(...) = ... (time=%.2fs)', func.__name__, time.time() - s)
             return rv
         return __trace
     return _trace

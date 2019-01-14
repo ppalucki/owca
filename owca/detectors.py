@@ -14,16 +14,19 @@
 
 
 import hashlib
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Dict
 
+from owca.logger import trace
 from owca.metrics import Metric, Measurements, MetricType
 from owca.mesos import TaskId
 from owca.platforms import Platform
 
+log = logging.getLogger(__name__)
 
 # Mapping from task to its measurements.
 TasksMeasurements = Dict[TaskId, Measurements]
@@ -160,7 +163,7 @@ class NOPAnomalyDetector(AnomalyDetector):
     def detect(self, platform, tasks_measurements, tasks_resources, tasks_labels):
         return [], []
 
-
+@trace(log, verbose=False)
 def convert_anomalies_to_metrics(anomalies: List[Anomaly]) -> List[Metric]:
     """Takes anomalies on input and convert them to something that can be
     stored persistently adding help/type fields and labels.
