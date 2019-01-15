@@ -228,7 +228,7 @@ def _calculate_tasks_allocations_changeset(
 
     and outputs:
     1) target_tasks_allocations: the list of all allocations which will
-    be applied in the system in next step:
+        be applied in the system in next step:
        so it is a sum of inputs (if the are conflicting allocations
        in both inputs the value is taken from new_tasks_allocations).
     2) tasks_allocations_changeset: only allocations from
