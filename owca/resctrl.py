@@ -39,6 +39,7 @@ RDT_LC = 'rdt_LC'
 
 log = logging.getLogger(__name__)
 
+
 def get_max_rdt_values(cbm_mask, platform_sockets):
 
     max_rdt_l3 = []
@@ -65,8 +66,8 @@ def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
                 if not os.path.exists(resctrl_tasks_path):
                     # Skip metadata folders e.g. info.
                     continue
-                log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.'
-                            , directory_path)
+                log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.',
+                            directory_path)
                 log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
                         directory_path)
                 os.rmdir(directory_path)

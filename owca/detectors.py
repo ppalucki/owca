@@ -163,6 +163,7 @@ class NOPAnomalyDetector(AnomalyDetector):
     def detect(self, platform, tasks_measurements, tasks_resources, tasks_labels):
         return [], []
 
+
 @trace(log, verbose=False)
 def convert_anomalies_to_metrics(anomalies: List[Anomaly]) -> List[Metric]:
     """Takes anomalies on input and convert them to something that can be

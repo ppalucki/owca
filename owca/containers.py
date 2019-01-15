@@ -110,7 +110,7 @@ class Container:
         if self.rdt_enabled:
             allocations.update(self.resgroup.get_allocations(self.resgroup.name))
 
-        log.debug('get_allocations: task=%s resgroup=%r allocations:\n%s', 
+        log.debug('get_allocations: task=%s resgroup=%r allocations:\n%s',
                   self.task_name, self.resgroup, pprint.pformat(allocations))
 
         return allocations
@@ -236,7 +236,7 @@ class ContainerManager:
                 # Do not execute the same rdt allocation (with the same name)
                 # over and over again.
                 if task_allocations.get('rdt') is not None and \
-                    not task_allocations['rdt'] in executed_rdt_allocations:
+                        not task_allocations['rdt'] in executed_rdt_allocations:
                     allocate_rdt = True
                     executed_rdt_allocations.add(task_allocations['rdt'])
                 else:
@@ -278,8 +278,6 @@ class ContainerManager:
                 if container.resgroup.name == task_rdt_allocation.name:
                     continue
 
-                ### REMOVE FROM INITIAL PLACE
-
                 # Firstly remove from previous resgroup.
                 self.resgroups_containers_relation[container.resgroup.name][1].remove(container)
 
@@ -290,9 +288,6 @@ class ContainerManager:
                                   container.resgroup.name)
                         self.resgroups_containers_relation[container.resgroup.name][0].cleanup()
                         del self.resgroups_containers_relation[container.resgroup.name]
-
-
-                ### PUT SOMEWEHERE ELSE
 
                 if task_rdt_allocation.name in self.resgroups_containers_relation:
                     # Move container to existing resgroup.
@@ -330,12 +325,12 @@ class ContainerManager:
         Required changes to system means:
         - created if nesseasry RdtGroups
         """
-        log.debug('sync_allocations: tasks: current=%i new=%i', 
+        log.debug('sync_allocations: tasks: current=%i new=%i',
                   len(current_tasks_allocations), len(new_tasks_allocations))
 
         target_tasks_allocations, tasks_allocations_changeset = \
             _calculate_tasks_allocations_changeset(current_tasks_allocations, new_tasks_allocations)
-        log.debug('sync_allocations: number of tasks_allocations_changeset = %i', 
+        log.debug('sync_allocations: number of tasks_allocations_changeset = %i',
                   len(tasks_allocations_changeset))
         log.log(logger.TRACE, 'sync_allocations: tasks allocations changeset to execute: %r',
                 tasks_allocations_changeset)

@@ -104,6 +104,7 @@ class AllocationConfiguration:
     default_rdt_l3: str = None
     default_rdt_mb: str = None
 
+
 class Allocator(ABC):
 
     @abstractmethod
@@ -210,10 +211,10 @@ def _calculate_task_allocations_changeset(
                 task_allocations_changeset[allocation_type] = value
 
     if task_allocations_changeset:
-        log.debug('_calculate_task_allocations_changeset():'+
+        log.debug('_calculate_task_allocations_changeset():' +
                   '\ncurrent_task_allocations=\n%s\nnew_task_allocations=\n%s',
                   pformat(current_task_allocations), pformat(new_task_allocations))
-        log.debug('_calculate_task_allocations_changeset():\ntarget_task_allocations=\n%s'+
+        log.debug('_calculate_task_allocations_changeset():\ntarget_task_allocations=\n%s' +
                   '\ntask_allocations_changeset=\n%s',
                   pformat(target_task_allocations), pformat(task_allocations_changeset))
     return target_task_allocations, task_allocations_changeset

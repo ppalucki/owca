@@ -86,7 +86,7 @@ class BaseRunnerMixin:
             # Resctrl is enabled and available - cleanup previous runs.
             platform, _, _ = platforms.collect_platform_information()
             max_rdt_l3, max_rdt_mb = get_max_rdt_values(platform.rdt_cbm_mask, platform.sockets)
-            cleanup_resctrl(self.allocation_configuration.default_rdt_l3 or max_rdt_l3, 
+            cleanup_resctrl(self.allocation_configuration.default_rdt_l3 or max_rdt_l3,
                             self.allocation_configuration.default_rdt_mb or max_rdt_mb)
 
         if ignore_privileges_check:
