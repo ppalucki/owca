@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+The module contains high level tests of the project.
+The classes derived from BaseRunnerMixin class are tested.
+"""
+
 
 from unittest.mock import patch, Mock
-import pytest
 
 from owca.runner import DetectionRunner, AllocationRunner
 from owca.mesos import MesosNode, sanitize_mesos_label
@@ -22,14 +26,12 @@ from owca import storage
 from owca import platforms
 from owca.metrics import Metric, MetricType
 from owca.detectors import AnomalyDetector
-from owca.resctrl import ResGroup
 from owca.allocators import Allocator, AllocationType, RDTAllocation
 from owca.testing import anomaly_metrics, anomaly, task
 from tests.test_containers import container, metric
 
 
 # We are mocking objects used by containers.
-@pytest.mark.skip('WIP')
 @patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
 @patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
 @patch('owca.runner.are_privileges_sufficient', return_value=True)
@@ -142,81 +144,86 @@ def test_detection_runner_containers_state(*mocks):
     runner.wait_or_finish.assert_called_once()
 
 
-@pytest.mark.skip('WIP')
-@patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
-@patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
+@patch('time.time', return_value=1234567890.123)
+@patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
+@patch('owca.platforms.Platform')
 @patch('owca.runner.are_privileges_sufficient', return_value=True)
+@patch('owca.runner.AllocationRunner.configure_rdt', return_value=True)
 @patch('owca.containers.Container.get_pids', return_value=['123'])
 @patch('owca.containers.PerfCounters')
-@patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
 @patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
 @patch('owca.containers.Cgroup.perform_allocations')
-@patch('time.time', return_value=1234567890.123)
+@patch('owca.resctrl.ResGroup.add_tasks')
+@patch('owca.resctrl.ResGroup.remove_tasks')
+@patch('owca.resctrl.ResGroup._create_controlgroup_directory')
+@patch('owca.resctrl.ResGroup.get_measurements')
+@patch('owca.resctrl.ResGroup.perform_allocations')
+@patch('owca.resctrl.ResGroup.cleanup')
+@patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
+@patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
 def test_allocation_runner_containers_state(*mocks):
-    """"""
+    """ Low level system calls are not mocked - but higher level objects and functions:
+        Cgroup, Resgroup, Platform, etc. Thus the test do not cover the full usage scenario
+        (such tests would be much harder to write).
+    """
+    task_labels_sanitized_with_task_id = {'task_id': 'task-id-/t1'}
 
-    # task_labels_sanitized_with_task_id = {'task_id': 'task-id-/t1'}
-
-    # Node mock
-    node_mock = Mock(spec=MesosNode, get_tasks=Mock(return_value=[
+    # Node mock.
+    mesos_node_mock = Mock(spec=MesosNode, get_tasks=Mock(return_value=[
         task('/t1', resources=dict(cpus=8.), labels={})]))
 
-    # Storage mocks
+    # Storage mocks.
     metrics_storage = Mock(spec=storage.Storage, store=Mock())
     anomalies_storage = Mock(spec=storage.Storage, store=Mock())
     allocations_storage = Mock(spec=storage.Storage, store=Mock())
 
-    # ResGroup mock
-    ResGroup.add_tasks = Mock()
-    ResGroup.remove_tasks = Mock()
-    ResGroup._create_controlgroup_directory = Mock()
-    ResGroup.get_measurements = Mock(return_value={})
-    ResGroup.perform_allocations = Mock()
-    ResGroup.cleanup = Mock()
+    # Detector mock - simulate returning one anomaly and additional metric.
+    allocations = {'task-id-/t1': {AllocationType.QUOTA: 1000,
+                                   AllocationType.RDT: RDTAllocation(name='only_group',
+                                                                     l3='L3:0=00fff;1=0ffff')}}
 
-    # Detector mock - simulate returning one anomaly and additional metric
-    allocator_mock = Mock(
-        spec=Allocator,
-        allocate=Mock(
-            return_value=(
-                {
-                    'task-id-/t1': {
-                        AllocationType.QUOTA: 1000,
-                        AllocationType.RDT:
-                            RDTAllocation(name='only_group', l3='L3:0=00fff;1=0ffff')
-                    }
-                }, [], []
-            )
-        )
-    )
+    # Mock platform.
+    platform_mock = Mock(spec=platforms.Platform)
 
-    extra_labels = dict(el='ev')  # extra label with some extra value
-
+    # Patch some of the functions of AllocationRunner.
     runner = AllocationRunner(
-        node=node_mock,
+        node=mesos_node_mock,
         metrics_storage=metrics_storage,
         anomalies_storage=anomalies_storage,
         allocations_storage=allocations_storage,
         rdt_enabled=True,
         ignore_privileges_check=True,
-        allocator=allocator_mock,
-        extra_labels=extra_labels,
+        allocator=Mock(spec=Allocator),
+        extra_labels={},
     )
-    # Mock one of the methods.
-    AllocationRunner.configure_rdt = Mock(return_value=True)
 
+    def _ignore_invalid_allocations(platform, new_tasks_allocations):
+        return (0, new_tasks_allocations)
+    runner._ignore_invalid_allocations = Mock(side_effect=_ignore_invalid_allocations)
     runner.wait_or_finish = Mock(return_value=False)
+    runner.allocator.allocate.return_value = allocations, [], []
 
-    platform_mock = Mock(spec=platforms.Platform)
-
-    # first run
+    ############
+    # First run.
     with patch('owca.platforms.collect_platform_information', return_value=(
             platform_mock, [metric('platform-cpu-usage')], {})):
         runner.run()
 
+    # Checking state after run.
+    assert (len(runner.containers_manager.resgroups_containers_relation[''][1]) == 0)
     assert (len(runner.containers_manager.resgroups_containers_relation['only_group'][1]) == 1)
 
-    # second run
+    # Check whether allocate run with proper arguments.
+    runner.allocator.allocate.assert_called_once_with(
+        platform_mock,
+        {'task-id-/t1': {'cpu_usage': 23}},
+        {'task-id-/t1': {'cpus': 8}},
+        {'task-id-/t1': task_labels_sanitized_with_task_id},
+        {'task-id-/t1': {}}
+    )
+
+    ############
+    # Second run.
     runner.node = Mock(spec=MesosNode, get_tasks=Mock(return_value=[
         task('/t1', resources=dict(cpus=8.), labels={}),
         task('/t2', resources=dict(cpus=9.), labels={})]))
@@ -224,5 +231,28 @@ def test_allocation_runner_containers_state(*mocks):
             platform_mock, [metric('platform-cpu-usage')], {})):
         runner.run()
 
+    # Checking state after run.
     assert (len(runner.containers_manager.resgroups_containers_relation['only_group'][1]) == 1)
     assert (len(runner.containers_manager.resgroups_containers_relation[''][1]) == 1)
+
+    ############
+    # Third run.
+    runner.allocator.allocate.return_value = \
+        {
+            'task-id-/t1': {
+                AllocationType.QUOTA: 1000,
+                AllocationType.RDT: RDTAllocation(name='only_group', l3='L3:0=00fff;1=0ffff')
+            },
+            'task-id-/t2': {
+                AllocationType.QUOTA: 1000,
+                AllocationType.RDT: RDTAllocation(name='only_group', l3='L3:0=00fff;1=0ffff')
+            }
+        }, [], []
+    with patch('owca.platforms.collect_platform_information', return_value=(
+            platform_mock, [metric('platform-cpu-usage')], {})):
+        runner.run()
+
+    # Checking state after run.
+    assert (len(runner.containers_manager.resgroups_containers_relation['only_group'][1]) == 2)
+    assert (len(runner.containers_manager.resgroups_containers_relation[''][1]) == 0)
+    assert (len(runner.containers_manager.containers) == 2)
