@@ -60,6 +60,7 @@ class Container:
     platform_cpus: int
     allocation_configuration: Optional[AllocationConfiguration] = None
     rdt_enabled: bool = True
+    rdt_mb_control_enabled: bool = False
     task_name: str = None  # defaults to flatten value of provided cgroup_path
     resgroup: ResGroup = None  # do not manage self.resgroup object, just reference it
 
@@ -134,17 +135,20 @@ class ContainerManager:
             Cgroup and ResGroup objects
     """
 
-    def __init__(self, rdt_enabled: bool, platform_cpus: int,
+    def __init__(self, rdt_enabled: bool, rdt_mb_control_enabled: bool, platform_cpus: int,
                  allocation_configuration: Optional[AllocationConfiguration]):
         self.containers: Dict[Task, Container] = {}
         self.rdt_enabled = rdt_enabled
+        self.rdt_mb_control_enabled = rdt_mb_control_enabled
         self.platform_cpus = platform_cpus
         self.allocation_configuration = allocation_configuration
 
         self.resgroups_containers_relation: Dict[ResGroupName, Tuple[ResGroup, Set[Container]]]
         if self.rdt_enabled:
             self.resgroups_containers_relation = {
-                RESCTRL_ROOT_NAME: (ResGroup(name=RESCTRL_ROOT_NAME), set())
+                RESCTRL_ROOT_NAME: (ResGroup(name=RESCTRL_ROOT_NAME,
+                                             rdt_mb_control_enabled=self.rdt_mb_control_enabled,
+                                             ), set())
             }
         else:
             self.resgroups_containers_relation = {}
@@ -209,6 +213,7 @@ class ContainerManager:
             container = Container(
                 new_task.cgroup_path,
                 rdt_enabled=self.rdt_enabled,
+                rdt_mb_control_enabled=self.rdt_mb_control_enabled,
                 platform_cpus=self.platform_cpus,
                 allocation_configuration=self.allocation_configuration,
             )
@@ -242,7 +247,7 @@ class ContainerManager:
                 else:
                     allocate_rdt = False
 
-                container.perform_allocations(task_allocations, allocate_rdt=allocate_rdt)
+                container.perform_allocations(task_allocations, allocate_rdt)
 
     # Managing resgroup and containers relation
     def _get_resgroup_by_name(self, name):
@@ -299,7 +304,8 @@ class ContainerManager:
                     new_resgroup_name = (task_rdt_allocation.name
                                          if task_rdt_allocation.name is not None else task_id)
                     log.debug('reassign_resgroups: create resgroup: %r', new_resgroup_name)
-                    new_resgroup = ResGroup(name=new_resgroup_name)
+                    new_resgroup = ResGroup(name=new_resgroup_name,
+                                            rdt_mb_control_enabled=self.rdt_mb_control_enabled)
                     self.resgroups_containers_relation[new_resgroup_name] = \
                         (new_resgroup, {container})
                     container.change_resgroup(new_resgroup)

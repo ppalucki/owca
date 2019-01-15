@@ -35,8 +35,23 @@ class AllocationType(str, Enum):
     RDT = 'rdt'
 
 
+class MergeableAllocationValue(ABC):
+
+    @abstractmethod
+    def generate_metrics(self) -> List[Metric]:
+        ...
+
+
+class SerializableAllocationValue(ABC):
+
+    @abstractmethod
+    def merge_with_current(self, current: 'SerializableAllocationValue') -> Tuple[
+            'SerializableAllocationValue', 'SerializableAllocationValue']:
+        ...
+
+
 @dataclass(unsafe_hash=True)
-class RDTAllocation:
+class RDTAllocation(SerializableAllocationValue, MergeableAllocationValue):
     # defaults to TaskId from TasksAllocations
     name: str = None
     # CAT: optional - when no provided doesn't change the existing allocation
@@ -90,6 +105,32 @@ class RDTAllocation:
                 )
 
         return metrics
+
+    @trace(log, verbose=True)
+    def merge_with_current(self: Optional['RDTAllocation'],
+                           current_rdt_allocation: 'RDTAllocation') -> \
+            Tuple['RDTAllocation', 'RDTAllocation']:
+        """Merge with existing RDTAllocation objects and return
+        sum of the allocations (target_rdt_allocation) and allocations that need to be updated
+        (rdt_allocation_changeset)."""
+        new_rdt_allocation = self
+        # new name, then new allocation will be used (overwrite) but no merge
+        if current_rdt_allocation is None or current_rdt_allocation.name != new_rdt_allocation.name:
+            return new_rdt_allocation, new_rdt_allocation
+        else:
+            target_rdt_allocation = RDTAllocation(
+                name=current_rdt_allocation.name,
+                l3=new_rdt_allocation.l3 or current_rdt_allocation.l3,
+                mb=new_rdt_allocation.mb or current_rdt_allocation.mb,
+            )
+            rdt_allocation_changeset = RDTAllocation(
+                name=new_rdt_allocation.name,
+            )
+            if current_rdt_allocation.l3 != new_rdt_allocation.l3:
+                rdt_allocation_changeset.l3 = new_rdt_allocation.l3
+            if current_rdt_allocation.mb != new_rdt_allocation.mb:
+                rdt_allocation_changeset.mb = new_rdt_allocation.mb
+            return target_rdt_allocation, rdt_allocation_changeset
 
 
 TaskAllocations = Dict[AllocationType, Union[float, RDTAllocation]]
@@ -150,47 +191,28 @@ def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -
     for task_id, task_allocations in tasks_allocations.items():
         task_allocations: TaskAllocations
         for allocation_type, allocation_value in task_allocations.items():
-            if allocation_type == AllocationType.RDT:
-                # Nested encoding of RDT allocations.
-                rdt_allocation_metrics = allocation_value.generate_metrics()
-                for rdt_allocation_metric in rdt_allocation_metrics:
-                    rdt_allocation_metric.labels.update(task_id=task_id)
-                metrics.extend(rdt_allocation_metrics)
-            else:
-                # Simple encoding
+
+            if isinstance(allocation_value, SerializableAllocationValue):
+                this_allocation_metrics = allocation_value.generate_metrics()
+                for metric in this_allocation_metrics:
+                    metric.labels.update(task_id=task_id)
+                metrics.extend(this_allocation_metrics)
+
+            elif isinstance(allocation_value, (float, int)):
+                # Default metrics encoding method for float and integers values.
+                # Simple encoding for
                 metrics.append(
                     Metric(name='allocation', value=allocation_value, type=MetricType.GAUGE,
                            labels=dict(allocation_type=allocation_type, task_id=task_id)
                            )
                 )
+            else:
+                raise NotImplementedError(
+                    'encoding AllocationType=%r for value of type=%r is '
+                    'not supported!' % (allocation_type, type(allocation_value))
+                )
 
     return metrics
-
-
-@trace(log, verbose=True)
-def _merge_rdt_allocation(current_rdt_allocation: Optional[RDTAllocation],
-                          new_rdt_allocation: RDTAllocation)\
-        -> Tuple[RDTAllocation, RDTAllocation]:
-    """Merge RDTAllocation objects and return sum of the allocations
-    (target_rdt_allocation) and allocations that need to be updated
-    (rdt_allocation_changeset)."""
-    # new name, then new allocation will be used (overwrite) but no merge
-    if current_rdt_allocation is None or current_rdt_allocation.name != new_rdt_allocation.name:
-        return new_rdt_allocation, new_rdt_allocation
-    else:
-        target_rdt_allocation = RDTAllocation(
-            name=current_rdt_allocation.name,
-            l3=new_rdt_allocation.l3 or current_rdt_allocation.l3,
-            mb=new_rdt_allocation.mb or current_rdt_allocation.mb,
-        )
-        rdt_allocation_changeset = RDTAllocation(
-            name=new_rdt_allocation.name,
-        )
-        if current_rdt_allocation.l3 != new_rdt_allocation.l3:
-            rdt_allocation_changeset.l3 = new_rdt_allocation.l3
-        if current_rdt_allocation.mb != new_rdt_allocation.mb:
-            rdt_allocation_changeset.mb = new_rdt_allocation.mb
-        return target_rdt_allocation, rdt_allocation_changeset
 
 
 @trace(log, verbose=False)
@@ -203,20 +225,20 @@ def _calculate_task_allocations_changeset(
     target_task_allocations: TaskAllocations = dict(current_task_allocations)
     task_allocations_changeset: TaskAllocations = {}
 
-    for allocation_type, value in new_task_allocations.items():
-        # treat rdt diffrently
-        if allocation_type == AllocationType.RDT:
-            old_rdt_allocation = current_task_allocations.get(AllocationType.RDT)
+    for allocation_type, new_allocation_value in new_task_allocations.items():
+        if isinstance(new_allocation_value, SerializableAllocationValue):
+            current_rdt_allocations = current_task_allocations.get(AllocationType.RDT)
             target_rdt_allocation, rdt_allocation_changeset = \
-                _merge_rdt_allocation(old_rdt_allocation, value)
+                new_allocation_value.merge_with_current(current_rdt_allocations)
             target_task_allocations[AllocationType.RDT] = target_rdt_allocation
             if rdt_allocation_changeset.l3 is not None or rdt_allocation_changeset.mb is not None:
                 task_allocations_changeset[AllocationType.RDT] = rdt_allocation_changeset
+
         else:
             if allocation_type not in target_task_allocations or \
-                    target_task_allocations[allocation_type] != value:
-                target_task_allocations[allocation_type] = value
-                task_allocations_changeset[allocation_type] = value
+                    target_task_allocations[allocation_type] != new_allocation_value:
+                target_task_allocations[allocation_type] = new_allocation_value
+                task_allocations_changeset[allocation_type] = new_allocation_value
 
     if task_allocations_changeset:
         log.debug('_calculate_task_allocations_changeset():' +

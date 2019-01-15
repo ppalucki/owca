@@ -17,7 +17,7 @@ import pytest
 from owca.allocators import _calculate_task_allocations_changeset, \
     _calculate_tasks_allocations_changeset, RDTAllocation, AllocationType, \
     _convert_tasks_allocations_to_metrics, _parse_schemata_file_row, \
-    _count_enabled_bits, _merge_rdt_allocation
+    _count_enabled_bits
 from owca.metrics import Metric, MetricType
 
 
@@ -165,6 +165,9 @@ def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, expected
                type=MetricType.GAUGE,
                labels={'allocation_type': 'cpu_shares', 'task_id': 'some_task'})
     ]),
+    ({'some_task': {AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
+        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
+    ]),
     ({'some_task': {AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
         Metric(
             name='allocation', value=0.5,
@@ -227,7 +230,7 @@ def test_merge_rdt_allocations1(
         current_rdt_alloaction, new_rdt_allocation,
         expected_target_rdt_allocation, expected_rdt_allocation_changeset):
     got_target_rdt_allocation, got_rdt_alloction_changeset = \
-        _merge_rdt_allocation(current_rdt_alloaction, new_rdt_allocation)
+        new_rdt_allocation.merge_with_current(current_rdt_alloaction)
 
     assert got_target_rdt_allocation == expected_target_rdt_allocation
     assert got_rdt_alloction_changeset == expected_rdt_allocation_changeset

@@ -58,11 +58,14 @@ class BaseRunnerMixin:
     - metrics_storage and extra_labels for input data labeling and storing
     """
 
-    def __init__(self, rdt_enabled: bool,
-                 allocation_configuration: Optional[AllocationConfiguration]):
+    def __init__(self,
+                 rdt_enabled: bool,
+                 rdt_mb_control_enabled: bool,
+                 allocation_configuration: Optional[AllocationConfiguration] = None):
         platform_cpus, _, platform_sockets = platforms.collect_topology_information()
         self.containers_manager = ContainerManager(
             rdt_enabled,
+            rdt_mb_control_enabled,
             platform_cpus=platform_cpus,
             allocation_configuration=allocation_configuration
         )
@@ -86,8 +89,12 @@ class BaseRunnerMixin:
             # Resctrl is enabled and available - cleanup previous runs.
             platform, _, _ = platforms.collect_platform_information()
             max_rdt_l3, max_rdt_mb = get_max_rdt_values(platform.rdt_cbm_mask, platform.sockets)
-            cleanup_resctrl(self.allocation_configuration.default_rdt_l3 or max_rdt_l3,
-                            self.allocation_configuration.default_rdt_mb or max_rdt_mb)
+            root_rtd_l3 = self.allocation_configuration.default_rdt_l3 or max_rdt_l3
+            if self.rdt_mb_control_enabled:
+                root_rdt_mb = self.allocation_configuration.default_rdt_mb or max_rdt_mb
+            else:
+                root_rdt_mb = None
+            cleanup_resctrl(root_rtd_l3, root_rdt_mb)
 
         if ignore_privileges_check:
             return True
@@ -254,7 +261,12 @@ class DetectionRunner(Runner, BaseRunnerMixin):
     ignore_privileges_check: bool = False
 
     def __post_init__(self):
-        BaseRunnerMixin.__init__(self, self.rdt_enabled, None)
+        BaseRunnerMixin.__init__(
+            self,
+            rdt_enabled=self.rdt_enabled,
+            rdt_mb_control_enabled=False,
+            allocation_configuration=None
+        )
 
     def run(self):
         if not self.configure_rdt(self.rdt_enabled, self.ignore_privileges_check):
@@ -303,12 +315,15 @@ class AllocationRunner(Runner, BaseRunnerMixin):
     allocations_storage: storage.Storage
     action_delay: float = 1.  # [s]
     rdt_enabled: bool = True
+    rdt_mb_control_enabled: bool = False
     extra_labels: Dict[str, str] = field(default_factory=dict)
     ignore_privileges_check: bool = False
-    allocation_configuration: Optional[AllocationConfiguration] = None
+    allocation_configuration: AllocationConfiguration = \
+        field(default_factory=AllocationConfiguration)
 
     def __post_init__(self):
-        BaseRunnerMixin.__init__(self, self.rdt_enabled, self.allocation_configuration)
+        BaseRunnerMixin.__init__(
+            self, self.rdt_enabled, self.rdt_mb_control_enabled, self.allocation_configuration)
 
     @trace(log, verbose=False)
     def _ignore_invalid_allocations(self, platform: platforms.Platform,

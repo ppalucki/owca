@@ -132,8 +132,9 @@ ResGroupName = str
 
 class ResGroup:
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, rdt_mb_control_enabled: bool = True):
         self.name: ResGroupName = name
+        self.rdt_mb_control_enabled = rdt_mb_control_enabled
         self.fullpath = BASE_RESCTRL_PATH + ("/" + name if name != "" else "")
 
         if self.name != RESCTRL_ROOT_NAME:
@@ -258,17 +259,8 @@ class ResGroup:
 
     def perform_allocations(self, task_allocations):
         with open(os.path.join(self.fullpath, SCHEMATA), 'bw') as schemata:
-            # @TODO the code below has some bug
-            # if (AllocationType.RDT in task_allocations and
-            #         task_allocations[AllocationType.RDT].mb is not None):
-            #     value = task_allocations[AllocationType.RDT].mb
-            #     log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, value)
-            #     try:
-            #         schemata.write(bytes(value + '\n', encoding='utf-8'))
-            #         schemata.flush()
-            #     except OSError as e:
-            #         log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))
 
+            # Cache control: TODO make it optional
             if (AllocationType.RDT in task_allocations and
                     task_allocations[AllocationType.RDT].l3 is not None):
                 value = task_allocations[AllocationType.RDT].l3
@@ -278,6 +270,19 @@ class ResGroup:
                     schemata.flush()
                 except OSError as e:
                     log.error('Cannot set l3 cache allocation: {}'.format(e))
+
+            # Optional: Memory BW allocatoin
+            if self.rdt_mb_control_enabled:
+
+                if (AllocationType.RDT in task_allocations and
+                        task_allocations[AllocationType.RDT].mb is not None):
+                    value = task_allocations[AllocationType.RDT].mb
+                    log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, value)
+                    try:
+                        schemata.write(bytes(value + '\n', encoding='utf-8'))
+                        schemata.flush()
+                    except OSError as e:
+                        log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))
 
     def cleanup(self):
         # Do not try to remove root group.

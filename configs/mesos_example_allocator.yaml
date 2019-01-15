@@ -28,4 +28,3 @@ runner: !AllocationRunner
   allocator: !StaticAllocator
     config: /home/ppalucki/owca/example/static_alloc_config.yaml
   rdt_enabled: true
-  allocation_configuration: !AllocationConfiguration
