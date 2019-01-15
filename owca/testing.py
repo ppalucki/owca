@@ -36,6 +36,8 @@ def create_open_mock(sys_file_mock):
             self.file_sys = sys_file
 
         def __call__(self, path, mode='rb'):
+            if path not in self.file_sys:
+                raise Exception('opening %r is not mocked with OpenMock!' % path)
             mock_data = self.file_sys[path]
             if isinstance(mock_data, str):
                 s = StringIO(mock_data)
