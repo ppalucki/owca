@@ -88,9 +88,9 @@ def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
 
     if root_rdt_mb is not None:
         with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
-            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_l3)
+            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_mb)
             try:
-                schemata.write(bytes(root_rdt_l3 + '\n', encoding='utf-8'))
+                schemata.write(bytes(root_rdt_mb + '\n', encoding='utf-8'))
                 schemata.flush()
             except OSError as e:
                 log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))

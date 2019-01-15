@@ -14,7 +14,7 @@
 
 
 import errno
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import call, MagicMock, patch, mock_open
 
 import pytest
 
@@ -83,28 +83,59 @@ def test_get_measurements(*mock):
     assert {'memory_bandwidth': 2, 'llc_occupancy': 2} == resgroup.get_measurements('best_efforts')
 
 
-@patch('builtins.open', new=create_open_mock({
-    "/sys/fs/resctrl/mesos-1/tasks": "1\n2\n",
-    # resctrl group to recycle - expected to be removed.
-    "/sys/fs/resctrl/mesos-2/tasks": "",
-    "/sys/fs/resctrl/mesos-3/tasks": "2",
-    "/sys/fs/resctrl/mon_groups/mesos-1/tasks": "1\n2\n",
-    # resctrl group to recycle - should be removed.
-    "/sys/fs/resctrl/mon_groups/mesos-2/tasks": "",
-    "/sys/fs/resctrl/mon_groups/mesos-3/tasks": "2",
-}))
 @patch('os.listdir', return_value=['mesos-1', 'mesos-2', 'mesos-3'])
 @patch('os.rmdir')
 @patch('os.path.isdir', return_value=True)
 @patch('os.path.exists', return_value=True)
 def test_clean_resctrl(exists_mock, isdir_mock, rmdir_mock, listdir_mock):
     from owca.resctrl import cleanup_resctrl
-    cleanup_resctrl()
-    assert listdir_mock.call_count == 2
-    assert isdir_mock.call_count == 6
-    assert exists_mock.call_count == 6
-    assert rmdir_mock.call_count == 2
-    rmdir_mock.assert_has_calls([
-        call('/sys/fs/resctrl/mesos-2'),
-        call('/sys/fs/resctrl/mon_groups/mesos-2'),
+
+    schemata_mock = mock_open()
+
+    with patch('builtins.open', new=create_open_mock({
+            "/sys/fs/resctrl/mesos-1/tasks": "1\n2\n",
+            # resctrl group to recycle - expected to be removed.
+            "/sys/fs/resctrl/mesos-2/tasks": "",
+            "/sys/fs/resctrl/mesos-3/tasks": "2",
+            "/sys/fs/resctrl/mon_groups/mesos-1/tasks": "1\n2\n",
+            # resctrl group to recycle - should be removed.
+            "/sys/fs/resctrl/mon_groups/mesos-2/tasks": "",
+            "/sys/fs/resctrl/mon_groups/mesos-3/tasks": "2",
+            # default values expected to be written
+            "/sys/fs/resctrl/schemata": schemata_mock})):
+        cleanup_resctrl(root_rdt_l3='L3:0=ff', root_rdt_mb='MB:0=100')
+
+    listdir_mock.assert_has_calls([
+        call('/sys/fs/resctrl/mon_groups'),
+        call('/sys/fs/resctrl/')
     ])
+    isdir_mock.assert_has_calls([
+        call('/sys/fs/resctrl/mon_groups/mesos-1'),
+        call('/sys/fs/resctrl/mon_groups/mesos-2'),
+        call('/sys/fs/resctrl/mon_groups/mesos-3'),
+        call('/sys/fs/resctrl/mesos-1'),
+        call('/sys/fs/resctrl/mesos-2'),
+        call('/sys/fs/resctrl/mesos-3'),
+    ])
+    exists_mock.assert_has_calls([
+        call('/sys/fs/resctrl/mon_groups/mesos-1/tasks'),
+        call('/sys/fs/resctrl/mon_groups/mesos-2/tasks'),
+        call('/sys/fs/resctrl/mon_groups/mesos-3/tasks'),
+        call('/sys/fs/resctrl/mesos-1/tasks'),
+        call('/sys/fs/resctrl/mesos-2/tasks'),
+        call('/sys/fs/resctrl/mesos-3/tasks')
+    ])
+
+    rmdir_mock.assert_has_calls([
+        call('/sys/fs/resctrl/mon_groups/mesos-1'),
+        call('/sys/fs/resctrl/mon_groups/mesos-2'),
+        call('/sys/fs/resctrl/mon_groups/mesos-3'),
+        call('/sys/fs/resctrl/mesos-1'),
+        call('/sys/fs/resctrl/mesos-2'),
+        call('/sys/fs/resctrl/mesos-3')
+    ])
+
+    schemata_mock.assert_has_calls([
+        call().write(b'L3:0=ff\n'),
+        call().write(b'MB:0=100\n'),
+    ], any_order=True)
