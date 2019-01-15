@@ -327,7 +327,7 @@ def _parse_schemata_file_row(line: str) -> Dict[str, str]:
         separator_position = domain_with_value.find(VALUE_SEPARATOR)
         domain_id = domain_with_value[:separator_position]
         if not domain_id:
-            raise ValueError('domaind_id cannot be empty!')
+            raise ValueError('domain_id cannot be empty!')
         value = domain_with_value[separator_position+1:]
         if not value:
             raise ValueError('value cannot be empty!')

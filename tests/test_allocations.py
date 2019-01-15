@@ -110,16 +110,16 @@ def test_parse_schemata_file_row(line, expected_domains):
     assert got_domains == expected_domains
 
 
-@pytest.mark.parametrize('invalid_line', (
-        'x=',
-        'x=2;x=3',
-        '=2',
-        '2',
-        ';',
-        'xxx',
+@pytest.mark.parametrize('invalid_line,expected_message', (
+        ('x=', 'value cannot be empty'),
+        ('x=2;x=3', 'Conflicting domain id found!'),
+        ('=2', 'domain_id cannot be empty!'),
+        ('2', 'Value separator is missing "="!'),
+        (';', 'domain cannot be empty'),
+        ('xxx', 'Value separator is missing "="!'),
 ))
-def test_parse_invalid_schemata_file_domains(invalid_line):
-    with pytest.raises(ValueError):
+def test_parse_invalid_schemata_file_domains(invalid_line, expected_message):
+    with pytest.raises(ValueError, match=expected_message):
         _parse_schemata_file_row(invalid_line)
 
 
