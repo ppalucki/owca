@@ -29,7 +29,7 @@ from owca.detectors import (TasksMeasurements, TasksResources,
                             update_anomalies_metrics_with_task_information
                             )
 from owca.allocators import Allocator, TasksAllocations, _convert_tasks_allocations_to_metrics, \
-    AllocationConfiguration, AllocationType, _parse_schemata_file_domains
+    AllocationConfiguration, AllocationType, _parse_schemata_file_row
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
@@ -327,7 +327,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                             if not l3.startswith('L3:'):
                                 raise ValueError('l3 resources setting should '
                                                  'start with "L3:" prefix (got %r)' % l3)
-                            domains = _parse_schemata_file_domains(l3)
+                            domains = _parse_schemata_file_row(l3)
                             if len(domains) != platform.sockets:
                                 raise ValueError('not enough domains in l3 configuration '
                                                  '(expected=%i,got=%i)' % (platform.sockets,
