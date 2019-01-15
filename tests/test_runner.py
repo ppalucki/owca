@@ -150,6 +150,7 @@ def test_detection_runner_containers_state(*mocks):
 @patch('owca.runner.are_privileges_sufficient', return_value=True)
 @patch('owca.runner.AllocationRunner.configure_rdt', return_value=True)
 @patch('owca.containers.Container.get_pids', return_value=['123'])
+@patch('owca.containers.Container.get_allocations', return_value={})
 @patch('owca.containers.PerfCounters')
 @patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
 @patch('owca.containers.Cgroup.perform_allocations')
