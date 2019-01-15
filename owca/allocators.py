@@ -45,8 +45,10 @@ class RDTAllocation:
 
     def generate_metrics(self) -> List[Metric]:
         """Encode RDT Allocation as metrics.
-        Number of cache ways will be encoded as int,
-        mb is treated as percentage.
+        Note:
+        - cache allocation: generated two metrics, with number of cache ways and
+                            mask of bits (encoded as int)
+        - memory bandwidth: is encoded as int, representing MB/s or percentage
         """
         # Empty object generate no metric.
         if not self.l3 and not self.mb:
@@ -56,19 +58,25 @@ class RDTAllocation:
 
         metrics = []
         if self.l3:
-            domains = _parse_schemata_file_domains(self.l3)
+            domains = _parse_schemata_file_row(self.l3)
             for domain_id, raw_value in domains.items():
-                value = _count_enabled_bits(raw_value)
-                metrics.append(
+                metrics.extend([
                     Metric(
-                        name='allocation', value=value, type=MetricType.GAUGE,
-                        labels=dict(allocation_type='rdt_l3',
-                                    group_name=group_name, domain_id=domain_id)
+                        name='allocation', value=_count_enabled_bits(raw_value),
+                        type=MetricType.GAUGE, labels=dict(
+                            allocation_type='rdt_l3_cache_ways', group_name=group_name,
+                            domain_id=domain_id)
+                    ),
+                    Metric(
+                        name='allocation', value=int(raw_value, 16),
+                        type=MetricType.GAUGE, labels=dict(
+                            allocation_type='rdt_l3_mask', group_name=group_name,
+                            domain_id=domain_id)
                     )
-                )
+                ])
 
         if self.mb:
-            domains = _parse_schemata_file_domains(self.mb)
+            domains = _parse_schemata_file_row(self.mb)
             for domain_id, raw_value in domains.items():
                 # NOTE: raw_value is treated as int, ignoring unit used (MB or %)
                 value = int(raw_value)
@@ -129,7 +137,7 @@ class NOPAllocator(Allocator):
 
 def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -> List[Metric]:
     """Takes allocations on input and convert them to something that can be
-    stored persistently as metrics adding help/type fields and labels.
+    stored persistently as metrics adding type fields and labels.
 
     Simple allocations become simple metric like this:
     - Metric(name='allocation', type='cpu_shares', value=0.2, labels=(task_id='some_task_id'))
@@ -160,8 +168,8 @@ def _merge_rdt_allocation(current_rdt_allocation: Optional[RDTAllocation],
                           new_rdt_allocation: RDTAllocation)\
         -> Tuple[RDTAllocation, RDTAllocation]:
     """Merge RDTAllocation objects and return sum of the allocations
-    (target_rdt_allaction) and allocations that need to be updated
-    (rdt_alloaction_changeset)."""
+    (target_rdt_allocation) and allocations that need to be updated
+    (rdt_allocation_changeset)."""
     # new name, then new allocation will be used (overwrite) but no merge
     if current_rdt_allocation is None or current_rdt_allocation.name != new_rdt_allocation.name:
         return new_rdt_allocation, new_rdt_allocation
@@ -262,7 +270,7 @@ def _calculate_tasks_allocations_changeset(
     return target_tasks_allocations, tasks_allocations_changeset
 
 
-def _parse_schemata_file_domains(line: str) -> Dict[str, str]:
+def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on
     https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/cpu/intel_rdt_ctrlmondata.c#lL206
     and return dict mapping and domain id to its configuration (value).
