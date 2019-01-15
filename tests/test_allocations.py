@@ -16,7 +16,7 @@ import pytest
 
 from owca.allocators import _calculate_task_allocations_changeset, \
     _calculate_tasks_allocations_changeset, RDTAllocation, AllocationType, \
-    _convert_tasks_allocations_to_metrics, _parse_schemata_file_domains, \
+    _convert_tasks_allocations_to_metrics, _parse_schemata_file_row, \
     _count_enabled_bits, _merge_rdt_allocation
 from owca.metrics import Metric, MetricType
 
@@ -105,8 +105,8 @@ def test_count_enabled_bits(hexstr, expected_bits_count):
         ('mb:xxx=20mbs;2=50b', {'xxx': '20mbs', '2': '50b'}),
         ('l3:0=20;1=30', {'1': '30', '0': '20'}),
 ))
-def test_parse_schemata_file_domains(line, expected_domains):
-    got_domains = _parse_schemata_file_domains(line)
+def test_parse_schemata_file_row(line, expected_domains):
+    got_domains = _parse_schemata_file_row(line)
     assert got_domains == expected_domains
 
 
@@ -120,7 +120,7 @@ def test_parse_schemata_file_domains(line, expected_domains):
 ))
 def test_parse_invalid_schemata_file_domains(invalid_line):
     with pytest.raises(ValueError):
-        _parse_schemata_file_domains(invalid_line)
+        _parse_schemata_file_row(invalid_line)
 
 
 def rdt_metric_func(type, value, **labels):
@@ -143,10 +143,12 @@ def rdt_metric_func(type, value, **labels):
         rdt_metric_func('rdt_mb', 30, group_name='', domain_id='1'),
     ]),
     (RDTAllocation(l3='l3:0=ff'), [
-        rdt_metric_func('rdt_l3', 8, group_name='', domain_id='0'),
+        rdt_metric_func('rdt_l3_cache_ways', 8, group_name='', domain_id='0'),
+        rdt_metric_func('rdt_l3_mask', 255, group_name='', domain_id='0'),
     ]),
     (RDTAllocation(name='be', l3='l3:0=ff', mb='mb:0=20;1=30'), [
-        rdt_metric_func('rdt_l3', 8, group_name='be', domain_id='0'),
+        rdt_metric_func('rdt_l3_cache_ways', 8, group_name='be', domain_id='0'),
+        rdt_metric_func('rdt_l3_mask', 255, group_name='be', domain_id='0'),
         rdt_metric_func('rdt_mb', 20, group_name='be', domain_id='0'),
         rdt_metric_func('rdt_mb', 30, group_name='be', domain_id='1'),
     ]),
@@ -189,8 +191,12 @@ def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, expected
             type=MetricType.GAUGE,
             labels={'allocation_type': AllocationType.QUOTA, 'task_id': 'some_task_b'}
         ),
-        rdt_metric_func('rdt_l3', 4, group_name='b', domain_id='0', task_id='some_task_b'),
-        rdt_metric_func('rdt_l3', 5, group_name='b', domain_id='1', task_id='some_task_b'),
+        rdt_metric_func('rdt_l3_cache_ways', 4, group_name='b',
+                        domain_id='0', task_id='some_task_b'),
+        rdt_metric_func('rdt_l3_mask', 15, group_name='b', domain_id='0', task_id='some_task_b'),
+        rdt_metric_func('rdt_l3_cache_ways', 5, group_name='b',
+                        domain_id='1', task_id='some_task_b'),
+        rdt_metric_func('rdt_l3_mask', 241, group_name='b', domain_id='1', task_id='some_task_b'),
     ]),
 ))
 def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics):
