@@ -38,15 +38,15 @@ class AllocationType(str, Enum):
 class MergeableAllocationValue(ABC):
 
     @abstractmethod
-    def generate_metrics(self) -> List[Metric]:
+    def merge_with_current(self, current: 'MergeableAllocationValue') -> Tuple[
+            'MergeableAllocationValue', 'MergeableAllocationValue']:
         ...
 
 
 class SerializableAllocationValue(ABC):
 
     @abstractmethod
-    def merge_with_current(self, current: 'SerializableAllocationValue') -> Tuple[
-            'SerializableAllocationValue', 'SerializableAllocationValue']:
+    def generate_metrics(self) -> List[Metric]:
         ...
 
 
@@ -226,10 +226,12 @@ def _calculate_task_allocations_changeset(
     task_allocations_changeset: TaskAllocations = {}
 
     for allocation_type, new_allocation_value in new_task_allocations.items():
-        if isinstance(new_allocation_value, SerializableAllocationValue):
+        if isinstance(new_allocation_value, MergeableAllocationValue):
             current_rdt_allocations = current_task_allocations.get(AllocationType.RDT)
             target_rdt_allocation, rdt_allocation_changeset = \
                 new_allocation_value.merge_with_current(current_rdt_allocations)
+            target_rdt_allocation: RDTAllocation
+            rdt_allocation_changeset: RDTAllocation
             target_task_allocations[AllocationType.RDT] = target_rdt_allocation
             if rdt_allocation_changeset.l3 is not None or rdt_allocation_changeset.mb is not None:
                 task_allocations_changeset[AllocationType.RDT] = rdt_allocation_changeset
