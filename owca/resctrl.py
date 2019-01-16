@@ -148,13 +148,8 @@ class ResGroup:
         return os.path.join(self.fullpath, MON_GROUPS, mongroup_name)
 
     def _read_pids_from_tasks_file(self, tasks_filepath):
-        pids = []
         with open(tasks_filepath) as ftasks:
-            for line in ftasks:
-                line = line.strip()
-                if line != "":
-                    pids.append(line)
-        return pids
+            return [line.rstrip() for line in  ftasks.readlines() if line != ""]
 
     def _add_pids_to_tasks_file(self, pids, tasks_filepath):
         with open(tasks_filepath, 'w') as ftasks:

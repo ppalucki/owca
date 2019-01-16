@@ -254,6 +254,7 @@ class ContainerManager:
         assert self.rdt_enabled
         return self.resgroups_containers_relation[name][0]
 
+
     @trace(log, verbose=False)
     def _reassign_resgroups(self, tasks_allocations):
         """Manage container to resgroup relation according provided _allocations."""

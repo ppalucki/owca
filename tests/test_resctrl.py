@@ -51,14 +51,41 @@ def test_add_tasks(*args):
     with patch('builtins.open', open_mock):
         resgroup = ResGroup("best_efforts")
         resgroup.add_tasks(['123', '124'], 'task_id')
+
         tasks_mock.assert_called_once_with(
             '/sys/fs/resctrl/best_efforts/tasks', 'w')
-        mongroup_tasks_mock.assert_called_once_with(
-            '/sys/fs/resctrl/best_efforts/mon_groups/task_id/tasks', 'w')
         tasks_mock.assert_has_calls([call().__enter__().write('123')])
         tasks_mock.assert_has_calls([call().__enter__().write('124')])
+
+        mongroup_tasks_mock.assert_called_once_with(
+            '/sys/fs/resctrl/best_efforts/mon_groups/task_id/tasks', 'w')
         mongroup_tasks_mock.assert_has_calls([call().__enter__().write('123')])
         mongroup_tasks_mock.assert_has_calls([call().__enter__().write('124')])
+
+
+@patch('os.path.isdir', return_value=True)
+@patch('os.rmdir')
+@patch('owca.resctrl.SetEffectiveRootUid')
+def test_remove_tasks(isdir_mock, rmdir_mock, *args):
+    root_tasks_mock = MagicMock()
+    open_mock = create_open_mock({
+        "/sys/fs/resctrl": "0",
+        "/sys/fs/resctrl/tasks": root_tasks_mock,
+        "/sys/fs/resctrl/best_efforts/mon_groups/task_id/tasks": "123\n124\n",
+    })
+    with patch('owca.resctrl.open', open_mock):
+        resgroup = ResGroup("best_efforts")
+        resgroup.remove_tasks('task_id')
+        rmdir_mock.assert_called_once_with('/sys/fs/resctrl/best_efforts/mon_groups/task_id')
+        # Assure that only two pids were written to the root group.
+        root_tasks_mock.assert_has_calls([
+            call('/sys/fs/resctrl/tasks', 'w'),
+            call().__enter__(),
+            call().__enter__().write('123'),
+            call().__enter__().flush(),
+            call().__enter__().write('124'),
+            call().__enter__().flush(),
+            call().__exit__(None, None, None)])
 
 
 @patch('owca.resctrl.log.warning')

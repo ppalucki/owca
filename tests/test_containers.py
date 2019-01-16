@@ -16,7 +16,8 @@ from unittest.mock import patch, Mock
 
 import pytest
 
-from owca.containers import Container, _calculate_desired_state
+from owca.allocators import RDTAllocation, AllocationType
+from owca.containers import ContainerManager, Container, _calculate_desired_state
 from owca.metrics import Metric
 from owca.runner import DetectionRunner
 from owca.testing import task
@@ -111,3 +112,64 @@ def test_sync_containers_state(platform_mock, cleanup_mock, sync_mock,
     assert sync_mock.call_count == len(expected_running_containers)
     number_of_removed_containers = len(set(existing_containers) - set(expected_running_containers))
     assert cleanup_mock.call_count == number_of_removed_containers
+
+
+@patch('owca.mesos.MesosTask')
+@pytest.mark.parametrize(
+    'tasks_allocations,expected_resgroup_reallocation_count',
+    (
+        # No RDT allocations.
+        (
+           {
+               'task_id_1': {AllocationType.QUOTA: 0.6},
+           },
+           0
+        ),
+        # The both task in the same resctrl group.
+        (
+           {
+               'task_id_1': {'rdt': RDTAllocation(name='be', l3='ff')},
+               'task_id_2': {'rdt': RDTAllocation(name='be', l3='ff')}
+           },
+           1
+        ),
+        # The tasks in seperate resctrl group.
+        (
+           {
+               'task_id_1': {'rdt': RDTAllocation(name='be', l3='ff')},
+               'task_id_2': {'rdt': RDTAllocation(name='le', l3='ff')}
+           },
+           2
+        ),
+    )
+)
+def test_cm_perform_allocations(MesosTaskMock, tasks_allocations,
+                                expected_resgroup_reallocation_count):
+    """Checks if allocation of resctrl group is performed only once if more than one
+       task_allocations has RDTAllocation with the same name. In other words,
+       check if unnecessary reallocation of resctrl group does not take place.
+
+       The goal is achieved by checking how many times
+       Container.perform_allocations is called with allocate_rdt=True."""
+    # Minimal MesosTask mock needed for the test.
+    tasks = []
+    tasks_ = {}
+    for task_id in tasks_allocations.keys():
+        task = Mock(task_id=task_id)
+        tasks.append(task)
+        tasks_[task_id] = task
+
+    container_manager = ContainerManager(True, True, 1, None)
+    container_manager.containers = {task: Mock() for task in tasks}
+
+    # Call the main function to test.
+    container_manager._perfom_allocations(tasks_allocations)
+
+    count_ = 0
+    for task_id, _ in tasks_allocations.items():
+        perform_allocations_mock = container_manager.containers[tasks_[task_id]].perform_allocations
+        assert len(perform_allocations_mock.mock_calls) == 1
+        args, kwargs = perform_allocations_mock.call_args_list[0]
+        _, allocate_rdt_called = args
+        count_ = count_ + 1 if allocate_rdt_called else count_
+    assert expected_resgroup_reallocation_count == count_
