@@ -80,8 +80,12 @@ class Cgroup:
         we use reverse formule to _get_normalized_shares."""
         assert self.allocation_configuration is not None, \
             'allocation configuration cannot be used without configuration!'
-        shares = int((shares_normalized * self.allocation_configuration.cpu_shares_max) +
-                     self.allocation_configuration.cpu_shares_min)
+
+        shares_range = self.allocation_configuration.cpu_shares_max - \
+            self.allocation_configuration.cpu_shares_min
+        shares = int(shares_normalized * shares_range) + \
+            self.allocation_configuration.cpu_shares_min
+
         self._write(CPU_SHARES, shares)
 
     def _get_normalized_quota(self) -> float:

@@ -71,3 +71,47 @@ def test_get_normalized_quota():
 def test_cgroup_get_tasks():
     assert Cgroup('/some/foo1', platform_cpus=1).get_tasks() == [101, 102]
     assert Cgroup('/foo2', platform_cpus=1).get_tasks() == []
+
+
+@pytest.mark.parametrize(
+    'normalized_shares, allocation_configuration, expected_shares_write', [
+        (0., AllocationConfiguration(), 2),  # based on cpu_shares_min
+        (1., AllocationConfiguration(), 10000),  # based on cpu_shares_max
+        (1., AllocationConfiguration(cpu_shares_min=500, cpu_shares_max=1000), 1000),
+        (2., AllocationConfiguration(cpu_shares_min=500, cpu_shares_max=1000), 1500),
+    ]
+)
+def test_set_normalized_shares(normalized_shares, allocation_configuration, expected_shares_write):
+    with patch('owca.containers.Cgroup._write') as write_mock:
+        cgroup = Cgroup('/some/foo1', platform_cpus=1,
+                        allocation_configuration=allocation_configuration)
+        cgroup._set_normalized_shares(normalized_shares)
+        write_mock.assert_called_with('cpu.shares', expected_shares_write)
+
+
+@pytest.mark.parametrize(
+    'normalized_quota, cpu_quota_period, platforms_cpu, initial_period_value, '
+    'expected_period_write, expected_quota_write', [
+            (0., 2000, 1, 1000,
+             2000, 0),
+            (1., 2000, 1, 1000,
+             2000, 2000),
+            (2., 1000, 1, 1000,
+             None, 2000),
+            (8., 1000, 8, 1000,
+             None, 64000),
+            (8., 1000, 8, 1000,
+             None, 64000),
+    ]
+)
+def test_set_normalized_quota(normalized_quota, cpu_quota_period, platforms_cpu,
+                              initial_period_value, expected_period_write, expected_quota_write):
+    with patch('owca.containers.Cgroup._read', return_value=initial_period_value):
+        with patch('owca.containers.Cgroup._write') as write_mock:
+            cgroup = Cgroup('/some/foo1', platform_cpus=platforms_cpu,
+                            allocation_configuration=AllocationConfiguration(
+                                cpu_quota_period=cpu_quota_period))
+            cgroup._set_normalized_quota(normalized_quota)
+            write_mock.assert_has_calls([call('cpu.cfs_quota_us', expected_quota_write)])
+            if expected_period_write:
+                write_mock.assert_has_calls([call('cpu.cfs_period_us', expected_period_write)])
