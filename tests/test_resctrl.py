@@ -15,10 +15,12 @@
 
 import errno
 from unittest.mock import call, MagicMock, patch, mock_open
+from typing import List, Dict
 
 import pytest
 
 from owca.resctrl import ResGroup, check_resctrl, RESCTRL_ROOT_NAME, get_max_rdt_values
+from owca.allocators import RDTAllocation
 from owca.testing import create_open_mock
 
 
@@ -141,8 +143,6 @@ def test_clean_resctrl(exists_mock, isdir_mock, rmdir_mock, listdir_mock):
     ], any_order=True)
 
 
-
-
 @pytest.mark.parametrize(
     'cbm_mask, platform_sockets, expected_max_rdt_l3, expected_max_rdt_mb', (
         ('ff', 0, 'L3:', 'MB:'),
@@ -155,3 +155,33 @@ def test_get_max_rdt_values(cbm_mask, platform_sockets, expected_max_rdt_l3, exp
     assert got_max_rdt_l3 == expected_max_rdt_l3
     assert got_max_rdt_mb == expected_max_rdt_mb
 
+
+@pytest.mark.parametrize(
+    'resgroup_args, task_allocations, expected_writes', [
+        (dict(name=''), {'rdt': RDTAllocation(name='', l3='ble')},
+         {'/sys/fs/resctrl/schemata': [b'ble\n']}),
+        (dict(name='be'), {'rdt': RDTAllocation(name='be', l3='ble')},
+         {'/sys/fs/resctrl/be/schemata': [b'ble\n']}),
+        (dict(name='be', rdt_mb_control_enabled=False), {'rdt': RDTAllocation(
+            name='be', l3='l3write', mb='mbwrite')},
+         {'/sys/fs/resctrl/be/schemata': [b'l3write\n']}),
+        (dict(name='be', rdt_mb_control_enabled=True), {'rdt': RDTAllocation(
+            name='be', l3='l3write', mb='mbwrite')},
+         {'/sys/fs/resctrl/be/schemata': [b'l3write\n', b'mbwrite\n']}),
+    ]
+)
+def test_resgroup_perform_allocations(resgroup_args, task_allocations,
+                                      expected_writes: Dict[str, List[str]]):
+
+    write_mocks = {filename: mock_open() for filename in expected_writes}
+    with patch('os.makedirs'):
+        resgroup = ResGroup(**resgroup_args)
+
+    with patch('builtins.open', new=create_open_mock(write_mocks)):
+        resgroup.perform_allocations(task_allocations)
+
+    for filename, write_mock in write_mocks.items():
+        expected_filename_writes = expected_writes[filename]
+        expected_write_calls = [call().write(write_body) for write_body in expected_filename_writes]
+        assert expected_filename_writes
+        write_mock.assert_has_calls(expected_write_calls, any_order=True)
