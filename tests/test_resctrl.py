@@ -18,7 +18,7 @@ from unittest.mock import call, MagicMock, patch, mock_open
 
 import pytest
 
-from owca.resctrl import ResGroup, check_resctrl, RESCTRL_ROOT_NAME
+from owca.resctrl import ResGroup, check_resctrl, RESCTRL_ROOT_NAME, get_max_rdt_values
 from owca.testing import create_open_mock
 
 
@@ -139,3 +139,19 @@ def test_clean_resctrl(exists_mock, isdir_mock, rmdir_mock, listdir_mock):
         call().write(b'L3:0=ff\n'),
         call().write(b'MB:0=100\n'),
     ], any_order=True)
+
+
+
+
+@pytest.mark.parametrize(
+    'cbm_mask, platform_sockets, expected_max_rdt_l3, expected_max_rdt_mb', (
+        ('ff', 0, 'L3:', 'MB:'),
+        ('ff', 1, 'L3:0=ff', 'MB:0=100'),
+        ('ffff', 2, 'L3:0=ffff;1=ffff', 'MB:0=100;1=100'),
+    )
+)
+def test_get_max_rdt_values(cbm_mask, platform_sockets, expected_max_rdt_l3, expected_max_rdt_mb):
+    got_max_rdt_l3, got_max_rdt_mb = get_max_rdt_values(cbm_mask, platform_sockets)
+    assert got_max_rdt_l3 == expected_max_rdt_l3
+    assert got_max_rdt_mb == expected_max_rdt_mb
+

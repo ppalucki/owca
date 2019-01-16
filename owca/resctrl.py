@@ -49,7 +49,7 @@ def get_max_rdt_values(cbm_mask, platform_sockets):
         max_rdt_l3.append('%i=%s' % (dom_id, cbm_mask))
         max_rdt_mb.append('%i=100' % dom_id)
 
-    return 'L3:'+';'.join(max_rdt_l3), 'MB:'+':'.join(max_rdt_mb)
+    return 'L3:'+';'.join(max_rdt_l3), 'MB:'+';'.join(max_rdt_mb)
 
 
 def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
