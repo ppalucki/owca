@@ -290,4 +290,4 @@ class ResGroup:
             log.log(logger.TRACE, 'resctrl: rmdir(%s)', self.fullpath)
             os.rmdir(self.fullpath)
         except FileNotFoundError:
-            pass
+            log.debug('cleanup: directory already does not exist %s', self.fullpath)
