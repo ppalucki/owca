@@ -150,7 +150,6 @@ class ResGroup:
     def _read_pids_from_tasks_file(self, tasks_filepath):
         with open(tasks_filepath) as ftasks:
             pids = [line.strip() for line in ftasks.readlines() if line != ""]
-
         log.log(logger.TRACE, 'resctrl: read(%s): found %i pids', tasks_filepath, len(pids))
         return pids
 

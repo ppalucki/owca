@@ -67,7 +67,7 @@ def test_add_tasks(*args):
 @patch('os.rmdir')
 @patch('owca.resctrl.SetEffectiveRootUid')
 def test_remove_tasks(isdir_mock, rmdir_mock, *args):
-    root_tasks_mock = MagicMock()
+    root_tasks_mock = mock_open()
     open_mock = create_open_mock({
         "/sys/fs/resctrl": "0",
         "/sys/fs/resctrl/tasks": root_tasks_mock,
@@ -78,14 +78,11 @@ def test_remove_tasks(isdir_mock, rmdir_mock, *args):
         resgroup.remove_tasks('task_id')
         rmdir_mock.assert_called_once_with('/sys/fs/resctrl/best_efforts/mon_groups/task_id')
         # Assure that only two pids were written to the root group.
-        root_tasks_mock.assert_has_calls([
-            call('/sys/fs/resctrl/tasks', 'w'),
-            call().__enter__(),
-            call().__enter__().write('123'),
-            call().__enter__().flush(),
-            call().__enter__().write('124'),
-            call().__enter__().flush(),
-            call().__exit__(None, None, None)])
+        root_tasks_mock().assert_has_calls([
+            call.write('123'),
+            call.flush(),
+            call.write('124'),
+            call.flush()])
 
 
 @patch('owca.resctrl.log.warning')
