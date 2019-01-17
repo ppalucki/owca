@@ -113,7 +113,6 @@ mesos_tasks_mocks = [
 @mock.patch('owca.config.exists', return_value=True)
 @mock.patch('owca.config.open', mock.mock_open(read_data=yaml_config))
 @mock.patch('owca.mesos.MesosNode.get_tasks', return_value=mesos_tasks_mocks)
-@mock.patch('owca.resctrl.ResGroup.sync')
 @mock.patch('owca.containers.PerfCounters')
 @mock.patch('owca.runner.DetectionRunner.wait_or_finish', return_value=False)
 @mock.patch('builtins.open', new=create_open_mock({

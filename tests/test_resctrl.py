@@ -35,30 +35,28 @@ def test_check_resctrl(*mock):
 @patch('os.path.exists', return_value=True)
 @patch('os.makedirs')
 @patch('owca.resctrl.SetEffectiveRootUid')
-def test_sync(*args):
-    resctrl_file_mock_simple_name = MagicMock()
-    resctrl_file_mock_complex_name = MagicMock()
+def test_add_tasks(*args):
+    root_tasks_mock = MagicMock()
+    tasks_mock = MagicMock()
+    mongroup_tasks_mock = MagicMock()
     open_mock = create_open_mock({
         "/sys/fs/resctrl": "0",
-        "/sys/fs/cgroup/cpu/ddd/tasks": "123",
-        "/sys/fs/resctrl/mon_groups/ddd/tasks": resctrl_file_mock_simple_name,
-        "/sys/fs/cgroup/cpu/ddd/ddd/tasks": "123",
-        "/sys/fs/resctrl/mon_groups/ddd-ddd/tasks": resctrl_file_mock_complex_name,
+        "/sys/fs/resctrl/tasks": root_tasks_mock,
+        # for best_efforts resctrl group
+        "/sys/fs/resctrl/best_efforts/tasks": tasks_mock,
+        "/sys/fs/resctrl/best_efforts/mon_groups/task_id/tasks": mongroup_tasks_mock,
     })
     with patch('builtins.open', open_mock):
-        cgroup_path = "/ddd"
-        resgroup = ResGroup(cgroup_path)
-        resgroup.sync()
-        resctrl_file_mock_simple_name.assert_called_once_with(
-            '/sys/fs/resctrl/mon_groups/ddd/tasks', 'w')
-        resctrl_file_mock_simple_name.assert_has_calls([call().__enter__().write('123')])
-    with patch('builtins.open', open_mock):
-        cgroup_path = "/ddd/ddd"
-        resgroup = ResGroup(cgroup_path)
-        resgroup.sync()
-        resctrl_file_mock_complex_name.assert_called_once_with(
-            '/sys/fs/resctrl/mon_groups/ddd-ddd/tasks', 'w')
-        resctrl_file_mock_complex_name.assert_has_calls([call().__enter__().write('123')])
+        resgroup = ResGroup("best_efforts")
+        resgroup.add_tasks(['123', '124'], 'task_id')
+        tasks_mock.assert_called_once_with(
+            '/sys/fs/resctrl/best_efforts/tasks', 'w')
+        mongroup_tasks_mock.assert_called_once_with(
+            '/sys/fs/resctrl/best_efforts/mon_groups/task_id/tasks', 'w')
+        tasks_mock.assert_has_calls([call().__enter__().write('123')])
+        tasks_mock.assert_has_calls([call().__enter__().write('124')])
+        mongroup_tasks_mock.assert_has_calls([call().__enter__().write('123')])
+        mongroup_tasks_mock.assert_has_calls([call().__enter__().write('124')])
 
 
 @patch('owca.resctrl.log.warning')
@@ -68,69 +66,31 @@ def test_sync(*args):
     "/sys/fs/cgroup/cpu/ddd/tasks": "123",
 }))
 def test_sync_no_space_left_on_device(makedirs_mock, exists_mock, log_warning_mock):
-    resgroup = ResGroup("/ddd")
     with pytest.raises(Exception, match='Limit of workloads reached'):
-        resgroup.sync()
-
-
-@patch('owca.resctrl.log.warning')
-@patch('os.path.exists', return_value=False)
-def test_sync_resctrl_not_mounted(exists_mock, log_warning_mock):
-    cgroup_path = "/ddd"
-    resgroup = ResGroup(cgroup_path)
-    resgroup.sync()
-    log_warning_mock.assert_called_once_with('Resctrl not mounted, ignore sync!')
-
-
-@patch('owca.resctrl.log.warning')
-@patch('os.path.exists', return_value=True)
-@patch('os.makedirs')
-@patch('owca.resctrl.SetEffectiveRootUid')
-def test_sync_flush_exception(SetEffectiveRootUid_mock, makedirs_mock,
-                              exists_mock, log_warning_mock):
-    resctrl_file_mock = MagicMock(  # open
-        return_value=MagicMock(
-            __enter__=MagicMock(  # __enter__
-                return_value=MagicMock(
-                    write=MagicMock(  # write
-                        side_effect=ProcessLookupError
-                    )
-                )
-            )
-        )
-    )
-    open_mock = create_open_mock({
-        "/sys/fs/resctrl": "0",
-        "/sys/fs/cgroup/cpu/ddd/tasks": "123",
-        "/sys/fs/resctrl/mon_groups/ddd/tasks": resctrl_file_mock,
-    })
-    with patch('builtins.open', open_mock):
-        cgroup_path = "/ddd"
-        resgroup = ResGroup(cgroup_path)
-        resgroup.sync()
-        log_warning_mock.assert_any_call('sync: Unsuccessful synchronization attempts. Ignoring.')
+        resgroup = ResGroup("best_efforts")
 
 
 @patch('builtins.open', new=create_open_mock({
-    "/sys/fs/resctrl/mon_groups/ddd/mon_data/1/mbm_total_bytes": "1",
-    "/sys/fs/resctrl/mon_groups/ddd/mon_data/2/mbm_total_bytes": "1",
-    "/sys/fs/resctrl/mon_groups/ddd/mon_data/1/llc_occupancy": "1",
-    "/sys/fs/resctrl/mon_groups/ddd/mon_data/2/llc_occupancy": "1",
-    "/sys/fs/cgroup/cpu/ddd/cpuacct.usage": "4",
+    "/sys/fs/resctrl/mon_groups/best_efforts/mon_data/1/mbm_total_bytes": "1",
+    "/sys/fs/resctrl/mon_groups/best_efforts/mon_data/2/mbm_total_bytes": "1",
+    "/sys/fs/resctrl/mon_groups/best_efforts/mon_data/1/llc_occupancy": "1",
+    "/sys/fs/resctrl/mon_groups/best_efforts/mon_data/2/llc_occupancy": "1",
+    "/sys/fs/cgroup/cpu/best_efforts/cpuacct.usage": "4",
 }))
 @patch('os.listdir', return_value=['1', '2'])
 def test_get_measurements(*mock):
-    cgroup_path = "/ddd"
-    resgroup = ResGroup(cgroup_path)
-    assert {'memory_bandwidth': 2, 'llc_occupancy': 2} == resgroup.get_measurements()
+    resgroup = ResGroup(ResGroup.get_root_group_name())
+    assert {'memory_bandwidth': 2, 'llc_occupancy': 2} == resgroup.get_measurements('best_efforts')
 
 
 @patch('builtins.open', new=create_open_mock({
     "/sys/fs/resctrl/mesos-1/tasks": "1\n2\n",
-    "/sys/fs/resctrl/mesos-2/tasks": "",  # resctrl group to recycle - expected to be removed.
+    # resctrl group to recycle - expected to be removed.
+    "/sys/fs/resctrl/mesos-2/tasks": "",
     "/sys/fs/resctrl/mesos-3/tasks": "2",
     "/sys/fs/resctrl/mon_groups/mesos-1/tasks": "1\n2\n",
-    "/sys/fs/resctrl/mon_groups/mesos-2/tasks": "",  # resctrl group to recycle - should be removed.
+    # resctrl group to recycle - should be removed.
+    "/sys/fs/resctrl/mon_groups/mesos-2/tasks": "",
     "/sys/fs/resctrl/mon_groups/mesos-3/tasks": "2",
 }))
 @patch('os.listdir', return_value=['mesos-1', 'mesos-2', 'mesos-3'])
