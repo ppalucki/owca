@@ -111,7 +111,7 @@ class Container:
         if self.rdt_enabled:
             allocations.update(self.resgroup.get_allocations(self.resgroup.name))
 
-        log.debug('get_allocations: task=%s resgroup=%r allocations:\n%s',
+        log.debug('allocations on task=%r from resgroup=%r allocations:\n%s',
                   self.task_name, self.resgroup, pprint.pformat(allocations))
 
         return allocations
@@ -331,12 +331,12 @@ class ContainerManager:
         Required changes to system means:
         - created if nesseasry RdtGroups
         """
-        log.debug('sync_allocations: tasks: current=%i new=%i',
+        log.debug('sync_allocations: current_tasks_allocations=%i new_tasks_allocations=%i',
                   len(current_tasks_allocations), len(new_tasks_allocations))
 
         target_tasks_allocations, tasks_allocations_changeset = \
             _calculate_tasks_allocations_changeset(current_tasks_allocations, new_tasks_allocations)
-        log.debug('sync_allocations: number of tasks_allocations_changeset = %i',
+        log.debug('sync_allocations: tasks_allocations_changeset=%i',
                   len(tasks_allocations_changeset))
         log.log(logger.TRACE, 'sync_allocations: tasks allocations changeset to execute: %r',
                 tasks_allocations_changeset)

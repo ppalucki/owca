@@ -149,9 +149,13 @@ class ResGroup:
 
     def _read_pids_from_tasks_file(self, tasks_filepath):
         with open(tasks_filepath) as ftasks:
-            return [line.rstrip() for line in  ftasks.readlines() if line != ""]
+            pids = [line.strip() for line in ftasks.readlines() if line != ""]
+
+        log.log(logger.TRACE, 'resctrl: read(%s): found %i pids', tasks_filepath, len(pids))
+        return pids
 
     def _add_pids_to_tasks_file(self, pids, tasks_filepath):
+        log.log(logger.TRACE, 'resctrl: write(%s): number_of_pids=%r', tasks_filepath, len(pids))
         with open(tasks_filepath, 'w') as ftasks:
             with SetEffectiveRootUid():
                 for pid in pids:

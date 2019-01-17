@@ -362,7 +362,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                                      if t not in task_ids_to_remove}
         return ignored_allocations, new_tasks_allocations
 
-    @trace(log, verbose=False)
+    @trace(log)
     def run(self):
         if not self.configure_rdt(self.rdt_enabled, self.ignore_privileges_check):
             return
