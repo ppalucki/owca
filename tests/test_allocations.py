@@ -65,6 +65,8 @@ def test_calculate_task_allocations(
          {}, {}),
         (dict(t1={'a': 2}), {},
          dict(t1={'a': 2}), {}),
+        (dict(t1={'a': 2}), dict(t1={'a': 2}),
+         dict(t1={'a': 2}), {}),
         (dict(t1={'a': 1}), dict(t1={'b': 2}, t2={'b': 3}),
          dict(t1={'a': 1, 'b': 2}, t2={'b': 3}), dict(t1={'b': 2}, t2={'b': 3})),
     ))
