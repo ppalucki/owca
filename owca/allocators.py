@@ -249,7 +249,6 @@ def _calculate_task_allocations_changeset(
             if allocation_type in current_task_allocations:
                 # If we have old value
                 current_allocation_value = current_task_allocations[allocation_type]
-                new_allocation_value = new_allocation_value
                 value_changed = not math.isclose(current_allocation_value, new_allocation_value,
                                                  rel_tol=FLOAT_VALUES_CHANGE_DETECTION)
             else:
