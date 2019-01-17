@@ -194,7 +194,7 @@ class ContainerManager:
                 # For non root resgroups, checkout how many containers left and
                 # remove if emtpy.
                 if resgroup.name != RESCTRL_ROOT_NAME:
-                    if self.resgroups_containers_relation[resgroup.name][1]:
+                    if len(self.resgroups_containers_relation[resgroup.name][1]) == 0:
                         log.debug('sync_containers_state: removing resgroup: %s', resgroup.name)
                         resgroup.cleanup()
                         del self.resgroups_containers_relation[resgroup.name]
@@ -253,7 +253,6 @@ class ContainerManager:
     def _get_resgroup_by_name(self, name):
         assert self.rdt_enabled
         return self.resgroups_containers_relation[name][0]
-
 
     @trace(log, verbose=False)
     def _reassign_resgroups(self, tasks_allocations):
