@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from abc import ABC, abstractmethod
 from enum import Enum
 from pprint import pformat
 from typing import List, Dict, Union, Tuple, Optional
 import logging
 
-from owca.logger import trace
+from owca.logger import trace, TRACE
 from owca.metrics import Metric, MetricType
 from owca.mesos import TaskId
 from owca.platforms import Platform
@@ -106,7 +107,7 @@ class RDTAllocation(SerializableAllocationValue, MergeableAllocationValue):
 
         return metrics
 
-    @trace(log, verbose=True)
+    @trace(log)
     def merge_with_current(self: Optional['RDTAllocation'],
                            current_rdt_allocation: 'RDTAllocation') -> \
             Tuple['RDTAllocation', 'RDTAllocation']:
@@ -116,8 +117,10 @@ class RDTAllocation(SerializableAllocationValue, MergeableAllocationValue):
         new_rdt_allocation = self
         # new name, then new allocation will be used (overwrite) but no merge
         if current_rdt_allocation is None or current_rdt_allocation.name != new_rdt_allocation.name:
+            log.debug('new name or no previous allocation exists')
             return new_rdt_allocation, new_rdt_allocation
         else:
+            log.debug('merging existing rdt allocation')
             target_rdt_allocation = RDTAllocation(
                 name=current_rdt_allocation.name,
                 l3=new_rdt_allocation.l3 or current_rdt_allocation.l3,
@@ -215,6 +218,10 @@ def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -
     return metrics
 
 
+# Defines how senstive in terms of float precision are changes from RDTAllocation detected.
+FLOAT_VALUES_CHANGE_DETECTION = 1e-02
+
+
 @trace(log, verbose=False)
 def _calculate_task_allocations_changeset(
         current_task_allocations: TaskAllocations,
@@ -222,6 +229,7 @@ def _calculate_task_allocations_changeset(
         -> Tuple[TaskAllocations, TaskAllocations]:
     """Return tuple of resource allocation (changeset) per task.
     """
+    # Copy current to become new current as target.
     target_task_allocations: TaskAllocations = dict(current_task_allocations)
     task_allocations_changeset: TaskAllocations = {}
 
@@ -237,21 +245,36 @@ def _calculate_task_allocations_changeset(
                 task_allocations_changeset[AllocationType.RDT] = rdt_allocation_changeset
 
         else:
-            if allocation_type not in target_task_allocations or \
-                    target_task_allocations[allocation_type] != new_allocation_value:
+            # Float and integered based change detection.
+            if allocation_type in current_task_allocations:
+                # If we have old value
+                current_allocation_value = current_task_allocations[allocation_type]
+                value_changed = not math.isclose(current_allocation_value, new_allocation_value,
+                                                 rel_tol=FLOAT_VALUES_CHANGE_DETECTION)
+            else:
+                # There is no old value, so there is a change
+                value_changed = True
+
+            if value_changed:
                 target_task_allocations[allocation_type] = new_allocation_value
                 task_allocations_changeset[allocation_type] = new_allocation_value
 
     if task_allocations_changeset:
-        log.debug('_calculate_task_allocations_changeset():' +
-                  '\ncurrent_task_allocations=\n%s\nnew_task_allocations=\n%s',
-                  pformat(current_task_allocations), pformat(new_task_allocations))
-        log.debug('_calculate_task_allocations_changeset():\ntarget_task_allocations=\n%s' +
-                  '\ntask_allocations_changeset=\n%s',
-                  pformat(target_task_allocations), pformat(task_allocations_changeset))
+        log.log(TRACE, '_calculate_task_allocations_changeset():'
+                       '\ncurrent_task_allocations=\n%s'
+                       '\nnew_task_allocations=\n%s'
+                       '\ntarget_task_allocations=\n%s'
+                       '\ntask_allocations_changeset=\n%s',
+                       pformat(current_task_allocations),
+                       pformat(new_task_allocations),
+                       pformat(target_task_allocations),
+                       pformat(task_allocations_changeset)
+                )
+
     return target_task_allocations, task_allocations_changeset
 
 
+@trace(log, verbose=False)
 def _calculate_tasks_allocations_changeset(
         current_tasks_allocations: TasksAllocations, new_tasks_allocations: TasksAllocations) \
         -> Tuple[TasksAllocations, TasksAllocations]:
@@ -281,7 +304,8 @@ def _calculate_tasks_allocations_changeset(
                 _calculate_task_allocations_changeset(current_task_allocations,
                                                       new_task_allocations)
             target_tasks_allocations[task_id] = target_task_allocations
-            tasks_allocations_changeset[task_id] = changeset_task_allocations
+            if changeset_task_allocations:
+                tasks_allocations_changeset[task_id] = changeset_task_allocations
         else:
             target_tasks_allocations[task_id] = current_task_allocations
 
