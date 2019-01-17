@@ -336,10 +336,10 @@ class ContainerManager:
 
         target_tasks_allocations, tasks_allocations_changeset = \
             _calculate_tasks_allocations_changeset(current_tasks_allocations, new_tasks_allocations)
-        log.debug('sync_allocations: tasks_allocations_changeset=%i',
-                  len(tasks_allocations_changeset))
-        log.log(logger.TRACE, 'sync_allocations: tasks allocations changeset to execute: %r',
-                tasks_allocations_changeset)
+        log.log(logger.TRACE, 'sync_allocations: tasks allocations changeset (%i) to execute: %r',
+                len(tasks_allocations_changeset), tasks_allocations_changeset)
+
+        log.info('Allocations to execute: %i', len(tasks_allocations_changeset))
 
         # Syncing real part (resctrl groups are created/removed and cgroups files are written).
         if self.rdt_enabled:
