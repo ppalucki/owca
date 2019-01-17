@@ -85,9 +85,19 @@ def init_logging(level: str, package_name: str):
     )
 
 
-def trace(log, verbose=True):
+def trace(log, verbose=None):
     """Decorator to trace calling of given function reporting all arguments, returned value
     and time of executions.
+
+    The arguments are shown depending on the level of logger and verbose argument.
+
+    Setting verbose explicitly to True, means it is ok to present arguments even at debug level.
+    Setting verbose explicitly to False, means it is too verbose
+        to present arguments event at trace level.
+
+    Then depending on level of passed log:
+    - for DEBUG level only the name of function and execution time is logged
+    - for TRACE level both arguments and return value is shown
 
     Example usage:
 
@@ -100,24 +110,39 @@ def trace(log, verbose=True):
 
     some_function(1)
 
-    output in logs (when trace is enabled!)
+    output in logs (when TRACE level is used)
     [TRACE] owca.some_module: -> some_function(args=(1,), kw={})
-    [TRACE] owca.some_module: <- some_function(...) = 2 (time=1.5s)
+    [TRACE] owca.some_module: <- some_function(...) = 2 (1.5s)
+
+    output in logs (when DEBUG level is used)
+    [TRACE] owca.some_module: -> some_function()
+    [TRACE] owca.some_module: <- some_function() (1.5s)
 
     """
     def _trace(func):
         def __trace(*args, **kw):
             s = time.time()
-            if verbose:
-                log.log(TRACE, '-> %s(args=%r, kw=%r)', func.__name__, args, kw)
+
+            if verbose is not None:
+                show_args = verbose
+                level = logging.DEBUG if verbose is True else TRACE
             else:
-                log.log(TRACE, '-> %s(...)', func.__name__)
+                trace_level_is_enabled = (log.getEffectiveLevel() == TRACE)
+                show_args = trace_level_is_enabled
+                level = TRACE if trace_level_is_enabled else logging.DEBUG
+
+            if show_args:
+                log.log(level, '-> %s(args=%r, kw=%r)', func.__name__, args, kw)
+            else:
+                log.log(level, '-> %s()', func.__name__)
 
             rv = func(*args, **kw)
-            if verbose:
-                log.log(TRACE, '<- %s(...) = %r (time=%.2fs)', func.__name__, rv, time.time() - s)
+
+            if show_args:
+                log.log(level, '<- %s() = %r (%.2fs)', func.__name__, rv, time.time() - s)
             else:
-                log.log(TRACE, '<- %s(...) = ... (time=%.2fs)', func.__name__, time.time() - s)
+                log.log(level, '<- %s() (%.2fs)', func.__name__, time.time() - s)
+
             return rv
         return __trace
     return _trace
