@@ -27,7 +27,6 @@ from owca.logger import trace
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
 
-
 RESCTRL_ROOT_NAME = ''
 BASE_RESCTRL_PATH = '/sys/fs/resctrl'
 MON_GROUPS = 'mon_groups'
@@ -40,7 +39,6 @@ MBM_TOTAL = 'mbm_total_bytes'
 LLC_OCCUPANCY = 'llc_occupancy'
 RDT_MB = 'rdt_MB'
 RDT_LC = 'rdt_LC'
-
 
 log = logging.getLogger(__name__)
 
@@ -58,7 +56,7 @@ def get_max_rdt_values(cbm_mask: str, platform_sockets: int) -> Tuple[str, str]:
         max_rdt_l3.append('%i=%s' % (dom_id, cbm_mask))
         max_rdt_mb.append('%i=100' % dom_id)
 
-    return 'L3:'+';'.join(max_rdt_l3), 'MB:'+';'.join(max_rdt_mb)
+    return 'L3:' + ';'.join(max_rdt_l3), 'MB:' + ';'.join(max_rdt_mb)
 
 
 def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
@@ -349,9 +347,9 @@ class RDTAllocation(AllocationValue):
                 value = int(raw_value)
                 metrics.append(
                     Metric(
-                       name='allocation', value=value, type=MetricType.GAUGE,
-                       labels=dict(allocation_type='rdt_mb',
-                                   group_name=group_name, domain_id=domain_id)
+                        name='allocation', value=value, type=MetricType.GAUGE,
+                        labels=dict(allocation_type='rdt_mb',
+                                    group_name=group_name, domain_id=domain_id)
                     )
                 )
 
@@ -393,7 +391,6 @@ class RDTAllocation(AllocationValue):
             else:
                 return target_rdt_allocation, None
 
-
     def validate(self) -> List[str]:
         errors = []
         # Check l3 mask according provided platform.rdt
@@ -414,8 +411,9 @@ class RDTAllocation(AllocationValue):
                                    platforms.rdt_cbm_mask,
                                    platforms.rdt_min_cbm_bits)
             except ValueError as e:
-                errors.append('Invalid l3 cache config(%r): %s' %(self.l3, e))
+                errors.append('Invalid l3 cache config(%r): %s' % (self.l3, e))
         return errors
+
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on
@@ -439,7 +437,7 @@ def _parse_schemata_file_row(line: str) -> Dict[str, str]:
         return {}
 
     # Drop resource identifier prefix like ("mb:")
-    line = line[line.find(RESOURCE_ID_SEPARATOR)+1:]
+    line = line[line.find(RESOURCE_ID_SEPARATOR) + 1:]
     # Domains
     domains_with_values = line.split(DOMAIN_ID_SEPARATOR)
     for domain_with_value in domains_with_values:
@@ -451,7 +449,7 @@ def _parse_schemata_file_row(line: str) -> Dict[str, str]:
         domain_id = domain_with_value[:separator_position]
         if not domain_id:
             raise ValueError('domain_id cannot be empty!')
-        value = domain_with_value[separator_position+1:]
+        value = domain_with_value[separator_position + 1:]
         if not value:
             raise ValueError('value cannot be empty!')
 

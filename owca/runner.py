@@ -13,29 +13,29 @@
 # limitations under the License.
 
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
 import logging
 import time
+from abc import ABC, abstractmethod
+from typing import List, Dict, Optional, Tuple
 
-import owca.resctrl
+from dataclasses import dataclass, field
+
 from owca import detectors, nodes
 from owca import platforms
 from owca import storage
+from owca.allocators import Allocator, TasksAllocations, _convert_tasks_allocations_to_metrics, \
+    AllocationConfiguration, _ignore_invalid_allocations
 from owca.containers import ContainerManager, Container
 from owca.detectors import (TasksMeasurements, TasksResources,
                             TasksLabels, convert_anomalies_to_metrics,
                             update_anomalies_metrics_with_task_information
                             )
-from owca.allocators import Allocator, TasksAllocations, _convert_tasks_allocations_to_metrics, \
-    AllocationConfiguration, AllocationType, _ignore_invalid_allocations
+from owca.logger import trace
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
-from owca.logger import trace
 from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, \
-    _parse_schemata_file_row, _assign_default_rdt_group_names
+    _assign_default_rdt_group_names
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -309,7 +309,6 @@ class DetectionRunner(Runner, BaseRunnerMixin):
 
 @dataclass
 class AllocationRunner(Runner, BaseRunnerMixin):
-
     node: nodes.Node
     allocator: Allocator
     metrics_storage: storage.Storage
@@ -326,10 +325,6 @@ class AllocationRunner(Runner, BaseRunnerMixin):
     def __post_init__(self):
         BaseRunnerMixin.__init__(
             self, self.rdt_enabled, self.rdt_mb_control_enabled, self.allocation_configuration)
-
-
-
-
 
     @trace(log)
     def run(self):
@@ -391,4 +386,3 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 break
 
         self.cleanup()
-

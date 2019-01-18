@@ -13,15 +13,15 @@
 # limitations under the License.
 
 
+import logging
 import os
 import re
 import socket
 import time
-import logging
 from typing import List, Dict, Set, Tuple, Optional
-from pkg_resources import get_distribution, DistributionNotFound
 
 from dataclasses import dataclass
+from pkg_resources import get_distribution, DistributionNotFound
 
 from owca.metrics import Metric, MetricName
 
@@ -73,7 +73,7 @@ def create_metrics(platform: Platform) -> List[Metric]:
         Metric.create_metric_with_metadata(
             name=MetricName.MEM_USAGE,
             value=platform.total_memory_used)
-        )
+    )
     for cpu_id, cpu_usage in platform.cpus_usage.items():
         platform_metrics.append(
             Metric.create_metric_with_metadata(
@@ -237,10 +237,12 @@ def collect_rdt_information(rdt_enabled: bool) -> (str, str):
     else:
         return None, None
 
-#TODO: fix me jakos
-no_of_sockets=None
-rdt_cbm_mask=None
-rdt_min_cbm_bits=None
+
+# TODO: fix me jakos
+no_of_sockets = None
+rdt_cbm_mask = None
+rdt_min_cbm_bits = None
+
 
 def collect_platform_information(rdt_enabled: bool = True) -> (
         Platform, List[Metric], Dict[str, str]):

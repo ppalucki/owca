@@ -209,5 +209,3 @@ def test_resgroup_perform_allocations(resgroup_args, task_allocations,
         expected_write_calls = [call().write(write_body) for write_body in expected_filename_writes]
         assert expected_filename_writes
         write_mock.assert_has_calls(expected_write_calls, any_order=True)
-
-

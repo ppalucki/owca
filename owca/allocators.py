@@ -11,27 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import math
 from abc import ABC, abstractmethod
 from enum import Enum
 from pprint import pformat
 from typing import List, Dict, Union, Tuple, Optional
-import logging
-
-from owca import platforms
-from owca.logger import trace, TRACE
-from owca.metrics import Metric, MetricType
-from owca.mesos import TaskId
-from owca.platforms import Platform
-from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 
 from dataclasses import dataclass
+
+from owca import platforms
+from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
+from owca.logger import trace, TRACE
+from owca.mesos import TaskId
+from owca.metrics import Metric, MetricType
+from owca.platforms import Platform
 
 log = logging.getLogger(__name__)
 
 
 class AllocationType(str, Enum):
-
     QUOTA = 'cpu_quota'
     SHARES = 'cpu_shares'
     RDT = 'rdt'
@@ -41,7 +40,7 @@ class AllocationValue:
 
     @abstractmethod
     def merge_with_current(self, current: 'AllocationValue') -> Tuple[
-        'AllocationValue', Optional['AllocationValue']]:
+            'AllocationValue', Optional['AllocationValue']]:
         ...
 
     @abstractmethod
@@ -60,7 +59,6 @@ TasksAllocations = Dict[TaskId, TaskAllocations]
 
 @dataclass
 class AllocationConfiguration:
-
     # Default value for cpu.cpu_period [ms] (used as denominator).
     cpu_quota_period: int = 1000
 
@@ -143,7 +141,7 @@ FLOAT_VALUES_CHANGE_DETECTION = 1e-02
 @trace(log, verbose=False)
 def _calculate_task_allocations_changeset(
         current_task_allocations: TaskAllocations,
-        new_task_allocations: TaskAllocations)\
+        new_task_allocations: TaskAllocations) \
         -> Tuple[TaskAllocations, TaskAllocations]:
     """Return tuple of resource allocation (changeset) per task.
     """
@@ -182,13 +180,14 @@ def _calculate_task_allocations_changeset(
                        '\nnew_task_allocations=\n%s'
                        '\ntarget_task_allocations=\n%s'
                        '\ntask_allocations_changeset=\n%s',
-                       pformat(current_task_allocations),
-                       pformat(new_task_allocations),
-                       pformat(target_task_allocations),
-                       pformat(task_allocations_changeset)
+                pformat(current_task_allocations),
+                pformat(new_task_allocations),
+                pformat(target_task_allocations),
+                pformat(task_allocations_changeset)
                 )
 
-    return target_task_allocations, task_allocations_changeset
+    return target_task_allocations, (None if len(
+        task_allocations_changeset) is 0 else task_allocations_changeset)
 
 
 @trace(log, verbose=False)
@@ -251,10 +250,6 @@ def _ignore_invalid_allocations(platform: platforms.Platform,
         if isinstance(task_allocations, AllocationValue):
             errors = task_allocations.validate()
 
-
-
     new_tasks_allocations = {t: a for t, a in new_tasks_allocations.items()
                              if t not in task_ids_to_remove}
     return ignored_allocations, new_tasks_allocations
-
-

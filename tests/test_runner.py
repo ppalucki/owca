@@ -187,7 +187,6 @@ def test_allocation_runner_containers_state(*mocks):
                                    AllocationType.RDT: RDTAllocation(name='only_group',
                                                                      l3='L3:0=00fff;1=0ffff')}}
 
-
     # Patch some of the functions of AllocationRunner.
     runner = AllocationRunner(
         node=mesos_node_mock,
