@@ -178,7 +178,7 @@ class ResGroup:
     def add_tasks(self, pids, mongroup_name):
         """Adds the pids to the resctrl group and creates mongroup with the pids.
            If the resctrl group does not exists creates it (lazy creation).
-           If already the mongroup exists just add the pids (no error will be thrown)."""
+           If the mongroup exists adds pids to the group (no error will be thrown)."""
 
         # add pids to /tasks file
         log.debug('add_tasks: %d pids to %r', len(pids), os.path.join(self.fullpath, 'tasks'))
