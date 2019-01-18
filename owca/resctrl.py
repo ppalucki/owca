@@ -380,10 +380,12 @@ class RDTAllocation(AllocationValue):
                 name=new_rdt_allocation.name,
             )
             l3_new, mb_new = False, False
-            if current_rdt_allocation.l3 != new_rdt_allocation.l3:
+            if new_rdt_allocation.l3 is not None \
+                    and current_rdt_allocation.l3 != new_rdt_allocation.l3:
                 rdt_allocation_changeset.l3 = new_rdt_allocation.l3
                 l3_new = True
-            if current_rdt_allocation.mb != new_rdt_allocation.mb:
+            if new_rdt_allocation.mb is not None \
+                    and current_rdt_allocation.mb != new_rdt_allocation.mb:
                 rdt_allocation_changeset.mb = new_rdt_allocation.mb
                 mb_new = True
             if l3_new or mb_new:

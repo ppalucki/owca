@@ -47,7 +47,7 @@ from owca.metrics import Metric, MetricType
      ({"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='dd')},
       {"rdt": RDTAllocation(name='x', l3='dd')}, {"rdt": RDTAllocation(name='x', l3='dd')}),
      ({"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, {"rdt": RDTAllocation(name='x', mb='ff')},
-      {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, {"rdt": RDTAllocation(name='x')}),
+      {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, None), # {"rdt": RDTAllocation(name='x')}
     ))
 def test_calculate_task_allocations(
         current_task_allocations, new_task_allocations,
