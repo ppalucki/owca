@@ -26,11 +26,11 @@ from owca.resctrl import RDTAllocation, _parse_schemata_file_row, _count_enabled
     'current_task_allocations,new_task_allocations,'
     'expected_target_task_allocations,expected_task_allocations_changeset', (
         ({}, {},
-         {}, None),
+         {}, {}),
         ({'a': 0.2}, {},
-         {'a': 0.2}, None),
+         {'a': 0.2}, {}),
         ({'a': 0.2}, {'a': 0.2},
-         {'a': 0.2}, None),
+         {'a': 0.2}, {}),
         ({'b': 2}, {'b': 3},
          {'b': 3}, {'b': 3}),
         ({'a': 0.2, 'b': 0.4}, {'a': 0.2, 'b': 0.5},
@@ -41,14 +41,14 @@ from owca.resctrl import RDTAllocation, _parse_schemata_file_row, _count_enabled
         ({}, {"rdt": RDTAllocation(name='', l3='ff')},
          {"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='', l3='ff')}),
         ({"rdt": RDTAllocation(name='', l3='ff')}, {},
-         {"rdt": RDTAllocation(name='', l3='ff')}, None),
+         {"rdt": RDTAllocation(name='', l3='ff')}, {}),
         ({"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')},
          {"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')}),
         ({"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='dd')},
          {"rdt": RDTAllocation(name='x', l3='dd')}, {"rdt": RDTAllocation(name='x', l3='dd')}),
         ({"rdt": RDTAllocation(name='x', l3='dd', mb='ff')},
          {"rdt": RDTAllocation(name='x', mb='ff')},
-         {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, None),
+         {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, {}),
     ))
 def test_calculate_task_allocations(
         current_task_allocations, new_task_allocations,

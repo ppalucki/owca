@@ -186,8 +186,7 @@ def _calculate_task_allocations_changeset(
                 pformat(task_allocations_changeset)
                 )
 
-    return target_task_allocations, (None if len(
-        task_allocations_changeset) is 0 else task_allocations_changeset)
+    return target_task_allocations, task_allocations_changeset
 
 
 @trace(log, verbose=False)
@@ -248,7 +247,7 @@ def _ignore_invalid_allocations(platform: platforms.Platform,
     for task_id, task_allocations in new_tasks_allocations.items():
 
         if isinstance(task_allocations, AllocationValue):
-            errors = task_allocations.validate()
+            _ = task_allocations.validate()
 
     new_tasks_allocations = {t: a for t, a in new_tasks_allocations.items()
                              if t not in task_ids_to_remove}
