@@ -65,6 +65,10 @@ class Platform:
     rdt_cbm_mask: Optional[str]  # based on /sys/fs/resctrl/info/L3/cbm_mask
     rdt_min_cbm_bits: Optional[str]  # based on /sys/fs/resctrl/info/L3/min_cbm_bits
 
+    def update(self):
+        self.cpus_usage = parse_proc_stat(read_proc_stat())
+        self.total_memory_used = parse_proc_meminfo(read_proc_meminfo())
+
 
 def create_metrics(platform: Platform) -> List[Metric]:
     """Creates a list of Metric objects from data in Platform object"""
@@ -238,10 +242,7 @@ def collect_rdt_information(rdt_enabled: bool) -> (str, str):
         return None, None
 
 
-# TODO: fix me jakos
-no_of_sockets = None
-rdt_cbm_mask = None
-rdt_min_cbm_bits = None
+_platform = None
 
 
 def collect_platform_information(rdt_enabled: bool = True) -> (
@@ -257,13 +258,15 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     Note: returned metrics should be consistent with information covered by platform
 
     """
-    global no_of_sockets, rdt_cbm_mask, rdt_min_cbm_bits
+    global _platform
+    if _platform is not None:
+        return _platform
     nr_of_cpus, nr_of_cores, no_of_sockets = collect_topology_information()
     rdt_cbm_mask, rdt_min_cbm_bits = collect_rdt_information(rdt_enabled)
-    platform = Platform(sockets=no_of_sockets, cores=nr_of_cores, cpus=nr_of_cpus,
-                        cpus_usage=parse_proc_stat(read_proc_stat()),
-                        total_memory_used=parse_proc_meminfo(read_proc_meminfo()),
-                        timestamp=time.time(), rdt_cbm_mask=rdt_cbm_mask,
-                        rdt_min_cbm_bits=rdt_min_cbm_bits)
-    assert len(platform.cpus_usage) == platform.cpus, "Inconsistency in cpu data returned by kernel"
-    return platform, create_metrics(platform), create_labels(platform)
+    cpus_usage = {index: 0 for index in range(nr_of_cpus)}
+    _platform = Platform(sockets=no_of_sockets, cores=nr_of_cores, cpus=nr_of_cpus,
+                         cpus_usage=cpus_usage, total_memory_used=0, timestamp=time.time(),
+                         rdt_cbm_mask=rdt_cbm_mask, rdt_min_cbm_bits=rdt_min_cbm_bits)
+    assert len(_platform.cpus_usage) == _platform.cpus,\
+        "Inconsistency in cpu data returned by kernel"
+    return _platform, create_metrics(_platform), create_labels(_platform)

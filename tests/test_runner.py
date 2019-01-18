@@ -146,7 +146,6 @@ def test_detection_runner_containers_state(*mocks):
 
 @patch('time.time', return_value=1234567890.123)
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
-@patch('owca.platforms.Platform')
 @patch('owca.runner.are_privileges_sufficient', return_value=True)
 @patch('owca.runner.AllocationRunner.configure_rdt', return_value=True)
 @patch('owca.containers.Container.get_pids', return_value=['123'])

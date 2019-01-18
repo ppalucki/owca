@@ -185,6 +185,7 @@ class BaseRunnerMixin:
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(
             self.rdt_enabled)
+        platform.update()
         metrics_package.add_metrics(platform_metrics)
 
         # Common labels
