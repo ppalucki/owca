@@ -8,8 +8,8 @@ import logging
 import dataclasses
 from dataclasses import dataclass
 
-from owca.allocators import Allocator, TasksAllocations, RDTAllocation, \
-    _calculate_tasks_allocations_changeset, AllocationType
+from owca.allocators import Allocator, TasksAllocations, _calculate_tasks_allocations_changeset, AllocationType
+from owca.resctrl import RDTAllocation
 from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric

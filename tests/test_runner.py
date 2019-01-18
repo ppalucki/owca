@@ -26,9 +26,9 @@ from owca import storage
 from owca import platforms
 from owca.metrics import Metric, MetricType
 from owca.detectors import AnomalyDetector
-from owca.allocators import Allocator, AllocationType, RDTAllocation
-from owca.testing import anomaly_metrics, anomaly, task
-from tests.test_containers import container, metric
+from owca.allocators import Allocator, AllocationType
+from owca.resctrl import RDTAllocation
+from owca.testing import anomaly_metrics, anomaly, task, container, metric
 
 
 # We are mocking objects used by containers.
@@ -167,6 +167,10 @@ def test_allocation_runner_containers_state(*mocks):
         Cgroup, Resgroup, Platform, etc. Thus the test do not cover the full usage scenario
         (such tests would be much harder to write).
     """
+    # Mock platform.
+    platform_mock = Mock(spec=platforms.Platform, sockets=2,
+                         rdt_cbm_mask='fffff', rdt_min_cbm_bits=1)
+
     task_labels_sanitized_with_task_id = {'task_id': 'task-id-/t1'}
 
     # Node mock.
@@ -183,8 +187,6 @@ def test_allocation_runner_containers_state(*mocks):
                                    AllocationType.RDT: RDTAllocation(name='only_group',
                                                                      l3='L3:0=00fff;1=0ffff')}}
 
-    # Mock platform.
-    platform_mock = Mock(spec=platforms.Platform)
 
     # Patch some of the functions of AllocationRunner.
     runner = AllocationRunner(

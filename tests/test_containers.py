@@ -16,43 +16,32 @@ from unittest.mock import patch, Mock
 
 import pytest
 
-from owca.allocators import RDTAllocation, AllocationType
-from owca.containers import ContainerManager, Container, _calculate_desired_state
-from owca.metrics import Metric
+from owca.allocators import AllocationType
+from owca.resctrl import RDTAllocation
+from owca.containers import ContainerManager, _calculate_desired_state
 from owca.runner import DetectionRunner
-from owca.testing import task
-
-
-def container(cgroup_path):
-    """Helper method to create container with patched subsystems."""
-    with patch('owca.containers.ResGroup'), patch('owca.containers.PerfCounters'):
-        return Container(cgroup_path, rdt_enabled=False, platform_cpus=1)
-
-
-def metric(name, labels=None):
-    """Helper method to create metric with default values. Value is ignored during tests."""
-    return Metric(name=name, value=1234, labels=labels or {})
+from owca.testing import task, container
 
 
 @pytest.mark.parametrize(
     'discovered_tasks,containers,expected_new_tasks,expected_containers_to_delete', (
         # scenario when two task are created and them first one is removed,
-        ([task('/t1')], [],  # one new task, just arrived
+            ([task('/t1')], [],  # one new task, just arrived
          [task('/t1')], []),  # should created one container
-        ([task('/t1')], [container('/t1')],  # after one iteration, our state is converged
-         [], []),  # no actions
-        ([task('/t1'), task('/t2')], [container('/t1'), ],  # another task arrived,
-         [task('/t2')], []),  # let's create another container,
-        ([task('/t1'), task('/t2')], [container('/t1'), container('/t2')],  # 2on2 converged
-         [], []),  # nothing to do,
-        ([task('/t2')], [container('/t1'), container('/t2')],  # first task just disappeared
-         [], [container('/t1')]),  # remove the first container
-        # some other cases
-        ([task('/t1'), task('/t2')], [],  # the new task, just appeared
+            ([task('/t1')], [container('/t1')],  # after one iteration, our state is converged
+             [], []),  # no actions
+            ([task('/t1'), task('/t2')], [container('/t1'), ],  # another task arrived,
+             [task('/t2')], []),  # let's create another container,
+            ([task('/t1'), task('/t2')], [container('/t1'), container('/t2')],  # 2on2 converged
+             [], []),  # nothing to do,
+            ([task('/t2')], [container('/t1'), container('/t2')],  # first task just disappeared
+             [], [container('/t1')]),  # remove the first container
+            # some other cases
+            ([task('/t1'), task('/t2')], [],  # the new task, just appeared
          [task('/t1'), task('/t2')], []),
-        ([task('/t1'), task('/t3')], [container('/t1'),
-                                      container('/t2')],  # t2 replaced with t3
-         [task('/t3')], [container('/t2')]),  # nothing to do,
+            ([task('/t1'), task('/t3')], [container('/t1'),
+                                          container('/t2')],  # t2 replaced with t3
+             [task('/t3')], [container('/t2')]),  # nothing to do,
     ))
 def test_calculate_desired_state(
         discovered_tasks,

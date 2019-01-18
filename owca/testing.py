@@ -17,8 +17,9 @@
 
 import os
 from typing import List, Dict, Union
-from unittest.mock import mock_open, Mock
+from unittest.mock import mock_open, Mock, patch
 
+from owca.containers import Container
 from owca.detectors import ContendedResource, ContentionAnomaly, _create_uuid_from_tasks_ids
 from owca.mesos import MesosTask, TaskId
 from owca.metrics import Metric, MetricType
@@ -109,3 +110,14 @@ def task(cgroup_path, labels=None, resources=None):
         labels=labels or dict(),
         resources=resources or dict()
     )
+
+
+def container(cgroup_path):
+    """Helper method to create container with patched subsystems."""
+    with patch('owca.containers.ResGroup'), patch('owca.containers.PerfCounters'):
+        return Container(cgroup_path, rdt_enabled=False, platform_cpus=1)
+
+
+def metric(name, labels=None):
+    """Helper method to create metric with default values. Value is ignored during tests."""
+    return Metric(name=name, value=1234, labels=labels or {})

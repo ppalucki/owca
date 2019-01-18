@@ -29,12 +29,13 @@ from owca.detectors import (TasksMeasurements, TasksResources,
                             update_anomalies_metrics_with_task_information
                             )
 from owca.allocators import Allocator, TasksAllocations, _convert_tasks_allocations_to_metrics, \
-    AllocationConfiguration, AllocationType, _parse_schemata_file_row
+    AllocationConfiguration, AllocationType, _ignore_invalid_allocations
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
 from owca.logger import trace
-from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values
+from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, \
+    _parse_schemata_file_row, _assign_default_rdt_group_names
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -75,6 +76,7 @@ class BaseRunnerMixin:
         self.anomaly_counter = 0
         self.allocations_counter = 0
         self.rdt_enabled = rdt_enabled  # as mixin it can override the value from base class
+        self.rdt_mb_control_enabled = rdt_mb_control_enabled
         self.allocation_configuration = allocation_configuration
 
     def configure_rdt(self, rdt_enabled, ignore_privileges_check: bool):
@@ -325,42 +327,9 @@ class AllocationRunner(Runner, BaseRunnerMixin):
         BaseRunnerMixin.__init__(
             self, self.rdt_enabled, self.rdt_mb_control_enabled, self.allocation_configuration)
 
-    @trace(log, verbose=False)
-    def _ignore_invalid_allocations(self, platform: platforms.Platform,
-                                    new_tasks_allocations: TasksAllocations) -> (
-                                        int, TasksAllocations):
-        # Ignore and warn about invalid allocations.
-        ignored_allocations = 0
-        if self.rdt_enabled:
-            task_ids_to_remove = set()
-            for task_id, task_allocations in new_tasks_allocations.items():
-                if AllocationType.RDT in task_allocations:
-                    # Check l3 mask according provided platform.rdt
-                    l3 = task_allocations[AllocationType.RDT].l3
-                    if l3:
-                        try:
-                            if not l3.startswith('L3:'):
-                                raise ValueError('l3 resources setting should '
-                                                 'start with "L3:" prefix (got %r)' % l3)
-                            domains = _parse_schemata_file_row(l3)
-                            if len(domains) != platform.sockets:
-                                raise ValueError('not enough domains in l3 configuration '
-                                                 '(expected=%i,got=%i)' % (platform.sockets,
-                                                                           len(domains)))
 
-                            for mask_value in domains.values():
-                                owca.resctrl.check_cbm_bits(mask_value,
-                                                            platform.rdt_cbm_mask,
-                                                            platform.rdt_min_cbm_bits)
-                        except ValueError as e:
-                            log.warning('Allocation for task=%r is ignored, because invalid '
-                                        'l3 cache config(%r): %s', task_id, l3, e)
-                            task_ids_to_remove.add(task_id)
-                            ignored_allocations += 1
 
-            new_tasks_allocations = {t: a for t, a in new_tasks_allocations.items()
-                                     if t not in task_ids_to_remove}
-        return ignored_allocations, new_tasks_allocations
+
 
     @trace(log)
     def run(self):
@@ -381,8 +350,13 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 current_tasks_allocations)
             allocate_duration = time.time() - allocate_start
 
-            ignored_allocations, new_tasks_allocations = \
-                self._ignore_invalid_allocations(platform, new_tasks_allocations)
+            # If there is no name of RDTAllocation, use task_id as default.
+            if self.rdt_enabled:
+                _assign_default_rdt_group_names(new_tasks_allocations)
+                ignored_allocations, new_tasks_allocations = _ignore_invalid_allocations(
+                    platform, new_tasks_allocations)
+            else:
+                ignored_allocations = 0
 
             log.debug('Anomalies detected: %d', len(anomalies))
             log.info('Allocations received: %d%s', len(new_tasks_allocations),
@@ -417,3 +391,4 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 break
 
         self.cleanup()
+

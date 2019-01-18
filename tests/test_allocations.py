@@ -15,9 +15,10 @@
 import pytest
 
 from owca.allocators import _calculate_task_allocations_changeset, \
-    _calculate_tasks_allocations_changeset, RDTAllocation, AllocationType, \
-    _convert_tasks_allocations_to_metrics, _parse_schemata_file_row, \
-    _count_enabled_bits
+    _calculate_tasks_allocations_changeset, AllocationType, \
+    _convert_tasks_allocations_to_metrics
+from owca.resctrl import RDTAllocation, _parse_schemata_file_row, _count_enabled_bits, \
+    check_cbm_bits
 from owca.metrics import Metric, MetricType
 
 
@@ -240,3 +241,20 @@ def test_merge_rdt_allocations1(
 
     assert got_target_rdt_allocation == expected_target_rdt_allocation
     assert got_rdt_alloction_changeset == expected_rdt_allocation_changeset
+
+
+def test_check_cbm_bits_valid():
+    check_cbm_bits('ff00', 'ffff', '1')
+
+
+@pytest.mark.parametrize(
+    'mask, cbm_mask, min_cbm_bits, expected_error_message', (
+        ('f0f', 'ffff', '1', 'without a gap'),
+        ('0', 'ffff', '1', 'minimum'),
+        ('ffffff', 'ffff', 'bigger', ''),
+    )
+)
+def test_check_cbm_bits_gap(mask: str, cbm_mask: str, min_cbm_bits: str,
+                            expected_error_message: str):
+    with pytest.raises(ValueError, match=expected_error_message):
+        check_cbm_bits(mask, cbm_mask, min_cbm_bits)

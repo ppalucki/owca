@@ -20,8 +20,7 @@ from typing import List, Dict
 import pytest
 
 from owca.resctrl import ResGroup, check_resctrl, RESCTRL_ROOT_NAME, get_max_rdt_values, \
-    check_cbm_bits
-from owca.allocators import RDTAllocation
+    RDTAllocation
 from owca.testing import create_open_mock
 
 
@@ -212,18 +211,3 @@ def test_resgroup_perform_allocations(resgroup_args, task_allocations,
         write_mock.assert_has_calls(expected_write_calls, any_order=True)
 
 
-def test_check_cbm_bits_valid():
-    check_cbm_bits('ff00', 'ffff', '1')
-
-
-@pytest.mark.parametrize(
-    'mask, cbm_mask, min_cbm_bits, expected_error_message', (
-        ('f0f', 'ffff', '1', 'without a gap'),
-        ('0', 'ffff', '1', 'minimum'),
-        ('ffffff', 'ffff', 'bigger', ''),
-    )
-)
-def test_check_cbm_bits_gap(mask: str, cbm_mask: str, min_cbm_bits: str,
-                            expected_error_message: str):
-    with pytest.raises(ValueError, match=expected_error_message):
-        check_cbm_bits(mask, cbm_mask, min_cbm_bits)

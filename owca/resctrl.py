@@ -17,11 +17,14 @@
 import errno
 import logging
 import os
-from typing import Tuple
+from typing import Tuple, List, Optional, Dict
+
+from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import AllocationType, RDTAllocation, TaskAllocations
-from owca.metrics import Measurements, MetricName
+from owca.allocators import AllocationType, TaskAllocations, log, TasksAllocations
+from owca.logger import trace
+from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
 
 
@@ -296,6 +299,186 @@ class ResGroup:
             os.rmdir(self.fullpath)
         except FileNotFoundError:
             log.debug('cleanup: directory already does not exist %s', self.fullpath)
+
+
+@dataclass(unsafe_hash=True)
+class RDTAllocation:
+    # defaults to TaskId from TasksAllocations
+    name: str = None
+    # CAT: optional - when no provided doesn't change the existing allocation
+    l3: str = None
+    # MBM: optional - when no provided doesn't change the existing allocation
+    mb: str = None
+
+    def generate_metrics(self) -> List[Metric]:
+        """Encode RDT Allocation as metrics.
+        Note:
+        - cache allocation: generated two metrics, with number of cache ways and
+                            mask of bits (encoded as int)
+        - memory bandwidth: is encoded as int, representing MB/s or percentage
+        """
+        # Empty object generate no metric.
+        if not self.l3 and not self.mb:
+            return []
+
+        group_name = self.name or ''
+
+        metrics = []
+        if self.l3:
+            domains = _parse_schemata_file_row(self.l3)
+            for domain_id, raw_value in domains.items():
+                metrics.extend([
+                    Metric(
+                        name='allocation', value=_count_enabled_bits(raw_value),
+                        type=MetricType.GAUGE, labels=dict(
+                            allocation_type='rdt_l3_cache_ways', group_name=group_name,
+                            domain_id=domain_id)
+                    ),
+                    Metric(
+                        name='allocation', value=int(raw_value, 16),
+                        type=MetricType.GAUGE, labels=dict(
+                            allocation_type='rdt_l3_mask', group_name=group_name,
+                            domain_id=domain_id)
+                    )
+                ])
+
+        if self.mb:
+            domains = _parse_schemata_file_row(self.mb)
+            for domain_id, raw_value in domains.items():
+                # NOTE: raw_value is treated as int, ignoring unit used (MB or %)
+                value = int(raw_value)
+                metrics.append(
+                    Metric(
+                       name='allocation', value=value, type=MetricType.GAUGE,
+                       labels=dict(allocation_type='rdt_mb',
+                                   group_name=group_name, domain_id=domain_id)
+                    )
+                )
+
+        return metrics
+
+    @trace(log)
+    def merge_with_current(self: Optional['RDTAllocation'],
+                           current_rdt_allocation: 'RDTAllocation') -> \
+            Tuple['RDTAllocation', Optional['RDTAllocation']]:
+        """Merge with existing RDTAllocation objects and return
+        sum of the allocations (target_rdt_allocation) and allocations that need to be updated
+        (rdt_allocation_changeset)."""
+        new_rdt_allocation = self
+        # new name, then new allocation will be used (overwrite) but no merge
+        if current_rdt_allocation is None or current_rdt_allocation.name != new_rdt_allocation.name:
+            log.debug('new name or no previous allocation exists')
+            return new_rdt_allocation, new_rdt_allocation
+        else:
+            log.debug('merging existing rdt allocation')
+            target_rdt_allocation = RDTAllocation(
+                name=current_rdt_allocation.name,
+                l3=new_rdt_allocation.l3 or current_rdt_allocation.l3,
+                mb=new_rdt_allocation.mb or current_rdt_allocation.mb,
+            )
+            rdt_allocation_changeset = RDTAllocation(
+                name=new_rdt_allocation.name,
+            )
+            l3_new, mb_new = False, False
+            if current_rdt_allocation.l3 != new_rdt_allocation.l3:
+                rdt_allocation_changeset.l3 = new_rdt_allocation.l3
+                l3_new = True
+            if current_rdt_allocation.mb != new_rdt_allocation.mb:
+                rdt_allocation_changeset.mb = new_rdt_allocation.mb
+                mb_new = True
+            if l3_new or mb_new:
+                return target_rdt_allocation, rdt_allocation_changeset
+            else:
+                return target_rdt_allocation, None
+
+
+    def validate(self) -> List[str]:
+        errors = []
+        # Check l3 mask according provided platform.rdt
+        if self.l3:
+            try:
+                if not l3.startswith('L3:'):
+                    raise ValueError('l3 resources setting should '
+                                     'start with "L3:" prefix (got %r)' % l3)
+                domains = _parse_schemata_file_row(l3)
+                if len(domains) != platform.sockets:
+                    raise ValueError('not enough domains in l3 configuration '
+                                     '(expected=%i,got=%i)' % (platform.sockets,
+                                                               len(domains)))
+
+                for mask_value in domains.values():
+                    check_cbm_bits(mask_value,
+                                   platform.rdt_cbm_mask,
+                                   platform.rdt_min_cbm_bits)
+            except ValueError as e:
+                log.warning('Allocation for task=%r is ignored, because invalid '
+                            'l3 cache config(%r): %s', task_id, l3, e)
+                task_ids_to_remove.add(task_id)
+        return errors
+
+def _parse_schemata_file_row(line: str) -> Dict[str, str]:
+    """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on
+    https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/cpu/intel_rdt_ctrlmondata.c#lL206
+    and return dict mapping and domain id to its configuration (value).
+    Resource type (e.g. mb, l3) is dropped.
+
+    Eg.
+    mb:1=20;2=50 returns {'1':'20', '2':'50'}
+    mb:xxx=20mbs;2=50b returns {'1':'20mbs', '2':'50b'}
+    raises ValueError exception for inproper format or conflicting domains ids.
+    """
+    RESOURCE_ID_SEPARATOR = ':'
+    DOMAIN_ID_SEPARATOR = ';'
+    VALUE_SEPARATOR = '='
+
+    domains = {}
+
+    # Ignore emtpy line.
+    if not line:
+        return {}
+
+    # Drop resource identifier prefix like ("mb:")
+    line = line[line.find(RESOURCE_ID_SEPARATOR)+1:]
+    # Domains
+    domains_with_values = line.split(DOMAIN_ID_SEPARATOR)
+    for domain_with_value in domains_with_values:
+        if not domain_with_value:
+            raise ValueError('domain cannot be empty')
+        if VALUE_SEPARATOR not in domain_with_value:
+            raise ValueError('Value separator is missing "="!')
+        separator_position = domain_with_value.find(VALUE_SEPARATOR)
+        domain_id = domain_with_value[:separator_position]
+        if not domain_id:
+            raise ValueError('domain_id cannot be empty!')
+        value = domain_with_value[separator_position+1:]
+        if not value:
+            raise ValueError('value cannot be empty!')
+
+        if domain_id in domains:
+            raise ValueError('Conflicting domain id found!')
+
+        domains[domain_id] = value
+
+    return domains
+
+
+def _count_enabled_bits(hexstr: str) -> int:
+    """Parse a raw value like f202 to number of bits enabled."""
+    if hexstr == '':
+        return 0
+    value_int = int(hexstr, 16)
+    enabled_bits_count = bin(value_int).count('1')
+    return enabled_bits_count
+
+
+def _assign_default_rdt_group_names(tasks_allocations: TasksAllocations):
+    """For every RDTAllocation assign the default name of the group,
+    based on them task_id.
+    """
+    for task_id, task_allocations in tasks_allocations.items():
+        if AllocationType.RDT in task_allocations:
+            if task_allocations[AllocationType.RDT].name is None:
+                task_allocations[AllocationType.RDT].name = task_id
 
 
 def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
