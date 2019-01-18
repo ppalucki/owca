@@ -393,7 +393,6 @@ class RDTAllocation(AllocationValue):
             else:
                 return target_rdt_allocation, None
 
-
     def validate(self) -> List[str]:
         errors = []
         # Check l3 mask according provided platform.rdt
@@ -414,8 +413,9 @@ class RDTAllocation(AllocationValue):
                                    platforms.rdt_cbm_mask,
                                    platforms.rdt_min_cbm_bits)
             except ValueError as e:
-                errors.append('Invalid l3 cache config(%r): %s' %(self.l3, e))
+                errors.append('Invalid l3 cache config(%r): %s' % (self.l3, e))
         return errors
+
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on

@@ -25,23 +25,23 @@ from owca.testing import task, container
 
 @pytest.mark.parametrize(
     'discovered_tasks,containers,expected_new_tasks,expected_containers_to_delete', (
-            # scenario when two task are created and them first one is removed,
-            ([task('/t1')], [],  # one new task, just arrived
-             [task('/t1')], []),  # should created one container
-            ([task('/t1')], [container('/t1')],  # after one iteration, our state is converged
-             [], []),  # no actions
-            ([task('/t1'), task('/t2')], [container('/t1'), ],  # another task arrived,
-             [task('/t2')], []),  # let's create another container,
-            ([task('/t1'), task('/t2')], [container('/t1'), container('/t2')],  # 2on2 converged
-             [], []),  # nothing to do,
-            ([task('/t2')], [container('/t1'), container('/t2')],  # first task just disappeared
-             [], [container('/t1')]),  # remove the first container
-            # some other cases
-            ([task('/t1'), task('/t2')], [],  # the new task, just appeared
-             [task('/t1'), task('/t2')], []),
-            ([task('/t1'), task('/t3')], [container('/t1'),
-                                          container('/t2')],  # t2 replaced with t3
-             [task('/t3')], [container('/t2')]),  # nothing to do,
+        # scenario when two task are created and them first one is removed,
+        ([task('/t1')], [],  # one new task, just arrived
+         [task('/t1')], []),  # should created one container
+        ([task('/t1')], [container('/t1')],  # after one iteration, our state is converged
+         [], []),  # no actions
+        ([task('/t1'), task('/t2')], [container('/t1'), ],  # another task arrived,
+         [task('/t2')], []),  # let's create another container,
+        ([task('/t1'), task('/t2')], [container('/t1'), container('/t2')],  # 2on2 converged
+         [], []),  # nothing to do,
+        ([task('/t2')], [container('/t1'), container('/t2')],  # first task just disappeared
+         [], [container('/t1')]),  # remove the first container
+        # some other cases
+        ([task('/t1'), task('/t2')], [],  # the new task, just appeared
+         [task('/t1'), task('/t2')], []),
+        ([task('/t1'), task('/t3')], [container('/t1'),
+                                      container('/t2')],  # t2 replaced with t3
+         [task('/t3')], [container('/t2')]),  # nothing to do,
     ))
 def test_calculate_desired_state(
         discovered_tasks,
@@ -62,16 +62,16 @@ def test_calculate_desired_state(
 @patch('owca.containers.Container.cleanup')
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
 @pytest.mark.parametrize('tasks,existing_containers,expected_running_containers', (
-        ([], {},
-         {}),
-        ([task('/t1')], {},
-         {task('/t1'): container('/t1')}),
-        ([task('/t1')], {task('/t2'): container('/t2')},
-         {task('/t1'): container('/t1')}),
-        ([task('/t1')], {task('/t1'): container('/t1'), task('/t2'): container('/t2')},
-         {task('/t1'): container('/t1')}),
-        ([], {task('/t1'): container('/t1'), task('/t2'): container('/t2')},
-         {}),
+    ([], {},
+     {}),
+    ([task('/t1')], {},
+     {task('/t1'): container('/t1')}),
+    ([task('/t1')], {task('/t2'): container('/t2')},
+     {task('/t1'): container('/t1')}),
+    ([task('/t1')], {task('/t1'): container('/t1'), task('/t2'): container('/t2')},
+     {task('/t1'): container('/t1')}),
+    ([], {task('/t1'): container('/t1'), task('/t2'): container('/t2')},
+     {}),
 ))
 def test_sync_containers_state(platform_mock, cleanup_mock, sync_mock,
                                PerfCoutners_mock, ResGroup_mock,
@@ -105,29 +105,29 @@ def test_sync_containers_state(platform_mock, cleanup_mock, sync_mock,
 @pytest.mark.parametrize(
     'tasks_allocations,expected_resgroup_reallocation_count',
     (
-            # No RDT allocations.
-            (
-                    {
-                        'task_id_1': {AllocationType.QUOTA: 0.6},
-                    },
-                    0
-            ),
-            # The both task in the same resctrl group.
-            (
-                    {
-                        'task_id_1': {'rdt': RDTAllocation(name='be', l3='ff')},
-                        'task_id_2': {'rdt': RDTAllocation(name='be', l3='ff')}
-                    },
-                    1
-            ),
-            # The tasks in seperate resctrl group.
-            (
-                    {
-                        'task_id_1': {'rdt': RDTAllocation(name='be', l3='ff')},
-                        'task_id_2': {'rdt': RDTAllocation(name='le', l3='ff')}
-                    },
-                    2
-            ),
+        # No RDT allocations.
+        (
+            {
+                'task_id_1': {AllocationType.QUOTA: 0.6},
+            },
+            0
+        ),
+        # The both task in the same resctrl group.
+        (
+            {
+                'task_id_1': {'rdt': RDTAllocation(name='be', l3='ff')},
+                'task_id_2': {'rdt': RDTAllocation(name='be', l3='ff')}
+            },
+            1
+        ),
+        # The tasks in seperate resctrl group.
+        (
+            {
+                'task_id_1': {'rdt': RDTAllocation(name='be', l3='ff')},
+                'task_id_2': {'rdt': RDTAllocation(name='le', l3='ff')}
+            },
+            2
+        ),
     )
 )
 def test_cm_perform_allocations(MesosTaskMock, tasks_allocations,
