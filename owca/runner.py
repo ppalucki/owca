@@ -19,10 +19,10 @@ from typing import List, Dict, Optional, Tuple
 import logging
 import time
 
+import owca.resctrl
 from owca import detectors, nodes
 from owca import platforms
 from owca import storage
-from owca import cbm_bits
 from owca.containers import ContainerManager, Container
 from owca.detectors import (TasksMeasurements, TasksResources,
                             TasksLabels, convert_anomalies_to_metrics,
@@ -349,9 +349,9 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                                                                            len(domains)))
 
                             for mask_value in domains.values():
-                                cbm_bits.check_cbm_bits(mask_value,
-                                                        platform.rdt_cbm_mask,
-                                                        platform.rdt_min_cbm_bits)
+                                owca.resctrl.check_cbm_bits(mask_value,
+                                                            platform.rdt_cbm_mask,
+                                                            platform.rdt_min_cbm_bits)
                         except ValueError as e:
                             log.warning('Allocation for task=%r is ignored, because invalid '
                                         'l3 cache config(%r): %s', task_id, l3, e)

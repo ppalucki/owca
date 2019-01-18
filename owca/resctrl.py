@@ -291,3 +291,35 @@ class ResGroup:
             os.rmdir(self.fullpath)
         except FileNotFoundError:
             log.debug('cleanup: directory already does not exist %s', self.fullpath)
+
+
+def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
+    mask = int(mask, 16)
+    cbm_mask = int(cbm_mask, 16)
+    if mask > cbm_mask:
+        raise ValueError('Mask is bigger than allowed')
+
+    bin_mask = format(mask, 'b')
+    number_of_cbm_bits = 0
+    series_of_ones_finished = False
+    previous = '0'
+
+    for bit in bin_mask:
+        if bit == '1':
+            if series_of_ones_finished:
+                raise ValueError('Bit series of ones in mask '
+                                 'must occur without a gap between them')
+
+            number_of_cbm_bits += 1
+            previous = bit
+        elif bit == '0':
+            if previous == '1':
+                series_of_ones_finished = True
+
+            previous = bit
+
+    min_cbm_bits = int(min_cbm_bits)
+    if number_of_cbm_bits < min_cbm_bits:
+        raise ValueError(str(number_of_cbm_bits) +
+                         " cbm bits. Requires minimum " +
+                         str(min_cbm_bits))
