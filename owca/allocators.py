@@ -27,8 +27,6 @@ from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anoma
 
 from dataclasses import dataclass
 
-from owca.resctrl import _parse_schemata_file_row, check_cbm_bits
-
 log = logging.getLogger(__name__)
 
 

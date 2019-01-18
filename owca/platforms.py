@@ -237,6 +237,10 @@ def collect_rdt_information(rdt_enabled: bool) -> (str, str):
     else:
         return None, None
 
+#TODO: fix me jakos
+no_of_sockets=None
+rdt_cbm_mask=None
+rdt_min_cbm_bits=None
 
 def collect_platform_information(rdt_enabled: bool = True) -> (
         Platform, List[Metric], Dict[str, str]):
@@ -251,9 +255,10 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     Note: returned metrics should be consistent with information covered by platform
 
     """
-    nr_of_cpus, nr_of_cores, nr_of_sockets = collect_topology_information()
+    global no_of_sockets, rdt_cbm_mask, rdt_min_cbm_bits
+    nr_of_cpus, nr_of_cores, no_of_sockets = collect_topology_information()
     rdt_cbm_mask, rdt_min_cbm_bits = collect_rdt_information(rdt_enabled)
-    platform = Platform(sockets=nr_of_sockets, cores=nr_of_cores, cpus=nr_of_cpus,
+    platform = Platform(sockets=no_of_sockets, cores=nr_of_cores, cpus=nr_of_cpus,
                         cpus_usage=parse_proc_stat(read_proc_stat()),
                         total_memory_used=parse_proc_meminfo(read_proc_meminfo()),
                         timestamp=time.time(), rdt_cbm_mask=rdt_cbm_mask,

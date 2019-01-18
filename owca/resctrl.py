@@ -22,7 +22,7 @@ from typing import Tuple, List, Optional, Dict
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import AllocationType, TaskAllocations, log, TasksAllocations
+from owca.allocators import AllocationType, TaskAllocations, TasksAllocations, AllocationValue
 from owca.logger import trace
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
@@ -302,7 +302,7 @@ class ResGroup:
 
 
 @dataclass(unsafe_hash=True)
-class RDTAllocation:
+class RDTAllocation(AllocationValue):
     # defaults to TaskId from TasksAllocations
     name: str = None
     # CAT: optional - when no provided doesn't change the existing allocation
@@ -395,25 +395,24 @@ class RDTAllocation:
     def validate(self) -> List[str]:
         errors = []
         # Check l3 mask according provided platform.rdt
+        from owca import platforms
         if self.l3:
             try:
-                if not l3.startswith('L3:'):
+                if not self.l3.startswith('L3:'):
                     raise ValueError('l3 resources setting should '
-                                     'start with "L3:" prefix (got %r)' % l3)
-                domains = _parse_schemata_file_row(l3)
-                if len(domains) != platform.sockets:
+                                     'start with "L3:" prefix (got %r)' % self.l3)
+                domains = _parse_schemata_file_row(self.l3)
+                if len(domains) != platforms.no_of_sockets:
                     raise ValueError('not enough domains in l3 configuration '
-                                     '(expected=%i,got=%i)' % (platform.sockets,
+                                     '(expected=%i,got=%i)' % (platforms.no_of_sockets,
                                                                len(domains)))
 
                 for mask_value in domains.values():
                     check_cbm_bits(mask_value,
-                                   platform.rdt_cbm_mask,
-                                   platform.rdt_min_cbm_bits)
+                                   platforms.rdt_cbm_mask,
+                                   platforms.rdt_min_cbm_bits)
             except ValueError as e:
-                log.warning('Allocation for task=%r is ignored, because invalid '
-                            'l3 cache config(%r): %s', task_id, l3, e)
-                task_ids_to_remove.add(task_id)
+                errors.append('Invalid l3 cache config(%r): %s' %(self.l3, e))
         return errors
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
