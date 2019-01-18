@@ -1,4 +1,5 @@
 # Copyright (c) 2018 Intel Corporation
+
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +17,10 @@
 import errno
 import logging
 import os
+from typing import Tuple
 
 from owca import logger
-from owca.allocators import AllocationType, RDTAllocation
+from owca.allocators import AllocationType, RDTAllocation, TaskAllocations
 from owca.metrics import Measurements, MetricName
 from owca.security import SetEffectiveRootUid
 
@@ -40,7 +42,11 @@ RDT_LC = 'rdt_LC'
 log = logging.getLogger(__name__)
 
 
-def get_max_rdt_values(cbm_mask, platform_sockets):
+def get_max_rdt_values(cbm_mask: str, platform_sockets: int) -> Tuple[str, str]:
+    """Calculated default maximum values for memory bandwidth and cache allocation
+    based on cbm_max and number of sockets.
+    returns (max_rdt_l3, max_rdt_mb) matching the platform.
+    """
 
     max_rdt_l3 = []
     max_rdt_mb = []
@@ -53,11 +59,13 @@ def get_max_rdt_values(cbm_mask, platform_sockets):
 
 
 def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
-    """Remove taskless subfolders at resctrl folders to free scarce CLOS and RMID resources. """
+    """Reinitialize resctrl filesystem: by removing subfolders (both CTRL and MON groups)
+    and setting default values for cache allocation and memory bandwidth (in root CTRL group).
+    """
 
     def _remove_folders(initialdir, subfolder):
+        """Removed subfolders of subfolder of initialdir if it does not contains "tasks" file."""
         for entry in os.listdir(os.path.join(initialdir, subfolder)):
-            # Path to folder e.g. mesos-xxx represeting running container.
             directory_path = os.path.join(BASE_RESCTRL_PATH, subfolder, entry)
             # Only examine folders at first level.
             if os.path.isdir(directory_path):
@@ -85,7 +93,7 @@ def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
                 schemata.write(bytes(root_rdt_l3 + '\n', encoding='utf-8'))
                 schemata.flush()
             except OSError as e:
-                log.error('Cannot set l3 cache allocation: {}'.format(e))
+                log.error('Cannot set L3 cache allocation: {}'.format(e))
 
     if root_rdt_mb is not None:
         with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
@@ -94,7 +102,7 @@ def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
                 schemata.write(bytes(root_rdt_mb + '\n', encoding='utf-8'))
                 schemata.flush()
             except OSError as e:
-                log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))
+                log.error('Cannot set rdt memory bandwidth allocation: {}'.format(e))
 
 
 def check_resctrl():
@@ -230,21 +238,22 @@ class ResGroup:
         mbm_total = 0
         llc_occupancy = 0
 
-        def _get_event_file(mon_dir, event_name):
+        def _get_event_file(socket_dir, event_name):
             return os.path.join(self.fullpath, MON_GROUPS, mongroup_name,
-                                MON_DATA, mon_dir, event_name)
+                                MON_DATA, socket_dir, event_name)
 
-        # mon_dir contains event files for specific socket:
-        # llc_occupancy, mbm_total_bytes, mbm_local_bytes
-        for mon_dir in os.listdir(os.path.join(self.fullpath, MON_GROUPS, mongroup_name, MON_DATA)):
-            with open(_get_event_file(mon_dir, MBM_TOTAL)) as mbm_total_file:
+        # Iterate over sockets to gather data:
+        for socket_dir in os.listdir(os.path.join(self.fullpath,
+                                                  MON_GROUPS, mongroup_name, MON_DATA)):
+            with open(_get_event_file(socket_dir, MBM_TOTAL)) as mbm_total_file:
                 mbm_total += int(mbm_total_file.read())
-            with open(_get_event_file(mon_dir, LLC_OCCUPANCY)) as llc_occupancy_file:
+            with open(_get_event_file(socket_dir, LLC_OCCUPANCY)) as llc_occupancy_file:
                 llc_occupancy += int(llc_occupancy_file.read())
 
         return {MetricName.MEM_BW: mbm_total, MetricName.LLC_OCCUPANCY: llc_occupancy}
 
-    def get_allocations(self, resgroup_name):
+    def get_allocations(self, resgroup_name) -> TaskAllocations:
+        """Return TaskAllocations represeting allocation for RDT resource."""
         rdt_allocations = RDTAllocation(name=resgroup_name)
         with open(os.path.join(self.fullpath, SCHEMATA)) as schemata:
             for line in schemata:
@@ -255,32 +264,28 @@ class ResGroup:
 
         return {AllocationType.RDT: rdt_allocations}
 
-    def perform_allocations(self, task_allocations):
-        with open(os.path.join(self.fullpath, SCHEMATA), 'bw') as schemata:
+    def perform_allocations(self, task_allocations: TaskAllocations):
+        """Enforce RDT allocations from task_allocations."""
 
-            # Cache control: TODO make it optional
-            if (AllocationType.RDT in task_allocations and
-                    task_allocations[AllocationType.RDT].l3 is not None):
-                value = task_allocations[AllocationType.RDT].l3
-                log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, value)
-                try:
-                    schemata.write(bytes(value + '\n', encoding='utf-8'))
-                    schemata.flush()
-                except OSError as e:
-                    log.error('Cannot set l3 cache allocation: {}'.format(e))
+        def _write_schemata_line(value, schemata_file):
 
-            # Optional: Memory BW allocatoin
-            if self.rdt_mb_control_enabled:
+            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata_file.name, value)
+            try:
+                schemata_file.write(bytes(value + '\n', encoding='utf-8'))
+                schemata_file.flush()
+            except OSError as e:
+                log.error('Cannot set rdt allocation: {}'.format(e))
 
-                if (AllocationType.RDT in task_allocations and
-                        task_allocations[AllocationType.RDT].mb is not None):
-                    value = task_allocations[AllocationType.RDT].mb
-                    log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, value)
-                    try:
-                        schemata.write(bytes(value + '\n', encoding='utf-8'))
-                        schemata.flush()
-                    except OSError as e:
-                        log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))
+        if AllocationType.RDT in task_allocations:
+            with open(os.path.join(self.fullpath, SCHEMATA), 'bw') as schemata_file:
+
+                # Cache allocation.
+                if task_allocations[AllocationType.RDT].l3:
+                    _write_schemata_line(task_allocations[AllocationType.RDT].l3, schemata_file)
+
+                # Optional memory bandwidth allocation.
+                if self.rdt_mb_control_enabled and task_allocations[AllocationType.RDT].mb:
+                    _write_schemata_line(task_allocations[AllocationType.RDT].mb, schemata_file)
 
     def cleanup(self):
         # Do not try to remove root group.
