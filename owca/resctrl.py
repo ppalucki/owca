@@ -23,7 +23,7 @@ from owca.metrics import Measurements, MetricName
 from owca.security import SetEffectiveRootUid
 
 
-ROOT_NAME = ''
+RESCTRL_ROOT_NAME = ''
 BASE_RESCTRL_PATH = '/sys/fs/resctrl'
 MON_GROUPS = 'mon_groups'
 TASKS_FILENAME = 'tasks'
@@ -40,10 +40,22 @@ RDT_LC = 'rdt_LC'
 log = logging.getLogger(__name__)
 
 
-def cleanup_resctrl():
+def get_max_rdt_values(cbm_mask, platform_sockets):
+
+    max_rdt_l3 = []
+    max_rdt_mb = []
+
+    for dom_id in range(platform_sockets):
+        max_rdt_l3.append('%i=%s' % (dom_id, cbm_mask))
+        max_rdt_mb.append('%i=100' % dom_id)
+
+    return 'L3:'+';'.join(max_rdt_l3), 'MB:'+';'.join(max_rdt_mb)
+
+
+def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
     """Remove taskless subfolders at resctrl folders to free scarce CLOS and RMID resources. """
 
-    def _clean_taskless_folders(initialdir, subfolder, resource_recycled):
+    def _remove_folders(initialdir, subfolder):
         for entry in os.listdir(os.path.join(initialdir, subfolder)):
             # Path to folder e.g. mesos-xxx represeting running container.
             directory_path = os.path.join(BASE_RESCTRL_PATH, subfolder, entry)
@@ -51,22 +63,38 @@ def cleanup_resctrl():
             if os.path.isdir(directory_path):
                 # Examine tasks file
                 resctrl_tasks_path = os.path.join(directory_path, TASKS_FILENAME)
-                tasks = ''
                 if not os.path.exists(resctrl_tasks_path):
                     # Skip metadata folders e.g. info.
                     continue
-                with open(resctrl_tasks_path) as f:
-                    tasks += f.read()
-                if len(tasks.split()) == 0:
-                    log.warning('Found taskless (empty) mon group at %r - recycle %s resource.'
-                                % (directory_path, resource_recycled))
-                    log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
+                log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.',
                             directory_path)
-                    os.rmdir(directory_path)
+                log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
+                        directory_path)
+                os.rmdir(directory_path)
 
     # Remove all monitoring groups for both CLOS and RMID.
-    _clean_taskless_folders(BASE_RESCTRL_PATH, '', resource_recycled='CLOS')
-    _clean_taskless_folders(BASE_RESCTRL_PATH, MON_GROUPS, resource_recycled='RMID')
+    _remove_folders(BASE_RESCTRL_PATH, MON_GROUPS)
+    # Remove all resctrl groups.
+    _remove_folders(BASE_RESCTRL_PATH, '')
+
+    # Reinitialize default values for RDT.
+    if root_rdt_l3 is not None:
+        with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
+            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_l3)
+            try:
+                schemata.write(bytes(root_rdt_l3 + '\n', encoding='utf-8'))
+                schemata.flush()
+            except OSError as e:
+                log.error('Cannot set l3 cache allocation: {}'.format(e))
+
+    if root_rdt_mb is not None:
+        with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
+            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_mb)
+            try:
+                schemata.write(bytes(root_rdt_mb + '\n', encoding='utf-8'))
+                schemata.flush()
+            except OSError as e:
+                log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))
 
 
 def check_resctrl():
@@ -103,33 +131,30 @@ ResGroupName = str
 
 
 class ResGroup:
-    @staticmethod
-    def get_root_group_name() -> ResGroupName:
-        return ROOT_NAME
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, rdt_mb_control_enabled: bool = True):
         self.name: ResGroupName = name
-        self.is_root_group = name == ResGroup.get_root_group_name()
+        self.rdt_mb_control_enabled = rdt_mb_control_enabled
         self.fullpath = BASE_RESCTRL_PATH + ("/" + name if name != "" else "")
-        log.debug('creating restrcl group \'{}\''.format(self.name))
-        self._create_controlgroup_directory()
 
-    def is_root_group(self) -> bool:
-        return self.is_root_group
+        if self.name != RESCTRL_ROOT_NAME:
+            log.debug('creating restrcl group %r', self.name)
+            self._create_controlgroup_directory()
+
+    def __repr__(self):
+        return 'ResGroup(name=%r, fullpath=%r)' % (self.name, self.fullpath)
 
     def _get_mongroup_fullpath(self, mongroup_name) -> str:
         return os.path.join(self.fullpath, MON_GROUPS, mongroup_name)
 
     def _read_pids_from_tasks_file(self, tasks_filepath):
-        pids = []
         with open(tasks_filepath) as ftasks:
-            for line in ftasks:
-                line = line.strip()
-                if line != "":
-                    pids.append(line)
+            pids = [line.strip() for line in ftasks.readlines() if line != ""]
+        log.log(logger.TRACE, 'resctrl: read(%s): found %i pids', tasks_filepath, len(pids))
         return pids
 
     def _add_pids_to_tasks_file(self, pids, tasks_filepath):
+        log.log(logger.TRACE, 'resctrl: write(%s): number_of_pids=%r', tasks_filepath, len(pids))
         with open(tasks_filepath, 'w') as ftasks:
             with SetEffectiveRootUid():
                 for pid in pids:
@@ -138,19 +163,17 @@ class ResGroup:
                         ftasks.flush()
                     except ProcessLookupError:
                         log.warning('Could not write pid %s to resctrl (%r). '
-                                    'Process probably does not exist. '
-                                    % (pid, tasks_filepath))
+                                    'Process probably does not exist. ', pid, tasks_filepath)
 
     def _create_controlgroup_directory(self):
-        # create control group directory
-        if not self.is_root_group:
-            try:
-                log.log(logger.TRACE, 'resctrl: makedirs(%s)', self.fullpath)
-                os.makedirs(self.fullpath, exist_ok=True)
-            except OSError as e:
-                if e.errno == errno.ENOSPC:  # "No space left on device"
-                    raise Exception("Limit of workloads reached! (Oot of available CLoSes/RMIDs!)")
-                raise
+        """Create control group directory"""
+        try:
+            log.log(logger.TRACE, 'resctrl: makedirs(%s)', self.fullpath)
+            os.makedirs(self.fullpath, exist_ok=True)
+        except OSError as e:
+            if e.errno == errno.ENOSPC:  # "No space left on device"
+                raise Exception("Limit of workloads reached! (Oot of available CLoSes/RMIDs!)")
+            raise
 
     def add_tasks(self, pids, mongroup_name):
         """Adds the pids to the resctrl group and creates mongroup with the pids.
@@ -158,12 +181,13 @@ class ResGroup:
            If already the mongroup exists just add the pids (no error will be thrown)."""
 
         # add pids to /tasks file
-        log.debug('Add {} pids to {} '.format(len(pids), os.path.join(self.fullpath, 'tasks')))
+        log.debug('add_tasks: %d pids to %r', len(pids), os.path.join(self.fullpath, 'tasks'))
         self._add_pids_to_tasks_file(pids, os.path.join(self.fullpath, 'tasks'))
 
         # create mongroup and write tasks there
         mongroup_fullpath = self._get_mongroup_fullpath(mongroup_name)
         try:
+            log.log(logger.TRACE, 'resctrl: makedirs(%s)', mongroup_fullpath)
             os.makedirs(mongroup_fullpath, exist_ok=True)
         except OSError as e:
             if e.errno == errno.ENOSPC:  # "No space left on device"
@@ -171,7 +195,7 @@ class ResGroup:
             raise
 
         # write the pids to the mongroup
-        log.debug('Add {} pids to {} '.format(len(pids), os.path.join(mongroup_fullpath, 'tasks')))
+        log.debug('add_tasks: %d pids to %r', len(pids), os.path.join(mongroup_fullpath, 'tasks'))
         self._add_pids_to_tasks_file(pids, os.path.join(mongroup_fullpath, 'tasks'))
 
     def remove_tasks(self, mongroup_name):
@@ -191,6 +215,7 @@ class ResGroup:
         pids = self._read_pids_from_tasks_file(os.path.join(mongroup_fullpath, 'tasks'))
 
         # Remove the mongroup directory.
+        log.log(logger.TRACE, 'resctrl: rmdir(%r)', mongroup_fullpath)
         os.rmdir(mongroup_fullpath)
 
         # Removes tasks from the group by adding it to the root group.
@@ -219,30 +244,21 @@ class ResGroup:
 
         return {MetricName.MEM_BW: mbm_total, MetricName.LLC_OCCUPANCY: llc_occupancy}
 
-    def get_allocations(self):
-        rdt_allocations = RDTAllocation()
+    def get_allocations(self, resgroup_name):
+        rdt_allocations = RDTAllocation(name=resgroup_name)
         with open(os.path.join(self.fullpath, SCHEMATA)) as schemata:
             for line in schemata:
                 if 'MB' in line:
-                    rdt_allocations.mb = line.rstrip()
+                    rdt_allocations.mb = line.strip()
                 elif 'L3' in line:
-                    rdt_allocations.l3 = line.rstrip()
+                    rdt_allocations.l3 = line.strip()
 
         return {AllocationType.RDT: rdt_allocations}
 
     def perform_allocations(self, task_allocations):
         with open(os.path.join(self.fullpath, SCHEMATA), 'bw') as schemata:
-            # @TODO the code below has some bug
-            # if (AllocationType.RDT in task_allocations and
-            #         task_allocations[AllocationType.RDT].mb is not None):
-            #     value = task_allocations[AllocationType.RDT].mb
-            #     log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, value)
-            #     try:
-            #         schemata.write(bytes(value + '\n', encoding='utf-8'))
-            #         schemata.flush()
-            #     except OSError as e:
-            #         log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))
 
+            # Cache control: TODO make it optional
             if (AllocationType.RDT in task_allocations and
                     task_allocations[AllocationType.RDT].l3 is not None):
                 value = task_allocations[AllocationType.RDT].l3
@@ -253,13 +269,25 @@ class ResGroup:
                 except OSError as e:
                     log.error('Cannot set l3 cache allocation: {}'.format(e))
 
+            # Optional: Memory BW allocatoin
+            if self.rdt_mb_control_enabled:
+
+                if (AllocationType.RDT in task_allocations and
+                        task_allocations[AllocationType.RDT].mb is not None):
+                    value = task_allocations[AllocationType.RDT].mb
+                    log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, value)
+                    try:
+                        schemata.write(bytes(value + '\n', encoding='utf-8'))
+                        schemata.flush()
+                    except OSError as e:
+                        log.error('Cannot set rdt memory bandwith allocation: {}'.format(e))
+
     def cleanup(self):
+        # Do not try to remove root group.
+        if self.name == RESCTRL_ROOT_NAME:
+            return
         try:
-            if not self.is_root_group:
-                log.log(logger.TRACE, 'resctrl: rmdir(%s)', self.fullpath)
-                os.rmdir(self.fullpath)
-            else:
-                log.log(logger.TRACE, 'Calling cleanup but ignoring as the group '
-                                      'is the root group.')
+            log.log(logger.TRACE, 'resctrl: rmdir(%s)', self.fullpath)
+            os.rmdir(self.fullpath)
         except FileNotFoundError:
-            pass
+            log.debug('cleanup: directory already does not exist %s', self.fullpath)
