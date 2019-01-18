@@ -109,7 +109,7 @@ mesos_tasks_mocks = [
 ]
 
 
-@pytest.mark.skip('WIP')
+@pytest.mark.skip()
 @mock.patch('sys.argv', ['owca', '-c', 'configs/see_yaml_config_variable_above.yaml',
                          '-r', 'example.external_package:ExampleDetector', '-l', 'trace',
                          '--root'])
