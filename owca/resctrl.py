@@ -301,14 +301,64 @@ class ResGroup:
             log.debug('cleanup: directory already does not exist %s', self.fullpath)
 
 
-@dataclass(unsafe_hash=True)
-class RDTAllocation(AllocationValue):
+@dataclass(unsafe_hash=True, frozen=True)
+class RDTAllocation:
     # defaults to TaskId from TasksAllocations
     name: str = None
     # CAT: optional - when no provided doesn't change the existing allocation
     l3: str = None
     # MBM: optional - when no provided doesn't change the existing allocation
     mb: str = None
+
+
+def read_mon_groups_relation() -> Dict[str, List[str]]:
+    """
+    TODO: unittests
+    """
+
+    def list_mon_groups(mon_dir) -> List[str]:
+        return [entry for entry in os.listdir(mon_dir)]
+
+    relation = dict()
+    # root ctrl group mon dirs
+    relation[''] = list_mon_groups(os.path.join(BASE_RESCTRL_PATH, MON_GROUPS))
+    # ctrl groups mon dirs
+    ctrl_group_names = os.listdir(BASE_RESCTRL_PATH)
+    for ctrl_group_name in ctrl_group_names:
+        mon_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group_name, MON_GROUPS)
+        if os.path.isdir(mon_group_dir):
+            relation[ctrl_group_name] = list_mon_groups(mon_group_dir)
+    return relation
+
+def clean_taskles_groups(mon_groups_relation):
+    """
+    TODO: unittests
+    """
+    for ctrl_group, mon_group in mon_groups_relation:
+        ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group)
+        mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS, mon_group)
+        tasks_filename = os.path.join(mon_group_dir, tasks_filename)
+        mon_groups_to_remove = []
+        with open(tasks_filename) as tasks_file:
+            if tasks_file.read() == '':
+                mon_groups_to_remove.append(mon_group_dir)
+
+        if mon_groups_to_remove:
+
+            # For ech non root group, drop just ctrl group if all mon groups are empty
+            if ctrl_group != '' and len(mon_groups_to_remove) == len(mon_groups_relation[ctrl_group]):
+                os.rmdir(ctrl_group_dir)
+            else:
+                for mon_group_to_remove in mon_groups_to_remove:
+                    os.rmdir(mon_group_to_remove)
+
+
+class RDTAllocationValue(AllocationValue):
+    """Wrapper over immutable RDTAllocation object"""
+
+    def __init__(self, group_name: ResGroupName, rdt_allocation: RDTAllocation):
+        self.group_name: ResGroupName = group_name
+        self.rdt_allocation = rdt_allocation
 
     def generate_metrics(self) -> List[Metric]:
         """Encode RDT Allocation as metrics.
@@ -318,14 +368,14 @@ class RDTAllocation(AllocationValue):
         - memory bandwidth: is encoded as int, representing MB/s or percentage
         """
         # Empty object generate no metric.
-        if not self.l3 and not self.mb:
+        if not self.rdt_allocation.l3 and not self.rdt_allocation.mb:
             return []
 
-        group_name = self.name or ''
+        group_name = self.group_name or ''
 
         metrics = []
-        if self.l3:
-            domains = _parse_schemata_file_row(self.l3)
+        if self.rdt_allocation.l3:
+            domains = _parse_schemata_file_row(self.rdt_allocation.l3)
             for domain_id, raw_value in domains.items():
                 metrics.extend([
                     Metric(
@@ -342,8 +392,8 @@ class RDTAllocation(AllocationValue):
                     )
                 ])
 
-        if self.mb:
-            domains = _parse_schemata_file_row(self.mb)
+        if self.rdt_allocation.mb:
+            domains = _parse_schemata_file_row(self.rdt_allocation.mb)
             for domain_id, raw_value in domains.items():
                 # NOTE: raw_value is treated as int, ignoring unit used (MB or %)
                 value = int(raw_value)
@@ -470,16 +520,6 @@ def _count_enabled_bits(hexstr: str) -> int:
     value_int = int(hexstr, 16)
     enabled_bits_count = bin(value_int).count('1')
     return enabled_bits_count
-
-
-def _assign_default_rdt_group_names(tasks_allocations: TasksAllocations):
-    """For every RDTAllocation assign the default name of the group,
-    based on them task_id.
-    """
-    for task_id, task_allocations in tasks_allocations.items():
-        if AllocationType.RDT in task_allocations:
-            if task_allocations[AllocationType.RDT].name is None:
-                task_allocations[AllocationType.RDT].name = task_id
 
 
 def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):

@@ -24,7 +24,7 @@ from owca import detectors, nodes
 from owca import platforms
 from owca import storage
 from owca.allocators import Allocator, TasksAllocations, _convert_tasks_allocations_to_metrics, \
-    AllocationConfiguration, _ignore_invalid_allocations
+    AllocationConfiguration, _ignore_invalid_allocations, AllocationValue
 from owca.containers import ContainerManager, Container
 from owca.detectors import (TasksMeasurements, TasksResources,
                             TasksLabels, convert_anomalies_to_metrics,
@@ -33,7 +33,7 @@ from owca.detectors import (TasksMeasurements, TasksResources,
 from owca.logger import trace
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
-from owca.nodes import Task
+from owca.nodes import Task, TaskId
 from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, \
     _assign_default_rdt_group_names
 from owca.security import are_privileges_sufficient
@@ -308,6 +308,17 @@ class DetectionRunner(Runner, BaseRunnerMixin):
         self.cleanup()
 
 
+class AllocationsDict(AllocationValue):
+    """ Magic allocations containers that can """
+
+
+
+def convert_to_allocations(tasks_allocations: TasksAllocations, containers: Dict[TaskId, Container]):
+    """ return recursivle magi object """
+
+    return AllocationsDict()
+
+
 @dataclass
 class AllocationRunner(Runner, BaseRunnerMixin):
     node: nodes.Node
@@ -346,6 +357,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 current_tasks_allocations)
             allocate_duration = time.time() - allocate_start
 
+
             # If there is no name of RDTAllocation, use task_id as default.
             if self.rdt_enabled:
                 _assign_default_rdt_group_names(new_tasks_allocations)
@@ -353,6 +365,13 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                     platform, new_tasks_allocations)
             else:
                 ignored_allocations = 0
+
+            current_allocations = convert_to_allocations(current_tasks_allocations, self.containers_manager.containers)
+            new_allocations = convert_to_allocations(current_tasks_allocations, self.containers_manager.containers)
+
+            target_allocations, allocations_changeset = callculate_changeset(current_allocations,
+                                                                             new_allocations
+            )
 
             log.debug('Anomalies detected: %d', len(anomalies))
             log.info('Allocations received: %d%s', len(new_tasks_allocations),

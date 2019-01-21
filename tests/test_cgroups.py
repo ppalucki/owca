@@ -61,7 +61,7 @@ def test_get_normalized_shares(_read_mock):
 def test_get_normalized_quota():
     cgroup = Cgroup('/some/foo1', platform_cpus=1,
                     allocation_configuration=AllocationConfiguration())
-    assert cgroup._get_normalized_quota() == float('inf')
+    assert cgroup.get_normalized_quota() == float('inf')
 
 
 @patch('builtins.open', create_open_mock({
@@ -85,7 +85,7 @@ def test_set_normalized_shares(normalized_shares, allocation_configuration, expe
     with patch('owca.containers.Cgroup._write') as write_mock:
         cgroup = Cgroup('/some/foo1', platform_cpus=1,
                         allocation_configuration=allocation_configuration)
-        cgroup._set_normalized_shares(normalized_shares)
+        cgroup.set_normalized_shares(normalized_shares)
         write_mock.assert_called_with('cpu.shares', expected_shares_write)
 
 

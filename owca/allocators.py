@@ -16,7 +16,7 @@ import math
 from abc import ABC, abstractmethod
 from enum import Enum
 from pprint import pformat
-from typing import List, Dict, Union, Tuple, Optional
+from typing import List, Dict, Union, Tuple, Optional, Any, Type
 
 from dataclasses import dataclass
 
@@ -94,6 +94,84 @@ class NOPAllocator(Allocator):
         return [], [], []
 
 
+# ---------------------------- internal
+
+class BoxedTasksAllocations:
+    """Wrapper over simple TaskAllocations type"""
+
+    # Mapping from simple inmutable allocations values like ints
+    # to concrete implementations
+    # RDTAllocation() -> RDTAllocationValue
+    # float -> FloatAloocationValue
+    registered_box_types: Dict[Type, Type[AllocationValue]] = {}
+
+    @classmethod
+    def register(cls, simple_type: Type, box_class: Type[AllocationValue]):
+        cls.registered_box_types[simple_type] = box_class
+
+    @classmethod
+    def box_value(cls, value: Any, **kwargs) -> AllocationValue:
+        """Wraps simple value with boxed type."""
+        box_class = cls.registered_box_types[type(value)]
+        return box_class(value, **kwargs)
+
+    # @classmethod
+    # def build(cls, tasks_allocations: TasksAllocations) -> 'BoxedTasksAllocations':
+    #     return BoxedTasksAllocations(tasks_allocations)
+    #
+    # def __init__(self, tasks_allocations: TasksAllocations):
+    #     raise NotImplementedError
+
+
+
+# Defines default how senstive in terms of float precision are changes from RDTAllocation detected.
+FLOAT_VALUES_CHANGE_DETECTION = 1e-02
+
+class BoxedNumeric(AllocationValue):
+    """ Wraps floats and ints.
+    """
+
+    def __init__(self, value: float, min_value=0, max_value=None,
+                 float_value_change_sensitivity=FLOAT_VALUES_CHANGE_DETECTION):
+        self.value = value
+        self.float_value_change_sensitivity = float_value_change_sensitivity
+
+    def generate_metrics(self) -> List[Metric]:
+        pass
+
+    def validate(self) -> List[str]:
+        pass
+
+    def merge_with_current(self, current_value: Optional['BoxedNumeric']) \
+            -> Tuple['BoxedNumeric', Optional['BoxedNumeric']]:
+        """Assuming self is "new value" return target and changeset. """
+
+        new_float = self.value
+
+        # Float and integered based change detection.
+        if current_value is not None:
+            current_float = current_value.value
+            # If we have old value
+            value_changed = not math.isclose(current_float, new_float,
+                                             rel_tol=self.float_value_change_sensitivity)
+        else:
+            # There is no old value, so there is a change
+            value_changed = True
+
+        if value_changed:
+            # For floats merge is simple, is value is change, the
+            # new_value just become target and changeset
+            # target and changeset
+            return self, self
+        else:
+            # If value is not changed, then is assumed current value is the same as
+            # new so we can return any of them (lets return the new one) as target
+            return self, None
+
+
+BoxedTasksAllocations.register(int, BoxedNumeric)
+BoxedTasksAllocations.register(float, BoxedNumeric)
+
 # -----------------------------------------------------------------------
 # private logic to handle allocations
 # -----------------------------------------------------------------------
@@ -134,9 +212,16 @@ def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -
     return metrics
 
 
-# Defines how senstive in terms of float precision are changes from RDTAllocation detected.
-FLOAT_VALUES_CHANGE_DETECTION = 1e-02
+def _calculate_chageset(current: Dict, new: Dict):
+    return target, changeset
 
+
+def _generate_metrics(current: Dict):
+    pass
+
+
+def _validate(current: Dict):
+    pass
 
 @trace(log, verbose=False)
 def _calculate_task_allocations_changeset(
@@ -145,34 +230,22 @@ def _calculate_task_allocations_changeset(
         -> Tuple[TaskAllocations, TaskAllocations]:
     """Return tuple of resource allocation (changeset) per task.
     """
+
     # Copy current to become new current as target.
     target_task_allocations: TaskAllocations = dict(current_task_allocations)
     task_allocations_changeset: TaskAllocations = {}
 
-    for allocation_type, new_allocation_value in new_task_allocations.items():
-        if isinstance(new_allocation_value, AllocationValue):
-            current_allocation = current_task_allocations.get(allocation_type)
-            target_allocation, allocation_changeset = \
-                new_allocation_value.merge_with_current(current_allocation)
-            target_task_allocations[allocation_type] = target_allocation
+    for allocation_type, new_value in new_task_allocations.items():
 
-            if allocation_changeset is not None:
-                task_allocations_changeset[allocation_type] = allocation_changeset
+        new_allocation_value = BoxedTasksAllocations.box_value(new_value)
 
-        else:
-            # Float and integered based change detection.
-            if allocation_type in current_task_allocations:
-                # If we have old value
-                current_allocation_value = current_task_allocations[allocation_type]
-                value_changed = not math.isclose(current_allocation_value, new_allocation_value,
-                                                 rel_tol=FLOAT_VALUES_CHANGE_DETECTION)
-            else:
-                # There is no old value, so there is a change
-                value_changed = True
+        current_allocation = current_task_allocations.get(allocation_type)
+        target_allocation, allocation_changeset = \
+            new_allocation_value.merge_with_current(current_allocation)
+        target_task_allocations[allocation_type] = target_allocation
 
-            if value_changed:
-                target_task_allocations[allocation_type] = new_allocation_value
-                task_allocations_changeset[allocation_type] = new_allocation_value
+        if allocation_changeset is not None:
+            task_allocations_changeset[allocation_type] = allocation_changeset
 
     if task_allocations_changeset:
         log.log(TRACE, '_calculate_task_allocations_changeset():'

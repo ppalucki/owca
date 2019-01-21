@@ -18,7 +18,7 @@ from typing import Optional, List
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import TaskAllocations, AllocationType, AllocationConfiguration
+from owca.allocators import TaskAllocations, AllocationType, AllocationConfiguration, BoxedNumeric
 from owca.metrics import Measurements, MetricName
 
 log = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class Cgroup:
         return ((shares - self.allocation_configuration.cpu_shares_min) /
                 self.allocation_configuration.cpu_shares_max)
 
-    def _set_normalized_shares(self, shares_normalized):
+    def set_normalized_shares(self, shares_normalized):
         """Store shares normalized values in cgroup files system. For denormalization
         we use reverse formule to _get_normalized_shares."""
         assert self.allocation_configuration is not None, \
@@ -87,7 +87,7 @@ class Cgroup:
 
         self._write(CPU_SHARES, shares)
 
-    def _get_normalized_quota(self) -> float:
+    def get_normalized_quota(self) -> float:
         """Read normlalized quota against configured period and number of available cpus."""
         assert self.allocation_configuration is not None, \
             'normalization configuration cannot be used without configuration!'
@@ -115,18 +115,38 @@ class Cgroup:
         assert self.allocation_configuration is not None, \
             'reading normalized allocations is not possible without configuration!'
         return {
-           AllocationType.QUOTA: self._get_normalized_quota(),
+           AllocationType.QUOTA: self.get_normalized_quota(),
            AllocationType.SHARES: self._get_normalized_shares(),
         }
-
-    def perform_allocations(self, allocations: TaskAllocations):
-        assert self.allocation_configuration is not None, \
-            'performing normalized allocations is not possible without configuration!'
-        if AllocationType.QUOTA in allocations:
-            self._set_normalized_quota(allocations[AllocationType.QUOTA])
-        if AllocationType.SHARES in allocations:
-            self._set_normalized_shares(allocations[AllocationType.SHARES])
 
     def get_tasks(self) -> List[int]:
         with open(os.path.join(self.cgroup_fullpath, TASKS)) as f:
             return list(map(int, f.read().splitlines()))
+
+
+class QuotaAllocation(BoxedNumeric):
+
+    def __init__(self, normalized_quota: float, cgroup_path, platform_cpus, allocation_configuration):
+        self.normalized_quota = normalized_quota
+        self.cgroup = Cgroup(cgroup_path, platform_cpus, allocation_configuration)
+        super().__init__(value=normalized_quota,
+                         min_value=0,
+                         max_value=platform_cpus
+                         )
+
+    def allocate(self):
+        self.cgroup._set_normalized_quota(self.value)
+d
+
+class SharesAllocation(BoxedNumeric):
+
+    def __init__(self, normalized_quota: float, cgroup_path, platform_cpus, allocation_configuration):
+        self.normalized_quota = normalized_quota
+        self.cgroup = Cgroup(cgroup_path, platform_cpus, allocation_configuration)
+        super().__init__(value=normalized_quota,
+                         min_value=0,
+                         max_value=platform_cpus
+                         )
+
+    def allocate(self):
+        self.cgroup._set_normalized_quota(self.value)
