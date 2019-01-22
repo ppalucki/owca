@@ -16,7 +16,7 @@ import pytest
 
 from owca.allocators import _calculate_task_allocations_changeset, \
     _calculate_tasks_allocations_changeset, AllocationType, \
-    _convert_tasks_allocations_to_metrics
+    _convert_tasks_allocations_to_metrics, BoxedNumeric
 from owca.metrics import Metric, MetricType
 from owca.resctrl import RDTAllocation, _parse_schemata_file_row, _count_enabled_bits, \
     check_cbm_bits
@@ -262,3 +262,45 @@ def test_check_cbm_bits_gap(mask: str, cbm_mask: str, min_cbm_bits: str,
                             expected_error_message: str):
     with pytest.raises(ValueError, match=expected_error_message):
         check_cbm_bits(mask, cbm_mask, min_cbm_bits)
+
+
+@pytest.mark.parametrize(
+    'value, min_value, max_value, float_value_change_sensitivity, is_valid', (
+            (1, 2, 3, 0.00001, ['1 does not belong to range <2;3>']),
+            (1.1, 2, 3, 0.00001, ['1.1 does not belong to range <2;3>']),
+            (2.5, 2, 3, 0.00001, []),
+            (3, 2.5, 3.0, 0.00001, []),
+            (2.0, 2, 3.0, 0.00001, []),
+            (2.0, None, 3.0, 0.00001, []),
+            (2.0, 1, None, 0.00001, []),
+    )
+)
+def test_boxed_numeric_validation(value, min_value, max_value, float_value_change_sensitivity,
+                                  is_valid):
+    boxed_value = BoxedNumeric(value, min_value, max_value, float_value_change_sensitivity)
+    assert boxed_value.validate() == is_valid
+
+
+@pytest.mark.parametrize(
+    'current_value, new_value, expected_value', (
+            (BoxedNumeric(10), BoxedNumeric(10.1), (BoxedNumeric(10), None)),
+            (BoxedNumeric(10), BoxedNumeric(10.99), (BoxedNumeric(10.99), BoxedNumeric(10.99))),
+    )
+)
+def test_boxed_numeric_merging(current_value, new_value, expected_value):
+    value, changeset = current_value.merge_with_current(new_value)
+    assert value == expected_value[0]
+    assert changeset == expected_value[1]
+
+
+@pytest.mark.parametrize(
+    'left, right, is_equal', (
+            (BoxedNumeric(10), BoxedNumeric(10), True),
+            (BoxedNumeric(10), BoxedNumeric(11), False),
+            (BoxedNumeric(10), BoxedNumeric(10.1), True),
+            (BoxedNumeric(10), BoxedNumeric(10.11), False),
+            (BoxedNumeric(10.99), BoxedNumeric(10.99), True),
+    )
+)
+def test_boxed_numeric_equal(left, right, is_equal):
+    assert (left == right) == is_equal

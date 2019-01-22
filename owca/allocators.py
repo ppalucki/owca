@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 import logging
 import math
 from abc import ABC, abstractmethod
@@ -123,50 +124,62 @@ class BoxedTasksAllocations:
     #     raise NotImplementedError
 
 
-
-# Defines default how senstive in terms of float precision are changes from RDTAllocation detected.
+# Defines relative tolerance for float comparison.
 FLOAT_VALUES_CHANGE_DETECTION = 1e-02
 
+
 class BoxedNumeric(AllocationValue):
-    """ Wraps floats and ints.
+    """
+    Wrapper for floats and integers.
+    If min_value is None then it becomes negative infinity.
+    If max_value is Not then it becomes infinity.
     """
 
-    def __init__(self, value: float, min_value=0, max_value=None,
+    def __init__(self, value: Union[float, int],
+                 min_value: Optional[Union[int, float]] = 0,
+                 max_value: Optional[Union[int, float]] = None,
                  float_value_change_sensitivity=FLOAT_VALUES_CHANGE_DETECTION):
-        self.value = value
-        self.float_value_change_sensitivity = float_value_change_sensitivity
+        self._value = value
+        self._float_value_change_sensitivity = float_value_change_sensitivity
+        self._min_value = min_value if min_value is not None else -math.inf
+        self._max_value = max_value if max_value is not None else math.inf
+
+    def __eq__(self, other):
+        try:
+            return math.isclose(self._value, other._value,
+                                rel_tol=self._float_value_change_sensitivity)
+        except AttributeError:
+            return False
 
     def generate_metrics(self) -> List[Metric]:
         pass
 
     def validate(self) -> List[str]:
-        pass
+        if not self._value >= self._min_value or not self._value <= self._max_value:
+            return [f'{self._value} does not belong to range <{self._min_value};{self._max_value}>']
+        return []
 
-    def merge_with_current(self, current_value: Optional['BoxedNumeric']) \
+    def merge_with_current(self, new_value: Optional['BoxedNumeric']) \
             -> Tuple['BoxedNumeric', Optional['BoxedNumeric']]:
-        """Assuming self is "new value" return target and changeset. """
 
-        new_float = self.value
-
-        # Float and integered based change detection.
-        if current_value is not None:
-            current_float = current_value.value
-            # If we have old value
-            value_changed = not math.isclose(current_float, new_float,
-                                             rel_tol=self.float_value_change_sensitivity)
+        # If new_value is not None then we are going to compare numbers
+        if new_value is not None:
+            value_changed = self != new_value
+        # If new_value is None then it is different than an object
         else:
-            # There is no old value, so there is a change
             value_changed = True
 
+        # To avoid issues with multiple references to single object we are going to return brand new
+        # objects.
         if value_changed:
-            # For floats merge is simple, is value is change, the
-            # new_value just become target and changeset
-            # target and changeset
-            return self, self
+            return BoxedNumeric(new_value._value, self._min_value, self._max_value,
+                                self._float_value_change_sensitivity), \
+                BoxedNumeric(new_value._value, self._min_value, self._max_value,
+                             self._float_value_change_sensitivity)
         else:
             # If value is not changed, then is assumed current value is the same as
             # new so we can return any of them (lets return the new one) as target
-            return self, None
+            return copy.deepcopy(self), None
 
 
 BoxedTasksAllocations.register(int, BoxedNumeric)
@@ -175,6 +188,7 @@ BoxedTasksAllocations.register(float, BoxedNumeric)
 # -----------------------------------------------------------------------
 # private logic to handle allocations
 # -----------------------------------------------------------------------
+
 
 def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -> List[Metric]:
     """Takes allocations on input and convert them to something that can be
@@ -213,7 +227,7 @@ def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -
 
 
 def _calculate_chageset(current: Dict, new: Dict):
-    return target, changeset
+    return {}, {}
 
 
 def _generate_metrics(current: Dict):
@@ -222,6 +236,7 @@ def _generate_metrics(current: Dict):
 
 def _validate(current: Dict):
     pass
+
 
 @trace(log, verbose=False)
 def _calculate_task_allocations_changeset(
