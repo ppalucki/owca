@@ -97,31 +97,22 @@ class NOPAllocator(Allocator):
 
 # ---------------------------- internal
 
-class BoxedTasksAllocations:
-    """Wrapper over simple TaskAllocations type"""
+class BoxedAllocationFactory:
 
-    # Mapping from simple inmutable allocations values like ints
-    # to concrete implementations
-    # RDTAllocation() -> RDTAllocationValue
-    # float -> FloatAloocationValue
-    registered_box_types: Dict[Type, Type[AllocationValue]] = {}
+    known_types: Dict[Type, Type[AllocationValue]] = {}
 
     @classmethod
     def register(cls, simple_type: Type, box_class: Type[AllocationValue]):
-        cls.registered_box_types[simple_type] = box_class
+        """Registers type and its boxing type."""
+        cls.known_types[simple_type] = box_class
 
     @classmethod
-    def box_value(cls, value: Any, **kwargs) -> AllocationValue:
-        """Wraps simple value with boxed type."""
-        box_class = cls.registered_box_types[type(value)]
-        return box_class(value, **kwargs)
-
-    # @classmethod
-    # def build(cls, tasks_allocations: TasksAllocations) -> 'BoxedTasksAllocations':
-    #     return BoxedTasksAllocations(tasks_allocations)
-    #
-    # def __init__(self, tasks_allocations: TasksAllocations):
-    #     raise NotImplementedError
+    def create(cls, value: Any, **kwargs) -> AllocationValue:
+        """Wraps value with boxed type."""
+        if type(value) in cls.known_types:
+            box_class = cls.known_types[type(value)]
+            return box_class(value, **kwargs)
+        raise KeyError(f'Unable to find {type(value)} in registry.')
 
 
 # Defines relative tolerance for float comparison.
@@ -182,8 +173,8 @@ class BoxedNumeric(AllocationValue):
             return copy.deepcopy(self), None
 
 
-BoxedTasksAllocations.register(int, BoxedNumeric)
-BoxedTasksAllocations.register(float, BoxedNumeric)
+BoxedAllocationFactory.register(int, BoxedNumeric)
+BoxedAllocationFactory.register(float, BoxedNumeric)
 
 # -----------------------------------------------------------------------
 # private logic to handle allocations
@@ -252,7 +243,7 @@ def _calculate_task_allocations_changeset(
 
     for allocation_type, new_value in new_task_allocations.items():
 
-        new_allocation_value = BoxedTasksAllocations.box_value(new_value)
+        new_allocation_value = BoxedAllocationFactory.create(new_value)
 
         current_allocation = current_task_allocations.get(allocation_type)
         target_allocation, allocation_changeset = \

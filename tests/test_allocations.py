@@ -16,7 +16,7 @@ import pytest
 
 from owca.allocators import _calculate_task_allocations_changeset, \
     _calculate_tasks_allocations_changeset, AllocationType, \
-    _convert_tasks_allocations_to_metrics, BoxedNumeric
+    _convert_tasks_allocations_to_metrics, BoxedNumeric, BoxedAllocationFactory
 from owca.metrics import Metric, MetricType
 from owca.resctrl import RDTAllocation, _parse_schemata_file_row, _count_enabled_bits, \
     check_cbm_bits
@@ -304,3 +304,18 @@ def test_boxed_numeric_merging(current_value, new_value, expected_value):
 )
 def test_boxed_numeric_equal(left, right, is_equal):
     assert (left == right) == is_equal
+
+
+def test_box_allocations_factory_known_type():
+    factory = BoxedAllocationFactory()
+    boxed_int = factory.create(1, min_value=2, max_value=3)
+    assert boxed_int._value == 1
+    assert boxed_int._min_value == 2
+    assert boxed_int._max_value == 3
+
+
+def test_box_allocations_factory_unknown_type():
+    with pytest.raises(KeyError):
+        this_is_really_complex = complex('1+2j')
+        factory = BoxedAllocationFactory()
+        factory.create(this_is_really_complex, min_value=2, max_value=3)
