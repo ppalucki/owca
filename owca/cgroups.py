@@ -136,7 +136,7 @@ class QuotaAllocation(BoxedNumeric):
 
     def allocate(self):
         self.cgroup._set_normalized_quota(self.value)
-d
+
 
 class SharesAllocation(BoxedNumeric):
 
