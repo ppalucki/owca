@@ -57,6 +57,9 @@ class AllocationValue:
 TaskAllocations = Dict[AllocationType, Union[float, AllocationValue]]
 TasksAllocations = Dict[TaskId, TaskAllocations]
 
+TaskAllocationsValues = List[AllocationValue]
+TasksAllocationsValues = Dict[TaskId, TaskAllocationsValues]
+
 
 @dataclass
 class AllocationConfiguration:
@@ -233,7 +236,7 @@ def _validate(current: Dict):
 def _calculate_task_allocations_changeset(
         current_task_allocations: TaskAllocations,
         new_task_allocations: TaskAllocations) \
-        -> Tuple[TaskAllocations, TaskAllocations]:
+        -> Tuple[TaskAllocationsValues, TaskAllocationsValues]:
     """Return tuple of resource allocation (changeset) per task.
     """
 
@@ -245,7 +248,9 @@ def _calculate_task_allocations_changeset(
 
         new_allocation_value = BoxedAllocationFactory.create(new_value)
 
-        current_allocation = current_task_allocations.get(allocation_type)
+        current_allocation = BoxedAllocationFactory.create(
+            current_task_allocations.get(allocation_type)
+        )
         target_allocation, allocation_changeset = \
             new_allocation_value.merge_with_current(current_allocation)
         target_task_allocations[allocation_type] = target_allocation

@@ -66,11 +66,11 @@ def test_calculate_task_allocations(
         ({}, {},
          {}, {}),
         (dict(t1={'a': 2}), {},
-         dict(t1={'a': 2}), {}),
+         dict(t1={'a': BoxedNumeric(2)}), {}),
         (dict(t1={'a': 2}), dict(t1={'a': 2.01}),  # small enough to ignore
-         dict(t1={'a': 2}), {}),
+         dict(t1={'a': BoxedNumeric(2)}), {}),
         (dict(t1={'a': 2}), dict(t1={'a': 2.1}),  # big enough to notice
-         dict(t1={'a': 2.1}), dict(t1={'a': 2.1})),
+         dict(t1={'a': BoxedNumeric(2.1)}), dict(t1={'a': BoxedNumeric(2.1)})),
         (dict(t1={'a': 2}), dict(t1={'a': 2}),
          dict(t1={'a': 2}), {}),
         (dict(t1={'a': 1}), dict(t1={'b': 2}, t2={'b': 3}),
@@ -307,8 +307,7 @@ def test_boxed_numeric_equal(left, right, is_equal):
 
 
 def test_box_allocations_factory_known_type():
-    factory = BoxedAllocationFactory()
-    boxed_int = factory.create(1, min_value=2, max_value=3)
+    boxed_int = BoxedAllocationFactory.create(1, min_value=2, max_value=3)
     assert boxed_int._value == 1
     assert boxed_int._min_value == 2
     assert boxed_int._max_value == 3
@@ -317,5 +316,4 @@ def test_box_allocations_factory_known_type():
 def test_box_allocations_factory_unknown_type():
     with pytest.raises(KeyError):
         this_is_really_complex = complex('1+2j')
-        factory = BoxedAllocationFactory()
-        factory.create(this_is_really_complex, min_value=2, max_value=3)
+        BoxedAllocationFactory.create(this_is_really_complex, min_value=2, max_value=3)

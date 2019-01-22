@@ -22,7 +22,7 @@ from typing import Tuple, List, Optional, Dict
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import AllocationType, TaskAllocations, TasksAllocations, AllocationValue
+from owca.allocators import AllocationType, TaskAllocations, AllocationValue, BoxedAllocationFactory
 from owca.logger import trace
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
@@ -466,6 +466,8 @@ class RDTAllocationValue(AllocationValue):
                 errors.append('Invalid l3 cache config(%r): %s' % (self.l3, e))
         return errors
 
+
+BoxedAllocationFactory.register(RDTAllocation, RDTAllocationValue)
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on
