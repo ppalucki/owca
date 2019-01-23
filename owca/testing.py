@@ -121,3 +121,12 @@ def container(cgroup_path):
 def metric(name, labels=None):
     """Helper method to create metric with default values. Value is ignored during tests."""
     return Metric(name=name, value=1234, labels=labels or {})
+
+def rdt_metric_func(type, value, **labels):
+    """Helper to create RDT like metric"""
+    return Metric(
+        name='allocation',
+        type=MetricType.GAUGE,
+        value=value,
+        labels=dict(allocation_type=type, **(labels or dict()))
+    )

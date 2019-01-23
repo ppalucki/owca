@@ -22,7 +22,10 @@ from typing import Tuple, List, Optional, Dict
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import AllocationType, TaskAllocations, AllocationValue, BoxedAllocationFactory
+from owca.allocators import AllocationType, TaskAllocations, AllocationValue
+from owca.allocators import AllocationType, TaskAllocations, TasksAllocations, AllocationValue
+from owca.allocators import AllocationType, TaskAllocations, TasksAllocations, AllocationValue
+from owca.cgroups import Cgroup
 from owca.logger import trace
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
@@ -337,7 +340,7 @@ def clean_taskles_groups(mon_groups_relation):
     for ctrl_group, mon_group in mon_groups_relation:
         ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group)
         mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS, mon_group)
-        tasks_filename = os.path.join(mon_group_dir, tasks_filename)
+        tasks_filename = os.path.join(mon_group_dir, TASKS_FILENAME)
         mon_groups_to_remove = []
         with open(tasks_filename) as tasks_file:
             if tasks_file.read() == '':
@@ -352,13 +355,18 @@ def clean_taskles_groups(mon_groups_relation):
                 for mon_group_to_remove in mon_groups_to_remove:
                     os.rmdir(mon_group_to_remove)
 
+#
+# --- Allocations ---
+#
 
+@dataclass
 class RDTAllocationValue(AllocationValue):
     """Wrapper over immutable RDTAllocation object"""
 
-    def __init__(self, group_name: ResGroupName, rdt_allocation: RDTAllocation):
-        self.group_name: ResGroupName = group_name
-        self.rdt_allocation = rdt_allocation
+    resgroup: ResGroup
+    rdt_allocation: RDTAllocation
+    cgroup: Cgroup
+    source_resgroup: Optional[ResGroup]  # if not none try to cleanup it at the end
 
     def generate_metrics(self) -> List[Metric]:
         """Encode RDT Allocation as metrics.
@@ -467,7 +475,15 @@ class RDTAllocationValue(AllocationValue):
         return errors
 
 
-BoxedAllocationFactory.register(RDTAllocation, RDTAllocationValue)
+    def perform_allocations(self):
+        """
+        TODO:
+        - move to new group
+        - update schemata file
+        - remove old group (source) optional
+        """
+        raise NotImplementedError
+
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on

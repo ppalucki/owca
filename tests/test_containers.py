@@ -17,10 +17,12 @@ from unittest.mock import patch, Mock
 import pytest
 
 from owca.allocators import AllocationType
-from owca.containers import ContainerManager, _calculate_desired_state
+from owca.containers import ContainerManager, _calculate_desired_state, convert_to_allocations
 from owca.resctrl import RDTAllocation
 from owca.runner import DetectionRunner
 from owca.testing import task, container
+from owca.metrics import Metric, MetricType
+from owca.testing import rdt_metric_func
 
 
 @pytest.mark.parametrize(
@@ -160,3 +162,60 @@ def test_cm_perform_allocations(MesosTaskMock, tasks_allocations,
         _, allocate_rdt_called = args
         count_ = count_ + 1 if allocate_rdt_called else count_
     assert expected_resgroup_reallocation_count == count_
+
+
+def test_convert_to_allocations(self):
+    pass
+
+
+@pytest.mark.parametrize('tasks_allocations,expected_metrics', (
+    ({}, []),
+    ({'some_task': {AllocationType.SHARES: 0.5}}, [
+        Metric(name='allocation', value=0.5,
+               type=MetricType.GAUGE,
+               labels={'allocation_type': 'cpu_shares', 'task_id': 'some_task'})
+    ]),
+    ({'some_task': {AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
+        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
+    ]),
+    ({'some_task': {AllocationType.SHARES: 0.5,
+                    AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
+        Metric(
+            name='allocation', value=0.5,
+            type=MetricType.GAUGE,
+            labels={'allocation_type': AllocationType.SHARES, 'task_id': 'some_task'}
+        ),
+        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
+    ]),
+    ({'some_task_a': {
+        AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='mb:0=30')
+    },
+         'some_task_b': {
+             AllocationType.QUOTA: 0.6,
+             AllocationType.RDT: RDTAllocation(name='b', l3='l3:0=f;1=f1'),
+         }}, [
+         Metric(
+             name='allocation', value=0.5,
+             type=MetricType.GAUGE,
+             labels={'allocation_type': AllocationType.SHARES, 'task_id': 'some_task_a'}
+         ),
+         rdt_metric_func('rdt_mb', 30, group_name='', domain_id='0', task_id='some_task_a'),
+         Metric(
+             name='allocation', value=0.6,
+             type=MetricType.GAUGE,
+             labels={'allocation_type': AllocationType.QUOTA, 'task_id': 'some_task_b'}
+         ),
+         rdt_metric_func('rdt_l3_cache_ways', 4, group_name='b',
+                         domain_id='0', task_id='some_task_b'),
+         rdt_metric_func('rdt_l3_mask', 15, group_name='b',
+                         domain_id='0', task_id='some_task_b'),
+         rdt_metric_func('rdt_l3_cache_ways', 5, group_name='b',
+                         domain_id='1', task_id='some_task_b'),
+         rdt_metric_func('rdt_l3_mask', 241, group_name='b',
+                         domain_id='1', task_id='some_task_b'),
+     ]),
+))
+def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics):
+    allocations = convert_to_allocations(tasks_allocations, {})
+    metrics_got = allocations.generate_metrics()
+    assert metrics_got == expected_metrics

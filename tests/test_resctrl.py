@@ -19,9 +19,11 @@ from typing import List, Dict
 
 import pytest
 
+from owca.allocators import AllocationValue
+
 from owca.resctrl import ResGroup, check_resctrl, RESCTRL_ROOT_NAME, get_max_rdt_values, \
-    RDTAllocation
-from owca.testing import create_open_mock
+    RDTAllocation, check_cbm_bits, _count_enabled_bits
+from owca.testing import create_open_mock, rdt_metric_func
 
 
 @patch('builtins.open', new=create_open_mock({
@@ -209,3 +211,118 @@ def test_resgroup_perform_allocations(resgroup_args, task_allocations,
         expected_write_calls = [call().write(write_body) for write_body in expected_filename_writes]
         assert expected_filename_writes
         write_mock.assert_has_calls(expected_write_calls, any_order=True)
+
+@pytest.mark.parametrize(
+    'mask, cbm_mask, min_cbm_bits, expected_error_message', (
+            ('f0f', 'ffff', '1', 'without a gap'),
+            ('0', 'ffff', '1', 'minimum'),
+            ('ffffff', 'ffff', 'bigger', ''),
+    )
+)
+def test_check_cbm_bits_gap(mask: str, cbm_mask: str, min_cbm_bits: str,
+                            expected_error_message: str):
+    with pytest.raises(ValueError, match=expected_error_message):
+        check_cbm_bits(mask, cbm_mask, min_cbm_bits)
+
+def test_check_cbm_bits_valid():
+    check_cbm_bits('ff00', 'ffff', '1')
+
+
+@pytest.mark.parametrize('hexstr,expected_bits_count', (
+        ('', 0),
+        ('1', 1),
+        ('2', 1),
+        ('3', 2),
+        ('f', 4),
+        ('f0', 4),
+        ('0f0', 4),
+        ('ff0', 8),
+        ('f1f', 9),
+        ('fffff', 20),
+))
+def test_count_enabled_bits(hexstr, expected_bits_count):
+    got_bits_count = _count_enabled_bits(hexstr)
+    assert got_bits_count == expected_bits_count
+
+
+@pytest.mark.parametrize('line,expected_domains', (
+        ('', {}),
+        ('x=2', {'x': '2'}),
+        ('x=2;y=3', {'x': '2', 'y': '3'}),
+        ('foo=bar', {'foo': 'bar'}),
+        ('mb:1=20;2=50', {'1': '20', '2': '50'}),
+        ('mb:xxx=20mbs;2=50b', {'xxx': '20mbs', '2': '50b'}),
+        ('l3:0=20;1=30', {'1': '30', '0': '20'}),
+))
+def test_parse_schemata_file_row(line, expected_domains):
+    got_domains = _parse_schemata_file_row(line)
+    assert got_domains == expected_domains
+
+
+@pytest.mark.parametrize('invalid_line,expected_message', (
+        ('x=', 'value cannot be empty'),
+        ('x=2;x=3', 'Conflicting domain id found!'),
+        ('=2', 'domain_id cannot be empty!'),
+        ('2', 'Value separator is missing "="!'),
+        (';', 'domain cannot be empty'),
+        ('xxx', 'Value separator is missing "="!'),
+))
+def test_parse_invalid_schemata_file_domains(invalid_line, expected_message):
+    with pytest.raises(ValueError, match=expected_message):
+        _parse_schemata_file_row(invalid_line)
+
+
+@pytest.mark.parametrize(
+    'current_rdt_alloaction, new_rdt_allocation,'
+    'expected_target_rdt_allocation,expected_rdt_allocation_changeset', (
+        (None, RDTAllocation(),
+         RDTAllocation(), RDTAllocation()),
+        (RDTAllocation(name=''), RDTAllocation(),  # empty group overrides existing
+         RDTAllocation(), RDTAllocation()),
+        (RDTAllocation(), RDTAllocation(l3='x'),
+         RDTAllocation(l3='x'), RDTAllocation(l3='x')),
+        (RDTAllocation(l3='x'), RDTAllocation(mb='y'),
+         RDTAllocation(l3='x', mb='y'), RDTAllocation(mb='y')),
+        (RDTAllocation(l3='x'), RDTAllocation(l3='x', mb='y'),
+         RDTAllocation(l3='x', mb='y'), RDTAllocation(mb='y')),
+        (RDTAllocation(l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y'),
+         RDTAllocation(name='new', l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y')),
+        (RDTAllocation(l3='x'), RDTAllocation(name='', l3='x'),
+         RDTAllocation(name='', l3='x'), RDTAllocation(name='', l3='x'))
+    )
+)
+def test_merge_rdt_allocations(
+        current_rdt_alloaction, new_rdt_allocation,
+        expected_target_rdt_allocation, expected_rdt_allocation_changeset):
+    got_target_rdt_allocation, got_rdt_alloction_changeset = \
+        new_rdt_allocation.merge_with_current(current_rdt_alloaction)
+
+    assert got_target_rdt_allocation == expected_target_rdt_allocation
+    assert got_rdt_alloction_changeset == expected_rdt_allocation_changeset
+
+
+@pytest.mark.parametrize('rdt_allocation, expected_metrics', (
+    (RDTAllocation(), []),
+    (RDTAllocation(mb='mb:0=20'), [
+        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0')
+    ]),
+    (RDTAllocation(mb='mb:0=20;1=30'), [
+        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0'),
+        rdt_metric_func('rdt_mb', 30, group_name='', domain_id='1'),
+    ]),
+    (RDTAllocation(l3='l3:0=ff'), [
+        rdt_metric_func('rdt_l3_cache_ways', 8, group_name='', domain_id='0'),
+        rdt_metric_func('rdt_l3_mask', 255, group_name='', domain_id='0'),
+    ]),
+    (RDTAllocation(name='be', l3='l3:0=ff', mb='mb:0=20;1=30'), [
+        rdt_metric_func('rdt_l3_cache_ways', 8, group_name='be', domain_id='0'),
+        rdt_metric_func('rdt_l3_mask', 255, group_name='be', domain_id='0'),
+        rdt_metric_func('rdt_mb', 20, group_name='be', domain_id='0'),
+        rdt_metric_func('rdt_mb', 30, group_name='be', domain_id='1'),
+    ]),
+))
+def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, expected_metrics):
+    from owca.resctrl import RDTAllocationValue
+    RDTAllocationValue(group_rdt_allocation)
+    got_metrics = rdt_allocation_value.generate_metrics()
+    assert got_metrics == expected_metrics

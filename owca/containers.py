@@ -21,10 +21,10 @@ from dataclasses import dataclass
 
 from owca import logger
 from owca.allocators import AllocationConfiguration, TaskAllocations, TasksAllocations, \
-    _calculate_tasks_allocations_changeset, AllocationType
+    AllocationType
 from owca.logger import trace
 from owca import resctrl
-from owca.nodes import Task
+from owca.nodes import Task, TaskId
 from owca.resctrl import ResGroup, ResGroupName, RESCTRL_ROOT_NAME
 from owca.cgroups import Cgroup
 from owca.perf import PerfCounters
@@ -214,6 +214,7 @@ class ContainerManager:
 
 
         # Sync "state" of individual containers.
+        # Note: only the pids are synchronized, not the allocations.
         for container in self.containers.values():
             container.sync()
 
@@ -254,3 +255,9 @@ def _calculate_desired_state(
                  if task.cgroup_path not in containers_cgroup_paths]
 
     return new_tasks, containers_to_delete
+
+
+def convert_to_allocations(tasks_allocations: TasksAllocations, containers: Dict[TaskId, Container]):
+    """ return recursivle magi object """
+
+    return AllocationsDict()

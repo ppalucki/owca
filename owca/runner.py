@@ -153,8 +153,6 @@ class BaseRunnerMixin:
         statistics_metrics = [
             Metric(name='allocations_count', type=MetricType.COUNTER,
                    value=self.allocations_counter),
-            Metric(name='allocations_ignored_count', type=MetricType.COUNTER,
-                   value=ignored_allocations_count),
         ]
 
         if allocation_duration is not None:
@@ -308,16 +306,6 @@ class DetectionRunner(Runner, BaseRunnerMixin):
         self.cleanup()
 
 
-class AllocationsDict(AllocationValue):
-    """ Magic allocations containers that can """
-
-
-
-def convert_to_allocations(tasks_allocations: TasksAllocations, containers: Dict[TaskId, Container]):
-    """ return recursivle magi object """
-
-    return AllocationsDict()
-
 
 @dataclass
 class AllocationRunner(Runner, BaseRunnerMixin):
@@ -357,30 +345,22 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 current_tasks_allocations)
             allocate_duration = time.time() - allocate_start
 
-
-            # If there is no name of RDTAllocation, use task_id as default.
-            if self.rdt_enabled:
-                _assign_default_rdt_group_names(new_tasks_allocations)
-                ignored_allocations, new_tasks_allocations = _ignore_invalid_allocations(
-                    platform, new_tasks_allocations)
-            else:
-                ignored_allocations = 0
-
-            current_allocations = convert_to_allocations(current_tasks_allocations, self.containers_manager.containers)
-            new_allocations = convert_to_allocations(current_tasks_allocations, self.containers_manager.containers)
-
-            target_allocations, allocations_changeset = callculate_changeset(current_allocations,
-                                                                             new_allocations
-            )
-
             log.debug('Anomalies detected: %d', len(anomalies))
-            log.info('Allocations received: %d%s', len(new_tasks_allocations),
-                     ' (%i invalid ignored)' % ignored_allocations if ignored_allocations else '')
 
-            target_tasks_allocations = self.containers_manager.sync_allocations(
-                current_tasks_allocations=current_tasks_allocations,
-                new_tasks_allocations=new_tasks_allocations,
-            )
+
+            current_allocations = convert_to_allocations(current_tasks_allocations, 
+                                                         self.containers_manager.containers)
+            new_allocations = convert_to_allocations(current_tasks_allocations, 
+                                                     self.containers_manager.containers)
+
+
+
+            target_allocations, allocations_changeset = current_allocations.merge_with_current(
+                new_allocations)
+
+
+            #### MAIN function
+            allocations_changeset.perform_allocations()
 
             # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
             anomaly_metrics = convert_anomalies_to_metrics(anomalies)
@@ -392,13 +372,13 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             anomalies_package.send(common_labels)
 
             # Store allocations information
-            allocations_metrics = _convert_tasks_allocations_to_metrics(target_tasks_allocations)
+            allocations_metrics = target_allocations.generate_metrics()
             allocations_package = MetricPackage(self.allocations_storage)
             allocations_package.add_metrics(
                 allocations_metrics,
                 extra_metrics,
                 self.get_allocations_statistics_metrics(new_tasks_allocations,
-                                                        allocate_duration, ignored_allocations),
+                                                        allocate_duration),
             )
             allocations_package.send(common_labels)
 

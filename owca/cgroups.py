@@ -18,7 +18,8 @@ from typing import Optional, List
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import TaskAllocations, AllocationType, AllocationConfiguration, BoxedNumeric
+from owca.allocators import TaskAllocations, AllocationType, AllocationConfiguration
+from owca.allocations import BoxedNumeric
 from owca.metrics import Measurements, MetricName
 
 log = logging.getLogger(__name__)
@@ -124,7 +125,11 @@ class Cgroup:
             return list(map(int, f.read().splitlines()))
 
 
-class QuotaAllocation(BoxedNumeric):
+#
+# --- Allocations ---
+#
+
+class QuotaAllocationValue(BoxedNumeric):
 
     def __init__(self, normalized_quota: float, cgroup_path, platform_cpus, allocation_configuration):
         self.normalized_quota = normalized_quota
@@ -134,11 +139,11 @@ class QuotaAllocation(BoxedNumeric):
                          max_value=platform_cpus
                          )
 
-    def allocate(self):
+    def perform_allocation(self):
         self.cgroup._set_normalized_quota(self.value)
 
 
-class SharesAllocation(BoxedNumeric):
+class SharesAllocationValue(BoxedNumeric):
 
     def __init__(self, normalized_quota: float, cgroup_path, platform_cpus, allocation_configuration):
         self.normalized_quota = normalized_quota
@@ -148,5 +153,5 @@ class SharesAllocation(BoxedNumeric):
                          max_value=platform_cpus
                          )
 
-    def allocate(self):
+    def perform_allocation(self):
         self.cgroup._set_normalized_quota(self.value)
