@@ -122,6 +122,7 @@ def metric(name, labels=None):
     """Helper method to create metric with default values. Value is ignored during tests."""
     return Metric(name=name, value=1234, labels=labels or {})
 
+
 def rdt_metric_func(type, value, **labels):
     """Helper to create RDT like metric"""
     return Metric(

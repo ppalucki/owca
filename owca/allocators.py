@@ -11,21 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import copy
 import logging
-import math
 from abc import ABC, abstractmethod
 from enum import Enum
-from pprint import pformat
-from typing import List, Dict, Union, Tuple, Optional, Any, Type
+from typing import List, Dict, Union, Tuple, Optional
 
 from dataclasses import dataclass
 
-from owca import platforms
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
-from owca.logger import trace, TRACE
 from owca.mesos import TaskId
-from owca.metrics import Metric, MetricType
+from owca.metrics import Metric
 from owca.platforms import Platform
 
 log = logging.getLogger(__name__)
@@ -35,6 +30,7 @@ class AllocationType(str, Enum):
     QUOTA = 'cpu_quota'
     SHARES = 'cpu_shares'
     RDT = 'rdt'
+
 
 class AllocationValue(ABC):
 

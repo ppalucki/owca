@@ -33,7 +33,7 @@ from owca.detectors import (TasksMeasurements, TasksResources,
 from owca.logger import trace
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
-from owca.nodes import Task, TaskId
+from owca.nodes import Task
 from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
@@ -306,15 +306,13 @@ class DetectionRunner(Runner, BaseRunnerMixin):
 
 
 def convert_to_allocations(tasks_allocations: TasksAllocations,
-                           containers: Dict[TaskId, Container]) -> AllocationsDict:
+                           containers: Dict[Task, Container]) -> AllocationsDict:
     # TODO: use containers to build intelighent Allocation Objects values like
     # RDTAllocationValue based on RDTAllocation
     # CgroupAllocationValue based on cgroup: 34.
     # CgroupAllocationValue based on cgroup: 34.o
     # and so on...
     return AllocationsDict(tasks_allocations)
-
-
 
 
 @dataclass
@@ -357,19 +355,15 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
             log.debug('Anomalies detected: %d', len(anomalies))
 
-
-            current_allocations = convert_to_allocations(current_tasks_allocations, 
+            current_allocations = convert_to_allocations(current_tasks_allocations,
                                                          self.containers_manager.containers)
             new_allocations = convert_to_allocations(new_tasks_allocations,
                                                      self.containers_manager.containers)
 
-
-
             target_allocations, allocations_changeset = current_allocations.merge_with_current(
                 new_allocations)
 
-
-            #### MAIN function
+            # MAIN function
             allocations_changeset.perform_allocations()
 
             # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.

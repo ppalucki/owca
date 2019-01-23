@@ -131,7 +131,8 @@ class Cgroup:
 
 class QuotaAllocationValue(BoxedNumeric):
 
-    def __init__(self, normalized_quota: float, cgroup_path, platform_cpus, allocation_configuration):
+    def __init__(self, normalized_quota: float, cgroup_path, platform_cpus,
+                 allocation_configuration):
         self.normalized_quota = normalized_quota
         self.cgroup = Cgroup(cgroup_path, platform_cpus, allocation_configuration)
         super().__init__(value=normalized_quota,
@@ -145,7 +146,8 @@ class QuotaAllocationValue(BoxedNumeric):
 
 class SharesAllocationValue(BoxedNumeric):
 
-    def __init__(self, normalized_quota: float, cgroup_path, platform_cpus, allocation_configuration):
+    def __init__(self, normalized_quota: float, cgroup_path, platform_cpus,
+                 allocation_configuration):
         self.normalized_quota = normalized_quota
         self.cgroup = Cgroup(cgroup_path, platform_cpus, allocation_configuration)
         super().__init__(value=normalized_quota,

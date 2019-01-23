@@ -13,22 +13,20 @@
 # limitations under the License.
 
 
-from typing import List, Optional, Dict, Tuple, Set
-import pprint
 import logging
+import pprint
+from typing import List, Optional, Dict
 
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import AllocationConfiguration, TaskAllocations, TasksAllocations, \
-    AllocationType
-from owca.logger import trace
 from owca import resctrl
-from owca.nodes import Task, TaskId
-from owca.resctrl import ResGroup, ResGroupName, RESCTRL_ROOT_NAME
+from owca.allocators import AllocationConfiguration, TaskAllocations, TasksAllocations
 from owca.cgroups import Cgroup
-from owca.perf import PerfCounters
 from owca.metrics import Measurements, MetricName
+from owca.nodes import Task, TaskId
+from owca.perf import PerfCounters
+from owca.resctrl import ResGroup
 
 log = logging.getLogger(__name__)
 
@@ -151,7 +149,6 @@ class ContainerManager:
         self.platform_cpus = platform_cpus
         self.allocation_configuration = allocation_configuration
 
-
     def sync_containers_state(self, tasks) -> Dict[Task, Container]:
         """Sync internal state of runner by removing orphaned containers, and creating containers
         for newly arrived tasks, and synchronizing containers' state.
@@ -212,14 +209,12 @@ class ContainerManager:
                 container.resgroup = ResGroup(name=task_name_to_mon_group[container.task_name],
                                               rdt_mb_control_enabled=self.rdt_mb_control_enabled)
 
-
         # Sync "state" of individual containers.
         # Note: only the pids are synchronized, not the allocations.
         for container in self.containers.values():
             container.sync()
 
         return self.containers
-
 
     def cleanup(self):
         # cleanup
@@ -257,7 +252,7 @@ def _calculate_desired_state(
     return new_tasks, containers_to_delete
 
 
-def convert_to_allocations(tasks_allocations: TasksAllocations, containers: Dict[TaskId, Container]):
+def convert_to_allocations(tasks_allocations: TasksAllocations,
+                           containers: Dict[TaskId, Container]):
     """ return recursivle magi object """
-
-    return AllocationsDict()
+    raise NotImplementedError

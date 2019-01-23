@@ -23,13 +23,9 @@ from dataclasses import dataclass
 
 from owca import logger
 from owca.allocators import AllocationType, TaskAllocations, AllocationValue
-from owca.allocators import AllocationType, TaskAllocations, TasksAllocations, AllocationValue
-from owca.allocators import AllocationType, TaskAllocations, TasksAllocations, AllocationValue
 from owca.cgroups import Cgroup
-from owca.logger import trace
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
-
 
 RESCTRL_ROOT_NAME = ''
 BASE_RESCTRL_PATH = '/sys/fs/resctrl'
@@ -333,6 +329,7 @@ def read_mon_groups_relation() -> Dict[str, List[str]]:
             relation[ctrl_group_name] = list_mon_groups(mon_group_dir)
     return relation
 
+
 def clean_taskles_groups(mon_groups_relation):
     """
     TODO: unittests
@@ -349,15 +346,13 @@ def clean_taskles_groups(mon_groups_relation):
         if mon_groups_to_remove:
 
             # For ech non root group, drop just ctrl group if all mon groups are empty
-            if ctrl_group != '' and len(mon_groups_to_remove) == len(mon_groups_relation[ctrl_group]):
+            if ctrl_group != '' and \
+                    len(mon_groups_to_remove) == len(mon_groups_relation[ctrl_group]):
                 os.rmdir(ctrl_group_dir)
             else:
                 for mon_group_to_remove in mon_groups_to_remove:
                     os.rmdir(mon_group_to_remove)
 
-#
-# --- Allocations ---
-#
 
 @dataclass
 class RDTAllocationValue(AllocationValue):
@@ -367,9 +362,6 @@ class RDTAllocationValue(AllocationValue):
     resgroup: ResGroup
     cgroup: Cgroup
     source_resgroup: Optional[ResGroup] = None  # if not none try to cleanup it at the end
-
-
-
 
     def generate_metrics(self) -> List[Metric]:
         """Encode RDT Allocation as metrics.
@@ -423,7 +415,7 @@ class RDTAllocationValue(AllocationValue):
         """Merge with existing RDTAllocation objects and return
         sum of the allocations (target_rdt_allocation) and allocations that need to be updated
         (rdt_allocation_changeset)."""
-        assert current is None or current.rdt_allocation is not None, 'current improperly configured!'
+        assert current is None or current.rdt_allocation is not None
         new: RDTAllocationValue = self
         # new name, then new allocation will be used (overwrite) but no merge
         if current is None or current.rdt_allocation.name != new.rdt_allocation.name:
@@ -492,7 +484,6 @@ class RDTAllocationValue(AllocationValue):
             except ValueError as e:
                 errors.append('Invalid l3 cache config(%r): %s' % (self.l3, e))
         return errors
-
 
     def perform_allocations(self):
         """

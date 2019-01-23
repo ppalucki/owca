@@ -18,7 +18,6 @@ from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue
 from unittest.mock import Mock
 
 
-
 @pytest.mark.parametrize(
     'simple_dict, expected_converted_dict', [
         (dict(), dict()),
@@ -73,6 +72,7 @@ def test_boxed_numeric_validation(value, min_value, max_value, float_value_chang
     boxed_value = BoxedNumeric(value, min_value, max_value, float_value_change_sensitivity)
     assert boxed_value.validate() == is_valid
 
+
 @pytest.mark.parametrize(
     'current, new, expected_target, expected_changeset', (
         (10, 10.1, 10, None),
@@ -80,7 +80,8 @@ def test_boxed_numeric_validation(value, min_value, max_value, float_value_chang
     )
 )
 def test_boxed_numeric_calculated_changeset(current, new, expected_target, expected_changeset):
-    expected_changeset = BoxedNumeric(expected_changeset) if expected_changeset is not None else None
+    expected_changeset = BoxedNumeric(expected_changeset) \
+        if expected_changeset is not None else None
     got_target, got_changeset = BoxedNumeric(new).merge_with_current(BoxedNumeric(current))
     assert got_target == BoxedNumeric(expected_target)
     assert got_changeset == expected_changeset
