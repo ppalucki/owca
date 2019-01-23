@@ -31,35 +31,6 @@ from owca.platforms import Platform
 log = logging.getLogger(__name__)
 
 
-
-
-# class BoxedTasksAllocations:
-#     """Wrapper over simple TaskAllocations type"""
-#
-#     # Mapping from simple inmutable allocations values like ints
-#     # to concrete implementations
-#     # RDTAllocation() -> RDTAllocationValue
-#     # float -> FloatAloocationValue
-#     registered_box_types: Dict[Type, Type[AllocationValue]] = {}
-#
-#     @classmethod
-#     def register(cls, simple_type: Type, box_class: Type[AllocationValue]):
-#         cls.registered_box_types[simple_type] = box_class
-#
-#     @classmethod
-#     def box_value(cls, value: Any, **kwargs) -> AllocationValue:
-#         """Wraps simple value with boxed type."""
-#         box_class = cls.registered_box_types[type(value)]
-#         return box_class(value, **kwargs)
-#
-#     # @classmethod
-#     # def build(cls, tasks_allocations: TasksAllocations) -> 'BoxedTasksAllocations':
-#     #     return BoxedTasksAllocations(tasks_allocations)
-#     #
-#     # def __init__(self, tasks_allocations: TasksAllocations):
-#     #     raise NotImplementedError
-
-
 class CommonLablesAllocationValue(AllocationValue):
     """ Update any allocation values wiht common labels, when peforming generate_metrics."""
 
@@ -83,6 +54,9 @@ class CommonLablesAllocationValue(AllocationValue):
         return self.allocation_value.merge_with_curent(current)
 
 
+####################################################################
+######################## AllocationsDics ###########################
+####################################################################
 
 
 class AllocationsDict(AllocationValue, dict):
@@ -147,6 +121,9 @@ class AllocationsDict(AllocationValue, dict):
             errors.extend(value.validate())
         return errors
 
+##################################################################
+######################## BoxedNumerics ###########################
+##################################################################
 
 # Defines default how senstive in terms of float precision are changes from RDTAllocation detected.
 FLOAT_VALUES_CHANGE_DETECTION = 1e-02
@@ -225,10 +202,142 @@ def box_value(value: Any) -> AllocationValue:
     boxed_value = box_class(value)
     return boxed_value
 
-# -----------------------------------------------------------------------
-# private logic to handle allocations
-# -----------------------------------------------------------------------
+# Defines relative tolerance for float comparison.
+FLOAT_VALUES_CHANGE_DETECTION = 1e-02
 
+
+class BoxedNumericV2(AllocationValue):
+    """
+    Wrapper for floats and integers.
+    If min_value is None then it becomes negative infinity.
+    If max_value is Not then it becomes infinity.
+    """
+
+    def __init__(self, value: Union[float, int],
+                 min_value: Optional[Union[int, float]] = 0,
+                 max_value: Optional[Union[int, float]] = None,
+                 float_value_change_sensitivity=FLOAT_VALUES_CHANGE_DETECTION):
+        self._value = value
+        self._float_value_change_sensitivity = float_value_change_sensitivity
+        self._min_value = min_value if min_value is not None else -math.inf
+        self._max_value = max_value if max_value is not None else math.inf
+
+    def __eq__(self, other):
+        try:
+            return math.isclose(self._value, other._value,
+                                rel_tol=self._float_value_change_sensitivity)
+        except AttributeError:
+            return False
+
+    def generate_metrics(self) -> List[Metric]:
+        pass
+
+    def validate(self) -> List[str]:
+        if not self._value >= self._min_value or not self._value <= self._max_value:
+            return [f'{self._value} does not belong to range <{self._min_value};{self._max_value}>']
+        return []
+
+    def merge_with_current(self, new_value: Optional['BoxedNumeric']) \
+            -> Tuple['BoxedNumeric', Optional['BoxedNumeric']]:
+
+        # If new_value is not None then we are going to compare numbers
+        if new_value is not None:
+            value_changed = self != new_value
+        # If new_value is None then it is different than an object
+        else:
+            value_changed = True
+
+        # To avoid issues with multiple references to single object we are going to return brand new
+        # objects.
+        if value_changed:
+            return BoxedNumeric(new_value._value, self._min_value, self._max_value,
+                                self._float_value_change_sensitivity), \
+                BoxedNumeric(new_value._value, self._min_value, self._max_value,
+                             self._float_value_change_sensitivity)
+        else:
+            # If value is not changed, then is assumed current value is the same as
+            # new so we can return any of them (lets return the new one) as target
+            return copy.deepcopy(self), None
+
+
+
+###############################################################
+######################## REGISTRIES ###########################
+###############################################################
+
+# class BoxedTasksAllocations:
+#     """Wrapper over simple TaskAllocations type"""
+#
+#     # Mapping from simple inmutable allocations values like ints
+#     # to concrete implementations
+#     # RDTAllocation() -> RDTAllocationValue
+#     # float -> FloatAloocationValue
+#     registered_box_types: Dict[Type, Type[AllocationValue]] = {}
+#
+#     @classmethod
+#     def register(cls, simple_type: Type, box_class: Type[AllocationValue]):
+#         cls.registered_box_types[simple_type] = box_class
+#
+#     @classmethod
+#     def box_value(cls, value: Any, **kwargs) -> AllocationValue:
+#         """Wraps simple value with boxed type."""
+#         box_class = cls.registered_box_types[type(value)]
+#         return box_class(value, **kwargs)
+#
+#     # @classmethod
+#     # def build(cls, tasks_allocations: TasksAllocations) -> 'BoxedTasksAllocations':
+#     #     return BoxedTasksAllocations(tasks_allocations)
+#     #
+#     # def __init__(self, tasks_allocations: TasksAllocations):
+#     #     raise NotImplementedError
+
+class BoxedAllocationFactory:
+
+    known_types: Dict[Type, Type[AllocationValue]] = {}
+
+    @classmethod
+    def register(cls, simple_type: Type, box_class: Type[AllocationValue]):
+        """Registers type and its boxing type."""
+        cls.known_types[simple_type] = box_class
+
+    @classmethod
+    def create(cls, value: Any, **kwargs) -> AllocationValue:
+        """Wraps value with boxed type."""
+        if type(value) in cls.known_types:
+            box_class = cls.known_types[type(value)]
+            return box_class(value, **kwargs)
+        raise KeyError(f'Unable to find {type(value)} in registry.')
+
+
+class BoxedTasksAllocations:
+    """Wrapper over simple TaskAllocations type"""
+
+    # Mapping from simple inmutable allocations values like ints
+    # to concrete implementations
+    # RDTAllocation() -> RDTAllocationValue
+    # float -> FloatAloocationValue
+    registered_box_types: Dict[Type, Type[AllocationValue]] = {}
+
+    @classmethod
+    def register(cls, simple_type: Type, box_class: Type[AllocationValue]):
+        cls.registered_box_types[simple_type] = box_class
+
+    @classmethod
+    def box_value(cls, value: Any, **kwargs) -> AllocationValue:
+        """Wraps simple value with boxed type."""
+        box_class = cls.registered_box_types[type(value)]
+        return box_class(value, **kwargs)
+
+    # @classmethod
+    # def build(cls, tasks_allocations: TasksAllocations) -> 'BoxedTasksAllocations':
+    #     return BoxedTasksAllocations(tasks_allocations)
+    #
+    # def __init__(self, tasks_allocations: TasksAllocations):
+    #     raise NotImplementedError
+
+###############################################################
+######################## OLD METHODS ###########################
+###############################################################
 def _convert_tasks_allocations_to_metrics(tasks_allocations: TasksAllocations) -> List[Metric]:
     """Takes allocations on input and convert them to something that can be
     stored persistently as metrics adding type fields and labels.
