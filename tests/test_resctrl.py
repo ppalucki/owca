@@ -19,7 +19,7 @@ from typing import List, Dict
 
 import pytest
 
-from owca.allocations import AllocationsDict
+from owca.allocations import AllocationsDict, create_default_registry
 from owca.allocators import AllocationConfiguration
 from owca.cgroups import Cgroup
 
@@ -389,13 +389,14 @@ def test_allocations_dict_merging(current, new,
     CgroupMock = Mock(spec=Cgroup)
     ResGroupMock = Mock(spec=ResGroup)
 
-    def rdt_allocation_value_constructor(value, ctx, mapping):
+    def rdt_allocation_value_constructor(value, ctx, registry):
         return RDTAllocationValue(value, CgroupMock(), ResGroupMock())
 
-    mapping = {('rdt', RDTAllocation): rdt_allocation_value_constructor}
+    registry = create_default_registry()
+    registry.register_automapping_type(('rdt', RDTAllocation), rdt_allocation_value_constructor)
 
     def convert_dict(d):
-        return AllocationsDict(d, None, mapping)
+        return AllocationsDict(d, None, registry)
 
     # conversion
     current_dict = convert_dict(current)

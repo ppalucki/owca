@@ -14,10 +14,11 @@
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Dict, Union, Tuple, Optional
+from typing import List, Dict, Any
 
 from dataclasses import dataclass
 
+from owca.allocations import AllocationValue
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.mesos import TaskId
 from owca.metrics import Metric
@@ -32,29 +33,7 @@ class AllocationType(str, Enum):
     RDT = 'rdt'
 
 
-class AllocationValue(ABC):
-
-    @abstractmethod
-    def merge_with_current(self, current: 'AllocationValue') -> Tuple[
-            'AllocationValue', Optional['AllocationValue']]:
-        ...
-
-    @abstractmethod
-    def generate_metrics(self) -> List[Metric]:
-        ...
-
-    @abstractmethod
-    def validate(self) -> List[str]:
-        """Returns list of errors, empty list indicates that value is ok."""
-        ...
-
-    @abstractmethod
-    def perform_allocations(self):
-        """Perform allocatoins."""
-        ...
-
-
-TaskAllocations = Dict[AllocationType, Union[int, float, AllocationValue]]
+TaskAllocations = Dict[AllocationType, Any]
 TasksAllocations = Dict[TaskId, TaskAllocations]
 
 TaskAllocationsValues = List[AllocationValue]

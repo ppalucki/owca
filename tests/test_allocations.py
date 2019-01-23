@@ -14,7 +14,8 @@
 
 import pytest
 
-from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue
+from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, \
+    create_default_registry, _convert_values
 from unittest.mock import Mock
 
 
@@ -27,7 +28,8 @@ from unittest.mock import Mock
     ]
 )
 def test_allocations_dict_convert_values_for_default_types(simple_dict, expected_converted_dict):
-    got_converted_dict = AllocationsDict.convert_values(simple_dict)
+    registry = create_default_registry()
+    got_converted_dict = _convert_values(simple_dict, None, registry)
     assert got_converted_dict == expected_converted_dict
 
 
@@ -45,11 +47,14 @@ def test_allocations_dict_custom_mapping():
         ('y', Foo): foo_allocation_value_class2
     }
     foo = Foo()
+    registry = create_default_registry()
+    for k, v in mapping.items():
+        registry.register_automapping_type(k, v)
 
-    AllocationsDict.convert_values({'x': foo, 'y': foo}, mapping=mapping)
+    _convert_values({'x': foo, 'y': foo}, None, registry)
 
-    foo_allocation_value_class1.assert_called_once_with(foo, ['x'], mapping)
-    foo_allocation_value_class2.assert_called_once_with(foo, ['y'], mapping)
+    foo_allocation_value_class1.assert_called_once_with(foo, ['x'], registry)
+    foo_allocation_value_class2.assert_called_once_with(foo, ['y'], registry)
 
 
 ############################################################################
@@ -120,15 +125,16 @@ def test_calculate_tasks_allocations_changeset(
         current_tasks_allocations, new_tasks_allocations,
         expected_target_tasks_allocations, expected_tasks_allocations_changeset
 ):
+    registry = create_default_registry()
     # conversion
-    current_dict = AllocationsDict(current_tasks_allocations)
-    new_dict = AllocationsDict(new_tasks_allocations)
+    current_dict = AllocationsDict(current_tasks_allocations, None, registry)
+    new_dict = AllocationsDict(new_tasks_allocations, None, registry)
     if expected_tasks_allocations_changeset is not None:
         assert isinstance(expected_tasks_allocations_changeset, dict)
-        expected_allocations_changeset_dict = AllocationsDict(expected_tasks_allocations_changeset)
+        expected_allocations_changeset_dict = AllocationsDict(expected_tasks_allocations_changeset, None, registry)
     else:
         expected_allocations_changeset_dict = None
-    expected_target_allocations_dict = AllocationsDict(expected_target_tasks_allocations)
+    expected_target_allocations_dict = AllocationsDict(expected_target_tasks_allocations, None, registry)
 
     # merge
     got_target_dict, got_changeset_dict = \

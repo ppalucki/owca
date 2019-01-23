@@ -13,12 +13,34 @@
 # limitations under the License.
 import logging
 import math
+from abc import ABC, abstractmethod
 from typing import List, Dict, Union, Tuple, Optional, Any, Type, Callable
 
-from owca.allocators import AllocationValue
 from owca.metrics import Metric, MetricType
 
 log = logging.getLogger(__name__)
+
+
+class AllocationValue(ABC):
+
+    @abstractmethod
+    def merge_with_current(self, current: 'AllocationValue') -> Tuple[
+            'AllocationValue', Optional['AllocationValue']]:
+        ...
+
+    @abstractmethod
+    def generate_metrics(self) -> List[Metric]:
+        ...
+
+    @abstractmethod
+    def validate(self) -> List[str]:
+        """Returns list of errors, empty list indicates that value is ok."""
+        ...
+
+    @abstractmethod
+    def perform_allocations(self):
+        """Perform allocatoins."""
+        ...
 
 
 class CommonLablesAllocationValue(AllocationValue):
@@ -44,59 +66,57 @@ class CommonLablesAllocationValue(AllocationValue):
         return self.allocation_value.merge_with_curent(current)
 
 
+class Registry:
+
+    def __init__(self):
+        self._mapping = dict()
+
+    def register_automapping_type(self, t: Type, avt: Type[AllocationValue]):
+        self._mapping[t] = avt
+
+    def convert_value(self, base_ctx, k, v):
+        if (k, type(v)) in self._mapping:
+            box_class = self._mapping[(k, type(v))]
+            nv = box_class(v, base_ctx + [k], self)
+        elif type(v) in self._mapping:
+            box_class = self._mapping[type(v)]
+            nv = box_class(v, base_ctx + [k], self)
+        else:
+            raise Exception('cannot convert %r (type=%r under %r key) '
+                            'to AllocationValue using provied mapping=%r' %
+                            (v, type(v), k, self._mapping))
+        return nv
+
+def _convert_values(d: Dict[str, Any], ctx: List[str], registry) -> Dict[str, AllocationValue]:
+
+    nd = {}
+    base_ctx = list(ctx or [])
+    for k, v in d.items():
+        if isinstance(v, AllocationValue):
+            nv = v
+        else:
+            nv = registry.convert_value(base_ctx, k, v)
+        nd[k] = nv
+
+    return nd
+
 class AllocationsDict(dict, AllocationValue):
     """ keys: str
         values: AllocationValue
     """
-    _default_mapping = dict()
-
-    @classmethod
-    def register_automapping_type(cls, t: Type, avt: Type[AllocationValue]):
-        cls._default_mapping[t] = avt
 
     def __repr__(self):
         return 'AllocationsDict(%s)' % dict.__repr__(self)
 
-    @classmethod
-    def convert_values(cls,
-                       d: Dict[str, Any],
-                       ctx: List[str] = None,
-                       mapping: Dict[
-                           Union[Type, Tuple[str, Type]],  # recurisve types hell
-                           Callable[[Any, List[str], Dict], AllocationValue]
-                       ] = None) -> Dict[str, AllocationValue]:
-
-        mapping = mapping or {}
-        mapping.update(cls._default_mapping)
-
-        nd = {}
-        base_ctx = list(ctx or [])
-        for k, v in d.items():
-            if isinstance(v, AllocationValue):
-                nv = v
-            else:
-                if (k, type(v)) in mapping:
-                    box_class = mapping[(k, type(v))]
-                    nv = box_class(v, base_ctx + [k], mapping)
-
-                elif type(v) in mapping:
-                    box_class = mapping[type(v)]
-                    nv = box_class(v, base_ctx + [k], mapping)
-                else:
-                    raise Exception('cannot convert %r (type=%r under %r key) '
-                                    'to AllocationValue using provied mapping=%r' %
-                                    (v, type(v), k, mapping))
-            nd[k] = nv
-
-        return nd
 
     def __init__(self,
                  d: Dict[str, Any],
                  ctx: List[str] = None,  # accumulator like, for passing recursilvely
-                 mapping: Dict[Union[Type, Tuple[str, Type]], Type[AllocationValue]] = None,
+                 registry=None,
                  ):
 
-        nd = self.convert_values(d, ctx, mapping)
+        registry = registry or create_default_registry()
+        nd = _convert_values(d, ctx, registry)
 
         # Itnialize self as a dict with already converted values.
         dict.__init__(self, nd)
@@ -150,7 +170,6 @@ class AllocationsDict(dict, AllocationValue):
         return errors
 
 
-AllocationsDict.register_automapping_type(dict, AllocationsDict)
 
 
 class BoxedNumeric(AllocationValue):
@@ -229,6 +248,9 @@ class BoxedNumeric(AllocationValue):
     def perform_allocations(self):
         raise NotImplementedError()
 
-
-AllocationsDict.register_automapping_type(int, lambda value, ctx, mapping: BoxedNumeric(value))
-AllocationsDict.register_automapping_type(float, lambda value, ctx, mapping: BoxedNumeric(value))
+def create_default_registry():
+    registry = Registry()
+    registry.register_automapping_type(dict, AllocationsDict)
+    registry.register_automapping_type(int, lambda value, ctx, mapping: BoxedNumeric(value))
+    registry.register_automapping_type(float, lambda value, ctx, mapping: BoxedNumeric(value))
+    return  registry

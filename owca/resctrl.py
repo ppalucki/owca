@@ -22,7 +22,8 @@ from typing import Tuple, List, Optional, Dict
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import AllocationType, TaskAllocations, AllocationValue
+from owca.allocators import AllocationType, TaskAllocations
+from owca.allocations import AllocationValue
 from owca.cgroups import Cgroup
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid

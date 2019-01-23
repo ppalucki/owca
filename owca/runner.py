@@ -23,8 +23,9 @@ from dataclasses import dataclass, field
 from owca import detectors, nodes
 from owca import platforms
 from owca import storage
-from owca.allocations import AllocationsDict
+from owca.allocations import AllocationsDict, create_default_registry
 from owca.allocators import Allocator, TasksAllocations, AllocationConfiguration
+from owca.cgroups import QuotaAllocationValue, SharesAllocationValue
 from owca.containers import ContainerManager, Container
 from owca.detectors import (TasksMeasurements, TasksResources,
                             TasksLabels, convert_anomalies_to_metrics,
@@ -34,7 +35,7 @@ from owca.logger import trace
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
-from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values
+from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, RDTAllocationValue
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -306,13 +307,35 @@ class DetectionRunner(Runner, BaseRunnerMixin):
 
 
 def convert_to_allocations(tasks_allocations: TasksAllocations,
-                           containers: Dict[Task, Container]) -> AllocationsDict:
+                           containers: Dict[Task, Container],
+                           platform: platforms.Platform,
+                           allocation_configuration: AllocationConfiguration
+                           ) -> AllocationsDict:
     # TODO: use containers to build intelighent Allocation Objects values like
     # RDTAllocationValue based on RDTAllocation
     # CgroupAllocationValue based on cgroup: 34.
     # CgroupAllocationValue based on cgroup: 34.o
     # and so on...
-    return AllocationsDict(tasks_allocations)
+    registry = create_default_registry()
+
+    def rdt_allocation_value_constructor(value, ctx, registry):
+        task_id = ctx[0]
+        container = containers[task_id]
+        return RDTAllocationValue(value, container.resgroup, container.cgroup)
+
+    def share_allocation_value_constructor(value, ctx, registry):
+        task_id = ctx[0]
+        container = containers[task_id]
+        return SharesAllocationValue(value, container.cgroup_path, platform_cpus=platform.cpus, allocation_configuration)
+
+    def cgroup_allocation_value_constructor(value, ctx, registry):
+        task_id = ctx[0]
+        container = containers[task_id]
+        return QuotaAllocationValue(value, container.resgroup, container.cgroup)
+
+    registry.register_automapping_type(('rdt', RDTAllocation), rdt_allocation_value_constructor)
+
+    return AllocationsDict(tasks_allocations, None, registry=registry)
 
 
 @dataclass
@@ -356,9 +379,15 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             log.debug('Anomalies detected: %d', len(anomalies))
 
             current_allocations = convert_to_allocations(current_tasks_allocations,
-                                                         self.containers_manager.containers)
+                                                         self.containers_manager.containers,
+                                                         platform,
+                                                         self.allocation_configuration
+                                                         )
             new_allocations = convert_to_allocations(new_tasks_allocations,
-                                                     self.containers_manager.containers)
+                                                     self.containers_manager.containers,
+                                                     platform,
+                                                     self.allocation_configuration
+                                                     )
 
             target_allocations, allocations_changeset = current_allocations.merge_with_current(
                 new_allocations)

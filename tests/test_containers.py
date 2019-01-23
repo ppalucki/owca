@@ -164,10 +164,6 @@ def test_cm_perform_allocations(MesosTaskMock, tasks_allocations,
     assert expected_resgroup_reallocation_count == count_
 
 
-def test_convert_to_allocations(self):
-    pass
-
-
 @pytest.mark.parametrize('tasks_allocations,expected_metrics', (
     ({}, []),
     ({'some_task': {AllocationType.SHARES: 0.5}}, [
