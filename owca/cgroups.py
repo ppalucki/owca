@@ -150,8 +150,8 @@ class SharesAllocationValue(BoxedNumeric):
         self.cgroup = Cgroup(cgroup_path, platform_cpus, allocation_configuration)
         super().__init__(value=normalized_quota,
                          min_value=0,
-                         max_value=platform_cpus
+                         max_value=allocation_configuration
                          )
 
     def perform_allocation(self):
-        self.cgroup._set_normalized_quota(self.value)
+        self.cgroup._set_normalized_shares(self.value)

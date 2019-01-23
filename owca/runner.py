@@ -23,8 +23,8 @@ from dataclasses import dataclass, field
 from owca import detectors, nodes
 from owca import platforms
 from owca import storage
-from owca.allocators import Allocator, TasksAllocations, _convert_tasks_allocations_to_metrics, \
-    AllocationConfiguration, _ignore_invalid_allocations, AllocationValue
+from owca.allocations import AllocationsDict
+from owca.allocators import Allocator, TasksAllocations, AllocationConfiguration
 from owca.containers import ContainerManager, Container
 from owca.detectors import (TasksMeasurements, TasksResources,
                             TasksLabels, convert_anomalies_to_metrics,
@@ -34,8 +34,7 @@ from owca.logger import trace
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task, TaskId
-from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, \
-    _assign_default_rdt_group_names
+from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -306,6 +305,17 @@ class DetectionRunner(Runner, BaseRunnerMixin):
         self.cleanup()
 
 
+def convert_to_allocations(tasks_allocations: TasksAllocations,
+                           containers: Dict[TaskId, Container]) -> AllocationsDict:
+    # TODO: use containers to build intelighent Allocation Objects values like
+    # RDTAllocationValue based on RDTAllocation
+    # CgroupAllocationValue based on cgroup: 34.
+    # CgroupAllocationValue based on cgroup: 34.o
+    # and so on...
+    return AllocationsDict(tasks_allocations)
+
+
+
 
 @dataclass
 class AllocationRunner(Runner, BaseRunnerMixin):
@@ -350,7 +360,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
             current_allocations = convert_to_allocations(current_tasks_allocations, 
                                                          self.containers_manager.containers)
-            new_allocations = convert_to_allocations(current_tasks_allocations, 
+            new_allocations = convert_to_allocations(new_tasks_allocations,
                                                      self.containers_manager.containers)
 
 

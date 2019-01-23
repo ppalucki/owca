@@ -14,15 +14,17 @@
 
 
 import errno
-from unittest.mock import call, MagicMock, patch, mock_open
+from unittest.mock import call, MagicMock, patch, mock_open, Mock
 from typing import List, Dict
 
 import pytest
 
-from owca.allocators import AllocationValue
+from owca.allocations import AllocationsDict
+from owca.allocators import AllocationValue, AllocationConfiguration
+from owca.cgroups import Cgroup
 
 from owca.resctrl import ResGroup, check_resctrl, RESCTRL_ROOT_NAME, get_max_rdt_values, \
-    RDTAllocation, check_cbm_bits, _count_enabled_bits
+    RDTAllocation, check_cbm_bits, _count_enabled_bits, _parse_schemata_file_row, RDTAllocationValue
 from owca.testing import create_open_mock, rdt_metric_func
 
 
@@ -294,12 +296,29 @@ def test_parse_invalid_schemata_file_domains(invalid_line, expected_message):
 def test_merge_rdt_allocations(
         current_rdt_alloaction, new_rdt_allocation,
         expected_target_rdt_allocation, expected_rdt_allocation_changeset):
-    got_target_rdt_allocation, got_rdt_alloction_changeset = \
-        new_rdt_allocation.merge_with_current(current_rdt_alloaction)
 
-    assert got_target_rdt_allocation == expected_target_rdt_allocation
-    assert got_rdt_alloction_changeset == expected_rdt_allocation_changeset
 
+    cgroup = Cgroup(cgroup_path='/test', platform_cpus=2,
+                    allocation_configuration=AllocationConfiguration())
+    resgroup = ResGroup(name='')
+
+    def convert(rdt_allocation):
+        if rdt_allocation is not None:
+            return RDTAllocationValue(rdt_allocation, resgroup, cgroup)
+        else:
+            return None
+
+    current_rdt_allocation_value = convert(current_rdt_alloaction)
+    new_rdt_allocation_value = convert(new_rdt_allocation)
+
+    expected_target_rdt_allocation_value = convert(expected_target_rdt_allocation)
+    expected_rdt_allocation_changeset_value = convert(expected_rdt_allocation_changeset)
+
+    got_target_rdt_allocation_value, got_rdt_alloction_changeset_value = \
+        new_rdt_allocation_value.merge_with_current(current_rdt_allocation_value)
+
+    assert got_target_rdt_allocation_value == expected_target_rdt_allocation_value
+    assert got_rdt_alloction_changeset_value == expected_rdt_allocation_changeset_value
 
 @pytest.mark.parametrize('rdt_allocation, expected_metrics', (
     (RDTAllocation(), []),
@@ -322,7 +341,73 @@ def test_merge_rdt_allocations(
     ]),
 ))
 def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, expected_metrics):
-    from owca.resctrl import RDTAllocationValue
-    RDTAllocationValue(group_rdt_allocation)
-    got_metrics = rdt_allocation_value.generate_metrics()
+    with patch('owca.resctrl.ResGroup._create_controlgroup_directory'):
+        rdt_allocation_value = RDTAllocationValue(rdt_allocation, cgroup=Cgroup('/', platform_cpus=1),
+                                                  resgroup=ResGroup(name=rdt_allocation.name or ''))
+        got_metrics = rdt_allocation_value.generate_metrics()
     assert got_metrics == expected_metrics
+
+
+@pytest.mark.parametrize(
+    'current, new, expected_target, expected_changeset', [
+        ({}, {},
+         {}, None),
+        ({'x': 2}, {},
+         {'x': 2}, None),
+        ({'a': 0.2}, {},
+         {'a': 0.2}, None),
+        ({'a': 0.2}, {'a': 0.2},
+         {'a': 0.2}, None),
+        ({'b': 2}, {'b': 3},
+         {'b': 3}, {'b': 3}),
+        ({'a': 0.2, 'b': 0.4}, {'a': 0.2, 'b': 0.5},
+         {'a': 0.2, 'b': 0.5}, {'b': 0.5}),
+        ({}, {'a': 0.2, 'b': 0.5},
+         {'a': 0.2, 'b': 0.5}, {'a': 0.2, 'b': 0.5}),
+        # RDTAllocations
+        ({}, {"rdt": RDTAllocation(name='', l3='ff')},
+         {"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='', l3='ff')}),
+        ({"rdt": RDTAllocation(name='', l3='ff')}, {},
+         {"rdt": RDTAllocation(name='', l3='ff')}, None),
+        ({"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')},
+         {"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')}),
+        ({"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='dd')},
+         {"rdt": RDTAllocation(name='x', l3='dd')}, {"rdt": RDTAllocation(name='x', l3='dd')}),
+        ({"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, {"rdt": RDTAllocation(name='x', mb='ff')},
+         {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, None),
+    ]
+)
+def test_allocations_dict_merging(current, new,
+                                  expected_target, expected_changeset):
+
+    # Extra mapping
+    from owca.resctrl import RDTAllocationValue
+
+    CgroupMock = Mock(spec=Cgroup)
+    ResGroupMock = Mock(spec=ResGroup)
+
+    def rdt_allocation_value_constructor(value, ctx, mapping):
+        return RDTAllocationValue(value, CgroupMock(), ResGroupMock())
+
+    mapping = {('rdt', RDTAllocation): rdt_allocation_value_constructor}
+
+
+    def convert_dict(d):
+        return AllocationsDict(d, None, mapping)
+
+    # conversion
+    current_dict = convert_dict(current)
+    new_dict = convert_dict(new)
+    if expected_changeset is not None:
+        assert isinstance(expected_changeset, dict)
+        expected_allocations_changeset_dict = convert_dict(expected_changeset)
+    else:
+        expected_allocations_changeset_dict = None
+    expected_target_allocations_dict = convert_dict(expected_target)
+
+    # merge
+    got_target_dict, got_changeset_dict = \
+        new_dict.merge_with_current(current_dict)
+
+    assert got_target_dict == expected_target_allocations_dict
+    assert got_changeset_dict == expected_allocations_changeset_dict

@@ -363,10 +363,13 @@ def clean_taskles_groups(mon_groups_relation):
 class RDTAllocationValue(AllocationValue):
     """Wrapper over immutable RDTAllocation object"""
 
-    resgroup: ResGroup
     rdt_allocation: RDTAllocation
+    resgroup: ResGroup
     cgroup: Cgroup
-    source_resgroup: Optional[ResGroup]  # if not none try to cleanup it at the end
+    source_resgroup: Optional[ResGroup] = None  # if not none try to cleanup it at the end
+
+
+
 
     def generate_metrics(self) -> List[Metric]:
         """Encode RDT Allocation as metrics.
@@ -379,7 +382,7 @@ class RDTAllocationValue(AllocationValue):
         if not self.rdt_allocation.l3 and not self.rdt_allocation.mb:
             return []
 
-        group_name = self.group_name or ''
+        group_name = self.resgroup.name or ''
 
         metrics = []
         if self.rdt_allocation.l3:
@@ -415,61 +418,77 @@ class RDTAllocationValue(AllocationValue):
 
         return metrics
 
-    @trace(log)
-    def merge_with_current(self: Optional['RDTAllocation'],
-                           current_rdt_allocation: 'RDTAllocation') -> \
-            Tuple['RDTAllocation', Optional['RDTAllocation']]:
+    def merge_with_current(self: 'RDTAllocationValue', current: Optional['RDTAllocationValue']) -> \
+            Tuple['RDTAllocationValue', Optional['RDTAllocationValue']]:
         """Merge with existing RDTAllocation objects and return
         sum of the allocations (target_rdt_allocation) and allocations that need to be updated
         (rdt_allocation_changeset)."""
-        new_rdt_allocation = self
+        assert current is None or current.rdt_allocation is not None, 'current improperly configured!'
+        new: RDTAllocationValue = self
         # new name, then new allocation will be used (overwrite) but no merge
-        if current_rdt_allocation is None or current_rdt_allocation.name != new_rdt_allocation.name:
+        if current is None or current.rdt_allocation.name != new.rdt_allocation.name:
             log.debug('new name or no previous allocation exists')
-            return new_rdt_allocation, new_rdt_allocation
+            return new, new
         else:
             log.debug('merging existing rdt allocation')
             target_rdt_allocation = RDTAllocation(
-                name=current_rdt_allocation.name,
-                l3=new_rdt_allocation.l3 or current_rdt_allocation.l3,
-                mb=new_rdt_allocation.mb or current_rdt_allocation.mb,
+                name=current.rdt_allocation.name,
+                l3=new.rdt_allocation.l3 or current.rdt_allocation.l3,
+                mb=new.rdt_allocation.mb or current.rdt_allocation.mb,
             )
-            rdt_allocation_changeset = RDTAllocation(
-                name=new_rdt_allocation.name,
-            )
+            target = RDTAllocationValue(target_rdt_allocation,
+                                        cgroup=current.cgroup, resgroup=current.resgroup)
+
             l3_new, mb_new = False, False
-            if new_rdt_allocation.l3 is not None \
-                    and current_rdt_allocation.l3 != new_rdt_allocation.l3:
-                rdt_allocation_changeset.l3 = new_rdt_allocation.l3
+            if new.rdt_allocation.l3 is not None \
+                    and current.rdt_allocation.l3 != new.rdt_allocation.l3:
+                rdt_allocation_changeset_l3 = new.rdt_allocation.l3
                 l3_new = True
-            if new_rdt_allocation.mb is not None \
-                    and current_rdt_allocation.mb != new_rdt_allocation.mb:
-                rdt_allocation_changeset.mb = new_rdt_allocation.mb
-                mb_new = True
-            if l3_new or mb_new:
-                return target_rdt_allocation, rdt_allocation_changeset
             else:
-                return target_rdt_allocation, None
+                rdt_allocation_changeset_l3 = None
+                l3_new = False
+
+            if new.rdt_allocation.mb is not None \
+                    and current.rdt_allocation.mb != new.rdt_allocation.mb:
+                rdt_allocation_changeset_mb = new.rdt_allocation.mb
+                mb_new = True
+            else:
+                rdt_allocation_changeset_mb = None
+                mb_new = False
+
+            if l3_new or mb_new:
+                rdt_allocation_changeset = RDTAllocation(
+                    name=new.rdt_allocation.name,
+                    l3=rdt_allocation_changeset_l3,
+                    mb=rdt_allocation_changeset_mb,
+                )
+                changeset = RDTAllocationValue(
+                    rdt_allocation_changeset,
+                    cgroup=current.cgroup, resgroup=current.resgroup,
+                )
+                return target, changeset
+            else:
+                return target, None
 
     def validate(self) -> List[str]:
         errors = []
         # Check l3 mask according provided platform.rdt
         from owca import platforms
-        if self.l3:
+        if self.rdt_allocation.l3:
             try:
-                if not self.l3.startswith('L3:'):
+                if not self.rdt_allocation.l3.startswith('L3:'):
                     raise ValueError('l3 resources setting should '
-                                     'start with "L3:" prefix (got %r)' % self.l3)
-                domains = _parse_schemata_file_row(self.l3)
-                if len(domains) != platforms.no_of_sockets:
+                                     'start with "L3:" prefix (got %r)' % self.rdt_allocation.l3)
+                domains = _parse_schemata_file_row(self.rdt_allocation.l3)
+                if len(domains) != self.no_of_sockets:
                     raise ValueError('not enough domains in l3 configuration '
                                      '(expected=%i,got=%i)' % (platforms.no_of_sockets,
                                                                len(domains)))
 
                 for mask_value in domains.values():
                     check_cbm_bits(mask_value,
-                                   platforms.rdt_cbm_mask,
-                                   platforms.rdt_min_cbm_bits)
+                                   self.rdt_cbm_mask,
+                                   self.rdt_min_cbm_bits)
             except ValueError as e:
                 errors.append('Invalid l3 cache config(%r): %s' % (self.l3, e))
         return errors
