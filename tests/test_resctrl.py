@@ -449,11 +449,11 @@ def test_read_mon_groups_relation(listdir_mock, isdir_mock):
 def test_clean_tasksless_resctrl_groups(rmdir_mock):
 
     with patch('owca.resctrl.open', create_open_mock({
-               '/sys/fs/resctrl/mon_groups/c1/tasks': '',  # empty
-               '/sys/fs/resctrl/mon_groups/c2/tasks': '1234',
-               '/sys/fs/resctrl/empty/mon_groups/c3/tasks': '',
-               '/sys/fs/resctrl/half_empty/mon_groups/c5/tasks': '1234',
-               '/sys/fs/resctrl/half_empty/mon_groups/c6/tasks': '',
+                   '/sys/fs/resctrl/mon_groups/c1/tasks': '',  # empty
+                   '/sys/fs/resctrl/mon_groups/c2/tasks': '1234',
+                   '/sys/fs/resctrl/empty/mon_groups/c3/tasks': '',
+                   '/sys/fs/resctrl/half_empty/mon_groups/c5/tasks': '1234',
+                   '/sys/fs/resctrl/half_empty/mon_groups/c6/tasks': '',
             })) as mocks:
         mon_groups_relation = {'': ['c1', 'c2'],
                                'empty': ['c3'],

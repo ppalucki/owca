@@ -54,6 +54,7 @@ class AllocationValue(ABC):
         """Perform allocatoins."""
         ...
 
+
 class AllocationValueDelegator(AllocationValue):
 
     def __init__(self, allocation_value):

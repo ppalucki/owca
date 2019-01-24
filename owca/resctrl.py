@@ -312,10 +312,12 @@ class RDTAllocation:
 
 
 def read_mon_groups_relation() -> Dict[str, List[str]]:
-    """
-    TODO: unittests
-    """
+    """Read the file structure of resctrl filesystem and return on relations
+    between control groups and its monitoring groups in form:
+    ctrl_group_name: [mon_group_name1, mon_group_name2]
 
+    Root control group has '' name (empty string).
+    """
     def list_mon_groups(mon_dir) -> List[str]:
         return [entry for entry in os.listdir(mon_dir)]
 
@@ -335,9 +337,9 @@ def read_mon_groups_relation() -> Dict[str, List[str]]:
     return relation
 
 
-def clean_taskless_groups(mon_groups_relation):
-    """
-    TODO: unittests
+def clean_taskless_groups(mon_groups_relation: Dict[str, List[str]]):
+    """Remove all control and monitoring group based on list of already read
+    groups from mon_groups_relation.
     """
     for ctrl_group, mon_groups in mon_groups_relation.items():
         for mon_group in mon_groups:
@@ -375,14 +377,15 @@ class RDTAllocationValue(AllocationValue):
     source_resgroup: Optional[ResGroup] = None  # if not none try to cleanup it at the end
 
     def _copy(self, rdt_allocation: RDTAllocation):
-        return RDTAllocationValue(rdt_allocation,
-                   cgroup=self.cgroup,
-                   resgroup=self.resgroup,
-                   platform_sockets=self.platform_sockets,
-                   rdt_mb_control_enabled=self.rdt_mb_control_enabled,
-                   rdt_cbm_mask=self.rdt_cbm_mask,
-                   rdt_min_cbm_bits=self.rdt_min_cbm_bits,
-                   )
+        return RDTAllocationValue(
+            rdt_allocation,
+            cgroup=self.cgroup,
+            resgroup=self.resgroup,
+            platform_sockets=self.platform_sockets,
+            rdt_mb_control_enabled=self.rdt_mb_control_enabled,
+            rdt_cbm_mask=self.rdt_cbm_mask,
+            rdt_min_cbm_bits=self.rdt_min_cbm_bits,
+        )
 
     def generate_metrics(self) -> List[Metric]:
         """Encode RDT Allocation as metrics.
@@ -431,7 +434,8 @@ class RDTAllocationValue(AllocationValue):
 
         return metrics
 
-    def calculate_changeset(self: 'RDTAllocationValue', current: Optional['RDTAllocationValue']) -> \
+    def calculate_changeset(self: 'RDTAllocationValue',
+                            current: Optional['RDTAllocationValue']) -> \
             Tuple['RDTAllocationValue', Optional['RDTAllocationValue']]:
         """Merge with existing RDTAllocation objects and return
         sum of the allocations (target_rdt_allocation) and allocations that need to be updated
@@ -511,6 +515,7 @@ class RDTAllocationValue(AllocationValue):
 
     def unwrap(self):
         return self.rdt_allocation
+
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on
