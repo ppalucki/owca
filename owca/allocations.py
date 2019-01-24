@@ -24,9 +24,9 @@ log = logging.getLogger(__name__)
 class AllocationValue(ABC):
 
     @abstractmethod
-    def merge_with_current(self, current: 'AllocationValue') -> Tuple[
+    def calculate_changeset(self, current: 'AllocationValue') -> Tuple[
             'AllocationValue', Optional['AllocationValue']]:
-        # TODO: docstiring for merge_with_current
+        # TODO: docstiring for calculate_changeset
         ...
 
     @abstractmethod
@@ -61,8 +61,8 @@ class AllocationValueDelegator(AllocationValue):
     def perform_allocations(self):
         self.allocation_value.perform_allocations()
 
-    def merge_with_current(self, current):
-        return self.allocation_value.merge_with_current(current)
+    def calculate_changeset(self, current):
+        return self.allocation_value.calculate_changeset(current)
 
     def generate_metrics(self):
         return self.allocation_value.generate_metrics()
@@ -167,7 +167,7 @@ class AllocationsDict(dict, AllocationValue):
         # Itnialize self as a dict with already converted values.
         dict.__init__(self, nd)
 
-    def merge_with_current(self, current: 'AllocationsDict'):
+    def calculate_changeset(self, current: 'AllocationsDict'):
         assert isinstance(current, AllocationsDict)
 
         target = AllocationsDict(current)
@@ -188,7 +188,7 @@ class AllocationsDict(dict, AllocationValue):
             else:
                 assert isinstance(current_value, AllocationValue)
                 # Both exists - recurse
-                target_value, value_changeset = new_value.merge_with_current(current_value)
+                target_value, value_changeset = new_value.calculate_changeset(current_value)
                 target[key] = target_value
                 if value_changeset is not None:
                     changeset[key] = value_changeset
@@ -268,7 +268,7 @@ class BoxedNumeric(AllocationValue):
             return errors, None
         return [], self
 
-    def merge_with_current(self, current_value: Optional['BoxedNumeric']) \
+    def calculate_changeset(self, current_value: Optional['BoxedNumeric']) \
             -> Tuple['BoxedNumeric', Optional['BoxedNumeric']]:
         """Assuming self is "new value" return target and changeset. """
 

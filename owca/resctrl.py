@@ -411,7 +411,7 @@ class RDTAllocationValue(AllocationValue):
 
         return metrics
 
-    def merge_with_current(self: 'RDTAllocationValue', current: Optional['RDTAllocationValue']) -> \
+    def calculate_changeset(self: 'RDTAllocationValue', current: Optional['RDTAllocationValue']) -> \
             Tuple['RDTAllocationValue', Optional['RDTAllocationValue']]:
         """Merge with existing RDTAllocation objects and return
         sum of the allocations (target_rdt_allocation) and allocations that need to be updated

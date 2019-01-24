@@ -429,7 +429,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             if errors:
                 log.warning('Errors:', errors)
 
-            target_allocations, allocations_changeset = new_allocations_values.merge_with_current(
+            target_allocations, allocations_changeset = new_allocations_values.calculate_changeset(
                 current_allocations_values)
 
             # MAIN function

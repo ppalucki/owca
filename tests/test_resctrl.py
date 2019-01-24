@@ -316,7 +316,7 @@ def test_merge_rdt_allocations(
     expected_rdt_allocation_changeset_value = convert(expected_rdt_allocation_changeset)
 
     got_target_rdt_allocation_value, got_rdt_alloction_changeset_value = \
-        new_rdt_allocation_value.merge_with_current(current_rdt_allocation_value)
+        new_rdt_allocation_value.calculate_changeset(current_rdt_allocation_value)
 
     assert got_target_rdt_allocation_value == expected_target_rdt_allocation_value
     assert got_rdt_alloction_changeset_value == expected_rdt_allocation_changeset_value
@@ -409,7 +409,7 @@ def test_allocations_dict_merging(current, new,
     expected_target_allocations_dict = convert_dict(expected_target)
 
     # Merge
-    got_target_dict, got_changeset_dict = new_dict.merge_with_current(current_dict)
+    got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
 
     assert got_target_dict == expected_target_allocations_dict
     assert got_changeset_dict == expected_allocations_changeset_dict

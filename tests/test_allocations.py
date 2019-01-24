@@ -93,7 +93,7 @@ def test_boxed_numeric_validation(value, min_value, max_value, float_value_chang
 def test_boxed_numeric_calculated_changeset(current, new, expected_target, expected_changeset):
     expected_changeset = BoxedNumeric(expected_changeset) \
         if expected_changeset is not None else None
-    got_target, got_changeset = BoxedNumeric(new).merge_with_current(BoxedNumeric(current))
+    got_target, got_changeset = BoxedNumeric(new).calculate_changeset(BoxedNumeric(current))
     assert got_target == BoxedNumeric(expected_target)
     assert got_changeset == expected_changeset
 
@@ -146,7 +146,7 @@ def test_calculate_tasks_allocations_changeset(
 
     # merge
     got_target_dict, got_changeset_dict = \
-        new_dict.merge_with_current(current_dict)
+        new_dict.calculate_changeset(current_dict)
 
     assert got_target_dict == expected_target_allocations_dict
     assert got_changeset_dict == expected_allocations_changeset_dict
