@@ -18,6 +18,9 @@ from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, \
     create_default_registry, _convert_values
 from unittest.mock import Mock
 
+from owca.metrics import Metric
+from owca.testing import allocation_metric
+
 
 @pytest.mark.parametrize(
     'simple_dict, expected_converted_dict', [
@@ -62,7 +65,7 @@ def test_allocations_dict_custom_mapping():
 ############################################################################
 
 @pytest.mark.parametrize(
-    'value, min_value, max_value, float_value_change_sensitivity, is_valid', (
+    'value, min_value, max_value, float_value_change_sensitivity, expected_errors', (
             (1, 2, 3, 0.00001, ['1 does not belong to range <2;3>']),
             (1.1, 2, 3, 0.00001, ['1.1 does not belong to range <2;3>']),
             (2.5, 2, 3, 0.00001, []),
@@ -73,9 +76,12 @@ def test_allocations_dict_custom_mapping():
     )
 )
 def test_boxed_numeric_validation(value, min_value, max_value, float_value_change_sensitivity,
-                                  is_valid):
+                                  expected_errors):
     boxed_value = BoxedNumeric(value, min_value, max_value, float_value_change_sensitivity)
-    assert boxed_value.validate() == is_valid
+    expected_new_value = None if expected_errors else boxed_value
+    got_errors, got_new_value = boxed_value.validate()
+    assert got_errors == expected_errors
+    assert got_new_value == expected_new_value
 
 
 @pytest.mark.parametrize(
@@ -142,3 +148,40 @@ def test_calculate_tasks_allocations_changeset(
 
     assert got_target_dict == expected_target_allocations_dict
     assert got_changeset_dict == expected_allocations_changeset_dict
+
+
+def test_allocation_value_validate():
+    failing_allocation_value = Mock(spec=AllocationValue, validate=Mock(
+        return_value=(['some error generic'], None)))
+    d = AllocationsDict({'bad_generic': failing_allocation_value,
+                         'good': 2.5,
+                         'bad_float': -5,
+                         'subdict_good': {
+                             'good': 2.5,
+                             'bad': -6,
+                         },
+                         'subdict_bad': {
+                             'bad1': -2.5,
+                             'bad2': -7,
+                         }
+                         })
+    errors, nd = d.validate()
+    assert 'some error generic' in errors
+    assert 'some error generic' in errors
+    assert '-5 does not belong to range <0;inf>' in errors
+    assert 'bad' not in nd
+    assert 'bad float' not in nd
+    assert 'good' in nd
+    assert 'subdict_good' in nd
+    assert 'subdict_bad' not in nd
+    failing_allocation_value.validate.assert_called_once()
+
+
+@pytest.mark.parametrize('allocation_value, expected_metrics', [
+    (AllocationsDict({}), []),
+    (BoxedNumeric(2), [allocation_metric()])
+
+])
+def test_allocation_values_metrics(allocation_value: AllocationValue, expected_metrics):
+    got_metrics = allocation_value.generate_metrics()
+    assert got_metrics == expected_metrics

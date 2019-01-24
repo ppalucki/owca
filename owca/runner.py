@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from owca import detectors, nodes
 from owca import platforms
 from owca import storage
-from owca.allocations import AllocationsDict, create_default_registry
+from owca.allocations import AllocationsDict, create_default_registry, CommonLablesAllocationValue
 from owca.allocators import Allocator, TasksAllocations, AllocationConfiguration
 from owca.cgroups import QuotaAllocationValue, SharesAllocationValue
 from owca.containers import ContainerManager, Container
@@ -35,7 +35,8 @@ from owca.logger import trace
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
-from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, RDTAllocationValue
+from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, RDTAllocationValue, \
+    RDTAllocation
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -306,34 +307,53 @@ class DetectionRunner(Runner, BaseRunnerMixin):
         self.cleanup()
 
 
-def convert_to_allocations(tasks_allocations: TasksAllocations,
-                           containers: Dict[Task, Container],
-                           platform: platforms.Platform,
-                           allocation_configuration: AllocationConfiguration
-                           ) -> AllocationsDict:
-    # TODO: use containers to build intelighent Allocation Objects values like
-    # RDTAllocationValue based on RDTAllocation
-    # CgroupAllocationValue based on cgroup: 34.
-    # CgroupAllocationValue based on cgroup: 34.o
-    # and so on...
+def convert_to_allocations_values(tasks_allocations: TasksAllocations,
+                                  containers: Dict[Task, Container],
+                                  platform: platforms.Platform,
+                                  allocation_configuration: AllocationConfiguration
+                                  ) -> AllocationsDict:
+    """Convert plain raw object TasksAllocations to boxed inteligent AllocationsDict
+    that can be serialized to metrics, validated and perform contained allocations.
+
+    Simple tasks allocations objects are augumented using runner and container manager
+    context to implement their resposiblities.
+    """
     registry = create_default_registry()
 
-    def rdt_allocation_value_constructor(value, ctx, registry):
-        task_id = ctx[0]
-        container = containers[task_id]
-        return RDTAllocationValue(value, container.resgroup, container.cgroup)
+    task_id_to_containers = {task.task_id: container for task, container in containers.items()}
 
-    def share_allocation_value_constructor(value, ctx, registry):
-        task_id = ctx[0]
-        container = containers[task_id]
-        return SharesAllocationValue(value, container.cgroup_path, platform_cpus=platform.cpus, allocation_configuration)
+    def common_decorator(specific_constructor):
+        def generic_constructor(raw_value, ctx, registry):
+            task_id = ctx[0]
+            container = task_id_to_containers[task_id]
+            allocation_value = specific_constructor(raw_value, container)
+            return CommonLablesAllocationValue(allocation_value,
+                        labels=dict(task_name=container.task_name))
+        return generic_constructor
 
-    def cgroup_allocation_value_constructor(value, ctx, registry):
-        task_id = ctx[0]
-        container = containers[task_id]
-        return QuotaAllocationValue(value, container.resgroup, container.cgroup)
+    @common_decorator
+    def rdt_allocation_value_constructor(rdt_allocation, container):
+        return RDTAllocationValue(rdt_allocation, container.resgroup, container.cgroup)
+
+    @common_decorator
+    def share_allocation_value_constructor(normalized_shares, container):
+        return SharesAllocationValue(normalized_shares,
+                                     container.cgroup_path,
+                                     platform.cpus,
+                                     allocation_configuration)
+
+    @common_decorator
+    def quota_allocation_value_constructor(normalized_quota, container):
+        return QuotaAllocationValue(normalized_quota,
+                                    container.cgroup_path,
+                                    platform.cpus,
+                                    allocation_configuration)
 
     registry.register_automapping_type(('rdt', RDTAllocation), rdt_allocation_value_constructor)
+    registry.register_automapping_type(('shares', int), quota_allocation_value_constructor)
+    registry.register_automapping_type(('quota', float), rdt_allocation_value_constructor)
+    registry.register_automapping_type(('shares', int), rdt_allocation_value_constructor)
+    registry.register_automapping_type(('quota', float), rdt_allocation_value_constructor)
 
     return AllocationsDict(tasks_allocations, None, registry=registry)
 
@@ -378,19 +398,23 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
             log.debug('Anomalies detected: %d', len(anomalies))
 
-            current_allocations = convert_to_allocations(current_tasks_allocations,
-                                                         self.containers_manager.containers,
-                                                         platform,
-                                                         self.allocation_configuration
-                                                         )
-            new_allocations = convert_to_allocations(new_tasks_allocations,
-                                                     self.containers_manager.containers,
-                                                     platform,
-                                                     self.allocation_configuration
-                                                     )
+            current_allocations_values = convert_to_allocations_values(current_tasks_allocations,
+                                                                       self.containers_manager.containers,
+                                                                       platform,
+                                                                       self.allocation_configuration
+                                                                       )
+            new_allocations_values = convert_to_allocations_values(new_tasks_allocations,
+                                                                   self.containers_manager.containers,
+                                                                   platform,
+                                                                   self.allocation_configuration
+                                                                   )
 
-            target_allocations, allocations_changeset = current_allocations.merge_with_current(
-                new_allocations)
+            errors = new_allocations_values.validate()
+            if errors:
+                log.warning('Errors:', errors)
+
+            target_allocations, allocations_changeset = current_allocations_values.merge_with_current(
+                new_allocations_values)
 
             # MAIN function
             allocations_changeset.perform_allocations()

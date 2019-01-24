@@ -22,7 +22,7 @@ from owca.resctrl import RDTAllocation
 from owca.runner import DetectionRunner
 from owca.testing import task, container
 from owca.metrics import Metric, MetricType
-from owca.testing import rdt_metric_func
+from owca.testing import allocation_metric
 
 
 @pytest.mark.parametrize(
@@ -172,7 +172,7 @@ def test_cm_perform_allocations(MesosTaskMock, tasks_allocations,
                labels={'allocation_type': 'cpu_shares', 'task_id': 'some_task'})
     ]),
     ({'some_task': {AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
-        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
+        allocation_metric('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
     ]),
     ({'some_task': {AllocationType.SHARES: 0.5,
                     AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
@@ -181,7 +181,7 @@ def test_cm_perform_allocations(MesosTaskMock, tasks_allocations,
             type=MetricType.GAUGE,
             labels={'allocation_type': AllocationType.SHARES, 'task_id': 'some_task'}
         ),
-        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
+        allocation_metric('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
     ]),
     ({'some_task_a': {
         AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='mb:0=30')
@@ -195,20 +195,20 @@ def test_cm_perform_allocations(MesosTaskMock, tasks_allocations,
              type=MetricType.GAUGE,
              labels={'allocation_type': AllocationType.SHARES, 'task_id': 'some_task_a'}
          ),
-         rdt_metric_func('rdt_mb', 30, group_name='', domain_id='0', task_id='some_task_a'),
+         allocation_metric('rdt_mb', 30, group_name='', domain_id='0', task_id='some_task_a'),
          Metric(
              name='allocation', value=0.6,
              type=MetricType.GAUGE,
              labels={'allocation_type': AllocationType.QUOTA, 'task_id': 'some_task_b'}
          ),
-         rdt_metric_func('rdt_l3_cache_ways', 4, group_name='b',
-                         domain_id='0', task_id='some_task_b'),
-         rdt_metric_func('rdt_l3_mask', 15, group_name='b',
-                         domain_id='0', task_id='some_task_b'),
-         rdt_metric_func('rdt_l3_cache_ways', 5, group_name='b',
-                         domain_id='1', task_id='some_task_b'),
-         rdt_metric_func('rdt_l3_mask', 241, group_name='b',
-                         domain_id='1', task_id='some_task_b'),
+         allocation_metric('rdt_l3_cache_ways', 4, group_name='b',
+                           domain_id='0', task_id='some_task_b'),
+         allocation_metric('rdt_l3_mask', 15, group_name='b',
+                           domain_id='0', task_id='some_task_b'),
+         allocation_metric('rdt_l3_cache_ways', 5, group_name='b',
+                           domain_id='1', task_id='some_task_b'),
+         allocation_metric('rdt_l3_mask', 241, group_name='b',
+                           domain_id='1', task_id='some_task_b'),
      ]),
 ))
 def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics):

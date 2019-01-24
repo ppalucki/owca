@@ -33,8 +33,14 @@ class AllocationValue(ABC):
         ...
 
     @abstractmethod
-    def validate(self) -> List[str]:
-        """Returns list of errors, empty list indicates that value is ok."""
+    def validate(self) -> Tuple[List[str], Optional['AllocationValue']]:
+        """Returns list of errors, empty list indicates that value is ok.
+        Returns modifed object that can still perform some of allocations,
+        or None if nothing can be processed.
+        Examples:
+            RDTAllocation can ignore setting MB, but still set L3
+            TasksAllocatios can still apply some settings for some tasks.
+        """
         ...
 
     @abstractmethod
@@ -163,13 +169,17 @@ class AllocationsDict(dict, AllocationValue):
         for value in self.values():
             value.perform_allocations()
 
-    def validate(self) -> List[str]:
+    def validate(self) -> Tuple[List[str], 'AllocationsDict']:
         errors = []
-        for value in self.values():
-            errors.extend(value.validate())
-        return errors
-
-
+        nd = AllocationsDict({})
+        for key, value in self.items():
+            value_errors, new_value = value.validate()
+            if new_value is not None:
+                nd[key] = new_value
+            errors.extend(value_errors)
+        # Empty dict becomes None
+        nd = nd or None
+        return errors, nd
 
 
 class BoxedNumeric(AllocationValue):
@@ -211,7 +221,7 @@ class BoxedNumeric(AllocationValue):
                     type=MetricType.GAUGE,
                )]
 
-    def validate(self) -> List[str]:
+    def validate(self) -> Tuple[List[str], Optional['BoxedNumeric']]:
         # errors = []
         # if self.value < self.min_value:
         #     errors.append('value (%r) is lower that allowed minimum value (%r))' % (
@@ -220,8 +230,10 @@ class BoxedNumeric(AllocationValue):
         #     errors.append('value (%r) is higher that allowed maxmimum value (%r))' % (
         #         self.value, self.min_value))
         if not self.value >= self.min_value or not self.value <= self.max_value:
-            return [f'{self.value} does not belong to range <{self.min_value};{self.max_value}>']
-        return []
+            errors = ['%s does not belong to range <%s;%s>' % (
+                           self.value, self.min_value, self.max_value) ]
+            return errors, None
+        return [], self
 
     def merge_with_current(self, current_value: Optional['BoxedNumeric']) \
             -> Tuple['BoxedNumeric', Optional['BoxedNumeric']]:

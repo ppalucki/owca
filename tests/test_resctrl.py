@@ -25,7 +25,7 @@ from owca.cgroups import Cgroup
 
 from owca.resctrl import ResGroup, check_resctrl, RESCTRL_ROOT_NAME, get_max_rdt_values, \
     RDTAllocation, check_cbm_bits, _count_enabled_bits, _parse_schemata_file_row, RDTAllocationValue
-from owca.testing import create_open_mock, rdt_metric_func
+from owca.testing import create_open_mock, allocation_metric
 
 
 @patch('builtins.open', new=create_open_mock({
@@ -325,21 +325,21 @@ def test_merge_rdt_allocations(
 @pytest.mark.parametrize('rdt_allocation, expected_metrics', (
     (RDTAllocation(), []),
     (RDTAllocation(mb='mb:0=20'), [
-        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0')
+        allocation_metric('rdt_mb', 20, group_name='', domain_id='0')
     ]),
     (RDTAllocation(mb='mb:0=20;1=30'), [
-        rdt_metric_func('rdt_mb', 20, group_name='', domain_id='0'),
-        rdt_metric_func('rdt_mb', 30, group_name='', domain_id='1'),
+        allocation_metric('rdt_mb', 20, group_name='', domain_id='0'),
+        allocation_metric('rdt_mb', 30, group_name='', domain_id='1'),
     ]),
     (RDTAllocation(l3='l3:0=ff'), [
-        rdt_metric_func('rdt_l3_cache_ways', 8, group_name='', domain_id='0'),
-        rdt_metric_func('rdt_l3_mask', 255, group_name='', domain_id='0'),
+        allocation_metric('rdt_l3_cache_ways', 8, group_name='', domain_id='0'),
+        allocation_metric('rdt_l3_mask', 255, group_name='', domain_id='0'),
     ]),
     (RDTAllocation(name='be', l3='l3:0=ff', mb='mb:0=20;1=30'), [
-        rdt_metric_func('rdt_l3_cache_ways', 8, group_name='be', domain_id='0'),
-        rdt_metric_func('rdt_l3_mask', 255, group_name='be', domain_id='0'),
-        rdt_metric_func('rdt_mb', 20, group_name='be', domain_id='0'),
-        rdt_metric_func('rdt_mb', 30, group_name='be', domain_id='1'),
+        allocation_metric('rdt_l3_cache_ways', 8, group_name='be', domain_id='0'),
+        allocation_metric('rdt_l3_mask', 255, group_name='be', domain_id='0'),
+        allocation_metric('rdt_mb', 20, group_name='be', domain_id='0'),
+        allocation_metric('rdt_mb', 30, group_name='be', domain_id='1'),
     ]),
 ))
 def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, expected_metrics):
