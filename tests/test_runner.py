@@ -20,15 +20,17 @@ The classes derived from BaseRunnerMixin class are tested.
 
 from unittest.mock import patch, Mock
 
-from owca.runner import DetectionRunner, AllocationRunner
+import pytest
+
+from owca.runner import DetectionRunner, AllocationRunner, convert_to_allocations_values
 from owca.mesos import MesosNode, sanitize_mesos_label
 from owca import storage
 from owca import platforms
 from owca.metrics import Metric, MetricType
 from owca.detectors import AnomalyDetector
-from owca.allocators import Allocator, AllocationType
+from owca.allocators import Allocator, AllocationType, AllocationConfiguration
 from owca.resctrl import RDTAllocation
-from owca.testing import anomaly_metrics, anomaly, task, container, metric
+from owca.testing import anomaly_metrics, anomaly, task, container, metric, allocation_metric
 
 
 # We are mocking objects used by containers.
@@ -144,6 +146,7 @@ def test_detection_runner_containers_state(*mocks):
     runner.wait_or_finish.assert_called_once()
 
 
+@pytest.mark.skip('TODO')
 @patch('time.time', return_value=1234567890.123)
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
 @patch('owca.runner.are_privileges_sufficient', return_value=True)
@@ -257,3 +260,100 @@ def test_allocation_runner_containers_state(*mocks):
     assert (len(runner.containers_manager.resgroups_containers_relation['only_group'][1]) == 2)
     assert (len(runner.containers_manager.resgroups_containers_relation[''][1]) == 0)
     assert (len(runner.containers_manager.containers) == 2)
+
+@pytest.mark.skip('TODO')
+@pytest.mark.parametrize(
+    'tasks_allocations,expected_resgroup_reallocation_count',
+    (
+        # No RDT allocations.
+        (
+            {
+                'task_id_1': {AllocationType.QUOTA: 0.6},
+            },
+            0
+        ),
+        # The both task in the same resctrl group.
+        (
+            {
+                'task_id_1': {'rdt': RDTAllocation(name='be', l3='ff')},
+                'task_id_2': {'rdt': RDTAllocation(name='be', l3='ff')}
+            },
+            1
+        ),
+        # The tasks in seperate resctrl group.
+        (
+            {
+                'task_id_1': {'rdt': RDTAllocation(name='be', l3='ff')},
+                'task_id_2': {'rdt': RDTAllocation(name='le', l3='ff')}
+            },
+            2
+        ),
+    )
+)
+def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocation_count):
+    """Checks if allocation of resctrl group is performed only once if more than one
+       task_allocations has RDTAllocation with the same name. In other words,
+       check if unnecessary reallocation of resctrl group does not take place.
+
+       The goal is achieved by checking how many times
+       Container.perform_allocations is called with allocate_rdt=True."""
+    raise NotImplementedError
+
+
+@pytest.mark.skip('TODO')
+@pytest.mark.parametrize('tasks_allocations,expected_metrics', (
+    ({}, []),
+    ({'some_task': {AllocationType.SHARES: 0.5}}, [
+        Metric(name='allocation', value=0.5,
+               type=MetricType.GAUGE,
+               labels={'allocation_type': 'cpu_shares', 'task_id': 'some_task'})
+    ]),
+    ({'some_task': {AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
+        allocation_metric('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
+    ]),
+    ({'some_task': {AllocationType.SHARES: 0.5,
+                    AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
+        Metric(
+            name='allocation', value=0.5,
+            type=MetricType.GAUGE,
+            labels={'allocation_type': AllocationType.SHARES, 'task_id': 'some_task'}
+        ),
+        allocation_metric('rdt_mb', 20, group_name='', domain_id='0', task_id='some_task')
+    ]),
+    ({'some_task_a': {
+        AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='mb:0=30')
+    },
+         'some_task_b': {
+             AllocationType.QUOTA: 0.6,
+             AllocationType.RDT: RDTAllocation(name='b', l3='l3:0=f;1=f1'),
+         }}, [
+         Metric(
+             name='allocation', value=0.5,
+             type=MetricType.GAUGE,
+             labels={'allocation_type': AllocationType.SHARES, 'task_id': 'some_task_a'}
+         ),
+         allocation_metric('rdt_mb', 30, group_name='', domain_id='0', task_id='some_task_a'),
+         Metric(
+             name='allocation', value=0.6,
+             type=MetricType.GAUGE,
+             labels={'allocation_type': AllocationType.QUOTA, 'task_id': 'some_task_b'}
+         ),
+         allocation_metric('rdt_l3_cache_ways', 4, group_name='b',
+                           domain_id='0', task_id='some_task_b'),
+         allocation_metric('rdt_l3_mask', 15, group_name='b',
+                           domain_id='0', task_id='some_task_b'),
+         allocation_metric('rdt_l3_cache_ways', 5, group_name='b',
+                           domain_id='1', task_id='some_task_b'),
+         allocation_metric('rdt_l3_mask', 241, group_name='b',
+                           domain_id='1', task_id='some_task_b'),
+     ]),
+))
+def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics):
+    platform = platforms.collect_platform_information(False)
+    allocation_configuration = AllocationConfiguration()
+    containers = {}
+    allocations = convert_to_allocations_values(tasks_allocations, containers,
+                                                platform, allocation_configuration)
+    metrics_got = allocations.generate_metrics()
+    assert metrics_got == expected_metrics
+

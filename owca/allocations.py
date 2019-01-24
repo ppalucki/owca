@@ -14,7 +14,7 @@
 import logging
 import math
 from abc import ABC, abstractmethod
-from typing import List, Dict, Union, Tuple, Optional, Any, Type, Callable
+from typing import List, Dict, Union, Tuple, Optional, Any, Type
 
 from owca.metrics import Metric, MetricType
 
@@ -26,6 +26,7 @@ class AllocationValue(ABC):
     @abstractmethod
     def merge_with_current(self, current: 'AllocationValue') -> Tuple[
             'AllocationValue', Optional['AllocationValue']]:
+        # TODO: docstiring for merge_with_current
         ...
 
     @abstractmethod
@@ -49,11 +50,41 @@ class AllocationValue(ABC):
         ...
 
 
-class CommonLablesAllocationValue(AllocationValue):
+class AllocationValueDelegator(AllocationValue):
+
+    def __init__(self, allocation_value):
+        self.allocation_value: AllocationValue = allocation_value
+
+    def validate(self) -> Tuple[List[str], AllocationValue]:
+        return self.allocation_value.validate()
+
+    def perform_allocations(self):
+        self.allocation_value.perform_allocations()
+
+    def merge_with_current(self, current):
+        return self.allocation_value.merge_with_current(current)
+
+    def generate_metrics(self):
+        return self.allocation_value.generate_metrics()
+
+class ContextualErrorAllocationValue(AllocationValueDelegator):
+    """Prefixes errors messages with given string."""
+
+    def __init__(self, allocation_value, prefix_message):
+        super().__init__(allocation_value)
+        self.prefix_message = prefix_message
+
+    def validate(self) -> Tuple[List[str], AllocationValue]:
+        errors, new_value = self.allocation_value.validate()
+        prefixed_errors = ['%s%s' % (self.prefix_message, error) for error in errors]
+        return prefixed_errors, new_value
+
+
+class CommonLablesAllocationValue(AllocationValueDelegator):
     """ Update any allocation values wiht common labels, when peforming generate_metrics."""
 
     def __init__(self, allocation_value, **common_labels):
-        self.allocation_value = allocation_value
+        super().__init__(allocation_value)
         self.common_labels = common_labels
 
     def generate_metrics(self):
@@ -62,25 +93,20 @@ class CommonLablesAllocationValue(AllocationValue):
             metric.labels.update(**self.common_labels)
         return metrics
 
-    def perform_allocations(self):
-        self.allocation_value.perform_allocations()
-
-    def validate(self):
-        return self.allocation_value.perform_allocations()
-
-    def merge_with_current(self, current):
-        return self.allocation_value.merge_with_curent(current)
 
 
 class Registry:
+    # TODO: docs Registry class
 
     def __init__(self):
         self._mapping = dict()
 
     def register_automapping_type(self, t: Type, avt: Type[AllocationValue]):
+        # TODO: better local names
         self._mapping[t] = avt
 
     def convert_value(self, base_ctx, k, v):
+        # TODO: docstring and better variables names
         if (k, type(v)) in self._mapping:
             box_class = self._mapping[(k, type(v))]
             nv = box_class(v, base_ctx + [k], self)
@@ -94,6 +120,8 @@ class Registry:
         return nv
 
 def _convert_values(d: Dict[str, Any], ctx: List[str], registry) -> Dict[str, AllocationValue]:
+    # TODO: docs for convert_values
+    # TODO: better variables naming
 
     nd = {}
     base_ctx = list(ctx or [])
@@ -222,16 +250,9 @@ class BoxedNumeric(AllocationValue):
                )]
 
     def validate(self) -> Tuple[List[str], Optional['BoxedNumeric']]:
-        # errors = []
-        # if self.value < self.min_value:
-        #     errors.append('value (%r) is lower that allowed minimum value (%r))' % (
-        #         self.value, self.min_value))
-        # if self.value > self.max_value:
-        #     errors.append('value (%r) is higher that allowed maxmimum value (%r))' % (
-        #         self.value, self.min_value))
         if not self.value >= self.min_value or not self.value <= self.max_value:
             errors = ['%s does not belong to range <%s;%s>' % (
-                           self.value, self.min_value, self.max_value) ]
+                           self.value, self.min_value, self.max_value)]
             return errors, None
         return [], self
 

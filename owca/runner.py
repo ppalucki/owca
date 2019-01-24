@@ -322,7 +322,7 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
     task_id_to_containers = {task.task_id: container for task, container in containers.items()}
 
-    def common_arguments_and_labels_decorator(specific_constructor):
+    def context_aware_adapter(specific_constructor):
         def generic_constructor(raw_value, ctx, registry):
             task_id = ctx[0]
             container = task_id_to_containers[task_id]
@@ -331,30 +331,32 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                         labels=dict(task_name=container.task_name))
         return generic_constructor
 
-    @common_arguments_and_labels_decorator
     def rdt_allocation_value_constructor(rdt_allocation, container):
         return RDTAllocationValue(rdt_allocation, container.resgroup, container.cgroup)
 
 
-    @common_arguments_and_labels_decorator
     def share_allocation_value_constructor(normalized_shares, container):
         return SharesAllocationValue(normalized_shares,
                                      container.cgroup_path,
                                      platform.cpus,
                                      allocation_configuration)
 
-    @common_arguments_and_labels_decorator
     def quota_allocation_value_constructor(normalized_quota, container):
         return QuotaAllocationValue(normalized_quota,
                                     container.cgroup_path,
                                     platform.cpus,
                                     allocation_configuration)
 
-    registry.register_automapping_type(('rdt', RDTAllocation), rdt_allocation_value_constructor)
-    registry.register_automapping_type(('shares', int), quota_allocation_value_constructor)
-    registry.register_automapping_type(('quota', float), rdt_allocation_value_constructor)
-    registry.register_automapping_type(('shares', int), rdt_allocation_value_constructor)
-    registry.register_automapping_type(('quota', float), rdt_allocation_value_constructor)
+    registry.register_automapping_type(('rdt', RDTAllocation),
+                                       context_aware_adapter(rdt_allocation_value_constructor))
+    registry.register_automapping_type(('shares', int),
+                                       context_aware_adapter(quota_allocation_value_constructor))
+    registry.register_automapping_type(('quota', float),
+                                       context_aware_adapter(rdt_allocation_value_constructor))
+    registry.register_automapping_type(('shares', int),
+                                       context_aware_adapter(share_allocation_value_constructor))
+    registry.register_automapping_type(('quota', float),
+                                       context_aware_adapter(rdt_allocation_value_constructor))
 
     return AllocationsDict(tasks_allocations, None, registry=registry)
 
@@ -410,12 +412,12 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                                                                    self.allocation_configuration
                                                                    )
 
-            errors = new_allocations_values.validate()
+            errors, new_allocations_values = new_allocations_values.validate()
             if errors:
                 log.warning('Errors:', errors)
 
-            target_allocations, allocations_changeset = current_allocations_values.merge_with_current(
-                new_allocations_values)
+            target_allocations, allocations_changeset = new_allocations_values.merge_with_current(
+                current_allocations_values)
 
             # MAIN function
             allocations_changeset.perform_allocations()

@@ -15,7 +15,8 @@
 import pytest
 
 from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, \
-    create_default_registry, _convert_values, CommonLablesAllocationValue
+    create_default_registry, _convert_values, CommonLablesAllocationValue, \
+    ContextualErrorAllocationValue
 from unittest.mock import Mock
 
 from owca.metrics import Metric
@@ -160,10 +161,13 @@ def test_allocation_value_validate():
                              'good': 2.5,
                              'bad': -6,
                          },
-                         'subdict_bad': {
-                             'bad1': -2.5,
-                             'bad2': -7,
-                         }
+                         'subdict_bad': ContextualErrorAllocationValue(
+                             AllocationsDict({
+                                 'bad1': -2.5,
+                                 'bad2': -7,
+                             }),
+                             'from_subdict_bad '
+                         )
                          })
     errors, nd = d.validate()
     assert 'some error generic' in errors
@@ -174,6 +178,7 @@ def test_allocation_value_validate():
     assert 'good' in nd
     assert 'subdict_good' in nd
     assert 'subdict_bad' not in nd
+    assert 'from_subdict_bad -2.5 does not belong to range <0;inf>' in errors
     failing_allocation_value.validate.assert_called_once()
 
 

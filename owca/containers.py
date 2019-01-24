@@ -122,11 +122,6 @@ class Container:
 
         return allocations
 
-    def perform_allocations(self, allocations: TaskAllocations, allocate_rdt=True):
-        self.cgroup.perform_allocations(allocations)
-        if self.rdt_enabled and allocate_rdt:
-            self.resgroup.perform_allocations(allocations)
-
     def __hash__(self):
         return hash(str(self.cgroup_path))
 
@@ -251,8 +246,3 @@ def _calculate_desired_state(
 
     return new_tasks, containers_to_delete
 
-
-def convert_to_allocations(tasks_allocations: TasksAllocations,
-                           containers: Dict[TaskId, Container]):
-    """ return recursivle magi object """
-    raise NotImplementedError

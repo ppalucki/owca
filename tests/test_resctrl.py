@@ -398,7 +398,7 @@ def test_allocations_dict_merging(current, new,
     def convert_dict(d):
         return AllocationsDict(d, None, registry)
 
-    # conversion
+    # Conversion
     current_dict = convert_dict(current)
     new_dict = convert_dict(new)
     if expected_changeset is not None:
@@ -408,9 +408,8 @@ def test_allocations_dict_merging(current, new,
         expected_allocations_changeset_dict = None
     expected_target_allocations_dict = convert_dict(expected_target)
 
-    # merge
-    got_target_dict, got_changeset_dict = \
-        new_dict.merge_with_current(current_dict)
+    # Merge
+    got_target_dict, got_changeset_dict = new_dict.merge_with_current(current_dict)
 
     assert got_target_dict == expected_target_allocations_dict
     assert got_changeset_dict == expected_allocations_changeset_dict
