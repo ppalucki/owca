@@ -67,10 +67,11 @@ class AllocationValueDelegator(AllocationValue):
     def generate_metrics(self):
         return self.allocation_value.generate_metrics()
 
+
 class ContextualErrorAllocationValue(AllocationValueDelegator):
     """Prefixes errors messages with given string."""
 
-    def __init__(self, allocation_value, prefix_message):
+    def __init__(self, allocation_value: AllocationValue, prefix_message: str):
         super().__init__(allocation_value)
         self.prefix_message = prefix_message
 
@@ -78,6 +79,17 @@ class ContextualErrorAllocationValue(AllocationValueDelegator):
         errors, new_value = self.allocation_value.validate()
         prefixed_errors = ['%s%s' % (self.prefix_message, error) for error in errors]
         return prefixed_errors, new_value
+
+
+class InvalidAllocationValue(AllocationValueDelegator):
+    """ Update any allocation values wiht common labels, when peforming generate_metrics."""
+
+    def __init__(self, allocation_value, error_message):
+        super().__init__(allocation_value)
+        self.error_message = error_message
+
+    def validate(self):
+        return [self.error_message], None
 
 
 class CommonLablesAllocationValue(AllocationValueDelegator):
@@ -92,7 +104,6 @@ class CommonLablesAllocationValue(AllocationValueDelegator):
         for metric in metrics:
             metric.labels.update(**self.common_labels)
         return metrics
-
 
 
 class Registry:
@@ -119,6 +130,7 @@ class Registry:
                             (v, type(v), k, self._mapping))
         return nv
 
+
 def _convert_values(d: Dict[str, Any], ctx: List[str], registry) -> Dict[str, AllocationValue]:
     # TODO: docs for convert_values
     # TODO: better variables naming
@@ -134,6 +146,7 @@ def _convert_values(d: Dict[str, Any], ctx: List[str], registry) -> Dict[str, Al
 
     return nd
 
+
 class AllocationsDict(dict, AllocationValue):
     """ keys: str
         values: AllocationValue
@@ -141,7 +154,6 @@ class AllocationsDict(dict, AllocationValue):
 
     def __repr__(self):
         return 'AllocationsDict(%s)' % dict.__repr__(self)
-
 
     def __init__(self,
                  d: Dict[str, Any],
@@ -281,9 +293,10 @@ class BoxedNumeric(AllocationValue):
     def perform_allocations(self):
         raise NotImplementedError()
 
+
 def create_default_registry():
     registry = Registry()
     registry.register_automapping_type(dict, AllocationsDict)
     registry.register_automapping_type(int, lambda value, ctx, mapping: BoxedNumeric(value))
     registry.register_automapping_type(float, lambda value, ctx, mapping: BoxedNumeric(value))
-    return  registry
+    return registry

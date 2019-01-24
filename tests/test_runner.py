@@ -261,6 +261,7 @@ def test_allocation_runner_containers_state(*mocks):
     assert (len(runner.containers_manager.resgroups_containers_relation[''][1]) == 0)
     assert (len(runner.containers_manager.containers) == 2)
 
+
 @pytest.mark.skip('TODO')
 @pytest.mark.parametrize(
     'tasks_allocations,expected_resgroup_reallocation_count',
@@ -356,4 +357,3 @@ def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics
                                                 platform, allocation_configuration)
     metrics_got = allocations.generate_metrics()
     assert metrics_got == expected_metrics
-

@@ -23,8 +23,9 @@ from dataclasses import dataclass, field
 from owca import detectors, nodes
 from owca import platforms
 from owca import storage
-from owca.allocations import AllocationsDict, create_default_registry, CommonLablesAllocationValue
-from owca.allocators import Allocator, TasksAllocations, AllocationConfiguration
+from owca.allocations import AllocationsDict, create_default_registry, \
+    CommonLablesAllocationValue, ContextualErrorAllocationValue, InvalidAllocationValue
+from owca.allocators import Allocator, TasksAllocations, AllocationConfiguration, AllocationType
 from owca.cgroups import QuotaAllocationValue, SharesAllocationValue
 from owca.containers import ContainerManager, Container
 from owca.detectors import (TasksMeasurements, TasksResources,
@@ -319,21 +320,37 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
     context to implement their resposiblities.
     """
     registry = create_default_registry()
-
     task_id_to_containers = {task.task_id: container for task, container in containers.items()}
 
     def context_aware_adapter(specific_constructor):
         def generic_constructor(raw_value, ctx, registry):
             task_id = ctx[0]
+            allocation_type = ctx[1]
+
+            if task_id not in task_id_to_containers:
+                return InvalidAllocationValue(raw_value, 'task_id %r not found (ctx=%r)' % (
+                                                  task_id, ctx))
+
+            if allocation_type not in AllocationType:
+                return InvalidAllocationValue(raw_value, 'unknown allocation type %r (ctx=%r)' % (
+                                                  allocation_type, ctx))
+
             container = task_id_to_containers[task_id]
             allocation_value = specific_constructor(raw_value, container)
-            return CommonLablesAllocationValue(allocation_value,
-                        labels=dict(task_name=container.task_name))
+            allocation_value = CommonLablesAllocationValue(
+                allocation_value,
+                labels=dict(task_name=container.task_name)
+            )
+            allocation_value = ContextualErrorAllocationValue(
+                allocation_value,
+                prefix_message='Invalid allocation type=%r for task=%r' % (allocation_type, task_id)
+            )
+            return allocation_value
+
         return generic_constructor
 
     def rdt_allocation_value_constructor(rdt_allocation, container):
         return RDTAllocationValue(rdt_allocation, container.resgroup, container.cgroup)
-
 
     def share_allocation_value_constructor(normalized_shares, container):
         return SharesAllocationValue(normalized_shares,
@@ -401,16 +418,12 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
             log.debug('Anomalies detected: %d', len(anomalies))
 
-            current_allocations_values = convert_to_allocations_values(current_tasks_allocations,
-                                                                       self.containers_manager.containers,
-                                                                       platform,
-                                                                       self.allocation_configuration
-                                                                       )
-            new_allocations_values = convert_to_allocations_values(new_tasks_allocations,
-                                                                   self.containers_manager.containers,
-                                                                   platform,
-                                                                   self.allocation_configuration
-                                                                   )
+            current_allocations_values = convert_to_allocations_values(
+                current_tasks_allocations, self.containers_manager.containers, platform,
+                self.allocation_configuration)
+            new_allocations_values = convert_to_allocations_values(
+                new_tasks_allocations, self.containers_manager.containers, platform,
+                self.allocation_configuration)
 
             errors, new_allocations_values = new_allocations_values.validate()
             if errors:

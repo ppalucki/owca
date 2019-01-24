@@ -131,7 +131,6 @@ def allocation_metric(allocation_type, value, **labels):
     if allocation_type is not None:
         labels = dict(allocation_type=allocation_type, **(labels or dict()))
 
-
     return Metric(
         name=name,
         type=MetricType.GAUGE,

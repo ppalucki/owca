@@ -97,5 +97,3 @@ def test_sync_containers_state(platform_mock, cleanup_mock, sync_mock,
     assert sync_mock.call_count == len(expected_running_containers)
     number_of_removed_containers = len(set(existing_containers) - set(expected_running_containers))
     assert cleanup_mock.call_count == number_of_removed_containers
-
-

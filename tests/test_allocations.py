@@ -16,10 +16,9 @@ import pytest
 
 from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, \
     create_default_registry, _convert_values, CommonLablesAllocationValue, \
-    ContextualErrorAllocationValue
+    ContextualErrorAllocationValue, InvalidAllocationValue
 from unittest.mock import Mock
 
-from owca.metrics import Metric
 from owca.testing import allocation_metric
 
 
@@ -138,10 +137,12 @@ def test_calculate_tasks_allocations_changeset(
     new_dict = AllocationsDict(new_tasks_allocations, None, registry)
     if expected_tasks_allocations_changeset is not None:
         assert isinstance(expected_tasks_allocations_changeset, dict)
-        expected_allocations_changeset_dict = AllocationsDict(expected_tasks_allocations_changeset, None, registry)
+        expected_allocations_changeset_dict = AllocationsDict(
+            expected_tasks_allocations_changeset, None, registry)
     else:
         expected_allocations_changeset_dict = None
-    expected_target_allocations_dict = AllocationsDict(expected_target_tasks_allocations, None, registry)
+    expected_target_allocations_dict = AllocationsDict(
+        expected_target_tasks_allocations, None, registry)
 
     # merge
     got_target_dict, got_changeset_dict = \
@@ -183,14 +184,27 @@ def test_allocation_value_validate():
 
 
 @pytest.mark.parametrize('allocation_value, expected_metrics', [
-    (AllocationsDict({}), []),
-    (BoxedNumeric(2), [allocation_metric(None, 2)]),
-    (CommonLablesAllocationValue(BoxedNumeric(2), labels=dict(foo='bar')), [allocation_metric(None, 2, labels=dict(foo='bar'))]),
-    (AllocationsDict({'x': 2, 'y': 3}), [allocation_metric(None, 2), allocation_metric(None, 3)]),
-    (AllocationsDict({'x': 2, 'y': 3}), [allocation_metric(None, 2), allocation_metric(None, 3)]),
-    (AllocationsDict({'x': 2, 'y': CommonLablesAllocationValue(BoxedNumeric(3.5), labels=dict(foo='bar') )}),
-                     [allocation_metric(None, 2), allocation_metric(None, 3.5, labels=dict(foo='bar'))]),
+    (AllocationsDict({}),
+     []),
+    (BoxedNumeric(2),
+     [allocation_metric(None, 2)]),
+    (CommonLablesAllocationValue(BoxedNumeric(2), labels=dict(foo='bar')),
+     [allocation_metric(None, 2, labels=dict(foo='bar'))]),
+    (AllocationsDict({'x': 2, 'y': 3}),
+     [allocation_metric(None, 2), allocation_metric(None, 3)]),
+    (AllocationsDict({'x': 2, 'y': 3}),
+     [allocation_metric(None, 2), allocation_metric(None, 3)]),
+    (AllocationsDict({'x': 2, 'y':
+     CommonLablesAllocationValue(BoxedNumeric(3.5), labels=dict(foo='bar'))}),
+     [allocation_metric(None, 2), allocation_metric(None, 3.5, labels=dict(foo='bar'))]),
 ])
 def test_allocation_values_metrics(allocation_value: AllocationValue, expected_metrics):
     got_metrics = allocation_value.generate_metrics()
     assert got_metrics == expected_metrics
+
+
+def test_invalid_allocation_values_helper():
+    value = InvalidAllocationValue(BoxedNumeric(2), 'foo_prefix')
+    errors, new_value = value.validate()
+    assert new_value is None
+    assert errors == ['foo_prefix']

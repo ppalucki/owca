@@ -21,10 +21,10 @@ from dataclasses import dataclass
 
 from owca import logger
 from owca import resctrl
-from owca.allocators import AllocationConfiguration, TaskAllocations, TasksAllocations
+from owca.allocators import AllocationConfiguration, TaskAllocations
 from owca.cgroups import Cgroup
 from owca.metrics import Measurements, MetricName
-from owca.nodes import Task, TaskId
+from owca.nodes import Task
 from owca.perf import PerfCounters
 from owca.resctrl import ResGroup
 
@@ -245,4 +245,3 @@ def _calculate_desired_state(
                  if task.cgroup_path not in containers_cgroup_paths]
 
     return new_tasks, containers_to_delete
-
