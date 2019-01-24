@@ -100,6 +100,7 @@ def test_collect_topology_information_2_cores_per_socket_all_cpus_online(*mocks)
 @patch('builtins.open', new=create_open_mock({
     "/sys/fs/resctrl/info/L3/cbm_mask": "fffff",
     "/sys/fs/resctrl/info/L3/min_cbm_bits": "2",
+    "/sys/fs/resctrl/schemata": "MB:0=100",
     "/proc/stat": "parsed value mocked below",
     "/proc/meminfo": "parsed value mocked below",
 }))
@@ -110,21 +111,18 @@ def test_collect_topology_information_2_cores_per_socket_all_cpus_online(*mocks)
 @patch('owca.platforms.collect_topology_information', return_value=(2, 1, 1))
 @patch('time.time', return_value=1536071557.123456)
 def test_collect_platform_information(*mocks):
-    platform, metrics, labels = collect_platform_information(rdt_enabled=True)
-    assert (platform, metrics, labels) == (
-        Platform(1, 1, 2, {0: 0, 1: 0}, 0, 1536071557.123456, 'fffff', '2'),
+    assert collect_platform_information() == (
+        Platform(1, 1, 2, {0: 100, 1: 200}, 1337, 1536071557.123456, True, 'fffff', '2'),
         [
             Metric.create_metric_with_metadata(
-                name=MetricName.MEM_USAGE, value=0
+                name=MetricName.MEM_USAGE, value=1337
             ),
             Metric.create_metric_with_metadata(
-                name=MetricName.CPU_USAGE_PER_CPU, value=0, labels={"cpu": "0"}
+                name=MetricName.CPU_USAGE_PER_CPU, value=100, labels={"cpu": "0"}
             ),
             Metric.create_metric_with_metadata(
-                name=MetricName.CPU_USAGE_PER_CPU, value=0, labels={"cpu": "1"}
+                name=MetricName.CPU_USAGE_PER_CPU, value=200, labels={"cpu": "1"}
             ),
         ],
         {"sockets": "1", "cores": "1", "cpus": "2", "host": "test_host", "owca_version": "0.1"}
     )
-    platform.update()
-    assert platform == Platform(1, 1, 2, {0: 100, 1: 200}, 1337, 1536071557.123456, 'fffff', '2')

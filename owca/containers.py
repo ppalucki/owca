@@ -183,6 +183,7 @@ class ContainerManager:
         task_name_to_mon_group = {}
         if self.rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
+            log.debug('mon_groups_relation:\n%s', pprint.pformat(mon_groups_relation))
             resctrl.clean_taskless_groups(mon_groups_relation)
             # Calculate inverse relastion of task_id to res_group name based on mon_groups_relations
             for ctrl_group, task_names in mon_groups_relation.items():
@@ -200,9 +201,16 @@ class ContainerManager:
             )
             self.containers[new_task] = container
             if self.rdt_enabled:
-                # Every newly detected containers is first assigne to root group.
-                container.resgroup = ResGroup(name=task_name_to_mon_group[container.task_name],
-                                              rdt_mb_control_enabled=self.rdt_mb_control_enabled)
+                if container.task_name in task_name_to_mon_group:
+                    container.resgroup = ResGroup(
+                        name=container.task_name,
+                        rdt_mb_control_enabled=self.rdt_mb_control_enabled)
+                else:
+                    # Every newly detected containers is first assigne to root group.
+                    container.resgroup = ResGroup(
+                        name='',
+                        rdt_mb_control_enabled=self.rdt_mb_control_enabled
+                    )
 
         # Sync "state" of individual containers.
         # Note: only the pids are synchronized, not the allocations.

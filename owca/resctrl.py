@@ -257,14 +257,19 @@ class ResGroup:
 
     def get_allocations(self, resgroup_name) -> TaskAllocations:
         """Return TaskAllocations represeting allocation for RDT resource."""
-        rdt_allocations = RDTAllocation(name=resgroup_name)
+        rdt_allocations_mb, rdt_allocations_l3 = None, None
         with open(os.path.join(self.fullpath, SCHEMATA)) as schemata:
             for line in schemata:
                 if 'MB' in line:
-                    rdt_allocations.mb = line.strip()
+                    rdt_allocations_mb = line.strip()
                 elif 'L3' in line:
-                    rdt_allocations.l3 = line.strip()
+                    rdt_allocations_l3 = line.strip()
 
+        rdt_allocations = RDTAllocation(
+            name=resgroup_name,
+            l3=rdt_allocations_l3,
+            mb=rdt_allocations_mb,
+        )
         return {AllocationType.RDT: rdt_allocations}
 
     def perform_allocations(self, task_allocations: TaskAllocations):
@@ -325,8 +330,9 @@ def read_mon_groups_relation() -> Dict[str, List[str]]:
     # root ctrl group mon dirs
     root_mon_group_dir = os.path.join(BASE_RESCTRL_PATH, MON_GROUPS)
     assert os.path.isdir(root_mon_group_dir)
-    relation[''] = list_mon_groups(root_mon_group_dir)
-    # ctrl groups mon dirs
+    root_mon_groups = list_mon_groups(root_mon_group_dir)
+    print(root_mon_groups)
+    relation[''] = root_mon_groups
     ctrl_group_names = os.listdir(BASE_RESCTRL_PATH)
     for ctrl_group_name in ctrl_group_names:
         ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group_name)

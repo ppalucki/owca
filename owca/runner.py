@@ -89,11 +89,21 @@ class BaseRunnerMixin:
         elif not rdt_enabled:
             log.warning('Rdt disabled. Skipping collecting measurements '
                         'and resctrl synchronization')
+            self.rdt_mb_control_enabled = False
         else:
             # Resctrl is enabled and available - cleanup previous runs.
             platform, _, _ = platforms.collect_platform_information()
             max_rdt_l3, max_rdt_mb = get_max_rdt_values(platform.rdt_cbm_mask, platform.sockets)
             root_rtd_l3 = self.allocation_configuration.default_rdt_l3 or max_rdt_l3
+
+            if self.rdt_mb_control_enabled and not platform.rdt_mb_control_enabled:
+                raise Exception("RDT MB control is not support by platform!")
+            elif self.rdt_mb_control_enabled is None:
+                # Autom
+                self.rdt_mb_control_enabled = platform.rdt_mb_control_enabled
+            else:
+                assert self.rdt_mb_control_enabled is False
+
             if self.rdt_mb_control_enabled:
                 root_rdt_mb = self.allocation_configuration.default_rdt_mb or max_rdt_mb
             else:
@@ -185,7 +195,6 @@ class BaseRunnerMixin:
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(
             self.rdt_enabled)
-        platform.update()
         metrics_package.add_metrics(platform_metrics)
 
         # Common labels
@@ -387,7 +396,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
     allocations_storage: storage.Storage
     action_delay: float = 1.  # [s]
     rdt_enabled: bool = True
-    rdt_mb_control_enabled: bool = False
+    rdt_mb_control_enabled: bool = None  # None means will be automatically set during configure_rdt
     extra_labels: Dict[str, str] = field(default_factory=dict)
     ignore_privileges_check: bool = False
     allocation_configuration: AllocationConfiguration = \
