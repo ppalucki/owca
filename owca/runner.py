@@ -359,7 +359,10 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
         return generic_constructor
 
     def rdt_allocation_value_constructor(rdt_allocation, container):
-        return RDTAllocationValue(rdt_allocation, container.resgroup, container.cgroup)
+        return RDTAllocationValue(rdt_allocation, container.resgroup, container.cgroup,
+                                  platform.sockets, platform.rdt_mb_control_enabled,
+                                  platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
+                                  )
 
     def share_allocation_value_constructor(normalized_shares, container):
         return SharesAllocationValue(normalized_shares,

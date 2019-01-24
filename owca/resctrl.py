@@ -61,32 +61,33 @@ def get_max_rdt_values(cbm_mask: str, platform_sockets: int) -> Tuple[str, str]:
     return 'L3:'+';'.join(max_rdt_l3), 'MB:'+';'.join(max_rdt_mb)
 
 
-def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str):
+def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str, reset_resctrl=False):
     """Reinitialize resctrl filesystem: by removing subfolders (both CTRL and MON groups)
     and setting default values for cache allocation and memory bandwidth (in root CTRL group).
     """
 
-    def _remove_folders(initialdir, subfolder):
-        """Removed subfolders of subfolder of initialdir if it does not contains "tasks" file."""
-        for entry in os.listdir(os.path.join(initialdir, subfolder)):
-            directory_path = os.path.join(BASE_RESCTRL_PATH, subfolder, entry)
-            # Only examine folders at first level.
-            if os.path.isdir(directory_path):
-                # Examine tasks file
-                resctrl_tasks_path = os.path.join(directory_path, TASKS_FILENAME)
-                if not os.path.exists(resctrl_tasks_path):
-                    # Skip metadata folders e.g. info.
-                    continue
-                log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.',
+    if reset_resctrl:
+        def _remove_folders(initialdir, subfolder):
+            """Removed subfolders of subfolder of initialdir if it does not contains "tasks" file."""
+            for entry in os.listdir(os.path.join(initialdir, subfolder)):
+                directory_path = os.path.join(BASE_RESCTRL_PATH, subfolder, entry)
+                # Only examine folders at first level.
+                if os.path.isdir(directory_path):
+                    # Examine tasks file
+                    resctrl_tasks_path = os.path.join(directory_path, TASKS_FILENAME)
+                    if not os.path.exists(resctrl_tasks_path):
+                        # Skip metadata folders e.g. info.
+                        continue
+                    log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.',
+                                directory_path)
+                    log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
                             directory_path)
-                log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
-                        directory_path)
-                os.rmdir(directory_path)
+                    os.rmdir(directory_path)
 
-    # Remove all monitoring groups for both CLOS and RMID.
-    _remove_folders(BASE_RESCTRL_PATH, MON_GROUPS)
-    # Remove all resctrl groups.
-    _remove_folders(BASE_RESCTRL_PATH, '')
+        # Remove all monitoring groups for both CLOS and RMID.
+        _remove_folders(BASE_RESCTRL_PATH, MON_GROUPS)
+        # Remove all resctrl groups.
+        _remove_folders(BASE_RESCTRL_PATH, '')
 
     # Reinitialize default values for RDT.
     if root_rdt_l3 is not None:
@@ -382,7 +383,7 @@ class RDTAllocationValue(AllocationValue):
 
     source_resgroup: Optional[ResGroup] = None  # if not none try to cleanup it at the end
 
-    def _copy(self, rdt_allocation: RDTAllocation):
+    def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None):
         return RDTAllocationValue(
             rdt_allocation,
             cgroup=self.cgroup,
@@ -391,6 +392,7 @@ class RDTAllocationValue(AllocationValue):
             rdt_mb_control_enabled=self.rdt_mb_control_enabled,
             rdt_cbm_mask=self.rdt_cbm_mask,
             rdt_min_cbm_bits=self.rdt_min_cbm_bits,
+            source_resgroup=source_resgroup,
         )
 
     def generate_metrics(self) -> List[Metric]:
@@ -449,9 +451,11 @@ class RDTAllocationValue(AllocationValue):
         assert current is None or current.rdt_allocation is not None
         new: RDTAllocationValue = self
         # new name, then new allocation will be used (overwrite) but no merge
-        if current is None or current.rdt_allocation.name != new.rdt_allocation.name:
-            log.debug('new name or no previous allocation exists')
-            return new, new
+        if current is None:
+            log.debug('new name or no previous allocation exists (moving from root group!)')
+            return new, new._copy(new.rdt_allocation, source_resgroup=ResGroup(name=''))
+        elif current.rdt_allocation.name != new.rdt_allocation.name:
+            raise NotImplementedError
         else:
             log.debug('merging existing rdt allocation')
             target_rdt_allocation = RDTAllocation(
@@ -513,7 +517,7 @@ class RDTAllocationValue(AllocationValue):
     def perform_allocations(self):
         """
         TODO:
-        - move to new group
+        - move to new group is source_group is not None
         - update schemata file
         - remove old group (source) optional
         """

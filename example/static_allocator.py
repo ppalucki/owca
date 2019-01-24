@@ -9,9 +9,9 @@ import dataclasses
 from dataclasses import dataclass
 
 from owca.allocators import Allocator, TasksAllocations, AllocationType
-from owca.allocations import AllocationsDict
+from owca.allocations import AllocationsDict, create_default_registry
 
-from owca.resctrl import RDTAllocation
+from owca.resctrl import RDTAllocation, RDTAllocationValue
 from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
@@ -130,14 +130,23 @@ class StaticAllocator(Allocator):
                 for match_task_id in match_task_ids:
                     this_rule_tasks_allocations[match_task_id] = new_task_allocations
 
+                registry = create_default_registry()
+                registry.register_automapping_type(
+                    RDTAllocation,
+                    lambda v, ctx, _: RDTAllocationValue(v, None, None, 0, False, '', '')
+                )
                 new_tasks_allocations_values, this_rule_allocations_value_changeset = \
-                    AllocationsDict(new_tasks_allocations).calculate_changeset(
-                        AllocationsDict(this_rule_tasks_allocations))
+                    AllocationsDict(new_tasks_allocations, registry=registry).calculate_changeset(
+                        AllocationsDict(this_rule_tasks_allocations, registry=registry), )
 
-                new_tasks_allocations = new_tasks_allocations_values.unwrap()
+                if new_tasks_allocations_values is not None:
+                    new_tasks_allocations = new_tasks_allocations_values.unwrap()
+                else:
+                    new_tasks_allocations = None
 
-                log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s', rule_idx,
-                          pprint.pformat(this_rule_allocations_value_changeset.unwrap()))
+                if this_rule_allocations_value_changeset is not None:
+                    log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s', rule_idx,
+                              pprint.pformat(this_rule_allocations_value_changeset.unwrap()))
 
             log.debug('StaticAllocator: final tasks allocations: \n %s',
                       pprint.pformat(new_tasks_allocations))

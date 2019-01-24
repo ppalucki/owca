@@ -135,7 +135,7 @@ def test_clean_resctrl(exists_mock, isdir_mock, rmdir_mock, listdir_mock):
             "/sys/fs/resctrl/mon_groups/mesos-3/tasks": "2",
             # default values expected to be written
             "/sys/fs/resctrl/schemata": schemata_mock})):
-        cleanup_resctrl(root_rdt_l3='L3:0=ff', root_rdt_mb='MB:0=100')
+        cleanup_resctrl(root_rdt_l3='L3:0=ff', root_rdt_mb='MB:0=100', reset_resctrl=True)
 
     listdir_mock.assert_has_calls([
         call('/sys/fs/resctrl/mon_groups'),

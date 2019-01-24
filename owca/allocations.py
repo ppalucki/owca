@@ -230,10 +230,11 @@ class AllocationsDict(dict, AllocationValue):
         nd = nd or None
         return errors, nd
 
-    def unwrap(self):
-        d = []
+    def unwrap(self) -> dict:
+        d = {}
         for k, v in self.items():
-            d[k] = v.unwrap()
+            if v is not None:
+                d[k] = v.unwrap()
         return d
 
 
