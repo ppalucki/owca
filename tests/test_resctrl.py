@@ -305,7 +305,12 @@ def test_merge_rdt_allocations(
 
     def convert(rdt_allocation):
         if rdt_allocation is not None:
-            return RDTAllocationValue(rdt_allocation, resgroup, cgroup)
+            return RDTAllocationValue(rdt_allocation, resgroup, cgroup,
+                                      platform_sockets=1,
+                                      rdt_mb_control_enabled=False,
+                                      rdt_cbm_mask='fffff',
+                                      rdt_min_cbm_bits='1'
+                                      )
         else:
             return None
 
@@ -346,7 +351,10 @@ def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, expected
     with patch('owca.resctrl.ResGroup._create_controlgroup_directory'):
         rdt_allocation_value = RDTAllocationValue(
             rdt_allocation, cgroup=Cgroup('/', platform_cpus=1),
-            resgroup=ResGroup(name=rdt_allocation.name or ''))
+            resgroup=ResGroup(name=rdt_allocation.name or ''),
+            platform_sockets=1, rdt_mb_control_enabled=False,
+            rdt_cbm_mask='fff', rdt_min_cbm_bits='1',
+        )
         got_metrics = rdt_allocation_value.generate_metrics()
     assert got_metrics == expected_metrics
 
@@ -390,7 +398,10 @@ def test_allocations_dict_merging(current, new,
     ResGroupMock = Mock(spec=ResGroup)
 
     def rdt_allocation_value_constructor(value, ctx, registry):
-        return RDTAllocationValue(value, CgroupMock(), ResGroupMock())
+        return RDTAllocationValue(value, CgroupMock(), ResGroupMock(),
+                                  platform_sockets=1, rdt_mb_control_enabled=False,
+                                  rdt_cbm_mask='fff', rdt_min_cbm_bits='1',
+                                  )
 
     registry = create_default_registry()
     registry.register_automapping_type(('rdt', RDTAllocation), rdt_allocation_value_constructor)

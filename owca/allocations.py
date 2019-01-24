@@ -49,6 +49,10 @@ class AllocationValue(ABC):
         """Perform allocatoins."""
         ...
 
+    @abstractmethod
+    def unwrap(self) -> Any:
+        """Perform allocatoins."""
+        ...
 
 class AllocationValueDelegator(AllocationValue):
 
@@ -66,6 +70,9 @@ class AllocationValueDelegator(AllocationValue):
 
     def generate_metrics(self):
         return self.allocation_value.generate_metrics()
+
+    def unwrap(self):
+        return self.allocation_value.unwrap()
 
 
 class ContextualErrorAllocationValue(AllocationValueDelegator):
@@ -167,7 +174,8 @@ class AllocationsDict(dict, AllocationValue):
         # Itnialize self as a dict with already converted values.
         dict.__init__(self, nd)
 
-    def calculate_changeset(self, current: 'AllocationsDict'):
+    def calculate_changeset(self, current: 'AllocationsDict') -> Tuple['AllocationsDict',
+                                                                       Optional['AllocationsDict']]:
         assert isinstance(current, AllocationsDict)
 
         target = AllocationsDict(current)
@@ -220,6 +228,12 @@ class AllocationsDict(dict, AllocationValue):
         # Empty dict becomes None
         nd = nd or None
         return errors, nd
+
+    def unwrap(self):
+        d = []
+        for k, v in self.items():
+            d[k] = v.unwrap()
+        return d
 
 
 class BoxedNumeric(AllocationValue):
@@ -292,6 +306,9 @@ class BoxedNumeric(AllocationValue):
 
     def perform_allocations(self):
         raise NotImplementedError()
+
+    def unwrap(self):
+        return self.value
 
 
 def create_default_registry():

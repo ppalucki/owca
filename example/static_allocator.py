@@ -8,8 +8,9 @@ import logging
 import dataclasses
 from dataclasses import dataclass
 
-from owca.allocators import Allocator, TasksAllocations, \
-    _calculate_tasks_allocations_changeset, AllocationType
+from owca.allocators import Allocator, TasksAllocations, AllocationType
+from owca.allocations import AllocationsDict
+
 from owca.resctrl import RDTAllocation
 from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
@@ -129,12 +130,14 @@ class StaticAllocator(Allocator):
                 for match_task_id in match_task_ids:
                     this_rule_tasks_allocations[match_task_id] = new_task_allocations
 
-                new_tasks_allocations, this_task_allocations_changeset = \
-                    _calculate_tasks_allocations_changeset(new_tasks_allocations,
-                                                           this_rule_tasks_allocations)
+                new_tasks_allocations_values, this_rule_allocations_value_changeset = \
+                    AllocationsDict(new_tasks_allocations).calculate_changeset(
+                        AllocationsDict(this_rule_tasks_allocations))
+
+                new_tasks_allocations = new_tasks_allocations_values.unwrap()
 
                 log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s', rule_idx,
-                          pprint.pformat(this_task_allocations_changeset))
+                          pprint.pformat(this_rule_allocations_value_changeset.unwrap()))
 
             log.debug('StaticAllocator: final tasks allocations: \n %s',
                       pprint.pformat(new_tasks_allocations))

@@ -362,7 +362,22 @@ class RDTAllocationValue(AllocationValue):
     rdt_allocation: RDTAllocation
     resgroup: ResGroup
     cgroup: Cgroup
+    platform_sockets: int
+    rdt_mb_control_enabled: bool
+    rdt_cbm_mask: str
+    rdt_min_cbm_bits: str
+
     source_resgroup: Optional[ResGroup] = None  # if not none try to cleanup it at the end
+
+    def _copy(self, rdt_allocation: RDTAllocation):
+        return RDTAllocationValue(rdt_allocation,
+                   cgroup=self.cgroup,
+                   resgroup=self.resgroup,
+                   platform_sockets=self.platform_sockets,
+                   rdt_mb_control_enabled=self.rdt_mb_control_enabled,
+                   rdt_cbm_mask=self.rdt_cbm_mask,
+                   rdt_min_cbm_bits=self.rdt_min_cbm_bits,
+                   )
 
     def generate_metrics(self) -> List[Metric]:
         """Encode RDT Allocation as metrics.
@@ -429,9 +444,7 @@ class RDTAllocationValue(AllocationValue):
                 l3=new.rdt_allocation.l3 or current.rdt_allocation.l3,
                 mb=new.rdt_allocation.mb or current.rdt_allocation.mb,
             )
-            target = RDTAllocationValue(target_rdt_allocation,
-                                        cgroup=current.cgroup, resgroup=current.resgroup)
-
+            target = current._copy(target_rdt_allocation)
             l3_new, mb_new = False, False
             if new.rdt_allocation.l3 is not None \
                     and current.rdt_allocation.l3 != new.rdt_allocation.l3:
@@ -455,10 +468,7 @@ class RDTAllocationValue(AllocationValue):
                     l3=rdt_allocation_changeset_l3,
                     mb=rdt_allocation_changeset_mb,
                 )
-                changeset = RDTAllocationValue(
-                    rdt_allocation_changeset,
-                    cgroup=current.cgroup, resgroup=current.resgroup,
-                )
+                changeset = current._copy(rdt_allocation_changeset)
                 return target, changeset
             else:
                 return target, None
@@ -466,16 +476,15 @@ class RDTAllocationValue(AllocationValue):
     def validate(self) -> List[str]:
         errors = []
         # Check l3 mask according provided platform.rdt
-        from owca import platforms
         if self.rdt_allocation.l3:
             try:
                 if not self.rdt_allocation.l3.startswith('L3:'):
                     raise ValueError('l3 resources setting should '
                                      'start with "L3:" prefix (got %r)' % self.rdt_allocation.l3)
                 domains = _parse_schemata_file_row(self.rdt_allocation.l3)
-                if len(domains) != self.no_of_sockets:
+                if len(domains) != self.platform_sockets:
                     raise ValueError('not enough domains in l3 configuration '
-                                     '(expected=%i,got=%i)' % (platforms.no_of_sockets,
+                                     '(expected=%i,got=%i)' % (self.platform_sockets,
                                                                len(domains)))
 
                 for mask_value in domains.values():
@@ -495,6 +504,8 @@ class RDTAllocationValue(AllocationValue):
         """
         raise NotImplementedError
 
+    def unwrap(self):
+        return self.rdt_allocation
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on
