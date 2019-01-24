@@ -321,38 +321,43 @@ def read_mon_groups_relation() -> Dict[str, List[str]]:
 
     relation = dict()
     # root ctrl group mon dirs
-    relation[''] = list_mon_groups(os.path.join(BASE_RESCTRL_PATH, MON_GROUPS))
+    root_mon_group_dir = os.path.join(BASE_RESCTRL_PATH, MON_GROUPS)
+    assert os.path.isdir(root_mon_group_dir)
+    relation[''] = list_mon_groups(root_mon_group_dir)
     # ctrl groups mon dirs
     ctrl_group_names = os.listdir(BASE_RESCTRL_PATH)
     for ctrl_group_name in ctrl_group_names:
-        mon_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group_name, MON_GROUPS)
-        if os.path.isdir(mon_group_dir):
-            relation[ctrl_group_name] = list_mon_groups(mon_group_dir)
+        ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group_name)
+        if os.path.isdir(ctrl_group_dir):
+            mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS)
+            if os.path.isdir(mon_group_dir):
+                relation[ctrl_group_name] = list_mon_groups(mon_group_dir)
     return relation
 
 
-def clean_taskles_groups(mon_groups_relation):
+def clean_taskless_groups(mon_groups_relation):
     """
     TODO: unittests
     """
-    for ctrl_group, mon_group in mon_groups_relation:
-        ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group)
-        mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS, mon_group)
-        tasks_filename = os.path.join(mon_group_dir, TASKS_FILENAME)
-        mon_groups_to_remove = []
-        with open(tasks_filename) as tasks_file:
-            if tasks_file.read() == '':
-                mon_groups_to_remove.append(mon_group_dir)
+    for ctrl_group, mon_groups in mon_groups_relation.items():
+        for mon_group in mon_groups:
+            ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group)
+            mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS, mon_group)
+            tasks_filename = os.path.join(mon_group_dir, TASKS_FILENAME)
+            mon_groups_to_remove = []
+            with open(tasks_filename) as tasks_file:
+                if tasks_file.read() == '':
+                    mon_groups_to_remove.append(mon_group_dir)
 
-        if mon_groups_to_remove:
+            if mon_groups_to_remove:
 
-            # For ech non root group, drop just ctrl group if all mon groups are empty
-            if ctrl_group != '' and \
-                    len(mon_groups_to_remove) == len(mon_groups_relation[ctrl_group]):
-                os.rmdir(ctrl_group_dir)
-            else:
-                for mon_group_to_remove in mon_groups_to_remove:
-                    os.rmdir(mon_group_to_remove)
+                # For ech non root group, drop just ctrl group if all mon groups are empty
+                if ctrl_group != '' and \
+                        len(mon_groups_to_remove) == len(mon_groups_relation[ctrl_group]):
+                    os.rmdir(ctrl_group_dir)
+                else:
+                    for mon_group_to_remove in mon_groups_to_remove:
+                        os.rmdir(mon_group_to_remove)
 
 
 @dataclass

@@ -183,7 +183,7 @@ class ContainerManager:
         task_name_to_mon_group = {}
         if self.rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
-            resctrl.clean_taskles_groups(mon_groups_relation)
+            resctrl.clean_taskless_groups(mon_groups_relation)
             # Calculate inverse relastion of task_id to res_group name based on mon_groups_relations
             for ctrl_group, task_names in mon_groups_relation.items():
                 for task_name in task_names:

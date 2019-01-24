@@ -14,6 +14,7 @@
 
 
 import errno
+import sys
 from unittest.mock import call, MagicMock, patch, mock_open, Mock
 from typing import List, Dict
 
@@ -24,7 +25,8 @@ from owca.allocators import AllocationConfiguration
 from owca.cgroups import Cgroup
 
 from owca.resctrl import ResGroup, check_resctrl, RESCTRL_ROOT_NAME, get_max_rdt_values, \
-    RDTAllocation, check_cbm_bits, _count_enabled_bits, _parse_schemata_file_row, RDTAllocationValue
+    RDTAllocation, check_cbm_bits, _count_enabled_bits, _parse_schemata_file_row, \
+    RDTAllocationValue, read_mon_groups_relation, clean_taskless_groups
 from owca.testing import create_open_mock, allocation_metric
 
 
@@ -424,3 +426,42 @@ def test_allocations_dict_merging(current, new,
 
     assert got_target_dict == expected_target_allocations_dict
     assert got_changeset_dict == expected_allocations_changeset_dict
+
+
+@patch('os.path.isdir', side_effect=lambda path: path in {
+    '/sys/fs/resctrl/mon_groups',
+    '/sys/fs/resctrl/mon_groups/foo',
+    '/sys/fs/resctrl/ctrl1',
+    '/sys/fs/resctrl/ctrl1/mon_groups',
+    '/sys/fs/resctrl/ctrl1/mon_groups/bar',
+})
+@patch('os.listdir', side_effect=lambda path: {
+    '/sys/fs/resctrl': ['tasks', 'ctrl1', 'mon_groups'],
+    '/sys/fs/resctrl/mon_groups': ['foo'],
+    '/sys/fs/resctrl/ctrl1/mon_groups': ['bar']
+}[path])
+def test_read_mon_groups_relation(listdir_mock, isdir_mock):
+    relation = read_mon_groups_relation()
+    assert relation == {'': ['foo'], 'ctrl1': ['bar']}
+
+
+@patch('os.rmdir')
+def test_clean_tasksless_resctrl_groups(rmdir_mock):
+
+    with patch('owca.resctrl.open', create_open_mock({
+               '/sys/fs/resctrl/mon_groups/c1/tasks': '',  # empty
+               '/sys/fs/resctrl/mon_groups/c2/tasks': '1234',
+               '/sys/fs/resctrl/empty/mon_groups/c3/tasks': '',
+               '/sys/fs/resctrl/half_empty/mon_groups/c5/tasks': '1234',
+               '/sys/fs/resctrl/half_empty/mon_groups/c6/tasks': '',
+            })) as mocks:
+        mon_groups_relation = {'': ['c1', 'c2'],
+                               'empty': ['c3'],
+                               'half_empty': ['c5', 'c6'],
+                               }
+        clean_taskless_groups(mon_groups_relation)
+
+    for path, mock in mocks._mocks.items():
+        print(path, mock.mock_calls, file=sys.stderr)
+
+    print(rmdir_mock.mock_calls, file=sys.stderr)
