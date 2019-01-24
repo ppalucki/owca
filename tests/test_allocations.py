@@ -15,7 +15,7 @@
 import pytest
 
 from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, \
-    create_default_registry, _convert_values
+    create_default_registry, _convert_values, CommonLablesAllocationValue
 from unittest.mock import Mock
 
 from owca.metrics import Metric
@@ -179,8 +179,12 @@ def test_allocation_value_validate():
 
 @pytest.mark.parametrize('allocation_value, expected_metrics', [
     (AllocationsDict({}), []),
-    (BoxedNumeric(2), [allocation_metric()])
-
+    (BoxedNumeric(2), [allocation_metric(None, 2)]),
+    (CommonLablesAllocationValue(BoxedNumeric(2), labels=dict(foo='bar')), [allocation_metric(None, 2, labels=dict(foo='bar'))]),
+    (AllocationsDict({'x': 2, 'y': 3}), [allocation_metric(None, 2), allocation_metric(None, 3)]),
+    (AllocationsDict({'x': 2, 'y': 3}), [allocation_metric(None, 2), allocation_metric(None, 3)]),
+    (AllocationsDict({'x': 2, 'y': CommonLablesAllocationValue(BoxedNumeric(3.5), labels=dict(foo='bar') )}),
+                     [allocation_metric(None, 2), allocation_metric(None, 3.5, labels=dict(foo='bar'))]),
 ])
 def test_allocation_values_metrics(allocation_value: AllocationValue, expected_metrics):
     got_metrics = allocation_value.generate_metrics()

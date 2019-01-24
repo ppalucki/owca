@@ -123,11 +123,16 @@ def metric(name, labels=None):
     return Metric(name=name, value=1234, labels=labels or {})
 
 
-def allocation_metric(type, value, **labels):
-    """Helper to create RDT like metric"""
+def allocation_metric(allocation_type_in_labels, value, name='allocation', **labels):
+    """Helper to create allocation typed like metric"""
+    if allocation_type_in_labels is None:
+        labels=dict(labels)
+    else:
+        labels=dict(allocation_type=type, **(labels or dict()))
+
     return Metric(
-        name='allocation',
+        name=name,
         type=MetricType.GAUGE,
         value=value,
-        labels=dict(allocation_type=type, **(labels or dict()))
-    )
+        labels=labels
+        )
