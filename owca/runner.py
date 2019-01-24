@@ -322,7 +322,7 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
     task_id_to_containers = {task.task_id: container for task, container in containers.items()}
 
-    def common_decorator(specific_constructor):
+    def common_arguments_and_labels_decorator(specific_constructor):
         def generic_constructor(raw_value, ctx, registry):
             task_id = ctx[0]
             container = task_id_to_containers[task_id]
@@ -331,18 +331,19 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                         labels=dict(task_name=container.task_name))
         return generic_constructor
 
-    @common_decorator
+    @common_arguments_and_labels_decorator
     def rdt_allocation_value_constructor(rdt_allocation, container):
         return RDTAllocationValue(rdt_allocation, container.resgroup, container.cgroup)
 
-    @common_decorator
+
+    @common_arguments_and_labels_decorator
     def share_allocation_value_constructor(normalized_shares, container):
         return SharesAllocationValue(normalized_shares,
                                      container.cgroup_path,
                                      platform.cpus,
                                      allocation_configuration)
 
-    @common_decorator
+    @common_arguments_and_labels_decorator
     def quota_allocation_value_constructor(normalized_quota, container):
         return QuotaAllocationValue(normalized_quota,
                                     container.cgroup_path,
