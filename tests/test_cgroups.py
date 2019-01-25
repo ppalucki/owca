@@ -68,9 +68,9 @@ def test_get_normalized_quota():
     '/sys/fs/cgroup/cpu/some/foo1/tasks': '101\n102',
     '/sys/fs/cgroup/cpu/foo2/tasks': '',
 }))
-def test_cgroup_get_tids():
-    assert Cgroup('/some/foo1', platform_cpus=1).get_tids() == [101, 102]
-    assert Cgroup('/foo2', platform_cpus=1).get_tids() == []
+def test_cgroup_get_pids():
+    assert Cgroup('/some/foo1', platform_cpus=1).get_pids() == [101, 102]
+    assert Cgroup('/foo2', platform_cpus=1).get_pids() == []
 
 
 @pytest.mark.parametrize(

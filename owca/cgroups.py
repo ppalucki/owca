@@ -120,7 +120,7 @@ class Cgroup:
            AllocationType.SHARES: self._get_normalized_shares(),
         }
 
-    def get_tids(self) -> List[int]:
+    def get_pids(self) -> List[int]:
         with open(os.path.join(self.cgroup_fullpath, TASKS)) as f:
             return list(map(int, f.read().splitlines()))
 

@@ -404,7 +404,7 @@ class RDTAllocationValue(AllocationValue):
         """
         # move to approriate group first
         if self.source_resgroup is not None:
-            self.resgroup.add_tasks(pids = self.cgroup.get_tids(),
+            self.resgroup.add_tasks(pids=self.cgroup.get_pids(),
                                     mongroup_name=self.container_name)
 
 

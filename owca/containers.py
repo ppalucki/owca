@@ -73,7 +73,7 @@ class Container:
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def get_pids(self) -> List[str]:
-        return list(map(str, self.cgroup.get_tids()))
+        return list(map(str, self.cgroup.get_pids()))
 
     def sync(self):
         """Called every run iteration to keep pids of cgroup and resctrl in sync."""
