@@ -69,7 +69,8 @@ class Container:
             platform_cpus=self.platform_cpus,
             allocation_configuration=self.allocation_configuration,
         )
-        self.container_name = self.container_name or _convert_cgroup_path_to_resgroup_name(self.cgroup_path)
+        self.container_name = (self.container_name or
+                               _convert_cgroup_path_to_resgroup_name(self.cgroup_path))
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def get_pids(self) -> List[str]:
@@ -78,15 +79,15 @@ class Container:
     def sync(self):
         """Called every run iteration to keep pids of cgroup and resctrl in sync."""
         if self.rdt_enabled:
-            self.resgroup.add_tasks(self.get_pids(), mongroup_name=self.container_name)
+            self.resgroup.add_pids(self.get_pids(), mongroup_name=self.container_name)
 
     def change_resgroup(self, new_resgroup):
         """Remove tasks from current group and add to the new one."""
         assert self.rdt_enabled
         # Remove pids from old group
-        self.resgroup.move_tasks_to_root(mongroup_name=self.container_name)
+        self.resgroup.remove_pids(mongroup_name=self.container_name)
         # Add pids to new group
-        new_resgroup.add_tasks(self.get_pids(), mongroup_name=self.container_name)
+        new_resgroup.add_pids(self.get_pids(), mongroup_name=self.container_name)
         self.resgroup = new_resgroup
 
     def get_measurements(self) -> Measurements:
@@ -106,7 +107,7 @@ class Container:
     def cleanup(self):
         self.perf_counters.cleanup()
         if self.rdt_enabled:
-            self.resgroup.move_tasks_to_root(self.container_name)
+            self.resgroup.remove(self.container_name)
 
     def get_allocations(self) -> TaskAllocations:
         # In only detect mode, without allocation configuration return nothing.
@@ -165,7 +166,7 @@ class ContainerManager:
             log.log(logger.TRACE, 'sync_containers_state: containers_to_cleanup=%r',
                     containers_to_cleanup)
 
-        # Cleanup and remove orphaned containers (cleanup).
+        # Cleanup and remove orphaned containers (_cleanup).
         for container_to_cleanup in containers_to_cleanup:
             container_to_cleanup.cleanup()
 
@@ -220,7 +221,7 @@ class ContainerManager:
         return self.containers
 
     def cleanup(self):
-        # cleanup
+        # _cleanup
         for container in self.containers.values():
             container.cleanup()
 
@@ -236,8 +237,8 @@ def _calculate_desired_state(
     * cgroup_path for task and container need to be identical to establish the relationship
     * cgroup_path is unique for each task
 
-    :returns "list of Mesos tasks to start watching" and "orphaned containers to cleanup" (there are
-    no more Mesos tasks matching those containers)
+    :returns "list of Mesos tasks to start watching"
+    and "orphaned containers to _cleanup" (there are no more Mesos tasks matching those containers)
     """
     discovered_task_cgroup_paths = {task.cgroup_path for task in discovered_tasks}
     containers_cgroup_paths = {container.cgroup_path for container in known_containers}

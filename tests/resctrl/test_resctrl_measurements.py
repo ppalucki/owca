@@ -39,7 +39,7 @@ def test_resgroup_add_tasks(*args):
     })
     with patch('builtins.open', open_mock):
         resgroup = ResGroup("best_efforts")
-        resgroup.add_tasks(['123', '124'], 'task_id')
+        resgroup.add_pids(['123', '124'], 'task_id')
 
         tasks_mock.assert_called_once_with(
             '/sys/fs/resctrl/best_efforts/tasks', 'w')
@@ -74,5 +74,3 @@ def test_resgroup_sync_no_space_left_on_device(makedirs_mock, exists_mock, log_w
 def test_get_measurements(*mock):
     resgroup = ResGroup(name=RESCTRL_ROOT_NAME)
     assert {'memory_bandwidth': 2, 'llc_occupancy': 2} == resgroup.get_measurements('best_efforts')
-
-

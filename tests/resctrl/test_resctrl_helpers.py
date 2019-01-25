@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-from unittest.mock import patch, mock_open, call, Mock
+from unittest.mock import patch, mock_open, call
 
 import pytest
 
@@ -91,9 +90,9 @@ def test_clean_resctrl(exists_mock, isdir_mock, rmdir_mock, listdir_mock):
 
 @pytest.mark.parametrize(
     'cbm_mask, platform_sockets, expected_max_rdt_l3, expected_max_rdt_mb', (
-        ('ff', 0, 'L3:', 'MB:'),
-        ('ff', 1, 'L3:0=ff', 'MB:0=100'),
-        ('ffff', 2, 'L3:0=ffff;1=ffff', 'MB:0=100;1=100'),
+            ('ff', 0, 'L3:', 'MB:'),
+            ('ff', 1, 'L3:0=ff', 'MB:0=100'),
+            ('ffff', 2, 'L3:0=ffff;1=ffff', 'MB:0=100;1=100'),
     )
 )
 def test_get_max_rdt_values(cbm_mask, platform_sockets, expected_max_rdt_l3, expected_max_rdt_mb):
@@ -165,14 +164,13 @@ def test_read_mon_groups_relation(listdir_mock, isdir_mock):
 
 @patch('os.rmdir')
 def test_clean_tasksless_resctrl_groups(rmdir_mock):
-
     with patch('owca.resctrl.open', create_open_mock({
-                   '/sys/fs/resctrl/mon_groups/c1/tasks': '',  # empty
-                   '/sys/fs/resctrl/mon_groups/c2/tasks': '1234',
-                   '/sys/fs/resctrl/empty/mon_groups/c3/tasks': '',
-                   '/sys/fs/resctrl/half_empty/mon_groups/c5/tasks': '1234',
-                   '/sys/fs/resctrl/half_empty/mon_groups/c6/tasks': '',
-            })) as mocks:
+        '/sys/fs/resctrl/mon_groups/c1/tasks': '',  # empty
+        '/sys/fs/resctrl/mon_groups/c2/tasks': '1234',
+        '/sys/fs/resctrl/empty/mon_groups/c3/tasks': '',
+        '/sys/fs/resctrl/half_empty/mon_groups/c5/tasks': '1234',
+        '/sys/fs/resctrl/half_empty/mon_groups/c6/tasks': '',
+    })):
         mon_groups_relation = {'': ['c1', 'c2'],
                                'empty': ['c3'],
                                'half_empty': ['c5', 'c6'],
@@ -180,9 +178,9 @@ def test_clean_tasksless_resctrl_groups(rmdir_mock):
         clean_taskless_groups(mon_groups_relation)
 
     rmdir_mock.assert_has_calls([
-         call('/sys/fs/resctrl/mon_groups/c1'),
-         call('/sys/fs/resctrl/empty'),
-         call('/sys/fs/resctrl/half_empty/mon_groups/c6')
+        call('/sys/fs/resctrl/mon_groups/c1'),
+        call('/sys/fs/resctrl/empty'),
+        call('/sys/fs/resctrl/half_empty/mon_groups/c6')
     ])
 
 

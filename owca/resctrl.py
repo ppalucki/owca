@@ -22,8 +22,8 @@ from typing import Tuple, List, Optional, Dict
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import AllocationType, TaskAllocations
 from owca.allocations import AllocationValue
+from owca.allocators import AllocationType, TaskAllocations
 from owca.cgroups import Cgroup
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
@@ -41,22 +41,18 @@ LLC_OCCUPANCY = 'llc_occupancy'
 RDT_MB = 'rdt_MB'
 RDT_LC = 'rdt_LC'
 
-
 log = logging.getLogger(__name__)
-
-
-
 
 ResGroupName = str
 
 
 class ResGroup:
+    """ Represents ctrl group (can represent root default when name == RESCTRL_ROOT_NAME)"""
 
     def __init__(self, name: str, rdt_mb_control_enabled: bool = True):
         self.name: ResGroupName = name
         self.rdt_mb_control_enabled = rdt_mb_control_enabled
         self.fullpath = BASE_RESCTRL_PATH + ("/" + name if name != "" else "")
-
 
     def __repr__(self):
         return 'ResGroup(name=%r, fullpath=%r)' % (self.name, self.fullpath)
@@ -92,18 +88,21 @@ class ResGroup:
                 raise Exception("Limit of workloads reached! (Oot of available CLoSes/RMIDs!)")
             raise
 
-    def add_tasks(self, pids, mongroup_name):
+    def add_pids(self, pids, mongroup_name):
         """Adds the pids to the resctrl group and creates mongroup with the pids.
            If the resctrl group does not exists creates it (lazy creation).
            If the mongroup exists adds pids to the group (no error will be thrown)."""
         if self.name != RESCTRL_ROOT_NAME:
             log.debug('creating restrcl group %r', self.name)
             self._create_controlgroup_directory()
+
+        # CTRL GROUP
         # add pids to /tasks file
-        log.debug('add_tasks: %d pids to %r', len(pids), os.path.join(self.fullpath, 'tasks'))
+        log.debug('add_pids: %d pids to %r', len(pids), os.path.join(self.fullpath, 'tasks'))
         self._add_pids_to_tasks_file(pids, os.path.join(self.fullpath, 'tasks'))
 
-        # create mongroup and write tasks there
+        # MON GROUP
+        # create mongroup ...
         mongroup_fullpath = self._get_mongroup_fullpath(mongroup_name)
         try:
             log.log(logger.TRACE, 'resctrl: makedirs(%s)', mongroup_fullpath)
@@ -112,33 +111,33 @@ class ResGroup:
             if e.errno == errno.ENOSPC:  # "No space left on device"
                 raise Exception("Limit of workloads reached! (Oot of available CLoSes/RMIDs!)")
             raise
-
-        # write the pids to the mongroup
-        log.debug('add_tasks: %d pids to %r', len(pids), os.path.join(mongroup_fullpath, 'tasks'))
+        # ... and write the pids to the mongroup
+        log.debug('add_pids: %d pids to %r', len(pids), os.path.join(mongroup_fullpath, 'tasks'))
         self._add_pids_to_tasks_file(pids, os.path.join(mongroup_fullpath, 'tasks'))
 
-    def move_tasks_to_root(self, mongroup_name):
-        """Removes the mongroup and all pids inside it from the resctrl group
-           (by adding all the pids to the ROOT resctrl group).
-           If the mongroup path does not points to existing directory
-           just immediatelly returning."""
+    def remove(self, mongroup_name):
+        """Remove resctrl ctrl directory or just mon_group if this is root or not last
+        container under control.
+         """
+        # Try to clean itself if I'm the last mon_group and not root.
 
-        mongroup_fullpath = self._get_mongroup_fullpath(mongroup_name)
-
-        if not os.path.isdir(mongroup_fullpath):
-            log.debug('Trying to remove {} but the directory does not exist.'
-                      .format(mongroup_fullpath))
-            return
-
-        # Read tasks that belongs to the mongroup.
-        pids = self._read_pids_from_tasks_file(os.path.join(mongroup_fullpath, 'tasks'))
+        if self.name == RESCTRL_ROOT_NAME:
+            log.debug('resctrl: remove root')
+            dir_to_remove = self._get_mongroup_fullpath(mongroup_name)
+        else:
+            # For non root
+            # Am I last on the remove all.
+            if len(self.get_mon_groups()) == 1:
+                log.debug('resctrl: remove ctrl directory %r', self.name)
+                dir_to_remove = self.fullpath
+            else:
+                log.debug('resctrl: remove just mon_group %r in %r', mongroup_name, self.name)
+                dir_to_remove = self._get_mongroup_fullpath(mongroup_name)
 
         # Remove the mongroup directory.
-        log.log(logger.TRACE, 'resctrl: rmdir(%r)', mongroup_fullpath)
-        os.rmdir(mongroup_fullpath)
-
-        # Removes tasks from the group by adding it to the root group.
-        self._add_pids_to_tasks_file(pids, os.path.join(BASE_RESCTRL_PATH, 'tasks'))
+        with SetEffectiveRootUid():
+            log.log(logger.TRACE, 'resctrl: rmdir(%r)', dir_to_remove)
+            os.rmdir(dir_to_remove)
 
     def get_measurements(self, mongroup_name) -> Measurements:
         """
@@ -202,17 +201,9 @@ class ResGroup:
             if self.rdt_mb_control_enabled and mb:
                 _write_schemata_line(mb, schemata_file)
 
-    def cleanup(self):
-        # Do not try to remove root group.
-        if self.name == RESCTRL_ROOT_NAME:
-            return
-        try:
-            log.log(logger.TRACE, 'resctrl: rmdir(%s)', self.fullpath)
-            os.rmdir(self.fullpath)
-        except FileNotFoundError:
-            log.debug('cleanup: directory already does not exist %s', self.fullpath)
-
-
+    def get_mon_groups(self):
+        """Return list of containers_name under mon_groups."""
+        return os.listdir(os.path.join(BASE_RESCTRL_PATH, self.name, MON_GROUPS))
 
 
 #
@@ -227,6 +218,7 @@ class RDTAllocation:
     l3: str = None
     # MBM: optional - when no provided doesn't change the existing allocation
     mb: str = None
+
 
 @dataclass
 class RDTAllocationValue(AllocationValue):
@@ -243,9 +235,10 @@ class RDTAllocationValue(AllocationValue):
     rdt_cbm_mask: str
     rdt_min_cbm_bits: str
 
-    source_resgroup: Optional[ResGroup] = None  # if not none try to cleanup it at the end
+    source_resgroup: Optional[ResGroup] = None  # if not none try to _cleanup it at the end
 
-    def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None, container_name: str = None):
+    def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None,
+              container_name: str = None):
         return RDTAllocationValue(
             container_name=container_name or self.container_name,
             rdt_allocation=rdt_allocation,
@@ -279,14 +272,19 @@ class RDTAllocationValue(AllocationValue):
                     Metric(
                         name='allocation', value=_count_enabled_bits(raw_value),
                         type=MetricType.GAUGE, labels=dict(
-                            allocation_type='rdt_l3_cache_ways', group_name=group_name,
-                            domain_id=domain_id)
+                            allocation_type='rdt_l3_cache_ways',
+                            group_name=group_name,
+                            domain_id=domain_id,
+                            container_name=self.container_name,
+                        )
                     ),
                     Metric(
                         name='allocation', value=int(raw_value, 16),
                         type=MetricType.GAUGE, labels=dict(
                             allocation_type='rdt_l3_mask', group_name=group_name,
-                            domain_id=domain_id)
+                            domain_id=domain_id,
+                            container_name=self.container_name,
+                        )
                     )
                 ])
 
@@ -297,16 +295,19 @@ class RDTAllocationValue(AllocationValue):
                 value = int(raw_value)
                 metrics.append(
                     Metric(
-                       name='allocation', value=value, type=MetricType.GAUGE,
-                       labels=dict(allocation_type='rdt_mb',
-                                   group_name=group_name, domain_id=domain_id)
+                        name='allocation', value=value, type=MetricType.GAUGE,
+                        labels=dict(allocation_type='rdt_mb',
+                                    group_name=group_name, domain_id=domain_id,
+                                    container_name=self.container_name,
+                                    )
                     )
                 )
 
         return metrics
 
     def get_resgroup_name(self):
-        return self.rdt_allocation.name or self.container_name
+        return self.rdt_allocation.name if self.rdt_allocation.name is not None \
+            else self.container_name
 
     def calculate_changeset(self: 'RDTAllocationValue',
                             current: Optional['RDTAllocationValue']) -> \
@@ -332,8 +333,12 @@ class RDTAllocationValue(AllocationValue):
             log.debug('new name or no previous allocation exists (moving from root group!)')
             return new, new._copy(new.rdt_allocation,
                                   source_resgroup=ResGroup(name=''))
-        elif current.get_resgroup_name() != new.rdt_allocation.name:
-            # This includes.
+
+        current_group_name = current.get_resgroup_name()
+        new_group_name = new.get_resgroup_name()
+
+        if current_group_name != new_group_name:
+            # We need to move to another group.
             return new, new._copy(new.rdt_allocation,
                                   source_resgroup=ResGroup(name=current.get_resgroup_name()))
         else:
@@ -341,7 +346,7 @@ class RDTAllocationValue(AllocationValue):
 
             # Prepare target first, overwrite current l3 & mb values with new
             target_rdt_allocation = RDTAllocation(
-                name=current.get_resgroup_name(),
+                name=current.rdt_allocation.name,
                 l3=new.rdt_allocation.l3 or current.rdt_allocation.l3,
                 mb=new.rdt_allocation.mb or current.rdt_allocation.mb,
             )
@@ -404,13 +409,24 @@ class RDTAllocationValue(AllocationValue):
         """
         # move to approriate group first
         if self.source_resgroup is not None:
-            self.resgroup.add_tasks(pids=self.cgroup.get_pids(),
-                                    mongroup_name=self.container_name)
 
+            # three cases (to root, from root, or between new resgroups)
+            self.resgroup.add_pids(pids=self.cgroup.get_pids(),
+                                   mongroup_name=self.container_name)
 
+            if len(self.source_resgroup.get_mon_groups()) == 0:
+                self.source_resgroup.remove(self.container_name)
+
+        # now update the schema
+        if self.rdt_allocation.l3 or self.rdt_allocation.mb:
+            self.resgroup.write_schemata(
+                l3=self.rdt_allocation.l3,
+                mb=self.rdt_allocation.mb
+            )
 
     def unwrap(self):
         return self.rdt_allocation
+
 
 #
 # ------------------------ initialization -----------------------------------
@@ -422,7 +438,7 @@ def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str, reset_resctrl=False):
     """
     if reset_resctrl:
         def _remove_folders(initialdir, subfolder):
-            """Removed subfolders of subfolder of initialdir if it does not contains "tasks" file."""
+            """Removed subfolders of subfolder of initialdir """
             for entry in os.listdir(os.path.join(initialdir, subfolder)):
                 directory_path = os.path.join(BASE_RESCTRL_PATH, subfolder, entry)
                 # Only examine folders at first level.
@@ -432,9 +448,10 @@ def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str, reset_resctrl=False):
                     if not os.path.exists(resctrl_tasks_path):
                         # Skip metadata folders e.g. info.
                         continue
-                    log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.',
-                                directory_path)
-                    log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
+                    log.warning(
+                        'Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.',
+                        directory_path)
+                    log.log(logger.TRACE, 'resctrl (mon_groups) - _cleanup: rmdir(%s)',
                             directory_path)
                     os.rmdir(directory_path)
 
@@ -476,7 +493,7 @@ def get_max_rdt_values(cbm_mask: str, platform_sockets: int) -> Tuple[str, str]:
         max_rdt_l3.append('%i=%s' % (dom_id, cbm_mask))
         max_rdt_mb.append('%i=100' % dom_id)
 
-    return 'L3:'+';'.join(max_rdt_l3), 'MB:'+';'.join(max_rdt_mb)
+    return 'L3:' + ';'.join(max_rdt_l3), 'MB:' + ';'.join(max_rdt_mb)
 
 
 def check_resctrl():
@@ -509,7 +526,6 @@ def check_resctrl():
     return True
 
 
-
 def read_mon_groups_relation() -> Dict[str, List[str]]:
     """Read the file structure of resctrl filesystem and return on relations
     between control groups and its monitoring groups in form:
@@ -517,6 +533,7 @@ def read_mon_groups_relation() -> Dict[str, List[str]]:
 
     Root control group has '' name (empty string).
     """
+
     def list_mon_groups(mon_dir) -> List[str]:
         return [entry for entry in os.listdir(mon_dir)]
 
@@ -561,6 +578,7 @@ def clean_taskless_groups(mon_groups_relation: Dict[str, List[str]]):
                     for mon_group_to_remove in mon_groups_to_remove:
                         os.rmdir(mon_group_to_remove)
 
+
 #
 # ------------------------ helpers -----------------------------------
 #
@@ -587,7 +605,7 @@ def _parse_schemata_file_row(line: str) -> Dict[str, str]:
         return {}
 
     # Drop resource identifier prefix like ("mb:")
-    line = line[line.find(RESOURCE_ID_SEPARATOR)+1:]
+    line = line[line.find(RESOURCE_ID_SEPARATOR) + 1:]
     # Domains
     domains_with_values = line.split(DOMAIN_ID_SEPARATOR)
     for domain_with_value in domains_with_values:
@@ -599,7 +617,7 @@ def _parse_schemata_file_row(line: str) -> Dict[str, str]:
         domain_id = domain_with_value[:separator_position]
         if not domain_id:
             raise ValueError('domain_id cannot be empty!')
-        value = domain_with_value[separator_position+1:]
+        value = domain_with_value[separator_position + 1:]
         if not value:
             raise ValueError('value cannot be empty!')
 
@@ -650,7 +668,3 @@ def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
         raise ValueError(str(number_of_cbm_bits) +
                          " cbm bits. Requires minimum " +
                          str(min_cbm_bits))
-
-
-
-

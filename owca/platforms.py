@@ -68,7 +68,6 @@ class Platform:
     rdt_min_cbm_bits: Optional[str]  # based on /sys/fs/resctrl/info/L3/min_cbm_bits
 
 
-
 def create_metrics(platform: Platform) -> List[Metric]:
     """Creates a list of Metric objects from data in Platform object"""
     platform_metrics = list()
@@ -245,7 +244,6 @@ def collect_rdt_information(rdt_enabled: bool) -> (str, str, bool):
         return None, None, False
 
 
-
 def collect_platform_information(rdt_enabled: bool = True) -> (
         Platform, List[Metric], Dict[str, str]):
     """Returns Platform information, metrics and common labels.
@@ -266,14 +264,14 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     # Dynamic information
     cpus_usage = parse_proc_stat(read_proc_stat())
     total_memory_used = parse_proc_meminfo(read_proc_meminfo())
-    platform = Platform(sockets=no_of_sockets, 
-                        cores=nr_of_cores, 
+    platform = Platform(sockets=no_of_sockets,
+                        cores=nr_of_cores,
                         cpus=nr_of_cpus,
-                        cpus_usage=cpus_usage, 
+                        cpus_usage=cpus_usage,
                         total_memory_used=total_memory_used,
                         timestamp=time.time(),
                         rdt_mb_control_enabled=rdt_mb_control_enabled,
-                        rdt_cbm_mask=rdt_cbm_mask, 
+                        rdt_cbm_mask=rdt_cbm_mask,
                         rdt_min_cbm_bits=rdt_min_cbm_bits)
     assert len(platform.cpus_usage) == platform.cpus,\
         "Inconsistency in cpu data returned by kernel"

@@ -99,7 +99,7 @@ class Cgroup:
         # Period 0 is invalid arugment for cgroup cpu subsystem. so division is safe.
         return current_quota / current_period / self.platform_cpus
 
-    def _set_normalized_quota(self, quota_normalized: float):
+    def set_normalized_quota(self, quota_normalized: float):
         """Unconditionally sets quota and period if nessesary."""
         assert self.allocation_configuration is not None, \
             'allocation configuration cannot be used without configuration!'
@@ -140,8 +140,8 @@ class QuotaAllocationValue(BoxedNumeric):
                          max_value=platform_cpus
                          )
 
-    def perform_allocation(self):
-        self.cgroup._set_normalized_quota(self.value)
+    def perform_allocations(self):
+        self.cgroup.set_normalized_quota(self.value)
 
 
 class SharesAllocationValue(BoxedNumeric):
@@ -155,5 +155,5 @@ class SharesAllocationValue(BoxedNumeric):
                          max_value=allocation_configuration
                          )
 
-    def perform_allocation(self):
-        self.cgroup._set_normalized_shares(self.value)
+    def perform_allocations(self):
+        self.cgroup.set_normalized_shares(self.value)

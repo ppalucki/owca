@@ -1,21 +1,20 @@
+import logging
 import os
+import pprint
 import re
 import ruamel
-import pprint
 from typing import List
-import logging
 
 import dataclasses
 from dataclasses import dataclass
 
-from owca.allocators import Allocator, TasksAllocations, AllocationType
 from owca.allocations import AllocationsDict, create_default_registry
-
-from owca.resctrl import RDTAllocation, RDTAllocationValue
+from owca.allocators import Allocator, TasksAllocations, AllocationType
 from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
 from owca.platforms import Platform
+from owca.resctrl import RDTAllocation, RDTAllocationValue
 
 log = logging.getLogger(__name__)
 
@@ -145,7 +144,8 @@ class StaticAllocator(Allocator):
                     new_tasks_allocations = None
 
                 if this_rule_allocations_value_changeset is not None:
-                    log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s', rule_idx,
+                    log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s',
+                              rule_idx,
                               pprint.pformat(this_rule_allocations_value_changeset.unwrap()))
 
             log.debug('StaticAllocator: final tasks allocations: \n %s',

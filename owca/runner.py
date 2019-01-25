@@ -91,7 +91,7 @@ class BaseRunnerMixin:
                         'and resctrl synchronization')
             self.rdt_mb_control_enabled = False
         else:
-            # Resctrl is enabled and available - cleanup previous runs.
+            # Resctrl is enabled and available - _cleanup previous runs.
             platform, _, _ = platforms.collect_platform_information()
             max_rdt_l3, max_rdt_mb = get_max_rdt_values(platform.rdt_cbm_mask, platform.sockets)
             root_rtd_l3 = self.allocation_configuration.default_rdt_l3 or max_rdt_l3

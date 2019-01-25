@@ -57,7 +57,6 @@ def test_calculate_desired_state(
 @patch('owca.containers.ResGroup')
 @patch('owca.containers.PerfCounters')
 @patch('owca.containers.Container.sync')
-@patch('owca.containers.Container.cleanup')
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
 @pytest.mark.parametrize('tasks,existing_containers,expected_running_containers', (
     ([], {},
@@ -71,7 +70,7 @@ def test_calculate_desired_state(
     ([], {task('/t1'): container('/t1'), task('/t2'): container('/t2')},
      {}),
 ))
-def test_sync_containers_state(platform_mock, cleanup_mock, sync_mock,
+def test_sync_containers_state(platform_mock, sync_mock,
                                PerfCoutners_mock, ResGroup_mock,
                                tasks, existing_containers,
                                expected_running_containers):
@@ -95,5 +94,3 @@ def test_sync_containers_state(platform_mock, cleanup_mock, sync_mock,
 
     # Check other side effects like calling sync() on external objects.
     assert sync_mock.call_count == len(expected_running_containers)
-    number_of_removed_containers = len(set(existing_containers) - set(expected_running_containers))
-    assert cleanup_mock.call_count == number_of_removed_containers

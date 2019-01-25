@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest.mock import Mock
+
 import pytest
 
 from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, \
     create_default_registry, _convert_values, CommonLablesAllocationValue, \
     ContextualErrorAllocationValue, InvalidAllocationValue
-from unittest.mock import Mock
-
 from owca.testing import allocation_metric
 
 
@@ -86,8 +86,8 @@ def test_boxed_numeric_validation(value, min_value, max_value, float_value_chang
 
 @pytest.mark.parametrize(
     'current, new, expected_target, expected_changeset', (
-        (10, 10.1, 10, None),
-        (10, 10.99, 10.99, 10.99),
+            (10, 10.1, 10, None),
+            (10, 10.99, 10.99, 10.99),
     )
 )
 def test_boxed_numeric_calculated_changeset(current, new, expected_target, expected_changeset):
@@ -132,17 +132,16 @@ def test_boxed_numeric_equal(left, right, is_equal):
          dict(t1={'a': 2}), None),
         (dict(t1={'a': 2}), dict(t1={'a': 2.01}),  # small enough to ignore
          dict(t1={'a': 2}), None),
-        (dict(t1={'a': 2}), dict(t1={'a': 2.1}),   # big enough to notice
+        (dict(t1={'a': 2}), dict(t1={'a': 2.1}),  # big enough to notice
          dict(t1={'a': 2.1}), dict(t1={'a': 2.1})),
         (dict(t1={'a': 2}), dict(t1={'a': 2}),
          dict(t1={'a': 2}), None),
         (dict(t1={'a': 1}), dict(t1={'b': 2}, t2={'b': 3}),
          dict(t1={'a': 1, 'b': 2}, t2={'b': 3}), dict(t1={'b': 2}, t2={'b': 3})),
-  ]
+    ]
 )
 def test_allocations_dict_merging(current, new,
                                   expected_target, expected_changeset):
-
     # Conversion
     current_dict = AllocationsDict(current)
     new_dict = AllocationsDict(new)
@@ -197,8 +196,8 @@ def test_allocation_value_validate():
      [allocation_metric(None, 2), allocation_metric(None, 3)]),
     (AllocationsDict({'x': 2, 'y': 3}),
      [allocation_metric(None, 2), allocation_metric(None, 3)]),
-    (AllocationsDict({'x': 2, 'y':
-     CommonLablesAllocationValue(BoxedNumeric(3.5), labels=dict(foo='bar'))}),
+    (AllocationsDict({'x': 2,
+                      'y': CommonLablesAllocationValue(BoxedNumeric(3.5), labels=dict(foo='bar'))}),
      [allocation_metric(None, 2), allocation_metric(None, 3.5, labels=dict(foo='bar'))]),
 ])
 def test_allocation_values_metrics(allocation_value: AllocationValue, expected_metrics):
