@@ -112,44 +112,47 @@ def test_boxed_numeric_equal(left, right, is_equal):
 
 
 @pytest.mark.parametrize(
-    'current_tasks_allocations,new_tasks_allocations,'
-    'expected_target_tasks_allocations,expected_tasks_allocations_changeset', (
-            ({}, {},
-             {}, None),
-            (dict(t1={'a': 2}), {},
-             dict(t1={'a': 2}), None),
-            (dict(t1={'a': 2}), dict(t1={'a': 2.01}),  # small enough to ignore
-             dict(t1={'a': 2}), None),
-            (dict(t1={'a': 2}), dict(t1={'a': 2.1}),  # big enough to notice
-             dict(t1={'a': 2.1}), dict(t1={'a': 2.1})),
-            (dict(t1={'a': 2}), dict(t1={'a': 2}),
-             dict(t1={'a': 2}), None),
-            (dict(t1={'a': 1}), dict(t1={'b': 2}, t2={'b': 3}),
-             dict(t1={'a': 1, 'b': 2}, t2={'b': 3}), dict(t1={'b': 2}, t2={'b': 3})),
-    ))
-def test_calculate_tasks_allocations_changeset(
-        current_tasks_allocations, new_tasks_allocations,
-        expected_target_tasks_allocations, expected_tasks_allocations_changeset
-):
-    registry = create_default_registry()
-    # conversion
-    current_dict = AllocationsDict(current_tasks_allocations, None, registry)
-    new_dict = AllocationsDict(new_tasks_allocations, None, registry)
-    if expected_tasks_allocations_changeset is not None:
-        assert isinstance(expected_tasks_allocations_changeset, dict)
-        expected_allocations_changeset_dict = AllocationsDict(
-            expected_tasks_allocations_changeset, None, registry)
-    else:
-        expected_allocations_changeset_dict = None
-    expected_target_allocations_dict = AllocationsDict(
-        expected_target_tasks_allocations, None, registry)
+    'current, new, expected_target, expected_changeset', [
+        ({}, {},
+         {}, None),
+        ({'x': 2}, {},
+         {'x': 2}, None),
+        ({'a': 0.2}, {},
+         {'a': 0.2}, None),
+        ({'a': 0.2}, {'a': 0.2},
+         {'a': 0.2}, None),
+        ({'b': 2}, {'b': 3},
+         {'b': 3}, {'b': 3}),
+        ({'a': 0.2, 'b': 0.4}, {'a': 0.2, 'b': 0.5},
+         {'a': 0.2, 'b': 0.5}, {'b': 0.5}),
+        ({}, {'a': 0.2, 'b': 0.5},
+         {'a': 0.2, 'b': 0.5}, {'a': 0.2, 'b': 0.5}),
+        # Recursively one more level (we use dict to show it)
+        (dict(t1={'a': 2}), {},
+         dict(t1={'a': 2}), None),
+        (dict(t1={'a': 2}), dict(t1={'a': 2.01}),  # small enough to ignore
+         dict(t1={'a': 2}), None),
+        (dict(t1={'a': 2}), dict(t1={'a': 2.1}),   # big enough to notice
+         dict(t1={'a': 2.1}), dict(t1={'a': 2.1})),
+        (dict(t1={'a': 2}), dict(t1={'a': 2}),
+         dict(t1={'a': 2}), None),
+        (dict(t1={'a': 1}), dict(t1={'b': 2}, t2={'b': 3}),
+         dict(t1={'a': 1, 'b': 2}, t2={'b': 3}), dict(t1={'b': 2}, t2={'b': 3})),
+  ]
+)
+def test_allocations_dict_merging(current, new,
+                                  expected_target, expected_changeset):
 
-    # merge
-    got_target_dict, got_changeset_dict = \
-        new_dict.calculate_changeset(current_dict)
+    # Conversion
+    current_dict = AllocationsDict(current)
+    new_dict = AllocationsDict(new)
 
-    assert got_target_dict == expected_target_allocations_dict
-    assert got_changeset_dict == expected_allocations_changeset_dict
+    # Merge
+    got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
+
+    assert got_target_dict.unwrap() == expected_target
+    got_changeset = got_changeset_dict.unwrap() if got_changeset_dict is not None else None
+    assert got_changeset == expected_changeset
 
 
 def test_allocation_value_validate():

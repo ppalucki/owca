@@ -60,7 +60,7 @@ class Container:
     allocation_configuration: Optional[AllocationConfiguration] = None
     rdt_enabled: bool = True
     rdt_mb_control_enabled: bool = False
-    task_name: str = None  # defaults to flatten value of provided cgroup_path
+    container_name: str = None  # defaults to flatten value of provided cgroup_path
     resgroup: ResGroup = None  # do not manage self.resgroup object, just reference it
 
     def __post_init__(self):
@@ -69,31 +69,31 @@ class Container:
             platform_cpus=self.platform_cpus,
             allocation_configuration=self.allocation_configuration,
         )
-        self.task_name = self.task_name or _convert_cgroup_path_to_resgroup_name(self.cgroup_path)
+        self.container_name = self.container_name or _convert_cgroup_path_to_resgroup_name(self.cgroup_path)
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def get_pids(self) -> List[str]:
-        return list(map(str, self.cgroup.get_tasks()))
+        return list(map(str, self.cgroup.get_tids()))
 
     def sync(self):
         """Called every run iteration to keep pids of cgroup and resctrl in sync."""
         if self.rdt_enabled:
-            self.resgroup.add_tasks(self.get_pids(), mongroup_name=self.task_name)
+            self.resgroup.add_tasks(self.get_pids(), mongroup_name=self.container_name)
 
     def change_resgroup(self, new_resgroup):
         """Remove tasks from current group and add to the new one."""
         assert self.rdt_enabled
         # Remove pids from old group
-        self.resgroup.remove_tasks(mongroup_name=self.task_name)
+        self.resgroup.move_tasks_to_root(mongroup_name=self.container_name)
         # Add pids to new group
-        new_resgroup.add_tasks(self.get_pids(), mongroup_name=self.task_name)
+        new_resgroup.add_tasks(self.get_pids(), mongroup_name=self.container_name)
         self.resgroup = new_resgroup
 
     def get_measurements(self) -> Measurements:
         try:
             return flatten_measurements([
                 self.cgroup.get_measurements(),
-                self.resgroup.get_measurements(self.task_name) if self.rdt_enabled else {},
+                self.resgroup.get_measurements(self.container_name) if self.rdt_enabled else {},
                 self.perf_counters.get_measurements(),
             ])
         except FileNotFoundError:
@@ -106,7 +106,7 @@ class Container:
     def cleanup(self):
         self.perf_counters.cleanup()
         if self.rdt_enabled:
-            self.resgroup.remove_tasks(self.task_name)
+            self.resgroup.move_tasks_to_root(self.container_name)
 
     def get_allocations(self) -> TaskAllocations:
         # In only detect mode, without allocation configuration return nothing.
@@ -115,10 +115,10 @@ class Container:
         allocations: TaskAllocations = dict()
         allocations.update(self.cgroup.get_allocations())
         if self.rdt_enabled:
-            allocations.update(self.resgroup.get_allocations(self.resgroup.name))
+            allocations.update(self.resgroup.get_allocations())
 
         log.debug('allocations on task=%r from resgroup=%r allocations:\n%s',
-                  self.task_name, self.resgroup, pprint.pformat(allocations))
+                  self.container_name, self.resgroup, pprint.pformat(allocations))
 
         return allocations
 
@@ -180,15 +180,15 @@ class ContainerManager:
 
         # Prepare state of currently assigned resgroups
         # and remove some orphaned resgroups
-        task_name_to_mon_group = {}
+        container_name_to_mon_group = {}
         if self.rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
             log.debug('mon_groups_relation:\n%s', pprint.pformat(mon_groups_relation))
             resctrl.clean_taskless_groups(mon_groups_relation)
             # Calculate inverse relastion of task_id to res_group name based on mon_groups_relations
-            for ctrl_group, task_names in mon_groups_relation.items():
-                for task_name in task_names:
-                    task_name_to_mon_group[task_name] = ctrl_group
+            for ctrl_group, container_names in mon_groups_relation.items():
+                for container_name in container_names:
+                    container_name_to_mon_group[container_name] = ctrl_group
 
         # Create new containers and store them.
         for new_task in new_tasks:
@@ -201,9 +201,9 @@ class ContainerManager:
             )
             self.containers[new_task] = container
             if self.rdt_enabled:
-                if container.task_name in task_name_to_mon_group:
+                if container.container_name in container_name_to_mon_group:
                     container.resgroup = ResGroup(
-                        name=container.task_name,
+                        name=container.container_name,
                         rdt_mb_control_enabled=self.rdt_mb_control_enabled)
                 else:
                     # Every newly detected containers is first assigne to root group.

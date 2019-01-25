@@ -216,7 +216,7 @@ class AllocationsDict(dict, AllocationValue):
 
     def perform_allocations(self):
         for value in self.values():
-            value.perform_allocations()
+            value.write_schemata()
 
     def validate(self) -> Tuple[List[str], 'AllocationsDict']:
         errors = []
@@ -304,7 +304,7 @@ class BoxedNumeric(AllocationValue):
         else:
             # If value is not changed, then is assumed current value is the same as
             # new so we can return any of them (lets return the new one) as target
-            return self, None
+            return current_value, None
 
     def perform_allocations(self):
         raise NotImplementedError()

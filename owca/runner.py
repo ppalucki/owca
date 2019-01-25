@@ -348,7 +348,7 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
             allocation_value = specific_constructor(raw_value, container)
             allocation_value = CommonLablesAllocationValue(
                 allocation_value,
-                labels=dict(task_name=container.task_name)
+                labels=dict(container_name=container.container_name)
             )
             allocation_value = ContextualErrorAllocationValue(
                 allocation_value,
@@ -359,7 +359,8 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
         return generic_constructor
 
     def rdt_allocation_value_constructor(rdt_allocation, container):
-        return RDTAllocationValue(rdt_allocation, container.resgroup, container.cgroup,
+        return RDTAllocationValue(container.name,
+                                  rdt_allocation, container.resgroup, container.cgroup,
                                   platform.sockets, platform.rdt_mb_control_enabled,
                                   platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
                                   )

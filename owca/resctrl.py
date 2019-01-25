@@ -45,98 +45,6 @@ RDT_LC = 'rdt_LC'
 log = logging.getLogger(__name__)
 
 
-def get_max_rdt_values(cbm_mask: str, platform_sockets: int) -> Tuple[str, str]:
-    """Calculated default maximum values for memory bandwidth and cache allocation
-    based on cbm_max and number of sockets.
-    returns (max_rdt_l3, max_rdt_mb) matching the platform.
-    """
-
-    max_rdt_l3 = []
-    max_rdt_mb = []
-
-    for dom_id in range(platform_sockets):
-        max_rdt_l3.append('%i=%s' % (dom_id, cbm_mask))
-        max_rdt_mb.append('%i=100' % dom_id)
-
-    return 'L3:'+';'.join(max_rdt_l3), 'MB:'+';'.join(max_rdt_mb)
-
-
-def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str, reset_resctrl=False):
-    """Reinitialize resctrl filesystem: by removing subfolders (both CTRL and MON groups)
-    and setting default values for cache allocation and memory bandwidth (in root CTRL group).
-    """
-
-    if reset_resctrl:
-        def _remove_folders(initialdir, subfolder):
-            """Removed subfolders of subfolder of initialdir if it does not contains "tasks" file."""
-            for entry in os.listdir(os.path.join(initialdir, subfolder)):
-                directory_path = os.path.join(BASE_RESCTRL_PATH, subfolder, entry)
-                # Only examine folders at first level.
-                if os.path.isdir(directory_path):
-                    # Examine tasks file
-                    resctrl_tasks_path = os.path.join(directory_path, TASKS_FILENAME)
-                    if not os.path.exists(resctrl_tasks_path):
-                        # Skip metadata folders e.g. info.
-                        continue
-                    log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.',
-                                directory_path)
-                    log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
-                            directory_path)
-                    os.rmdir(directory_path)
-
-        # Remove all monitoring groups for both CLOS and RMID.
-        _remove_folders(BASE_RESCTRL_PATH, MON_GROUPS)
-        # Remove all resctrl groups.
-        _remove_folders(BASE_RESCTRL_PATH, '')
-
-    # Reinitialize default values for RDT.
-    if root_rdt_l3 is not None:
-        with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
-            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_l3)
-            try:
-                schemata.write(bytes(root_rdt_l3 + '\n', encoding='utf-8'))
-                schemata.flush()
-            except OSError as e:
-                log.error('Cannot set L3 cache allocation: {}'.format(e))
-
-    if root_rdt_mb is not None:
-        with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
-            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_mb)
-            try:
-                schemata.write(bytes(root_rdt_mb + '\n', encoding='utf-8'))
-                schemata.flush()
-            except OSError as e:
-                log.error('Cannot set rdt memory bandwidth allocation: {}'.format(e))
-
-
-def check_resctrl():
-    """
-    :return: True if resctrl is mounted and has required file
-             False if resctrl is not mounted or required file is missing
-    """
-    run_anyway_text = 'If you wish to run script anyway,' \
-                      'please set rdt_enabled to False in configuration file.'
-
-    resctrl_tasks = os.path.join(BASE_RESCTRL_PATH, TASKS_FILENAME)
-    try:
-        with open(resctrl_tasks):
-            pass
-    except IOError as e:
-        log.debug('Error: Failed to open %s: %s', resctrl_tasks, e)
-        log.critical('Resctrl not mounted. ' + run_anyway_text)
-        return False
-
-    mon_data = os.path.join(BASE_RESCTRL_PATH, MON_DATA, MON_L3_00, MBM_TOTAL)
-    try:
-        with open(mon_data):
-            pass
-    except IOError as e:
-        log.debug('Error: Failed to open %s: %s', mon_data, e)
-        log.critical('Resctrl does not support Memory Bandwidth Monitoring.' +
-                     run_anyway_text)
-        return False
-
-    return True
 
 
 ResGroupName = str
@@ -149,9 +57,6 @@ class ResGroup:
         self.rdt_mb_control_enabled = rdt_mb_control_enabled
         self.fullpath = BASE_RESCTRL_PATH + ("/" + name if name != "" else "")
 
-        if self.name != RESCTRL_ROOT_NAME:
-            log.debug('creating restrcl group %r', self.name)
-            self._create_controlgroup_directory()
 
     def __repr__(self):
         return 'ResGroup(name=%r, fullpath=%r)' % (self.name, self.fullpath)
@@ -191,7 +96,9 @@ class ResGroup:
         """Adds the pids to the resctrl group and creates mongroup with the pids.
            If the resctrl group does not exists creates it (lazy creation).
            If the mongroup exists adds pids to the group (no error will be thrown)."""
-
+        if self.name != RESCTRL_ROOT_NAME:
+            log.debug('creating restrcl group %r', self.name)
+            self._create_controlgroup_directory()
         # add pids to /tasks file
         log.debug('add_tasks: %d pids to %r', len(pids), os.path.join(self.fullpath, 'tasks'))
         self._add_pids_to_tasks_file(pids, os.path.join(self.fullpath, 'tasks'))
@@ -210,7 +117,7 @@ class ResGroup:
         log.debug('add_tasks: %d pids to %r', len(pids), os.path.join(mongroup_fullpath, 'tasks'))
         self._add_pids_to_tasks_file(pids, os.path.join(mongroup_fullpath, 'tasks'))
 
-    def remove_tasks(self, mongroup_name):
+    def move_tasks_to_root(self, mongroup_name):
         """Removes the mongroup and all pids inside it from the resctrl group
            (by adding all the pids to the ROOT resctrl group).
            If the mongroup path does not points to existing directory
@@ -256,24 +163,24 @@ class ResGroup:
 
         return {MetricName.MEM_BW: mbm_total, MetricName.LLC_OCCUPANCY: llc_occupancy}
 
-    def get_allocations(self, resgroup_name) -> TaskAllocations:
+    def get_allocations(self) -> TaskAllocations:
         """Return TaskAllocations represeting allocation for RDT resource."""
         rdt_allocations_mb, rdt_allocations_l3 = None, None
         with open(os.path.join(self.fullpath, SCHEMATA)) as schemata:
             for line in schemata:
-                if 'MB' in line:
+                if 'MB:' in line:
                     rdt_allocations_mb = line.strip()
-                elif 'L3' in line:
+                elif 'L3:' in line:
                     rdt_allocations_l3 = line.strip()
 
         rdt_allocations = RDTAllocation(
-            name=resgroup_name,
+            name=self.name,
             l3=rdt_allocations_l3,
             mb=rdt_allocations_mb,
         )
         return {AllocationType.RDT: rdt_allocations}
 
-    def perform_allocations(self, task_allocations: TaskAllocations):
+    def write_schemata(self, l3=None, mb=None):
         """Enforce RDT allocations from task_allocations."""
 
         def _write_schemata_line(value, schemata_file):
@@ -285,16 +192,15 @@ class ResGroup:
             except OSError as e:
                 log.error('Cannot set rdt allocation: {}'.format(e))
 
-        if AllocationType.RDT in task_allocations:
-            with open(os.path.join(self.fullpath, SCHEMATA), 'bw') as schemata_file:
+        with open(os.path.join(self.fullpath, SCHEMATA), 'bw') as schemata_file:
 
-                # Cache allocation.
-                if task_allocations[AllocationType.RDT].l3:
-                    _write_schemata_line(task_allocations[AllocationType.RDT].l3, schemata_file)
+            # Cache allocation.
+            if l3:
+                _write_schemata_line(l3, schemata_file)
 
-                # Optional memory bandwidth allocation.
-                if self.rdt_mb_control_enabled and task_allocations[AllocationType.RDT].mb:
-                    _write_schemata_line(task_allocations[AllocationType.RDT].mb, schemata_file)
+            # Optional memory bandwidth allocation.
+            if self.rdt_mb_control_enabled and mb:
+                _write_schemata_line(mb, schemata_file)
 
     def cleanup(self):
         # Do not try to remove root group.
@@ -307,6 +213,12 @@ class ResGroup:
             log.debug('cleanup: directory already does not exist %s', self.fullpath)
 
 
+
+
+#
+# ------------------------ Allocation -----------------------------------
+#
+
 @dataclass(unsafe_hash=True, frozen=True)
 class RDTAllocation:
     # defaults to TaskId from TasksAllocations
@@ -316,63 +228,13 @@ class RDTAllocation:
     # MBM: optional - when no provided doesn't change the existing allocation
     mb: str = None
 
-
-def read_mon_groups_relation() -> Dict[str, List[str]]:
-    """Read the file structure of resctrl filesystem and return on relations
-    between control groups and its monitoring groups in form:
-    ctrl_group_name: [mon_group_name1, mon_group_name2]
-
-    Root control group has '' name (empty string).
-    """
-    def list_mon_groups(mon_dir) -> List[str]:
-        return [entry for entry in os.listdir(mon_dir)]
-
-    relation = dict()
-    # root ctrl group mon dirs
-    root_mon_group_dir = os.path.join(BASE_RESCTRL_PATH, MON_GROUPS)
-    assert os.path.isdir(root_mon_group_dir)
-    root_mon_groups = list_mon_groups(root_mon_group_dir)
-    print(root_mon_groups)
-    relation[''] = root_mon_groups
-    ctrl_group_names = os.listdir(BASE_RESCTRL_PATH)
-    for ctrl_group_name in ctrl_group_names:
-        ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group_name)
-        if os.path.isdir(ctrl_group_dir):
-            mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS)
-            if os.path.isdir(mon_group_dir):
-                relation[ctrl_group_name] = list_mon_groups(mon_group_dir)
-    return relation
-
-
-def clean_taskless_groups(mon_groups_relation: Dict[str, List[str]]):
-    """Remove all control and monitoring group based on list of already read
-    groups from mon_groups_relation.
-    """
-    for ctrl_group, mon_groups in mon_groups_relation.items():
-        for mon_group in mon_groups:
-            ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group)
-            mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS, mon_group)
-            tasks_filename = os.path.join(mon_group_dir, TASKS_FILENAME)
-            mon_groups_to_remove = []
-            with open(tasks_filename) as tasks_file:
-                if tasks_file.read() == '':
-                    mon_groups_to_remove.append(mon_group_dir)
-
-            if mon_groups_to_remove:
-
-                # For ech non root group, drop just ctrl group if all mon groups are empty
-                if ctrl_group != '' and \
-                        len(mon_groups_to_remove) == len(mon_groups_relation[ctrl_group]):
-                    os.rmdir(ctrl_group_dir)
-                else:
-                    for mon_group_to_remove in mon_groups_to_remove:
-                        os.rmdir(mon_group_to_remove)
-
-
 @dataclass
 class RDTAllocationValue(AllocationValue):
     """Wrapper over immutable RDTAllocation object"""
 
+    # Name of tasks, that RDTAllocation was assigned to.
+    # Is used as resgroup.name if RDTAllocation.name is None
+    container_name: str
     rdt_allocation: RDTAllocation
     resgroup: ResGroup
     cgroup: Cgroup
@@ -383,9 +245,10 @@ class RDTAllocationValue(AllocationValue):
 
     source_resgroup: Optional[ResGroup] = None  # if not none try to cleanup it at the end
 
-    def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None):
+    def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None, container_name: str = None):
         return RDTAllocationValue(
-            rdt_allocation,
+            container_name=container_name or self.container_name,
+            rdt_allocation=rdt_allocation,
             cgroup=self.cgroup,
             resgroup=self.resgroup,
             platform_sockets=self.platform_sockets,
@@ -442,50 +305,68 @@ class RDTAllocationValue(AllocationValue):
 
         return metrics
 
+    def get_resgroup_name(self):
+        return self.rdt_allocation.name or self.container_name
+
     def calculate_changeset(self: 'RDTAllocationValue',
                             current: Optional['RDTAllocationValue']) -> \
             Tuple['RDTAllocationValue', Optional['RDTAllocationValue']]:
         """Merge with existing RDTAllocation objects and return
-        sum of the allocations (target_rdt_allocation) and allocations that need to be updated
-        (rdt_allocation_changeset)."""
-        assert current is None or current.rdt_allocation is not None
+        sum of the allocations (target_rdt_allocation)
+        and allocations that need to be updated (rdt_allocation_changeset).
+
+        current can be None - means we have just spotted the task, and we're moving
+                it from default root group.
+
+        current cannot have empty name in rdt_allocation.name !!!!
+
+        """
+
+        # Any rdt_allocation that comes with current have to have rdt_allocation.name set)
+        assert current is None or (current.rdt_allocation is not None)
+
         new: RDTAllocationValue = self
         # new name, then new allocation will be used (overwrite) but no merge
         if current is None:
+            # New tasks or is moved from root group.
             log.debug('new name or no previous allocation exists (moving from root group!)')
-            return new, new._copy(new.rdt_allocation, source_resgroup=ResGroup(name=''))
-        elif current.rdt_allocation.name != new.rdt_allocation.name:
-            raise NotImplementedError
+            return new, new._copy(new.rdt_allocation,
+                                  source_resgroup=ResGroup(name=''))
+        elif current.get_resgroup_name() != new.rdt_allocation.name:
+            # This includes.
+            return new, new._copy(new.rdt_allocation,
+                                  source_resgroup=ResGroup(name=current.get_resgroup_name()))
         else:
-            log.debug('merging existing rdt allocation')
+            log.debug('merging existing rdt allocation (the same resgroup name)')
+
+            # Prepare target first, overwrite current l3 & mb values with new
             target_rdt_allocation = RDTAllocation(
-                name=current.rdt_allocation.name,
+                name=current.get_resgroup_name(),
                 l3=new.rdt_allocation.l3 or current.rdt_allocation.l3,
                 mb=new.rdt_allocation.mb or current.rdt_allocation.mb,
             )
             target = current._copy(target_rdt_allocation)
-            l3_new, mb_new = False, False
+
+            # Prepare changeset
+            # Logic: if new value exists and is different from old one the use new.
             if new.rdt_allocation.l3 is not None \
                     and current.rdt_allocation.l3 != new.rdt_allocation.l3:
-                rdt_allocation_changeset_l3 = new.rdt_allocation.l3
-                l3_new = True
+                new_l3 = new.rdt_allocation.l3
             else:
-                rdt_allocation_changeset_l3 = None
-                l3_new = False
+                new_l3 = None
 
             if new.rdt_allocation.mb is not None \
                     and current.rdt_allocation.mb != new.rdt_allocation.mb:
-                rdt_allocation_changeset_mb = new.rdt_allocation.mb
-                mb_new = True
+                new_mb = new.rdt_allocation.mb
             else:
-                rdt_allocation_changeset_mb = None
-                mb_new = False
+                new_mb = None
 
-            if l3_new or mb_new:
+            if new_l3 or new_mb:
+                # Only return something if schemata resources differs.
                 rdt_allocation_changeset = RDTAllocation(
                     name=new.rdt_allocation.name,
-                    l3=rdt_allocation_changeset_l3,
-                    mb=rdt_allocation_changeset_mb,
+                    l3=new_l3,
+                    mb=new_mb,
                 )
                 changeset = current._copy(rdt_allocation_changeset)
                 return target, changeset
@@ -511,7 +392,7 @@ class RDTAllocationValue(AllocationValue):
                                    self.rdt_cbm_mask,
                                    self.rdt_min_cbm_bits)
             except ValueError as e:
-                errors.append('Invalid l3 cache config(%r): %s' % (self.l3, e))
+                errors.append('Invalid l3 cache config(%r): %s' % (self.rdt_allocation.l3, e))
         return errors
 
     def perform_allocations(self):
@@ -521,11 +402,168 @@ class RDTAllocationValue(AllocationValue):
         - update schemata file
         - remove old group (source) optional
         """
-        raise NotImplementedError
+        # move to approriate group first
+        if self.source_resgroup is not None:
+            self.resgroup.add_tasks(pids = self.cgroup.get_tids(),
+                                    mongroup_name=self.container_name)
+
+
 
     def unwrap(self):
         return self.rdt_allocation
 
+#
+# ------------------------ initialization -----------------------------------
+#
+
+def cleanup_resctrl(root_rdt_l3: str, root_rdt_mb: str, reset_resctrl=False):
+    """Reinitialize resctrl filesystem: by removing subfolders (both CTRL and MON groups)
+    and setting default values for cache allocation and memory bandwidth (in root CTRL group).
+    """
+    if reset_resctrl:
+        def _remove_folders(initialdir, subfolder):
+            """Removed subfolders of subfolder of initialdir if it does not contains "tasks" file."""
+            for entry in os.listdir(os.path.join(initialdir, subfolder)):
+                directory_path = os.path.join(BASE_RESCTRL_PATH, subfolder, entry)
+                # Only examine folders at first level.
+                if os.path.isdir(directory_path):
+                    # Examine tasks file
+                    resctrl_tasks_path = os.path.join(directory_path, TASKS_FILENAME)
+                    if not os.path.exists(resctrl_tasks_path):
+                        # Skip metadata folders e.g. info.
+                        continue
+                    log.warning('Resctrl: Found ctrl or mon group at %r - recycle CLOS/RMID resource.',
+                                directory_path)
+                    log.log(logger.TRACE, 'resctrl (mon_groups) - cleanup: rmdir(%s)',
+                            directory_path)
+                    os.rmdir(directory_path)
+
+        # Remove all monitoring groups for both CLOS and RMID.
+        _remove_folders(BASE_RESCTRL_PATH, MON_GROUPS)
+        # Remove all resctrl groups.
+        _remove_folders(BASE_RESCTRL_PATH, '')
+
+    # Reinitialize default values for RDT.
+    if root_rdt_l3 is not None:
+        with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
+            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_l3)
+            try:
+                schemata.write(bytes(root_rdt_l3 + '\n', encoding='utf-8'))
+                schemata.flush()
+            except OSError as e:
+                log.error('Cannot set L3 cache allocation: {}'.format(e))
+
+    if root_rdt_mb is not None:
+        with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
+            log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_mb)
+            try:
+                schemata.write(bytes(root_rdt_mb + '\n', encoding='utf-8'))
+                schemata.flush()
+            except OSError as e:
+                log.error('Cannot set rdt memory bandwidth allocation: {}'.format(e))
+
+
+def get_max_rdt_values(cbm_mask: str, platform_sockets: int) -> Tuple[str, str]:
+    """Calculated default maximum values for memory bandwidth and cache allocation
+    based on cbm_max and number of sockets.
+    returns (max_rdt_l3, max_rdt_mb) matching the platform.
+    """
+
+    max_rdt_l3 = []
+    max_rdt_mb = []
+
+    for dom_id in range(platform_sockets):
+        max_rdt_l3.append('%i=%s' % (dom_id, cbm_mask))
+        max_rdt_mb.append('%i=100' % dom_id)
+
+    return 'L3:'+';'.join(max_rdt_l3), 'MB:'+';'.join(max_rdt_mb)
+
+
+def check_resctrl():
+    """
+    :return: True if resctrl is mounted and has required file
+             False if resctrl is not mounted or required file is missing
+    """
+    run_anyway_text = 'If you wish to run script anyway,' \
+                      'please set rdt_enabled to False in configuration file.'
+
+    resctrl_tasks = os.path.join(BASE_RESCTRL_PATH, TASKS_FILENAME)
+    try:
+        with open(resctrl_tasks):
+            pass
+    except IOError as e:
+        log.debug('Error: Failed to open %s: %s', resctrl_tasks, e)
+        log.critical('Resctrl not mounted. ' + run_anyway_text)
+        return False
+
+    mon_data = os.path.join(BASE_RESCTRL_PATH, MON_DATA, MON_L3_00, MBM_TOTAL)
+    try:
+        with open(mon_data):
+            pass
+    except IOError as e:
+        log.debug('Error: Failed to open %s: %s', mon_data, e)
+        log.critical('Resctrl does not support Memory Bandwidth Monitoring.' +
+                     run_anyway_text)
+        return False
+
+    return True
+
+
+
+def read_mon_groups_relation() -> Dict[str, List[str]]:
+    """Read the file structure of resctrl filesystem and return on relations
+    between control groups and its monitoring groups in form:
+    ctrl_group_name: [mon_group_name1, mon_group_name2]
+
+    Root control group has '' name (empty string).
+    """
+    def list_mon_groups(mon_dir) -> List[str]:
+        return [entry for entry in os.listdir(mon_dir)]
+
+    relation = dict()
+    # root ctrl group mon dirs
+    root_mon_group_dir = os.path.join(BASE_RESCTRL_PATH, MON_GROUPS)
+    assert os.path.isdir(root_mon_group_dir)
+    root_mon_groups = list_mon_groups(root_mon_group_dir)
+    print(root_mon_groups)
+    relation[''] = root_mon_groups
+    ctrl_group_names = os.listdir(BASE_RESCTRL_PATH)
+    for ctrl_group_name in ctrl_group_names:
+        ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group_name)
+        if os.path.isdir(ctrl_group_dir):
+            mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS)
+            if os.path.isdir(mon_group_dir):
+                relation[ctrl_group_name] = list_mon_groups(mon_group_dir)
+    return relation
+
+
+def clean_taskless_groups(mon_groups_relation: Dict[str, List[str]]):
+    """Remove all control and monitoring group based on list of already read
+    groups from mon_groups_relation.
+    """
+    for ctrl_group, mon_groups in mon_groups_relation.items():
+        for mon_group in mon_groups:
+            ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group)
+            mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS, mon_group)
+            tasks_filename = os.path.join(mon_group_dir, TASKS_FILENAME)
+            mon_groups_to_remove = []
+            with open(tasks_filename) as tasks_file:
+                if tasks_file.read() == '':
+                    mon_groups_to_remove.append(mon_group_dir)
+
+            if mon_groups_to_remove:
+
+                # For ech non root group, drop just ctrl group if all mon groups are empty
+                if ctrl_group != '' and \
+                        len(mon_groups_to_remove) == len(mon_groups_relation[ctrl_group]):
+                    os.rmdir(ctrl_group_dir)
+                else:
+                    for mon_group_to_remove in mon_groups_to_remove:
+                        os.rmdir(mon_group_to_remove)
+
+#
+# ------------------------ helpers -----------------------------------
+#
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     """Parse RDTAllocation.l3 and RDTAllocation.mb strings based on
@@ -612,3 +650,7 @@ def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
         raise ValueError(str(number_of_cbm_bits) +
                          " cbm bits. Requires minimum " +
                          str(min_cbm_bits))
+
+
+
+

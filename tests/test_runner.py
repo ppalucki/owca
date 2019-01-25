@@ -155,12 +155,12 @@ def test_detection_runner_containers_state(*mocks):
 @patch('owca.containers.Container.get_allocations', return_value={})
 @patch('owca.containers.PerfCounters')
 @patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
-@patch('owca.containers.Cgroup.perform_allocations')
+@patch('owca.containers.Cgroup.write_schemata')
 @patch('owca.resctrl.ResGroup.add_tasks')
-@patch('owca.resctrl.ResGroup.remove_tasks')
+@patch('owca.resctrl.ResGroup.move_tasks_to_root')
 @patch('owca.resctrl.ResGroup._create_controlgroup_directory')
 @patch('owca.resctrl.ResGroup.get_measurements')
-@patch('owca.resctrl.ResGroup.perform_allocations')
+@patch('owca.resctrl.ResGroup.write_schemata')
 @patch('owca.resctrl.ResGroup.cleanup')
 @patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
 @patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
@@ -297,7 +297,7 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
        check if unnecessary reallocation of resctrl group does not take place.
 
        The goal is achieved by checking how many times
-       Container.perform_allocations is called with allocate_rdt=True."""
+       Container.write_schemata is called with allocate_rdt=True."""
     raise NotImplementedError
 
 
