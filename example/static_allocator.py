@@ -138,8 +138,15 @@ class StaticAllocator(Allocator):
                     AllocationsDict(new_tasks_allocations, registry=registry).calculate_changeset(
                         AllocationsDict(this_rule_tasks_allocations, registry=registry), )
 
+                log.debug('StaticAllocator(%s): new tasks allocations values: \n %s',
+                          rule_idx,
+                          pprint.pformat(new_tasks_allocations_values))
+
                 if new_tasks_allocations_values is not None:
                     new_tasks_allocations = new_tasks_allocations_values.unwrap_recurisve(_unwrap_to_simple)
+                    log.debug('StaticAllocator(%s): new tasks allocations: \n %s',
+                              rule_idx,
+                              pprint.pformat(new_tasks_allocations))
                 else:
                     new_tasks_allocations = None
 

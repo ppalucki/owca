@@ -1,10 +1,10 @@
 - name: first rule
   allocations:
-    cpu_shares: 2.5
-    # cpu_quota: 0.1 
-    # rdt:
-    #     name: ''
-    #     l3: 'L3:0=00fff;1=00fff'
+    cpu_shares: 4.5
+    cpu_quota: 0.1 
+    rdt:
+        name: ''
+        l3: 'L3:0=00fff;1=00fff'
 
 # - name: not for first task
 #   labels:

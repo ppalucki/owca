@@ -16,7 +16,8 @@ from unittest.mock import patch, mock_open, call, Mock
 
 import pytest
 
-from owca.allocations import create_default_registry, AllocationsDict, _unwrap_to_simple
+from owca.allocations import create_default_registry, AllocationsDict, _unwrap_to_simple, \
+    CommonLablesAllocationValue
 from owca.allocators import AllocationConfiguration
 from owca.cgroups import Cgroup
 from owca.resctrl import ResGroup, RDTAllocation, RDTAllocationValue
@@ -174,22 +175,29 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
     assert got_changeset == expected_changeset
 
 
-@pytest.mark.parametrize('rdt_allocation, expected_metrics', (
-        (RDTAllocation(), []),
-        (RDTAllocation(mb='mb:0=20'), [
+@pytest.mark.parametrize('rdt_allocation, extra_labels, expected_metrics', (
+        (RDTAllocation(), {}, []),
+        (RDTAllocation(mb='mb:0=20'), {},[
             allocation_metric('rdt_mb', 20, group_name='', domain_id='0', container_name='c1')
         ]),
-        (RDTAllocation(mb='mb:0=20;1=30'), [
+        (RDTAllocation(mb='mb:0=20'), {'foo': 'bar'}, [
+            allocation_metric('rdt_mb', 20, group_name='', domain_id='0',
+                              container_name='c1', foo='bar')
+        ]),
+        (RDTAllocation(mb='mb:0=20'), {}, [
+            allocation_metric('rdt_mb', 20, group_name='', domain_id='0', container_name='c1')
+        ]),
+        (RDTAllocation(mb='mb:0=20;1=30'), {}, [
             allocation_metric('rdt_mb', 20, group_name='', domain_id='0', container_name='c1'),
             allocation_metric('rdt_mb', 30, group_name='', domain_id='1', container_name='c1'),
         ]),
-        (RDTAllocation(l3='l3:0=ff'), [
+        (RDTAllocation(l3='l3:0=ff'), {}, [
             allocation_metric('rdt_l3_cache_ways', 8, group_name='', domain_id='0',
                               container_name='c1'),
             allocation_metric('rdt_l3_mask', 255, group_name='', domain_id='0',
                               container_name='c1'),
         ]),
-        (RDTAllocation(name='be', l3='l3:0=ff', mb='mb:0=20;1=30'), [
+        (RDTAllocation(name='be', l3='l3:0=ff', mb='mb:0=20;1=30'), {},[
             allocation_metric('rdt_l3_cache_ways', 8, group_name='be', domain_id='0',
                               container_name='c1'),
             allocation_metric('rdt_l3_mask', 255, group_name='be', domain_id='0',
@@ -198,14 +206,15 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
             allocation_metric('rdt_mb', 30, group_name='be', domain_id='1', container_name='c1'),
         ]),
 ))
-def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, expected_metrics):
-    with patch('owca.resctrl.ResGroup._create_controlgroup_directory'):
-        rdt_allocation_value = RDTAllocationValue(
-            'c1',
-            rdt_allocation, cgroup=Cgroup('/', platform_cpus=1),
-            resgroup=ResGroup(name=rdt_allocation.name or ''),
-            platform_sockets=1, rdt_mb_control_enabled=False,
-            rdt_cbm_mask='fff', rdt_min_cbm_bits='1',
-        )
-        got_metrics = rdt_allocation_value.generate_metrics()
+def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, extra_labels, expected_metrics):
+    rdt_allocation_value = RDTAllocationValue(
+        'c1',
+        rdt_allocation, cgroup=Cgroup('/', platform_cpus=1),
+        resgroup=ResGroup(name=rdt_allocation.name or ''),
+        platform_sockets=1, rdt_mb_control_enabled=False,
+        rdt_cbm_mask='fff', rdt_min_cbm_bits='1',
+    )
+    if extra_labels:
+        rdt_allocation_value = CommonLablesAllocationValue(rdt_allocation_value, **extra_labels)
+    got_metrics = rdt_allocation_value.generate_metrics()
     assert got_metrics == expected_metrics

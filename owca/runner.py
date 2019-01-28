@@ -349,17 +349,17 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
             container = task_id_to_containers[task_id]
             allocation_value = specific_constructor(raw_value, container)
-            log.debug('adapter: specific constructor: %r -> %r', specific_constructor, allocation_value)
+            log.log(TRACE, 'adapter: specific constructor: %r -> %r', specific_constructor, allocation_value)
             allocation_value = CommonLablesAllocationValue(
                 allocation_value,
-                labels=dict(container_name=container.container_name)
+                **dict(container_name=container.container_name)
             )
-            log.debug('adapter: common labels constructor: %r', allocation_value)
+            log.log(TRACE, 'adapter: common labels constructor: %r', allocation_value)
             allocation_value = ContextualErrorAllocationValue(
                 allocation_value,
                 prefix_message='Invalid allocation type=%r for task=%r' % (allocation_type, task_id)
             )
-            log.debug('adapter: ContextualError constructor: %r', allocation_value)
+            log.log(TRACE, 'adapter: ContextualError constructor: %r', allocation_value)
             return allocation_value
 
         return generic_constructor

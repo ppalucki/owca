@@ -258,7 +258,13 @@ class AllocationsDict(dict, AllocationValue):
         return {k: v for k, v in self.items() if v is not None}
 
     def unwrap_recurisve(self, unwrap_function):
-        return {k: unwrap_function(v) for k, v in self.items()}
+        d = {}
+        for k, v in self.items():
+            if isinstance(v, AllocationValue):
+                d[k] = v.unwrap_recurisve(unwrap_function)
+            else:
+                d[k] = v
+        return d
 
 
 def _unwrap_to_simple(value: Any) -> Any:

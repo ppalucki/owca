@@ -103,6 +103,10 @@ def test_boxed_numeric_calculated_changeset(current, new, expected_target, expec
     (BoxedNumeric(3), 3),
     (AllocationsDict({'x': AllocationsDict({}), 'y': 2}),
          {'x': {}, 'y': 2}),
+    (AllocationsDict({'x': BoxedNumeric(4)}),
+         {'x': 4}),
+    (AllocationsDict({'x': AllocationsDict({'y': 5})}),
+         {'x': {'y': 5}}),
 ])
 def test_unwrap_simple(allocation_value, expected_object):
     got_object = allocation_value.unwrap_recurisve(_unwrap_to_simple)
