@@ -55,6 +55,9 @@ class AllocationValue(ABC):
         """If possible return object under this object (just one level)."""
         ...
 
+    def unwrap_recurisve(self, unwrap_function):
+        return unwrap_function(self.unwrap())
+
 
 
 class AllocationValueDelegator(AllocationValue):
@@ -155,20 +158,22 @@ class Registry:
         return allocation_value
 
 
+
+
 def _convert_values(d: Dict[str, Any], ctx: List[str], registry) -> Dict[str, AllocationValue]:
     # TODO: docs for convert_values
     # TODO: better variables naming
 
-    nd = {}
+    new_dict = {}
     base_ctx = list(ctx or [])
-    for k, v in d.items():
-        if isinstance(v, AllocationValue):
-            nv = v
+    for key, value in d.items():
+        if isinstance(value, AllocationValue):
+            allocation_value = value
         else:
-            nv = registry.convert_value(base_ctx, k, v)
-        nd[k] = nv
+            allocation_value = registry.convert_value(base_ctx, key, value)
+        new_dict[key] = allocation_value
 
-    return nd
+    return new_dict
 
 
 class AllocationsDict(dict, AllocationValue):
@@ -250,12 +255,26 @@ class AllocationsDict(dict, AllocationValue):
         return errors, nd
 
     def unwrap(self) -> dict:
-        d = {}
-        for k, v in self.items():
-            if v is not None:
-                d[k] = v.unwrap()
-        return d
+        return {k: v for k, v in self.items() if v is not None}
 
+    def unwrap_recurisve(self, unwrap_function):
+        return {k: unwrap_function(v) for k, v in self.items()}
+
+
+def _unwrap_to_simple(value: Any) -> Any:
+    while isinstance(value, AllocationValue):
+        value = value.unwrap()
+    return value
+
+def _unwrap_to_leaf(value: AllocationValue) -> AllocationValue:
+    assert isinstance(value, AllocationValue)
+
+    while True:
+        new_value = value.unwrap()
+        if not isinstance(new_value, AllocationValue):
+            return value
+        else:
+            value = new_value
 
 class BoxedNumeric(AllocationValue):
     """ Wraps floats and ints.
@@ -282,8 +301,9 @@ class BoxedNumeric(AllocationValue):
     def __repr__(self):
         return 'BoxedNumeric(%r)' % self.value
 
-    def __eq__(self, other: 'BoxedNumeric'):
-        return math.isclose(self.value, other.value,
+    def __eq__(self, other: AllocationValue):
+        other_value: Union[float, int] = _unwrap_to_simple(other)
+        return math.isclose(self.value, other_value,
                             rel_tol=self.float_value_change_sensitivity)
 
     def generate_metrics(self) -> List[Metric]:
@@ -296,15 +316,15 @@ class BoxedNumeric(AllocationValue):
                     type=MetricType.GAUGE,
                )]
 
-    def validate(self) -> Tuple[List[str], Optional['BoxedNumeric']]:
+    def validate(self) -> Tuple[List[str], Optional[AllocationValue]]:
         if not self.value >= self.min_value or not self.value <= self.max_value:
             errors = ['%s does not belong to range <%s;%s>' % (
                            self.value, self.min_value, self.max_value)]
             return errors, None
         return [], self
 
-    def calculate_changeset(self, current_value: Optional['BoxedNumeric']) \
-            -> Tuple['BoxedNumeric', Optional['BoxedNumeric']]:
+    def calculate_changeset(self, current_value: Optional[AllocationValue]) \
+            -> Tuple[AllocationValue, Optional[AllocationValue]]:
         """Assuming self is "new value" return target and changeset. """
 
 
@@ -313,17 +333,8 @@ class BoxedNumeric(AllocationValue):
             # There is no old value, so there is a change
             value_changed = True
         else:
-            unwrapped_current_value = current_value
-            depth = 0
-            while not isinstance(unwrapped_current_value, BoxedNumeric):
-                depth += 1
-                unwrapped_current_value = unwrapped_current_value.unwrap()
-                if depth > 5:
-                    raise Exception('cannot unwrap %r looking for BoxNumeric',
-                                    unwrapped_current_value)
-
             # If we have old value compare them.
-            value_changed = (self != unwrapped_current_value)
+            value_changed = (self != current_value)
 
         if value_changed:
             # For floats merge is simple, is value is change, the
