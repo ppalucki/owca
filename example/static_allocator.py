@@ -8,7 +8,7 @@ from typing import List
 import dataclasses
 from dataclasses import dataclass
 
-from owca.allocations import AllocationsDict, create_default_registry
+from owca.allocations import AllocationsDict, create_default_registry, _unwrap_to_simple
 from owca.allocators import Allocator, TasksAllocations, AllocationType
 from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
@@ -139,14 +139,15 @@ class StaticAllocator(Allocator):
                         AllocationsDict(this_rule_tasks_allocations, registry=registry), )
 
                 if new_tasks_allocations_values is not None:
-                    new_tasks_allocations = new_tasks_allocations_values.unwrap()
+                    new_tasks_allocations = new_tasks_allocations_values.unwrap_recurisve(_unwrap_to_simple)
                 else:
                     new_tasks_allocations = None
 
                 if this_rule_allocations_value_changeset is not None:
+                    this_rule_allocations_value = this_rule_allocations_value_changeset.unwrap_recurisve(_unwrap_to_simple)
                     log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s',
                               rule_idx,
-                              pprint.pformat(this_rule_allocations_value_changeset.unwrap()))
+                              pprint.pformat(this_rule_allocations_value))
 
             log.debug('StaticAllocator: final tasks allocations: \n %s',
                       pprint.pformat(new_tasks_allocations))
