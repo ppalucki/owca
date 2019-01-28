@@ -107,12 +107,17 @@ def is_convertable_to_prometheus_exposition_format(metrics: List[Metric]) -> (bo
         if not _METRIC_NAME_RE.match(metric.name):
             return (False, "Wrong metric name {}.".format(metric.name))
         for label_key, label_val in metric.labels.items():
+            if not isinstance(label_val, str):
+                return (False, "Label (at key {}) should be str type got {!r}"
+                        .format(label_key, metric.name, type(label_val)))
+
             if not _METRIC_LABEL_NAME_RE.match(label_key):
                 return (False, "Used wrong label name {} in metric {}."
                                .format(label_key, metric.name))
             if _RESERVED_METRIC_LABEL_NAME_RE.match(label_key):
                 return (False, "Used reserved label name {} in metric {}."
                                .format(label_key, metric.name))
+
 
         # Its our internal OWCA requirement to use only GAUGE or COUNTER.
         #   However, as in that function we do validation that code also

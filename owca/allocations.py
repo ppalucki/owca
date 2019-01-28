@@ -14,8 +14,9 @@
 import logging
 import math
 from abc import ABC, abstractmethod
-from typing import List, Dict, Union, Tuple, Optional, Any, Type
+from typing import List, Dict, Union, Tuple, Optional, Any, Type, Callable
 
+from owca.logger import TRACE
 from owca.metrics import Metric, MetricType
 
 log = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ class AllocationValue(ABC):
 
     @abstractmethod
     def unwrap(self) -> Any:
-        """Perform allocatoins."""
+        """If possible return object under this object (just one level)."""
         ...
 
 
@@ -106,7 +107,7 @@ class InvalidAllocationValue(AllocationValueDelegator):
 
 
 class CommonLablesAllocationValue(AllocationValueDelegator):
-    """ Update any allocation values wiht common labels, when peforming generate_metrics."""
+    """ Update any allocation values with common labels, when performing generate_metrics."""
 
     def __init__(self, allocation_value, **common_labels):
         super().__init__(allocation_value)
@@ -120,28 +121,38 @@ class CommonLablesAllocationValue(AllocationValueDelegator):
 
 
 class Registry:
-    # TODO: docs Registry class
 
     def __init__(self):
         self._mapping = dict()
 
-    def register_automapping_type(self, t: Type, avt: Any):
-        # TODO: better local names
-        self._mapping[t] = avt
+    def register_automapping_type(
+            self, 
+            any_type: Union[Type, Tuple[str, Type]],
+            constructor: Callable[[AllocationValue, List[str], 'Registry'], Type[AllocationValue]]):
+        """Register given type or pair of (key, type) to use given constructor to
+        create corresponding AllocationValue instance."""
+        self._mapping[any_type] = constructor
 
-    def convert_value(self, base_ctx, k, v):
-        # TODO: docstring and better variables names
-        if (k, type(v)) in self._mapping:
-            box_class = self._mapping[(k, type(v))]
-            nv = box_class(v, base_ctx + [k], self)
-        elif type(v) in self._mapping:
-            box_class = self._mapping[type(v)]
-            nv = box_class(v, base_ctx + [k], self)
+    def convert_value(self, base_ctx, key, value):
+        """Convert value found at "key" using given ctx to AllocationValue type
+        by using constructor registered in this registry."""
+
+        type_of_value = type(value)
+
+        if (key, type_of_value) in self._mapping:
+            constructor = self._mapping[(key, type_of_value)]
+            log.log(TRACE, 'registry: found constructor %r, based on type %r and key=%r', 
+                      constructor, type_of_value, key)
+        elif type_of_value in self._mapping:
+            constructor = self._mapping[type_of_value]
+            log.log(TRACE, 'registry: found constructor %r, base on type %r', constructor, type_of_value)
         else:
             raise Exception('cannot convert %r (type=%r under %r key) '
-                            'to AllocationValue using provied mapping=%r' %
-                            (v, type(v), k, self._mapping))
-        return nv
+                            'to AllocationValue using provided mapping=%r' %
+                            (value, type(value), key, self._mapping))
+        allocation_value = constructor(value, base_ctx + [key], self)
+        log.log(TRACE, 'registry: constructor %r used to create: %r', constructor, allocation_value)
+        return allocation_value
 
 
 def _convert_values(d: Dict[str, Any], ctx: List[str], registry) -> Dict[str, AllocationValue]:

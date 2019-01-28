@@ -33,7 +33,7 @@ from owca.detectors import (TasksMeasurements, TasksResources,
                             TasksLabels, convert_anomalies_to_metrics,
                             update_anomalies_metrics_with_task_information
                             )
-from owca.logger import trace
+from owca.logger import trace, TRACE
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
@@ -349,14 +349,17 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
             container = task_id_to_containers[task_id]
             allocation_value = specific_constructor(raw_value, container)
+            log.debug('adapter: specific constructor: %r -> %r', specific_constructor, allocation_value)
             allocation_value = CommonLablesAllocationValue(
                 allocation_value,
                 labels=dict(container_name=container.container_name)
             )
+            log.debug('adapter: common labels constructor: %r', allocation_value)
             allocation_value = ContextualErrorAllocationValue(
                 allocation_value,
                 prefix_message='Invalid allocation type=%r for task=%r' % (allocation_type, task_id)
             )
+            log.debug('adapter: ContextualError constructor: %r', allocation_value)
             return allocation_value
 
         return generic_constructor
@@ -371,25 +374,14 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                                        context_aware_adapter(rdt_allocation_value_constructor))
 
     def share_allocation_value_constructor(normalized_shares, container: Container):
-        return SharesAllocationValue(normalized_shares,
-                                     container.cgroup_path,
-                                     platform.cpus,
-                                     allocation_configuration)
+        return SharesAllocationValue(normalized_shares, container.cgroup)
     registry.register_automapping_type((AllocationType.SHARES, int),
                                        context_aware_adapter(share_allocation_value_constructor))
     registry.register_automapping_type((AllocationType.SHARES, float),
                                        context_aware_adapter(share_allocation_value_constructor))
-    registry.register_automapping_type(('shares', int),
-                                       context_aware_adapter(share_allocation_value_constructor))
-    registry.register_automapping_type(('shares', float),
-                                       context_aware_adapter(share_allocation_value_constructor))
 
     def quota_allocation_value_constructor(normalized_quota, container: Container):
-        return QuotaAllocationValue(normalized_quota,
-                                    container.cgroup_path,
-                                    platform.cpus,
-                                    allocation_configuration)
-
+        return QuotaAllocationValue(normalized_quota, container.cgroup)
     registry.register_automapping_type((AllocationType.QUOTA, float),
                                        context_aware_adapter(quota_allocation_value_constructor))
     registry.register_automapping_type((AllocationType.QUOTA, int),
@@ -438,32 +430,32 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
             log.debug('Anomalies detected: %d', len(anomalies))
 
-            log.debug('current(simple):\n %s', pprint.pformat(current_tasks_allocations))
+            log.debug('current:\n %s', pprint.pformat(current_tasks_allocations))
             current_allocations = convert_to_allocations_values(
                 current_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
-            log.debug('current:\n %s', pprint.pformat(current_allocations))
-            1/0
+            log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
 
+            log.debug('new:\n %s', pprint.pformat(new_tasks_allocations))
             new_allocations = convert_to_allocations_values(
                 new_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
-
-            log.debug('new:\n %s', pprint.pformat(new_allocations))
+            log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))
 
             errors, new_allocations = new_allocations.validate()
             if errors:
                 log.warning('Errors: %s', errors)
 
-            log.debug('new (after validation):\n %s', pprint.pformat(new_tasks_allocations))
+            log.log(TRACE, 'new (after validation):\n %s', pprint.pformat(new_tasks_allocations))
 
             target_allocations, allocations_changeset = new_allocations.calculate_changeset(
                 current_allocations)
 
-            log.debug('allocation_changeset:\n %s', pprint.pformat(allocations_changeset))
+            log.log(TRACE, 'allocation_changeset:\n %s', pprint.pformat(allocations_changeset))
 
             # MAIN function
-            allocations_changeset.perform_allocations()
+            if allocations_changeset:
+                allocations_changeset.perform_allocations()
 
             # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
             anomaly_metrics = convert_anomalies_to_metrics(anomalies)
@@ -481,7 +473,8 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 allocations_metrics,
                 extra_metrics,
                 self.get_allocations_statistics_metrics(new_tasks_allocations,
-                                                        allocate_duration),
+                                                        allocate_duration, 
+                                                        ignored_allocations_count=len(errors)),
             )
             allocations_package.send(common_labels)
 

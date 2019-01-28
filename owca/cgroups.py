@@ -131,29 +131,27 @@ class Cgroup:
 
 class QuotaAllocationValue(BoxedNumeric):
 
-    def __init__(self, normalized_quota: float, cgroup_path, platform_cpus,
-                 allocation_configuration):
+    def __init__(self, normalized_quota: float, cgroup: Cgroup):
         self.normalized_quota = normalized_quota
-        self.cgroup = Cgroup(cgroup_path, platform_cpus, allocation_configuration)
-        super().__init__(value=normalized_quota,
-                         min_value=0,
-                         max_value=platform_cpus
-                         )
+        self.cgroup = cgroup
+        super().__init__(value=normalized_quota, min_value=0, max_value=cgroup.platform_cpus)
 
     def perform_allocations(self):
         self.cgroup.set_normalized_quota(self.value)
 
+    def __repr__(self):
+        return '%s(normalized_quota=%r)'%(self.__class__.__name__, self.normalized_quota)
+
 
 class SharesAllocationValue(BoxedNumeric):
 
-    def __init__(self, normalized_quota: float, cgroup_path, platform_cpus,
-                 allocation_configuration):
-        self.normalized_quota = normalized_quota
-        self.cgroup = Cgroup(cgroup_path, platform_cpus, allocation_configuration)
-        super().__init__(value=normalized_quota,
-                         min_value=0,
-                         max_value=allocation_configuration
-                         )
+    def __init__(self, normalized_shares: float, cgroup: Cgroup):
+        self.normalized_shares = normalized_shares
+        self.cgroup = cgroup
+        super().__init__(value=normalized_shares, min_value=0)
 
     def perform_allocations(self):
         self.cgroup.set_normalized_shares(self.value)
+
+    def __repr__(self):
+        return '%s(normalized_shares=%r)'%(self.__class__.__name__, self.normalized_shares)

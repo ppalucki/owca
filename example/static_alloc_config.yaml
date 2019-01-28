@@ -1,17 +1,17 @@
 - name: first rule
   allocations:
     cpu_shares: 2.5
-    cpu_quota: 0.1 
-    rdt:
-        name: ''
-        l3: 'L3:0=00fff;1=00fff'
+    # cpu_quota: 0.1 
+    # rdt:
+    #     name: ''
+    #     l3: 'L3:0=00fff;1=00fff'
 
-- name: not for first task
-  labels:
-    job_uniq_id: '0'
-  allocations:
-    cpu_shares: 0.5
-    cpu_quota: 1.
-    rdt:
-        name: 'be'
-        l3: 'L3:0=00002;1=00002'
+# - name: not for first task
+#   labels:
+#     job_uniq_id: '0'
+#   allocations:
+#     cpu_shares: 0.5
+#     cpu_quota: 1.
+#     rdt:
+#         name: 'be'
+#         l3: 'L3:0=00002;1=00002'
