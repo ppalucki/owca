@@ -55,10 +55,14 @@ class AllocationValue(ABC):
         ...
 
 
+
 class AllocationValueDelegator(AllocationValue):
 
     def __init__(self, allocation_value):
         self.allocation_value: AllocationValue = allocation_value
+
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.allocation_value)
 
     def validate(self) -> Tuple[List[str], AllocationValue]:
         return self.allocation_value.validate()
@@ -73,13 +77,14 @@ class AllocationValueDelegator(AllocationValue):
         return self.allocation_value.generate_metrics()
 
     def unwrap(self):
-        return self.allocation_value.unwrap()
+        return self.allocation_value
 
 
 class ContextualErrorAllocationValue(AllocationValueDelegator):
     """Prefixes errors messages with given string."""
 
     def __init__(self, allocation_value: AllocationValue, prefix_message: str):
+        assert isinstance(allocation_value, AllocationValue)
         super().__init__(allocation_value)
         self.prefix_message = prefix_message
 
@@ -120,7 +125,7 @@ class Registry:
     def __init__(self):
         self._mapping = dict()
 
-    def register_automapping_type(self, t: Type, avt: Type[AllocationValue]):
+    def register_automapping_type(self, t: Type, avt: Any):
         # TODO: better local names
         self._mapping[t] = avt
 
@@ -198,6 +203,9 @@ class AllocationsDict(dict, AllocationValue):
                 assert isinstance(current_value, AllocationValue)
                 # Both exists - recurse
                 target_value, value_changeset = new_value.calculate_changeset(current_value)
+                assert isinstance(target_value, AllocationValue)
+                assert isinstance(value_changeset, (type(None), AllocationValue)), \
+                    'expected AllocationValue got %r' % value_changeset
                 target[key] = target_value
                 if value_changeset is not None:
                     changeset[key] = value_changeset
@@ -216,7 +224,7 @@ class AllocationsDict(dict, AllocationValue):
 
     def perform_allocations(self):
         for value in self.values():
-            value.write_schemata()
+            value.perform_allocations()
 
     def validate(self) -> Tuple[List[str], 'AllocationsDict']:
         errors = []
@@ -288,13 +296,23 @@ class BoxedNumeric(AllocationValue):
             -> Tuple['BoxedNumeric', Optional['BoxedNumeric']]:
         """Assuming self is "new value" return target and changeset. """
 
+
         # Float and integered based change detection.
         if current_value is None:
             # There is no old value, so there is a change
             value_changed = True
         else:
+            unwrapped_current_value = current_value
+            depth = 0
+            while not isinstance(unwrapped_current_value, BoxedNumeric):
+                depth += 1
+                unwrapped_current_value = unwrapped_current_value.unwrap()
+                if depth > 5:
+                    raise Exception('cannot unwrap %r looking for BoxNumeric',
+                                    unwrapped_current_value)
+
             # If we have old value compare them.
-            value_changed = (self != current_value)
+            value_changed = (self != unwrapped_current_value)
 
         if value_changed:
             # For floats merge is simple, is value is change, the
@@ -307,7 +325,7 @@ class BoxedNumeric(AllocationValue):
             return current_value, None
 
     def perform_allocations(self):
-        raise NotImplementedError()
+        raise NotImplementedError('tried to execute perform_allocations on numeric value %r' % self)
 
     def unwrap(self):
         return self.value

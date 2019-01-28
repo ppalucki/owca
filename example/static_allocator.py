@@ -132,7 +132,7 @@ class StaticAllocator(Allocator):
                 registry = create_default_registry()
                 registry.register_automapping_type(
                     RDTAllocation,
-                    lambda v, ctx, _: RDTAllocationValue(v, None, None, 0, False, '', '')
+                    lambda v, ctx, _: RDTAllocationValue('', v, None, None, 0, False, '', '')
                 )
                 new_tasks_allocations_values, this_rule_allocations_value_changeset = \
                     AllocationsDict(new_tasks_allocations, registry=registry).calculate_changeset(

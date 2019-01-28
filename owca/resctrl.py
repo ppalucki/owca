@@ -237,6 +237,9 @@ class RDTAllocationValue(AllocationValue):
 
     source_resgroup: Optional[ResGroup] = None  # if not none try to _cleanup it at the end
 
+    def __post_init__(self):
+        assert isinstance(self.rdt_allocation, RDTAllocation), 'type error on %r' % self
+
     def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None,
               container_name: str = None):
         return RDTAllocationValue(
@@ -320,8 +323,15 @@ class RDTAllocationValue(AllocationValue):
                 it from default root group.
 
         current cannot have empty name in rdt_allocation.name !!!!
-
         """
+        assert isinstance(current, (type(None), AllocationValue)), 'type error on current=%r ' % current
+
+        if current is not None:
+            while not isinstance(current, RDTAllocationValue):
+                log.debug('unwrapping: got current %r', current)
+                current = current.unwrap()
+
+        assert isinstance(current, (type(None), RDTAllocationValue)), 'type error on current=%r ' % current
 
         # Any rdt_allocation that comes with current have to have rdt_allocation.name set)
         assert current is None or (current.rdt_allocation is not None)
@@ -378,7 +388,7 @@ class RDTAllocationValue(AllocationValue):
             else:
                 return target, None
 
-    def validate(self) -> List[str]:
+    def validate(self) -> Tuple[List[str], Optional['RDTAllocationValue']]:
         errors = []
         # Check l3 mask according provided platform.rdt
         if self.rdt_allocation.l3:
@@ -398,7 +408,10 @@ class RDTAllocationValue(AllocationValue):
                                    self.rdt_min_cbm_bits)
             except ValueError as e:
                 errors.append('Invalid l3 cache config(%r): %s' % (self.rdt_allocation.l3, e))
-        return errors
+        if errors:
+            return errors, None
+        else:
+            return [], self
 
     def perform_allocations(self):
         """

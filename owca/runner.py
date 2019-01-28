@@ -14,6 +14,7 @@
 
 
 import logging
+import pprint
 import time
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Tuple
@@ -24,7 +25,7 @@ from owca import detectors, nodes
 from owca import platforms
 from owca import storage
 from owca.allocations import AllocationsDict, create_default_registry, \
-    CommonLablesAllocationValue, ContextualErrorAllocationValue, InvalidAllocationValue
+    CommonLablesAllocationValue, ContextualErrorAllocationValue, InvalidAllocationValue, Registry
 from owca.allocators import Allocator, TasksAllocations, AllocationConfiguration, AllocationType
 from owca.cgroups import QuotaAllocationValue, SharesAllocationValue
 from owca.containers import ContainerManager, Container
@@ -328,7 +329,8 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
     Simple tasks allocations objects are augumented using runner and container manager
     context to implement their resposiblities.
     """
-    registry = create_default_registry()
+    registry = Registry()
+    registry.register_automapping_type(dict, AllocationsDict)
     task_id_to_containers = {task.task_id: container for task, container in containers.items()}
 
     def context_aware_adapter(specific_constructor):
@@ -340,7 +342,8 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                 return InvalidAllocationValue(raw_value, 'task_id %r not found (ctx=%r)' % (
                                                   task_id, ctx))
 
-            if allocation_type not in AllocationType:
+            if allocation_type not in (AllocationType.QUOTA,
+                                       AllocationType.SHARES, AllocationType.RDT):
                 return InvalidAllocationValue(raw_value, 'unknown allocation type %r (ctx=%r)' % (
                                                   allocation_type, ctx))
 
@@ -358,35 +361,39 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
         return generic_constructor
 
-    def rdt_allocation_value_constructor(rdt_allocation, container):
-        return RDTAllocationValue(container.name,
+    def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation, container: Container):
+        return RDTAllocationValue(container.container_name,
                                   rdt_allocation, container.resgroup, container.cgroup,
                                   platform.sockets, platform.rdt_mb_control_enabled,
                                   platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
                                   )
+    registry.register_automapping_type((AllocationType.RDT, RDTAllocation),
+                                       context_aware_adapter(rdt_allocation_value_constructor))
 
-    def share_allocation_value_constructor(normalized_shares, container):
+    def share_allocation_value_constructor(normalized_shares, container: Container):
         return SharesAllocationValue(normalized_shares,
                                      container.cgroup_path,
                                      platform.cpus,
                                      allocation_configuration)
+    registry.register_automapping_type((AllocationType.SHARES, int),
+                                       context_aware_adapter(share_allocation_value_constructor))
+    registry.register_automapping_type((AllocationType.SHARES, float),
+                                       context_aware_adapter(share_allocation_value_constructor))
+    registry.register_automapping_type(('shares', int),
+                                       context_aware_adapter(share_allocation_value_constructor))
+    registry.register_automapping_type(('shares', float),
+                                       context_aware_adapter(share_allocation_value_constructor))
 
-    def quota_allocation_value_constructor(normalized_quota, container):
+    def quota_allocation_value_constructor(normalized_quota, container: Container):
         return QuotaAllocationValue(normalized_quota,
                                     container.cgroup_path,
                                     platform.cpus,
                                     allocation_configuration)
 
-    registry.register_automapping_type(('rdt', RDTAllocation),
-                                       context_aware_adapter(rdt_allocation_value_constructor))
-    registry.register_automapping_type(('shares', int),
+    registry.register_automapping_type((AllocationType.QUOTA, float),
                                        context_aware_adapter(quota_allocation_value_constructor))
-    registry.register_automapping_type(('quota', float),
-                                       context_aware_adapter(rdt_allocation_value_constructor))
-    registry.register_automapping_type(('shares', int),
-                                       context_aware_adapter(share_allocation_value_constructor))
-    registry.register_automapping_type(('quota', float),
-                                       context_aware_adapter(rdt_allocation_value_constructor))
+    registry.register_automapping_type((AllocationType.QUOTA, int),
+                                       context_aware_adapter(quota_allocation_value_constructor))
 
     return AllocationsDict(tasks_allocations, None, registry=registry)
 
@@ -431,19 +438,29 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
             log.debug('Anomalies detected: %d', len(anomalies))
 
-            current_allocations_values = convert_to_allocations_values(
+            log.debug('current(simple):\n %s', pprint.pformat(current_tasks_allocations))
+            current_allocations = convert_to_allocations_values(
                 current_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
-            new_allocations_values = convert_to_allocations_values(
+            log.debug('current:\n %s', pprint.pformat(current_allocations))
+            1/0
+
+            new_allocations = convert_to_allocations_values(
                 new_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
 
-            errors, new_allocations_values = new_allocations_values.validate()
-            if errors:
-                log.warning('Errors:', errors)
+            log.debug('new:\n %s', pprint.pformat(new_allocations))
 
-            target_allocations, allocations_changeset = new_allocations_values.calculate_changeset(
-                current_allocations_values)
+            errors, new_allocations = new_allocations.validate()
+            if errors:
+                log.warning('Errors: %s', errors)
+
+            log.debug('new (after validation):\n %s', pprint.pformat(new_tasks_allocations))
+
+            target_allocations, allocations_changeset = new_allocations.calculate_changeset(
+                current_allocations)
+
+            log.debug('allocation_changeset:\n %s', pprint.pformat(allocations_changeset))
 
             # MAIN function
             allocations_changeset.perform_allocations()
