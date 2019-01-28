@@ -167,12 +167,11 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
     # Merge
     got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
     got_target_dict_simple = got_target_dict.unwrap_recurisve(_unwrap_to_simple)
-    # got_target_dict_simple = got_target_dict.unwrap()
 
     assert got_target_dict_simple == expected_target
 
-    # got_changeset = got_changeset_dict.unwrap() if got_changeset_dict is not None else None
-    # assert got_changeset == expected_changeset
+    got_changeset = got_changeset_dict.unwrap_recurisve(_unwrap_to_simple) if got_changeset_dict is not None else None
+    assert got_changeset == expected_changeset
 
 
 @pytest.mark.parametrize('rdt_allocation, expected_metrics', (
