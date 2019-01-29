@@ -14,7 +14,7 @@ from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
 from owca.platforms import Platform
-from owca.resctrl import RDTAllocation, RDTAllocationValue
+from owca.resctrl import RDTAllocation, RDTAllocationValue, ResGroup
 
 log = logging.getLogger(__name__)
 
@@ -30,9 +30,7 @@ class StaticAllocator(Allocator):
     - allocations
 
     if there is not labels or any label match to task labels, then allocations are exectuted.
-    If there is multiple matching rules all allocations are merged using
-    _calculate_task_allocations_changeset.
-
+    If there is multiple matching rules all allocations are merged.
     """
 
     config: str
@@ -130,13 +128,18 @@ class StaticAllocator(Allocator):
                     this_rule_tasks_allocations[match_task_id] = new_task_allocations
 
                 registry = create_default_registry()
-                registry.register_automapping_type(
-                    RDTAllocation,
-                    lambda v, ctx, _: RDTAllocationValue('', v, None, None, 0, False, '', '')
-                )
-                new_tasks_allocations_values, this_rule_allocations_value_changeset = \
+
+                def dummy_construsctor(v, ctx, registry):
+                    resgroup = ResGroup(name='some')
+                    return RDTAllocationValue('some', v, resgroup, None, 0, False, '', '')
+
+                registry.register_automapping_type(RDTAllocation, dummy_construsctor)
+                new_tasks_allocations_values, this_rule_allocations_value_changeset, errors = \
                     AllocationsDict(new_tasks_allocations, registry=registry).calculate_changeset(
                         AllocationsDict(this_rule_tasks_allocations, registry=registry), )
+
+                if errors:
+                    log.warning('There are some errors in rules: %s', errors)
 
                 log.debug('StaticAllocator(%s): new tasks allocations values: \n %s',
                           rule_idx,

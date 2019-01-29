@@ -227,7 +227,8 @@ class AllocationsDict(dict, AllocationValue):
         # Itnialize self as a dict with already converted values.
         dict.__init__(self, nd)
 
-    def calculate_changeset(self, current):
+    def calculate_changeset(self, current) \
+            -> Tuple[AllocationValue, Optional[AllocationValue], List[str]]:
         assert isinstance(current, AllocationsDict)
 
         target = AllocationsDict(current)

@@ -238,12 +238,11 @@ class RDTAllocationValue(AllocationValue):
 
     source_resgroup: Optional[ResGroup] = None  # if not none try to _cleanup it at the end
 
-    def __repr__(self):
-        return ('RDTAllocationValue(rdt_allocation=%r, %s->%s)' % (
-                self.rdt_allocation, self.resgroup, self.source_resgroup))
-
     def __post_init__(self):
         assert isinstance(self.rdt_allocation, RDTAllocation), 'type error on %r' % self
+
+    def __repr__(self):
+        return 'RDTAllocationValue(rdt_allocation=%r)' % self.rdt_allocation
 
     def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None,
               container_name: str = None, resgroup=None):

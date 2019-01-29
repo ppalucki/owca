@@ -78,6 +78,7 @@ class BaseRunnerMixin:
         self.anomaly_last_occurence = None
         self.anomaly_counter = 0
         self.allocations_counter = 0
+        self.allocations_errors = 0
         self.rdt_enabled = rdt_enabled  # as mixin it can override the value from base class
         self.rdt_mb_control_enabled = rdt_mb_control_enabled
         self.allocation_configuration = allocation_configuration
@@ -158,14 +159,17 @@ class BaseRunnerMixin:
         return statistics_metrics
 
     def get_allocations_statistics_metrics(self, tasks_allocations,
-                                           allocation_duration, ignored_allocations_count: int):
+                                           allocation_duration, allocations_errors):
         """Extra external plugin allocaton statistics."""
         if len(tasks_allocations):
             self.allocations_counter += len(tasks_allocations)
+            self.allocations_errors += len(allocations_errors)
 
         statistics_metrics = [
             Metric(name='allocations_count', type=MetricType.COUNTER,
                    value=self.allocations_counter),
+            Metric(name='allocations_errors', type=MetricType.COUNTER,
+                   value=self.allocations_errors),
         ]
 
         if allocation_duration is not None:
@@ -445,14 +449,17 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 new_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
 
-            errors, new_allocations = new_allocations.validate()
-            if errors:
-                log.warning('Errors: %s', errors)
+            validation_errors, new_allocations = new_allocations.validate()
+            if validation_errors:
+                log.warning('Validation errors: %s', validation_errors)
 
             log.log(TRACE, 'new (after validation):\n %s', pprint.pformat(new_allocations))
 
-            target_allocations, allocations_changeset = new_allocations.calculate_changeset(
-                current_allocations)
+            target_allocations, allocations_changeset, calculating_errors = \
+                new_allocations.calculate_changeset(current_allocations)
+
+            if calculating_errors:
+                log.warning('Calculating changeset errors: %s', calculating_errors)
 
             log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
             log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))
@@ -476,12 +483,13 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             # Store allocations information
             allocations_metrics = target_allocations.generate_metrics()
             allocations_package = MetricPackage(self.allocations_storage)
+
+            allocations_statistic_metrics = self.get_allocations_statistics_metrics(
+                new_tasks_allocations, allocate_duration, calculating_errors+validation_errors)
             allocations_package.add_metrics(
                 allocations_metrics,
                 extra_metrics,
-                self.get_allocations_statistics_metrics(new_tasks_allocations,
-                                                        allocate_duration,
-                                                        ignored_allocations_count=len(errors)),
+                allocations_statistic_metrics,
             )
             allocations_package.send(common_labels)
 
