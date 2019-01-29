@@ -59,7 +59,7 @@ class AllocationValue(ABC):
         return unwrap_function(self.unwrap())
 
 
-def _unwrap_to_simple(value: Any) -> Any:
+def unwrap_to_simple(value: Any) -> Any:
     while isinstance(value, AllocationValue):
         value = value.unwrap()
     return value

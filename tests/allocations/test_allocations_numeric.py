@@ -14,7 +14,7 @@
 
 import pytest
 
-from owca.allocations import AllocationsDict, BoxedNumeric, _unwrap_to_simple
+from owca.allocations import AllocationsDict, BoxedNumeric, unwrap_to_simple
 
 
 ############################################################################
@@ -72,7 +72,7 @@ def test_boxed_numeric_calculated_changeset(current, new, expected_target, expec
      {'x': {'y': 5}}),
 ])
 def test_unwrap_simple(allocation_value, expected_object):
-    got_object = allocation_value.unwrap_recurisve(_unwrap_to_simple)
+    got_object = allocation_value.unwrap_recurisve(unwrap_to_simple)
     assert got_object == expected_object
 
 

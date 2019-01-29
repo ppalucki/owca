@@ -18,7 +18,7 @@ import pytest
 
 from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, \
     create_default_registry, _convert_values, CommonLablesAllocationValue, \
-    ContextualErrorAllocationValue, InvalidAllocationValue, _unwrap_to_simple, \
+    ContextualErrorAllocationValue, InvalidAllocationValue, unwrap_to_simple, \
     unwrap_to_leaf
 from owca.testing import allocation_metric
 
@@ -72,7 +72,7 @@ def test_allocations_dict_custom_mapping():
      {'x': {'y': 5}}),
 ])
 def test_unwrap_simple(allocation_value, expected_object):
-    got_object = allocation_value.unwrap_recurisve(_unwrap_to_simple)
+    got_object = allocation_value.unwrap_recurisve(unwrap_to_simple)
     assert got_object == expected_object
 
 
@@ -135,11 +135,11 @@ def test_allocations_dict_merging(current, new,
     got_target_dict, got_changeset_dict, errors = new_dict.calculate_changeset(current_dict)
     assert not errors
 
-    got_target = got_target_dict.unwrap_recurisve(_unwrap_to_simple)
+    got_target = got_target_dict.unwrap_recurisve(unwrap_to_simple)
 
     assert got_target == expected_target
     got_changeset = got_changeset_dict.unwrap_recurisve(
-        _unwrap_to_simple) if got_changeset_dict is not None else None
+        unwrap_to_simple) if got_changeset_dict is not None else None
     assert got_changeset == expected_changeset
 
 
