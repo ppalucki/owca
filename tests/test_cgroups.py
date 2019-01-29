@@ -69,7 +69,7 @@ def test_get_normalized_quota():
     '/sys/fs/cgroup/cpu/foo2/tasks': '',
 }))
 def test_cgroup_get_pids():
-    assert Cgroup('/some/foo1', platform_cpus=1).get_pids() == [101, 102]
+    assert Cgroup('/some/foo1', platform_cpus=1).get_pids() == ['101', '102']
     assert Cgroup('/foo2', platform_cpus=1).get_pids() == []
 
 

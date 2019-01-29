@@ -17,14 +17,16 @@
 import errno
 import logging
 import os
+import pprint
 from typing import Tuple, List, Optional, Dict
 
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocations import AllocationValue, _unwrap_to_leaf
+from owca.allocations import AllocationValue, unwrap_to_leaf
 from owca.allocators import AllocationType, TaskAllocations
 from owca.cgroups import Cgroup
+from owca.logger import TRACE
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
 
@@ -237,16 +239,19 @@ class RDTAllocationValue(AllocationValue):
 
     source_resgroup: Optional[ResGroup] = None  # if not none try to _cleanup it at the end
 
+    def __repr__(self):
+        return 'RDTAllocationValue(rdt_allocation=%r, %s->%s)' % (self.rdt_allocation, self.resgroup, self.source_resgroup)
+
     def __post_init__(self):
         assert isinstance(self.rdt_allocation, RDTAllocation), 'type error on %r' % self
 
     def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None,
-              container_name: str = None):
+              container_name: str = None, resgroup=None):
         return RDTAllocationValue(
             container_name=container_name or self.container_name,
             rdt_allocation=rdt_allocation,
             cgroup=self.cgroup,
-            resgroup=self.resgroup,
+            resgroup=resgroup if resgroup is not None else self.resgroup,
             platform_sockets=self.platform_sockets,
             rdt_mb_control_enabled=self.rdt_mb_control_enabled,
             rdt_cbm_mask=self.rdt_cbm_mask,
@@ -312,9 +317,7 @@ class RDTAllocationValue(AllocationValue):
         return self.rdt_allocation.name if self.rdt_allocation.name is not None \
             else self.container_name
 
-    def calculate_changeset(self: 'RDTAllocationValue',
-                            current: Optional['RDTAllocationValue']) -> \
-            Tuple['RDTAllocationValue', Optional['RDTAllocationValue']]:
+    def calculate_changeset(self, current):
         """Merge with existing RDTAllocation objects and return
         sum of the allocations (target_rdt_allocation)
         and allocations that need to be updated (rdt_allocation_changeset).
@@ -327,7 +330,7 @@ class RDTAllocationValue(AllocationValue):
         assert isinstance(current, (type(None), AllocationValue)), 'type error on current=%r ' % current
 
         if current is not None:
-            current = _unwrap_to_leaf(current)
+            current = unwrap_to_leaf(current)
 
         assert isinstance(current, (type(None), RDTAllocationValue)), 'type error on current=%r ' % current
 
@@ -335,22 +338,28 @@ class RDTAllocationValue(AllocationValue):
         assert current is None or (current.rdt_allocation is not None)
 
         new: RDTAllocationValue = self
+        new_group_name = new.get_resgroup_name()
+
         # new name, then new allocation will be used (overwrite) but no merge
         if current is None:
             # New tasks or is moved from root group.
-            log.debug('new name or no previous allocation exists (moving from root group!)')
+            log.debug('resctrl changeset: new name or no previous allocation exists (moving from root group!)')
             return new, new._copy(new.rdt_allocation,
-                                  source_resgroup=ResGroup(name=''))
+                                  resgroup=ResGroup(name=new_group_name),
+                                  source_resgroup=ResGroup(name='')), []
 
         current_group_name = current.get_resgroup_name()
-        new_group_name = new.get_resgroup_name()
 
         if current_group_name != new_group_name:
             # We need to move to another group.
+            log.debug('resctrl changeset: move to new group=%r from=%r',
+                      new.resgroup.name, current.get_resgroup_name())
             return new, new._copy(new.rdt_allocation,
-                                  source_resgroup=ResGroup(name=current.get_resgroup_name()))
+                                  resgroup=ResGroup(name=new_group_name),
+                                  source_resgroup=ResGroup(name=current.get_resgroup_name())), []
         else:
-            log.debug('merging existing rdt allocation (the same resgroup name)')
+            errors = []
+            log.debug('resctrl changeset: merging existing rdt allocation (the same resgroup name)')
 
             # Prepare target first, overwrite current l3 & mb values with new
             target_rdt_allocation = RDTAllocation(
@@ -382,9 +391,9 @@ class RDTAllocationValue(AllocationValue):
                     mb=new_mb,
                 )
                 changeset = current._copy(rdt_allocation_changeset)
-                return target, changeset
+                return target, changeset, errors
             else:
-                return target, None
+                return target, None, errors
 
     def validate(self) -> Tuple[List[str], Optional['RDTAllocationValue']]:
         errors = []
@@ -420,16 +429,19 @@ class RDTAllocationValue(AllocationValue):
         """
         # move to approriate group first
         if self.source_resgroup is not None:
+            log.debug('resctrl: perform_allocations moving to new group (%s -> %s)',
+                      self.source_resgroup.name, self.resgroup.name)
 
             # three cases (to root, from root, or between new resgroups)
             self.resgroup.add_pids(pids=self.cgroup.get_pids(),
                                    mongroup_name=self.container_name)
 
-            if len(self.source_resgroup.get_mon_groups()) == 0:
+            if len(self.source_resgroup.get_mon_groups()) == 1:
                 self.source_resgroup.remove(self.container_name)
 
         # now update the schema
         if self.rdt_allocation.l3 or self.rdt_allocation.mb:
+            log.debug('resctrl: perform_allocations update schemata in %s', self.resgroup.name)
             self.resgroup.write_schemata(
                 l3=self.rdt_allocation.l3,
                 mb=self.rdt_allocation.mb
@@ -545,23 +557,21 @@ def read_mon_groups_relation() -> Dict[str, List[str]]:
     Root control group has '' name (empty string).
     """
 
-    def list_mon_groups(mon_dir) -> List[str]:
-        return [entry for entry in os.listdir(mon_dir)]
 
     relation = dict()
     # root ctrl group mon dirs
     root_mon_group_dir = os.path.join(BASE_RESCTRL_PATH, MON_GROUPS)
     assert os.path.isdir(root_mon_group_dir)
-    root_mon_groups = list_mon_groups(root_mon_group_dir)
-    print(root_mon_groups)
+    root_mon_groups = os.listdir(root_mon_group_dir)
     relation[''] = root_mon_groups
+
     ctrl_group_names = os.listdir(BASE_RESCTRL_PATH)
     for ctrl_group_name in ctrl_group_names:
         ctrl_group_dir = os.path.join(BASE_RESCTRL_PATH, ctrl_group_name)
         if os.path.isdir(ctrl_group_dir):
             mon_group_dir = os.path.join(ctrl_group_dir, MON_GROUPS)
             if os.path.isdir(mon_group_dir):
-                relation[ctrl_group_name] = list_mon_groups(mon_group_dir)
+                relation[ctrl_group_name] = os.listdir(mon_group_dir)
     return relation
 
 
@@ -580,14 +590,17 @@ def clean_taskless_groups(mon_groups_relation: Dict[str, List[str]]):
                     mon_groups_to_remove.append(mon_group_dir)
 
             if mon_groups_to_remove:
+                log.debug('mon_groups_to_remove: %r', mon_groups_to_remove)
 
                 # For ech non root group, drop just ctrl group if all mon groups are empty
                 if ctrl_group != '' and \
                         len(mon_groups_to_remove) == len(mon_groups_relation[ctrl_group]):
+                    log.log(TRACE, 'rmdir(%r)', ctrl_group_dir)
                     os.rmdir(ctrl_group_dir)
                 else:
                     for mon_group_to_remove in mon_groups_to_remove:
                         os.rmdir(mon_group_to_remove)
+                        log.log(TRACE, 'rmdir(%r)', mon_group_to_remove)
 
 
 #

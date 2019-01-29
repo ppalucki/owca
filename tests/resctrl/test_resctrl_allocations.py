@@ -118,8 +118,9 @@ def test_rdt_allocations_changeset(
     current_value = convert(current)
     new_value = convert(new)
 
-    got_target_value, got_changeset_value = \
+    got_target_value, got_changeset_value, errors = \
         new_value.calculate_changeset(current_value)
+    assert not errors
     got_rdt_alloction_changeset = got_changeset_value.unwrap() if got_changeset_value else None
     got_target_value = got_target_value.unwrap()
 
@@ -166,7 +167,8 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
     new_dict = convert_dict(new)
 
     # Merge
-    got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
+    got_target_dict, got_changeset_dict, errors = new_dict.calculate_changeset(current_dict)
+    assert not errors
     got_target_dict_simple = got_target_dict.unwrap_recurisve(_unwrap_to_simple)
 
     assert got_target_dict_simple == expected_target

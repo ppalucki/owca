@@ -120,9 +120,9 @@ class Cgroup:
            AllocationType.SHARES: self._get_normalized_shares(),
         }
 
-    def get_pids(self) -> List[int]:
+    def get_pids(self) -> List[str]:
         with open(os.path.join(self.cgroup_fullpath, TASKS)) as f:
-            return list(map(int, f.read().splitlines()))
+            return list(f.read().splitlines())
 
 
 #
@@ -135,6 +135,12 @@ class QuotaAllocationValue(BoxedNumeric):
         self.normalized_quota = normalized_quota
         self.cgroup = cgroup
         super().__init__(value=normalized_quota, min_value=0, max_value=cgroup.platform_cpus)
+
+    def generate_metrics(self):
+        metrics = super().generate_metrics()
+        for metric in metrics:
+            metric.labels.update(allocation_type=AllocationType.QUOTA)
+        return metrics
 
     def perform_allocations(self):
         self.cgroup.set_normalized_quota(self.value)
@@ -149,6 +155,12 @@ class SharesAllocationValue(BoxedNumeric):
         self.normalized_shares = normalized_shares
         self.cgroup = cgroup
         super().__init__(value=normalized_shares, min_value=0)
+
+    def generate_metrics(self):
+        metrics = super().generate_metrics()
+        for metric in metrics:
+            metric.labels.update(allocation_type=AllocationType.SHARES)
+        return metrics
 
     def perform_allocations(self):
         self.cgroup.set_normalized_shares(self.value)

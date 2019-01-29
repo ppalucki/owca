@@ -26,7 +26,7 @@ class AllocationValue(ABC):
 
     @abstractmethod
     def calculate_changeset(self, current: 'AllocationValue') -> Tuple[
-            'AllocationValue', Optional['AllocationValue']]:
+            'AllocationValue', Optional['AllocationValue'], List[str]]:
         # TODO: docstiring for calculate_changeset
         ...
 
@@ -59,6 +59,21 @@ class AllocationValue(ABC):
         return unwrap_function(self.unwrap())
 
 
+def _unwrap_to_simple(value: Any) -> Any:
+    while isinstance(value, AllocationValue):
+        value = value.unwrap()
+    return value
+
+def unwrap_to_leaf(value: AllocationValue) -> AllocationValue:
+    assert isinstance(value, AllocationValue)
+
+    while True:
+        new_value = value.unwrap()
+        if not isinstance(new_value, AllocationValue):
+            return value
+        else:
+            value = new_value
+
 
 class AllocationValueDelegator(AllocationValue):
 
@@ -68,14 +83,21 @@ class AllocationValueDelegator(AllocationValue):
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.allocation_value)
 
+    def _recreate_me(self, allocation_value):
+        raise NotImplementedError
+
     def validate(self) -> Tuple[List[str], AllocationValue]:
-        return self.allocation_value.validate()
+        errors, new_value = self.allocation_value.validate()
+        return errors, self._recreate_me(new_value) if new_value is not None else None
 
     def perform_allocations(self):
         self.allocation_value.perform_allocations()
 
     def calculate_changeset(self, current):
-        return self.allocation_value.calculate_changeset(current)
+        target, changeset, errors = self.allocation_value.calculate_changeset(current)
+        wrapped_target = self._recreate_me(target)
+        wrapped_changeset = self._recreate_me(changeset) if changeset is not None else None
+        return wrapped_target, wrapped_changeset, errors
 
     def generate_metrics(self):
         return self.allocation_value.generate_metrics()
@@ -92,8 +114,11 @@ class ContextualErrorAllocationValue(AllocationValueDelegator):
         super().__init__(allocation_value)
         self.prefix_message = prefix_message
 
+    def _recreate_me(self, allocation_value):
+        return ContextualErrorAllocationValue(allocation_value, self.prefix_message)
+
     def validate(self) -> Tuple[List[str], AllocationValue]:
-        errors, new_value = self.allocation_value.validate()
+        errors, new_value = super().validate()
         prefixed_errors = ['%s%s' % (self.prefix_message, error) for error in errors]
         return prefixed_errors, new_value
 
@@ -104,6 +129,9 @@ class InvalidAllocationValue(AllocationValueDelegator):
     def __init__(self, allocation_value, error_message):
         super().__init__(allocation_value)
         self.error_message = error_message
+
+    def _recreate_me(self, allocation_value):
+        return InvalidAllocationValue(allocation_value, self.error_message)
 
     def validate(self):
         return [self.error_message], None
@@ -116,8 +144,11 @@ class CommonLablesAllocationValue(AllocationValueDelegator):
         super().__init__(allocation_value)
         self.common_labels = common_labels
 
+    def _recreate_me(self, allocation_value):
+        return CommonLablesAllocationValue(allocation_value, **self.common_labels)
+
     def generate_metrics(self):
-        metrics = self.allocation_value.generate_metrics()
+        metrics = super().generate_metrics()
         for metric in metrics:
             metric.labels.update(**self.common_labels)
         return metrics
@@ -196,12 +227,12 @@ class AllocationsDict(dict, AllocationValue):
         # Itnialize self as a dict with already converted values.
         dict.__init__(self, nd)
 
-    def calculate_changeset(self, current: 'AllocationsDict') -> Tuple['AllocationsDict',
-                                                                       Optional['AllocationsDict']]:
+    def calculate_changeset(self, current):
         assert isinstance(current, AllocationsDict)
 
         target = AllocationsDict(current)
         changeset = AllocationsDict({})
+        errors = []
 
         for key, new_value in self.items():
 
@@ -218,7 +249,9 @@ class AllocationsDict(dict, AllocationValue):
             else:
                 assert isinstance(current_value, AllocationValue)
                 # Both exists - recurse
-                target_value, value_changeset = new_value.calculate_changeset(current_value)
+                target_value, value_changeset, _errors = new_value.calculate_changeset(
+                    current_value)
+                errors.extend(_errors)
                 assert isinstance(target_value, AllocationValue)
                 assert isinstance(value_changeset, (type(None), AllocationValue)), \
                     'expected AllocationValue got %r' % value_changeset
@@ -230,7 +263,7 @@ class AllocationsDict(dict, AllocationValue):
         if not changeset:
             changeset = None
 
-        return target, changeset
+        return target, changeset, errors
 
     def generate_metrics(self):
         metrics = []
@@ -267,20 +300,6 @@ class AllocationsDict(dict, AllocationValue):
         return d
 
 
-def _unwrap_to_simple(value: Any) -> Any:
-    while isinstance(value, AllocationValue):
-        value = value.unwrap()
-    return value
-
-def _unwrap_to_leaf(value: AllocationValue) -> AllocationValue:
-    assert isinstance(value, AllocationValue)
-
-    while True:
-        new_value = value.unwrap()
-        if not isinstance(new_value, AllocationValue):
-            return value
-        else:
-            value = new_value
 
 class BoxedNumeric(AllocationValue):
     """ Wraps floats and ints.
@@ -298,7 +317,7 @@ class BoxedNumeric(AllocationValue):
                  max_value: Optional[Union[int, float]] = None,
                  float_value_change_sensitivity=FLOAT_VALUES_CHANGE_DETECTION,
                  ):
-        assert isinstance(value, (float, int))
+        # assert isinstance(value, (float, int))
         self.value = value
         self.float_value_change_sensitivity = float_value_change_sensitivity
         self.min_value = min_value if min_value is not None else -math.inf
@@ -307,9 +326,10 @@ class BoxedNumeric(AllocationValue):
     def __repr__(self):
         return 'BoxedNumeric(%r)' % self.value
 
-    def __eq__(self, other: AllocationValue):
-        other_value: Union[float, int] = _unwrap_to_simple(other)
-        return math.isclose(self.value, other_value,
+    def __eq__(self, other: 'BoxedNumeric'):
+        assert isinstance(other, BoxedNumeric), 'expected BoxedNumeric instance got %r(%s)' % (
+            other, type(other))
+        return math.isclose(self.value, other.value,
                             rel_tol=self.float_value_change_sensitivity)
 
     def generate_metrics(self) -> List[Metric]:
@@ -329,28 +349,31 @@ class BoxedNumeric(AllocationValue):
             return errors, None
         return [], self
 
-    def calculate_changeset(self, current_value: Optional[AllocationValue]) \
-            -> Tuple[AllocationValue, Optional[AllocationValue]]:
+    def calculate_changeset(self, current):
         """Assuming self is "new value" return target and changeset. """
 
-
         # Float and integered based change detection.
-        if current_value is None:
+        if current is None:
             # There is no old value, so there is a change
             value_changed = True
         else:
+            # check is cuurent has proper type
+            current_numeric = unwrap_to_leaf(current)
             # If we have old value compare them.
-            value_changed = (self != current_value)
+            if not isinstance(current_numeric, BoxedNumeric):
+                return self, None, ['got invalid type for comparison %r' % current]
+
+            value_changed = (self != current_numeric)
 
         if value_changed:
             # For floats merge is simple, is value is change, the
             # new_value just become target and changeset
             # target and changeset (overwrite policy)
-            return self, self
+            return self, self, []
         else:
             # If value is not changed, then is assumed current value is the same as
             # new so we can return any of them (lets return the new one) as target
-            return current_value, None
+            return current, None, []
 
     def perform_allocations(self):
         raise NotImplementedError('tried to execute perform_allocations on numeric value %r' % self)

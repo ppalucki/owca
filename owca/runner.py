@@ -38,7 +38,7 @@ from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
 from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, RDTAllocationValue, \
-    RDTAllocation
+    RDTAllocation, ResGroup
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -343,7 +343,8 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                                                   task_id, ctx))
 
             if allocation_type not in (AllocationType.QUOTA,
-                                       AllocationType.SHARES, AllocationType.RDT):
+                                       AllocationType.SHARES,
+                                       AllocationType.RDT):
                 return InvalidAllocationValue(raw_value, 'unknown allocation type %r (ctx=%r)' % (
                                                   allocation_type, ctx))
 
@@ -388,7 +389,7 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                                        context_aware_adapter(quota_allocation_value_constructor))
 
     return AllocationsDict(tasks_allocations, None, registry=registry)
-
+ 
 
 @dataclass
 class AllocationRunner(Runner, BaseRunnerMixin):
@@ -434,24 +435,27 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             current_allocations = convert_to_allocations_values(
                 current_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
-            log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
 
             log.debug('new:\n %s', pprint.pformat(new_tasks_allocations))
             new_allocations = convert_to_allocations_values(
                 new_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
-            log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))
+
 
             errors, new_allocations = new_allocations.validate()
             if errors:
                 log.warning('Errors: %s', errors)
 
-            log.log(TRACE, 'new (after validation):\n %s', pprint.pformat(new_tasks_allocations))
+            log.log(TRACE, 'new (after validation):\n %s', pprint.pformat(new_allocations))
 
             target_allocations, allocations_changeset = new_allocations.calculate_changeset(
                 current_allocations)
 
+            log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
+            log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))
+            log.debug('---------------------------------------')
             log.log(TRACE, 'allocation_changeset:\n %s', pprint.pformat(allocations_changeset))
+            log.debug('---------------------------------------')
 
             # MAIN function
             if allocations_changeset:

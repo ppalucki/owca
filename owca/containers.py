@@ -73,22 +73,21 @@ class Container:
                                _convert_cgroup_path_to_resgroup_name(self.cgroup_path))
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
-    def get_pids(self) -> List[str]:
-        return list(map(str, self.cgroup.get_pids()))
 
     def sync(self):
         """Called every run iteration to keep pids of cgroup and resctrl in sync."""
         if self.rdt_enabled:
-            self.resgroup.add_pids(self.get_pids(), mongroup_name=self.container_name)
+            self.resgroup.add_pids(self.cgroup.get_pids(), mongroup_name=self.container_name)
 
-    def change_resgroup(self, new_resgroup):
-        """Remove tasks from current group and add to the new one."""
-        assert self.rdt_enabled
-        # Remove pids from old group
-        self.resgroup.remove_pids(mongroup_name=self.container_name)
-        # Add pids to new group
-        new_resgroup.add_pids(self.get_pids(), mongroup_name=self.container_name)
-        self.resgroup = new_resgroup
+
+    # def change_resgroup(self, new_resgroup):
+    #     """Remove tasks from current group and add to the new one."""
+    #     assert self.rdt_enabled
+    #     # Remove pids from old group
+    #     self.resgroup.remove_pids(mongroup_name=self.container_name)
+    #     # Add pids to new group
+    #     new_resgroup.add_pids(self.cgroup.get_pids(), mongroup_name=self.container_name)
+    #     self.resgroup = new_resgroup
 
     def get_measurements(self) -> Measurements:
         try:
@@ -186,10 +185,15 @@ class ContainerManager:
             mon_groups_relation = resctrl.read_mon_groups_relation()
             log.debug('mon_groups_relation:\n%s', pprint.pformat(mon_groups_relation))
             resctrl.clean_taskless_groups(mon_groups_relation)
+
+            mon_groups_relation = resctrl.read_mon_groups_relation()
+            log.debug('mon_groups_relation (after cleanup):\n%s', pprint.pformat(mon_groups_relation))
+
             # Calculate inverse relastion of task_id to res_group name based on mon_groups_relations
             for ctrl_group, container_names in mon_groups_relation.items():
                 for container_name in container_names:
                     container_name_to_mon_group[container_name] = ctrl_group
+            log.debug('container_name_to_mon_group:\n%s', pprint.pformat(container_name_to_mon_group))
 
         # Create new containers and store them.
         for new_task in new_tasks:
@@ -201,10 +205,14 @@ class ContainerManager:
                 allocation_configuration=self.allocation_configuration,
             )
             self.containers[new_task] = container
+
+        # Sync "state" of individual containers.
+        # Note: only the pids are synchronized, not the allocations.
+        for container in self.containers.values():
             if self.rdt_enabled:
                 if container.container_name in container_name_to_mon_group:
                     container.resgroup = ResGroup(
-                        name=container.container_name,
+                        name=container_name_to_mon_group[container.container_name],
                         rdt_mb_control_enabled=self.rdt_mb_control_enabled)
                 else:
                     # Every newly detected containers is first assigne to root group.
@@ -212,10 +220,6 @@ class ContainerManager:
                         name='',
                         rdt_mb_control_enabled=self.rdt_mb_control_enabled
                     )
-
-        # Sync "state" of individual containers.
-        # Note: only the pids are synchronized, not the allocations.
-        for container in self.containers.values():
             container.sync()
 
         return self.containers
