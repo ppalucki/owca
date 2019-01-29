@@ -16,7 +16,7 @@ from unittest.mock import patch, mock_open, call, Mock
 
 import pytest
 
-from owca.allocations import create_default_registry, AllocationsDict, unwrap_to_simple, \
+from owca.allocations import create_default_registry, AllocationsDict, \
     CommonLablesAllocationValue
 from owca.allocators import AllocationConfiguration
 from owca.cgroups import Cgroup
@@ -169,12 +169,12 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
     # Merge
     got_target_dict, got_changeset_dict, errors = new_dict.calculate_changeset(current_dict)
     assert not errors
-    got_target_dict_simple = got_target_dict.unwrap_recurisve(unwrap_to_simple)
+    got_target_dict_simple = got_target_dict.unwrap_to_simple()
 
     assert got_target_dict_simple == expected_target
 
-    got_changeset = got_changeset_dict.unwrap_recurisve(
-        unwrap_to_simple) if got_changeset_dict is not None else None
+    got_changeset = got_changeset_dict.unwrap_to_simple() if got_changeset_dict is not None else \
+        None
     assert got_changeset == expected_changeset
 
 

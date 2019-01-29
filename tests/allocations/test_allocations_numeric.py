@@ -14,7 +14,7 @@
 
 import pytest
 
-from owca.allocations import AllocationsDict, BoxedNumeric, unwrap_to_simple
+from owca.allocations import BoxedNumeric
 
 
 ############################################################################

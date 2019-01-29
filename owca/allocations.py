@@ -27,7 +27,10 @@ class AllocationValue(ABC):
     @abstractmethod
     def calculate_changeset(self, current: 'AllocationValue') -> \
             Tuple['AllocationValue', Optional['AllocationValue'], List[str]]:
-        # TODO: docstiring for calculate_changeset
+        """Calculate diffrence between current value and self(new) value and
+        return merged state (sum) as *target* and difference as *changeset*
+        :returns target, changeset
+        ."""
         ...
 
     @abstractmethod
@@ -42,38 +45,47 @@ class AllocationValue(ABC):
         Examples:
             RDTAllocation can ignore setting MB, but still set L3
             TasksAllocatios can still apply some settings for some tasks.
+        :returns errors, self or None
         """
         ...
 
     @abstractmethod
     def perform_allocations(self):
-        """Perform allocatoins."""
+        """Perform allocatoins. Returns nothing."""
         ...
 
     @abstractmethod
     def unwrap(self) -> Any:
-        """If possible return object under this object (just one level)."""
+        """Decode one level. If possible return object under this object (just one level)."""
         ...
 
-    def unwrap_recurisve(self, unwrap_function):
-        return unwrap_function(self.unwrap())
+    def unwrap_to_simple(self) -> Any:
+        """Decode all levels. If possible return object hidden depth until simple
+        (not AllocationValue type) is returned (recursive).
+        Note: for dict like AllocationValue object it just returns dict that should not contain
+        AllocationValues
+        """
 
-
-def unwrap_to_simple(value: Any) -> Any:
-    while isinstance(value, AllocationValue):
-        value = value.unwrap()
-    return value
-
-
-def unwrap_to_leaf(value: AllocationValue) -> AllocationValue:
-    assert isinstance(value, AllocationValue)
-
-    while True:
-        new_value = value.unwrap()
-        if not isinstance(new_value, AllocationValue):
+        def _unwrap_to_simple(value: Any) -> Any:
+            while isinstance(value, AllocationValue):
+                value = value.unwrap()
             return value
-        else:
-            value = new_value
+
+        return _unwrap_to_simple(self.unwrap())
+
+    def unwrap_to_leaf(self: 'AllocationValue') -> 'AllocationValue':
+        """ Unwrap to last but last level, before unwrapping to primitive simple values.
+        :returns allocation_value
+        """
+        assert isinstance(self, AllocationValue)
+        value = self
+
+        while True:
+            new_value = value.unwrap()
+            if not isinstance(new_value, AllocationValue):
+                return value
+            else:
+                value = new_value
 
 
 class AllocationValueDelegator(AllocationValue):
@@ -163,7 +175,7 @@ class Registry:
     def register_automapping_type(
             self,
             any_type: Union[Type, Tuple[str, Type]],
-            constructor: Callable[[AllocationValue, List[str], 'Registry'], Type[AllocationValue]]):
+            constructor: Callable[[Any, List[str], 'Registry'], AllocationValue]):
         """Register given type or pair of (key, type) to use given constructor to
         create corresponding AllocationValue instance."""
         self._mapping[any_type] = constructor
@@ -217,8 +229,8 @@ class AllocationsDict(dict, AllocationValue):
 
     def __init__(self,
                  d: Dict[str, Any],
-                 ctx: List[str] = None,  # accumulator like, for passing recursilvely
-                 registry=None,
+                 ctx: List[str] = None,
+                 registry: Registry = None,
                  ):
 
         registry = registry or create_default_registry()
@@ -291,11 +303,11 @@ class AllocationsDict(dict, AllocationValue):
     def unwrap(self) -> dict:
         return {k: v for k, v in self.items() if v is not None}
 
-    def unwrap_recurisve(self, unwrap_function):
+    def unwrap_to_simple(self):
         d = {}
         for k, v in self.items():
             if isinstance(v, AllocationValue):
-                d[k] = v.unwrap_recurisve(unwrap_function)
+                d[k] = v.unwrap_to_simple()
             else:
                 d[k] = v
         return d
@@ -358,7 +370,7 @@ class BoxedNumeric(AllocationValue):
             value_changed = True
         else:
             # check is cuurent has proper type
-            current_numeric = unwrap_to_leaf(current)
+            current_numeric = current.unwrap_to_leaf()
             # If we have old value compare them.
             if not isinstance(current_numeric, BoxedNumeric):
                 return self, None, ['got invalid type for comparison %r' % current]

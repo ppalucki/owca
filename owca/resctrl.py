@@ -22,7 +22,7 @@ from typing import Tuple, List, Optional, Dict
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocations import AllocationValue, unwrap_to_leaf
+from owca.allocations import AllocationValue
 from owca.allocators import AllocationType, TaskAllocations
 from owca.cgroups import Cgroup
 from owca.logger import TRACE
@@ -330,7 +330,7 @@ class RDTAllocationValue(AllocationValue):
                           (type(None), AllocationValue)), 'type error on current=%r ' % current
 
         if current is not None:
-            current = unwrap_to_leaf(current)
+            current = current.unwrap_to_leaf()
 
         assert isinstance(current,
                           (type(None), RDTAllocationValue)), 'type error on current=%r ' % current
