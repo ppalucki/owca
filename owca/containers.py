@@ -54,7 +54,6 @@ def _convert_cgroup_path_to_resgroup_name(cgroup_path):
 
 @dataclass
 class Container:
-
     cgroup_path: str
     platform_cpus: int
     allocation_configuration: Optional[AllocationConfiguration] = None
@@ -73,12 +72,10 @@ class Container:
                                _convert_cgroup_path_to_resgroup_name(self.cgroup_path))
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
-
     def sync(self):
         """Called every run iteration to keep pids of cgroup and resctrl in sync."""
         if self.rdt_enabled:
             self.resgroup.add_pids(self.cgroup.get_pids(), mongroup_name=self.container_name)
-
 
     # def change_resgroup(self, new_resgroup):
     #     """Remove tasks from current group and add to the new one."""
@@ -187,13 +184,15 @@ class ContainerManager:
             resctrl.clean_taskless_groups(mon_groups_relation)
 
             mon_groups_relation = resctrl.read_mon_groups_relation()
-            log.debug('mon_groups_relation (after cleanup):\n%s', pprint.pformat(mon_groups_relation))
+            log.debug('mon_groups_relation (after cleanup):\n%s',
+                      pprint.pformat(mon_groups_relation))
 
             # Calculate inverse relastion of task_id to res_group name based on mon_groups_relations
             for ctrl_group, container_names in mon_groups_relation.items():
                 for container_name in container_names:
                     container_name_to_mon_group[container_name] = ctrl_group
-            log.debug('container_name_to_mon_group:\n%s', pprint.pformat(container_name_to_mon_group))
+            log.debug('container_name_to_mon_group:\n%s',
+                      pprint.pformat(container_name_to_mon_group))
 
         # Create new containers and store them.
         for new_task in new_tasks:

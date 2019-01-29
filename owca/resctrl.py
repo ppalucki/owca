@@ -17,7 +17,6 @@
 import errno
 import logging
 import os
-import pprint
 from typing import Tuple, List, Optional, Dict
 
 from dataclasses import dataclass
@@ -240,7 +239,8 @@ class RDTAllocationValue(AllocationValue):
     source_resgroup: Optional[ResGroup] = None  # if not none try to _cleanup it at the end
 
     def __repr__(self):
-        return 'RDTAllocationValue(rdt_allocation=%r, %s->%s)' % (self.rdt_allocation, self.resgroup, self.source_resgroup)
+        return ('RDTAllocationValue(rdt_allocation=%r, %s->%s)' % (
+                self.rdt_allocation, self.resgroup, self.source_resgroup))
 
     def __post_init__(self):
         assert isinstance(self.rdt_allocation, RDTAllocation), 'type error on %r' % self
@@ -327,12 +327,14 @@ class RDTAllocationValue(AllocationValue):
 
         current cannot have empty name in rdt_allocation.name !!!!
         """
-        assert isinstance(current, (type(None), AllocationValue)), 'type error on current=%r ' % current
+        assert isinstance(current,
+                          (type(None), AllocationValue)), 'type error on current=%r ' % current
 
         if current is not None:
             current = unwrap_to_leaf(current)
 
-        assert isinstance(current, (type(None), RDTAllocationValue)), 'type error on current=%r ' % current
+        assert isinstance(current,
+                          (type(None), RDTAllocationValue)), 'type error on current=%r ' % current
 
         # Any rdt_allocation that comes with current have to have rdt_allocation.name set)
         assert current is None or (current.rdt_allocation is not None)
@@ -343,7 +345,9 @@ class RDTAllocationValue(AllocationValue):
         # new name, then new allocation will be used (overwrite) but no merge
         if current is None:
             # New tasks or is moved from root group.
-            log.debug('resctrl changeset: new name or no previous allocation exists (moving from root group!)')
+            log.debug(
+                'resctrl changeset: new name or no previous allocation exists (moving from root '
+                'group!)')
             return new, new._copy(new.rdt_allocation,
                                   resgroup=ResGroup(name=new_group_name),
                                   source_resgroup=ResGroup(name='')), []
@@ -556,7 +560,6 @@ def read_mon_groups_relation() -> Dict[str, List[str]]:
 
     Root control group has '' name (empty string).
     """
-
 
     relation = dict()
     # root ctrl group mon dirs

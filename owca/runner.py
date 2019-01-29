@@ -24,8 +24,8 @@ from dataclasses import dataclass, field
 from owca import detectors, nodes
 from owca import platforms
 from owca import storage
-from owca.allocations import AllocationsDict, create_default_registry, \
-    CommonLablesAllocationValue, ContextualErrorAllocationValue, InvalidAllocationValue, Registry
+from owca.allocations import AllocationsDict, CommonLablesAllocationValue, \
+    ContextualErrorAllocationValue, InvalidAllocationValue, Registry
 from owca.allocators import Allocator, TasksAllocations, AllocationConfiguration, AllocationType
 from owca.cgroups import QuotaAllocationValue, SharesAllocationValue
 from owca.containers import ContainerManager, Container
@@ -38,7 +38,7 @@ from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
 from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, RDTAllocationValue, \
-    RDTAllocation, ResGroup
+    RDTAllocation
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -215,8 +215,8 @@ class BaseRunnerMixin:
 
 
 @trace(log, verbose=False)
-def _prepare_tasks_data(containers: Dict[Task, Container]) -> Tuple[
-        List[Metric], TasksMeasurements, TasksResources, TasksLabels, TasksAllocations]:
+def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
+        Tuple[List[Metric], TasksMeasurements, TasksResources, TasksLabels, TasksAllocations]:
     """ Based on containers, preapre all nessesary data for allocation and detection logic,
     including, measurements, resources, labels and derived metrics.
     In runner to fullfil common data requirments for Allocator and Detector class.
@@ -340,17 +340,18 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
             if task_id not in task_id_to_containers:
                 return InvalidAllocationValue(raw_value, 'task_id %r not found (ctx=%r)' % (
-                                                  task_id, ctx))
+                    task_id, ctx))
 
             if allocation_type not in (AllocationType.QUOTA,
                                        AllocationType.SHARES,
                                        AllocationType.RDT):
                 return InvalidAllocationValue(raw_value, 'unknown allocation type %r (ctx=%r)' % (
-                                                  allocation_type, ctx))
+                    allocation_type, ctx))
 
             container = task_id_to_containers[task_id]
             allocation_value = specific_constructor(raw_value, container)
-            log.log(TRACE, 'adapter: specific constructor: %r -> %r', specific_constructor, allocation_value)
+            log.log(TRACE, 'adapter: specific constructor: %r -> %r', specific_constructor,
+                    allocation_value)
             allocation_value = CommonLablesAllocationValue(
                 allocation_value,
                 **dict(container_name=container.container_name)
@@ -371,11 +372,13 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                                   platform.sockets, platform.rdt_mb_control_enabled,
                                   platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
                                   )
+
     registry.register_automapping_type((AllocationType.RDT, RDTAllocation),
                                        context_aware_adapter(rdt_allocation_value_constructor))
 
     def share_allocation_value_constructor(normalized_shares, container: Container):
         return SharesAllocationValue(normalized_shares, container.cgroup)
+
     registry.register_automapping_type((AllocationType.SHARES, int),
                                        context_aware_adapter(share_allocation_value_constructor))
     registry.register_automapping_type((AllocationType.SHARES, float),
@@ -383,13 +386,14 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
     def quota_allocation_value_constructor(normalized_quota, container: Container):
         return QuotaAllocationValue(normalized_quota, container.cgroup)
+
     registry.register_automapping_type((AllocationType.QUOTA, float),
                                        context_aware_adapter(quota_allocation_value_constructor))
     registry.register_automapping_type((AllocationType.QUOTA, int),
                                        context_aware_adapter(quota_allocation_value_constructor))
 
     return AllocationsDict(tasks_allocations, None, registry=registry)
- 
+
 
 @dataclass
 class AllocationRunner(Runner, BaseRunnerMixin):
@@ -441,7 +445,6 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 new_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
 
-
             errors, new_allocations = new_allocations.validate()
             if errors:
                 log.warning('Errors: %s', errors)
@@ -477,7 +480,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 allocations_metrics,
                 extra_metrics,
                 self.get_allocations_statistics_metrics(new_tasks_allocations,
-                                                        allocate_duration, 
+                                                        allocate_duration,
                                                         ignored_allocations_count=len(errors)),
             )
             allocations_package.send(common_labels)

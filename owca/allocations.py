@@ -25,8 +25,8 @@ log = logging.getLogger(__name__)
 class AllocationValue(ABC):
 
     @abstractmethod
-    def calculate_changeset(self, current: 'AllocationValue') -> Tuple[
-            'AllocationValue', Optional['AllocationValue'], List[str]]:
+    def calculate_changeset(self, current: 'AllocationValue') -> \
+            Tuple['AllocationValue', Optional['AllocationValue'], List[str]]:
         # TODO: docstiring for calculate_changeset
         ...
 
@@ -63,6 +63,7 @@ def _unwrap_to_simple(value: Any) -> Any:
     while isinstance(value, AllocationValue):
         value = value.unwrap()
     return value
+
 
 def unwrap_to_leaf(value: AllocationValue) -> AllocationValue:
     assert isinstance(value, AllocationValue)
@@ -160,7 +161,7 @@ class Registry:
         self._mapping = dict()
 
     def register_automapping_type(
-            self, 
+            self,
             any_type: Union[Type, Tuple[str, Type]],
             constructor: Callable[[AllocationValue, List[str], 'Registry'], Type[AllocationValue]]):
         """Register given type or pair of (key, type) to use given constructor to
@@ -175,11 +176,12 @@ class Registry:
 
         if (key, type_of_value) in self._mapping:
             constructor = self._mapping[(key, type_of_value)]
-            log.log(TRACE, 'registry: found constructor %r, based on type %r and key=%r', 
-                      constructor, type_of_value, key)
+            log.log(TRACE, 'registry: found constructor %r, based on type %r and key=%r',
+                    constructor, type_of_value, key)
         elif type_of_value in self._mapping:
             constructor = self._mapping[type_of_value]
-            log.log(TRACE, 'registry: found constructor %r, base on type %r', constructor, type_of_value)
+            log.log(TRACE, 'registry: found constructor %r, base on type %r', constructor,
+                    type_of_value)
         else:
             raise Exception('cannot convert %r (type=%r under %r key) '
                             'to AllocationValue using provided mapping=%r' %
@@ -187,8 +189,6 @@ class Registry:
         allocation_value = constructor(value, base_ctx + [key], self)
         log.log(TRACE, 'registry: constructor %r used to create: %r', constructor, allocation_value)
         return allocation_value
-
-
 
 
 def _convert_values(d: Dict[str, Any], ctx: List[str], registry) -> Dict[str, AllocationValue]:
@@ -300,7 +300,6 @@ class AllocationsDict(dict, AllocationValue):
         return d
 
 
-
 class BoxedNumeric(AllocationValue):
     """ Wraps floats and ints.
 
@@ -337,15 +336,15 @@ class BoxedNumeric(AllocationValue):
 
         assert isinstance(self.value, (float, int))
         return [Metric(
-                    name='allocation',
-                    value=self.value,
-                    type=MetricType.GAUGE,
-               )]
+            name='allocation',
+            value=self.value,
+            type=MetricType.GAUGE,
+        )]
 
     def validate(self) -> Tuple[List[str], Optional[AllocationValue]]:
         if not self.value >= self.min_value or not self.value <= self.max_value:
             errors = ['%s does not belong to range <%s;%s>' % (
-                           self.value, self.min_value, self.max_value)]
+                self.value, self.min_value, self.max_value)]
             return errors, None
         return [], self
 

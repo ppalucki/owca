@@ -18,8 +18,8 @@ from typing import Optional, List
 from dataclasses import dataclass
 
 from owca import logger
-from owca.allocators import TaskAllocations, AllocationType, AllocationConfiguration
 from owca.allocations import BoxedNumeric
+from owca.allocators import TaskAllocations, AllocationType, AllocationConfiguration
 from owca.metrics import Measurements, MetricName
 
 log = logging.getLogger(__name__)
@@ -34,7 +34,6 @@ BASE_SUBSYSTEM_PATH = '/sys/fs/cgroup/cpu'
 
 @dataclass
 class Cgroup:
-
     cgroup_path: str
 
     # Values used for normlization of allocations
@@ -81,10 +80,10 @@ class Cgroup:
         assert self.allocation_configuration is not None, \
             'allocation configuration cannot be used without configuration!'
 
-        shares_range = self.allocation_configuration.cpu_shares_max - \
-            self.allocation_configuration.cpu_shares_min
-        shares = int(shares_normalized * shares_range) + \
-            self.allocation_configuration.cpu_shares_min
+        shares_range = (self.allocation_configuration.cpu_shares_max -
+                        self.allocation_configuration.cpu_shares_min)
+        shares = (int(shares_normalized * shares_range) +
+                  self.allocation_configuration.cpu_shares_min)
 
         self._write(CPU_SHARES, shares)
 
@@ -116,8 +115,8 @@ class Cgroup:
         assert self.allocation_configuration is not None, \
             'reading normalized allocations is not possible without configuration!'
         return {
-           AllocationType.QUOTA: self.get_normalized_quota(),
-           AllocationType.SHARES: self._get_normalized_shares(),
+            AllocationType.QUOTA: self.get_normalized_quota(),
+            AllocationType.SHARES: self._get_normalized_shares(),
         }
 
     def get_pids(self) -> List[str]:
@@ -146,7 +145,7 @@ class QuotaAllocationValue(BoxedNumeric):
         self.cgroup.set_normalized_quota(self.value)
 
     def __repr__(self):
-        return '%s(normalized_quota=%r)'%(self.__class__.__name__, self.normalized_quota)
+        return '%s(normalized_quota=%r)' % (self.__class__.__name__, self.normalized_quota)
 
 
 class SharesAllocationValue(BoxedNumeric):
@@ -166,4 +165,4 @@ class SharesAllocationValue(BoxedNumeric):
         self.cgroup.set_normalized_shares(self.value)
 
     def __repr__(self):
-        return '%s(normalized_shares=%r)'%(self.__class__.__name__, self.normalized_shares)
+        return '%s(normalized_shares=%r)' % (self.__class__.__name__, self.normalized_shares)

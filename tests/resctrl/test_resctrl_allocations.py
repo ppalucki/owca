@@ -173,13 +173,14 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
 
     assert got_target_dict_simple == expected_target
 
-    got_changeset = got_changeset_dict.unwrap_recurisve(_unwrap_to_simple) if got_changeset_dict is not None else None
+    got_changeset = got_changeset_dict.unwrap_recurisve(
+        _unwrap_to_simple) if got_changeset_dict is not None else None
     assert got_changeset == expected_changeset
 
 
 @pytest.mark.parametrize('rdt_allocation, extra_labels, expected_metrics', (
         (RDTAllocation(), {}, []),
-        (RDTAllocation(mb='mb:0=20'), {},[
+        (RDTAllocation(mb='mb:0=20'), {}, [
             allocation_metric('rdt_mb', 20, group_name='', domain_id='0', container_name='c1')
         ]),
         (RDTAllocation(mb='mb:0=20'), {'foo': 'bar'}, [
@@ -199,7 +200,7 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
             allocation_metric('rdt_l3_mask', 255, group_name='', domain_id='0',
                               container_name='c1'),
         ]),
-        (RDTAllocation(name='be', l3='l3:0=ff', mb='mb:0=20;1=30'), {},[
+        (RDTAllocation(name='be', l3='l3:0=ff', mb='mb:0=20;1=30'), {}, [
             allocation_metric('rdt_l3_cache_ways', 8, group_name='be', domain_id='0',
                               container_name='c1'),
             allocation_metric('rdt_l3_mask', 255, group_name='be', domain_id='0',
@@ -208,7 +209,8 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
             allocation_metric('rdt_mb', 30, group_name='be', domain_id='1', container_name='c1'),
         ]),
 ))
-def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, extra_labels, expected_metrics):
+def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, extra_labels,
+                                         expected_metrics):
     rdt_allocation_value = RDTAllocationValue(
         'c1',
         rdt_allocation, cgroup=Cgroup('/', platform_cpus=1),

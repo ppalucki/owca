@@ -19,7 +19,7 @@ import pytest
 from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, \
     create_default_registry, _convert_values, CommonLablesAllocationValue, \
     ContextualErrorAllocationValue, InvalidAllocationValue, _unwrap_to_simple, \
-    unwrap_to_leaf, AllocationValueDelegator
+    unwrap_to_leaf
 from owca.testing import allocation_metric
 
 
@@ -92,7 +92,6 @@ def test_boxed_numeric_validation(value, min_value, max_value, float_value_chang
     )
 )
 def test_boxed_numeric_calculated_changeset(current, new, expected_target, expected_changeset):
-
     # convert to values
     expected_changeset = BoxedNumeric(expected_changeset) \
         if expected_changeset is not None else None
@@ -105,19 +104,21 @@ def test_boxed_numeric_calculated_changeset(current, new, expected_target, expec
     assert got_target == expected_target
     assert got_changeset == expected_changeset
 
+
 @pytest.mark.parametrize('allocation_value, expected_object', [
     (AllocationsDict({}), {}),
     (BoxedNumeric(3), 3),
     (AllocationsDict({'x': AllocationsDict({}), 'y': 2}),
-         {'x': {}, 'y': 2}),
+     {'x': {}, 'y': 2}),
     (AllocationsDict({'x': BoxedNumeric(4)}),
-         {'x': 4}),
+     {'x': 4}),
     (AllocationsDict({'x': AllocationsDict({'y': 5})}),
-         {'x': {'y': 5}}),
+     {'x': {'y': 5}}),
 ])
 def test_unwrap_simple(allocation_value, expected_object):
     got_object = allocation_value.unwrap_recurisve(_unwrap_to_simple)
     assert got_object == expected_object
+
 
 @pytest.mark.parametrize('allocation_value, expected_object', [
     (BoxedNumeric(2),
@@ -127,16 +128,17 @@ def test_unwrap_simple(allocation_value, expected_object):
     (CommonLablesAllocationValue(CommonLablesAllocationValue(BoxedNumeric(2))),
      BoxedNumeric(2)),
     (AllocationsDict({'x': AllocationsDict({}), 'y': BoxedNumeric(2)}),
-     {'x': {}, 'y': BoxedNumeric(2)}, ),
+     {'x': {}, 'y': BoxedNumeric(2)},),
     (AllocationsDict({'x': AllocationsDict({}),
                       'y': BoxedNumeric(2)}),
      (AllocationsDict({'x': AllocationsDict({}),
                        'y': BoxedNumeric(2)}))
-    ),
+     ),
 ])
 def test_unwrap_leaf(allocation_value, expected_object):
     got_object = unwrap_to_leaf(allocation_value)
     assert got_object == expected_object
+
 
 @pytest.mark.parametrize(
     'left, right, is_equal', (
@@ -193,7 +195,8 @@ def test_allocations_dict_merging(current, new,
     got_target = got_target_dict.unwrap_recurisve(_unwrap_to_simple)
 
     assert got_target == expected_target
-    got_changeset = got_changeset_dict.unwrap_recurisve(_unwrap_to_simple) if got_changeset_dict is not None else None
+    got_changeset = got_changeset_dict.unwrap_recurisve(
+        _unwrap_to_simple) if got_changeset_dict is not None else None
     assert got_changeset == expected_changeset
 
 
@@ -253,5 +256,3 @@ def test_invalid_allocation_values_helper():
     errors, new_value = value.validate()
     assert new_value is None
     assert errors == ['foo_prefix']
-
-

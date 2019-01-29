@@ -143,7 +143,8 @@ class StaticAllocator(Allocator):
                           pprint.pformat(new_tasks_allocations_values))
 
                 if new_tasks_allocations_values is not None:
-                    new_tasks_allocations = new_tasks_allocations_values.unwrap_recurisve(_unwrap_to_simple)
+                    new_tasks_allocations = new_tasks_allocations_values.unwrap_recurisve(
+                        _unwrap_to_simple)
                     log.debug('StaticAllocator(%s): new tasks allocations: \n %s',
                               rule_idx,
                               pprint.pformat(new_tasks_allocations))
@@ -151,7 +152,8 @@ class StaticAllocator(Allocator):
                     new_tasks_allocations = None
 
                 if this_rule_allocations_value_changeset is not None:
-                    this_rule_allocations_value = this_rule_allocations_value_changeset.unwrap_recurisve(_unwrap_to_simple)
+                    this_rule_allocations_value = \
+                        this_rule_allocations_value_changeset.unwrap_recurisve(_unwrap_to_simple)
                     log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s',
                               rule_idx,
                               pprint.pformat(this_rule_allocations_value))
