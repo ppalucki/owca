@@ -61,21 +61,6 @@ def test_boxed_numeric_calculated_changeset(current, new, expected_target, expec
     assert got_changeset == expected_changeset
 
 
-@pytest.mark.parametrize('allocation_value, expected_object', [
-    (AllocationsDict({}), {}),
-    (BoxedNumeric(3), 3),
-    (AllocationsDict({'x': AllocationsDict({}), 'y': 2}),
-     {'x': {}, 'y': 2}),
-    (AllocationsDict({'x': BoxedNumeric(4)}),
-     {'x': 4}),
-    (AllocationsDict({'x': AllocationsDict({'y': 5})}),
-     {'x': {'y': 5}}),
-])
-def test_unwrap_simple(allocation_value, expected_object):
-    got_object = allocation_value.unwrap_recurisve(unwrap_to_simple)
-    assert got_object == expected_object
-
-
 @pytest.mark.parametrize(
     'left, right, is_equal', (
             (BoxedNumeric(10), BoxedNumeric(10), True),
