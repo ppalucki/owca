@@ -69,12 +69,11 @@ class Cgroup:
             f.write(raw_value)
 
     def _get_normalized_shares(self) -> float:
-        """Return normalized using cpu_shreas_min and cpu_shares_max for normalization."""
+        """Return normalized using cpu_shreas_min and cpu_shares_unit for normalization."""
         assert self.allocation_configuration is not None, \
             'normalization configuration cannot be used without configuration!'
         shares = self._read(CPU_SHARES)
-        return ((shares - self.allocation_configuration.cpu_shares_min) /
-                self.allocation_configuration.cpu_shares_max)
+        return (shares / self.allocation_configuration.cpu_shares_unit)
 
     def set_normalized_shares(self, shares_normalized):
         """Store shares normalized values in cgroup files system. For denormalization
@@ -82,10 +81,9 @@ class Cgroup:
         assert self.allocation_configuration is not None, \
             'allocation configuration cannot be used without configuration!'
 
-        shares_range = (self.allocation_configuration.cpu_shares_max -
-                        self.allocation_configuration.cpu_shares_min)
-        shares = (int(shares_normalized * shares_range) +
-                  self.allocation_configuration.cpu_shares_min)
+        shares = int(shares_normalized * self.allocation_configuration.cpu_shares_unit)
+        if shares < 2:
+            shares = 2
 
         self._write(CPU_SHARES, shares)
 

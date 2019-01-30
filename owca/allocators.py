@@ -48,10 +48,8 @@ class AllocationConfiguration:
     # Default value for cpu.cpu_period [ms] (used as denominator).
     cpu_quota_period: int = 1000
 
-    # Number of minimum shares, when ``cpu_shares`` allocation is set to 0.0.
-    cpu_shares_min: int = 2
     # Number of shares to set, when ``cpu_shares`` allocation is set to 1.0.
-    cpu_shares_max: int = 10000
+    cpu_shares_unit: int = 1000
 
     # Default Allocation for default root group during initilization.
     # It will be used as default for all tasks (None will set to maximum available value).

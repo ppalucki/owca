@@ -51,7 +51,7 @@ def test_cgroup_write():
 def test_get_normalized_shares(_read_mock):
     cgroup = Cgroup('/some/foo1', platform_cpus=1,
                     allocation_configuration=AllocationConfiguration())
-    assert cgroup._get_normalized_shares() == pytest.approx(0.1, 0.01)
+    assert cgroup._get_normalized_shares() == pytest.approx(1, 0.01)
 
 
 @patch('builtins.open', create_open_mock({
@@ -75,10 +75,10 @@ def test_cgroup_get_pids():
 
 @pytest.mark.parametrize(
     'normalized_shares, allocation_configuration, expected_shares_write', [
-        (0., AllocationConfiguration(), 2),  # based on cpu_shares_min
-        (1., AllocationConfiguration(), 10000),  # based on cpu_shares_max
-        (1., AllocationConfiguration(cpu_shares_min=500, cpu_shares_max=1000), 1000),
-        (2., AllocationConfiguration(cpu_shares_min=500, cpu_shares_max=1000), 1500),
+        (0., AllocationConfiguration(), 2),
+        (1., AllocationConfiguration(), 1000),  # based on cpu_shares_unit (default 1000)
+        (1., AllocationConfiguration(cpu_shares_unit=10000), 10000),
+        (2., AllocationConfiguration(cpu_shares_unit=10000), 20000),
     ]
 )
 def test_set_normalized_shares(normalized_shares, allocation_configuration, expected_shares_write):
