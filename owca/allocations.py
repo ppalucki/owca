@@ -88,8 +88,6 @@ class AllocationValue(ABC):
                 value = new_value
 
 
-
-
 class Registry:
 
     def __init__(self):

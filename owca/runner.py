@@ -373,11 +373,12 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
     shared_already_executed_names = set()
 
     def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation, container: Container):
-        rdt_value = RDTAllocationValue(container.container_name,
-                                  rdt_allocation, container.resgroup, container.cgroup,
-                                  platform.sockets, platform.rdt_mb_control_enabled,
-                                  platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
-                                  )
+        rdt_value = RDTAllocationValue(
+            container.container_name,
+            rdt_allocation, container.resgroup, container.cgroup,
+            platform.sockets, platform.rdt_mb_control_enabled,
+            platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
+        )
         return DeduplicatingRDTAllocationsValue(rdt_value, shared_already_executed_names)
 
     registry.register_automapping_type((AllocationType.RDT, RDTAllocation),
@@ -452,7 +453,6 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 new_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
 
-
             validation_errors, new_allocations = new_allocations.validate()
             if validation_errors:
                 log.warning('Validation errors: %s', validation_errors)
@@ -496,7 +496,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
             allocations_package = MetricPackage(self.allocations_storage)
 
             allocations_statistic_metrics = self.get_allocations_statistics_metrics(
-                new_tasks_allocations, allocate_duration, calculating_errors+validation_errors)
+                new_tasks_allocations, allocate_duration, calculating_errors + validation_errors)
             allocations_package.add_metrics(
                 allocations_metrics,
                 extra_metrics,

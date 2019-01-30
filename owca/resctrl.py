@@ -28,6 +28,7 @@ from owca.cgroups import Cgroup
 from owca.logger import TRACE
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
+from owca.allocations import AllocationValueRecreatingWrapper
 
 RESCTRL_ROOT_NAME = ''
 BASE_RESCTRL_PATH = '/sys/fs/resctrl'
@@ -219,12 +220,6 @@ class RDTAllocation:
     l3: str = None
     # MBM: optional - when no provided doesn't change the existing allocation
     mb: str = None
-
-from owca.allocations import AllocationValueRecreatingWrapper
-
-
-
-
 
 
 @dataclass
@@ -611,7 +606,6 @@ def clean_taskless_groups(mon_groups_relation: Dict[str, List[str]]):
                         log.log(TRACE, 'rmdir(%r)', mon_group_to_remove)
 
 
-
 class DeduplicatingRDTAllocationsValue(AllocationValueRecreatingWrapper):
 
     def __init__(self, rdt_allocation_value: RDTAllocationValue,
@@ -634,6 +628,7 @@ class DeduplicatingRDTAllocationsValue(AllocationValueRecreatingWrapper):
             )
         else:
             log.debug('DeduplicatingRDTAllocationsValue: %s already performed', resgroup_name)
+
 
 #
 # ------------------------ helpers -----------------------------------
@@ -724,6 +719,3 @@ def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
         raise ValueError(str(number_of_cbm_bits) +
                          " cbm bits. Requires minimum " +
                          str(min_cbm_bits))
-
-
-

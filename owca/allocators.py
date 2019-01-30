@@ -35,6 +35,7 @@ class AllocationType(str, Enum):
     def __repr__(self):
         return repr(self.value)
 
+
 TaskAllocations = Dict[AllocationType, Any]
 TasksAllocations = Dict[TaskId, TaskAllocations]
 

@@ -17,14 +17,9 @@ The module contains high level tests of the project.
 The classes derived from BaseRunnerMixin class are tested.
 """
 
-import unittest
-unittest.TestCase.maxDiff=None
-
-
 from unittest.mock import patch, Mock, call
 
 import pytest
-
 
 from owca import platforms
 from owca import storage
@@ -36,10 +31,10 @@ from owca.resctrl import RDTAllocation
 from owca.runner import DetectionRunner, AllocationRunner, convert_to_allocations_values
 from owca.testing import anomaly_metrics, anomaly, task, container, metric, allocation_metric
 
-
 platform_mock = Mock(
     spec=platforms.Platform, sockets=1,
     rdt_cbm_mask='fffff', rdt_min_cbm_bits=1, rdt_mb_control_enabled=False)
+
 
 # We are mocking objects used by containers.
 @patch('owca.platforms.collect_platform_information', return_value=(
@@ -182,15 +177,13 @@ def test_allocation_runner_containers_state(*mocks):
                            get_tasks=Mock(return_value=[
                                task('/t1', resources=dict(cpus=8.), labels={})
                            ]
-    ))
-
+                           ))
 
     # Patch Container get_allocations
     initial_tasks_allocations = {AllocationType.QUOTA: 1.,
                                  AllocationType.RDT: RDTAllocation(name='', l3='L3:0=fffff')}
     patch('owca.containers.Container.get_allocations',
           return_value=initial_tasks_allocations).__enter__()
-
 
     # Storage mocks.
     metrics_storage_mock = Mock(spec=storage.Storage, store=Mock())
@@ -237,21 +230,21 @@ def test_allocation_runner_containers_state(*mocks):
 
     # [0][0] means all arguments [0][0][0] means first of plain arguments
     assert allocations_storage_mock.store.call_args_list[0][0][0] == [
-            Metric(name='allocation', value=0.5,
-                   labels={'allocation_type': 'cpu_quota', 'container_name': 't1'},
-                   type='gauge'),
-            Metric(name='allocation', value=4,
-                   labels={'allocation_type': 'rdt_l3_cache_ways',
-                           'group_name': 't1', 'domain_id': '0', 'container_name': 't1'},
-                   type='gauge'),
-            Metric(name='allocation', value=0xf,
-                   labels={'allocation_type': 'rdt_l3_mask',
-                           'group_name': 't1', 'domain_id': '0', 'container_name': 't1'},
-                   type='gauge'),
-            Metric(name='allocations_count', value=1, labels={}, type='counter'),
-            Metric(name='allocations_errors', value=0, labels={}, type='counter'),
-            Metric(name='allocation_duration', value=0.0, labels={}, type='gauge')
-        ]
+        Metric(name='allocation', value=0.5,
+               labels={'allocation_type': 'cpu_quota', 'container_name': 't1'},
+               type='gauge'),
+        Metric(name='allocation', value=4,
+               labels={'allocation_type': 'rdt_l3_cache_ways',
+                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1'},
+               type='gauge'),
+        Metric(name='allocation', value=0xf,
+               labels={'allocation_type': 'rdt_l3_mask',
+                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1'},
+               type='gauge'),
+        Metric(name='allocations_count', value=1, labels={}, type='counter'),
+        Metric(name='allocations_errors', value=0, labels={}, type='counter'),
+        Metric(name='allocation_duration', value=0.0, labels={}, type='gauge')
+    ]
 
     ############################
     # Second run (more tasks t2)
@@ -331,6 +324,7 @@ def test_allocation_runner_containers_state(*mocks):
         Metric(name='allocation_duration', value=0.0, labels={}, type='gauge')
     ]
 
+
 @pytest.mark.parametrize(
     'tasks_allocations,expected_resgroup_reallocation_count',
     (
@@ -375,11 +369,9 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
     assert not errors
     if allocations:
         with patch('owca.resctrl.ResGroup.write_schemata') as mock, \
-                 patch('owca.cgroups.Cgroup._write'), patch('owca.cgroups.Cgroup._read'):
+                patch('owca.cgroups.Cgroup._write'), patch('owca.cgroups.Cgroup._read'):
             allocations.perform_allocations()
             assert mock.call_count == expected_resgroup_reallocation_count
-
-
 
 
 @pytest.mark.parametrize('tasks_allocations,expected_metrics', (
@@ -403,11 +395,11 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
          ]),
         ({'t1_task_id': {
             AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='mb:0=30')
-           },
-         't2_task_id': {
-             AllocationType.QUOTA: 0.6,
-             AllocationType.RDT: RDTAllocation(name='b', l3='L3:0=f'),
-         }
+        },
+             't2_task_id': {
+                 AllocationType.QUOTA: 0.6,
+                 AllocationType.RDT: RDTAllocation(name='b', l3='L3:0=f'),
+             }
          }, [
              Metric(
                  name='allocation', value=0.5,
@@ -424,7 +416,7 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
                                domain_id='0', container_name='t2'),
              allocation_metric('rdt_l3_mask', 15, group_name='b',
                                domain_id='0', container_name='t2'),
-     ]),
+         ]),
 ))
 def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics):
     allocation_configuration = AllocationConfiguration()
