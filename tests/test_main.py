@@ -24,7 +24,7 @@ runner: !DummyRunner
 
 
 @mock.patch('sys.argv', ['owca', '-c', 'configs/see_yaml_config_variable_above.yaml',
-                         '-r', 'owca.testing:DummyRunner', '-l', 'trace',
+                         '-r', 'owca.testing:DummyRunner', '-l', 'critical',
                          '--root'])
 @mock.patch('os.rmdir')
 @mock.patch('owca.config.exists', return_value=True)
@@ -32,5 +32,3 @@ runner: !DummyRunner
 @mock.patch('owca.containers.PerfCounters')
 def test_main(*mocks):
     main.main()
-    # restore 'silent' logging level
-    init_logging('critical', 'owca')
