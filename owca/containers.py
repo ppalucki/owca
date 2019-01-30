@@ -56,11 +56,11 @@ def _convert_cgroup_path_to_resgroup_name(cgroup_path):
 class Container:
     cgroup_path: str
     platform_cpus: int
+    resgroup: ResGroup = None
     allocation_configuration: Optional[AllocationConfiguration] = None
     rdt_enabled: bool = True
     rdt_mb_control_enabled: bool = False
     container_name: str = None  # defaults to flatten value of provided cgroup_path
-    resgroup: ResGroup = None  # do not manage self.resgroup object, just reference it
 
     def __post_init__(self):
         self.cgroup = Cgroup(

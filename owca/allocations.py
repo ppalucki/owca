@@ -88,83 +88,6 @@ class AllocationValue(ABC):
                 value = new_value
 
 
-class AllocationValueDelegator(AllocationValue):
-
-    def __init__(self, allocation_value):
-        self.allocation_value: AllocationValue = allocation_value
-
-    def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.allocation_value)
-
-    def _recreate_me(self, allocation_value):
-        raise NotImplementedError
-
-    def validate(self) -> Tuple[List[str], AllocationValue]:
-        errors, new_value = self.allocation_value.validate()
-        return errors, self._recreate_me(new_value) if new_value is not None else None
-
-    def perform_allocations(self):
-        self.allocation_value.perform_allocations()
-
-    def calculate_changeset(self, current):
-        target, changeset, errors = self.allocation_value.calculate_changeset(current)
-        wrapped_target = self._recreate_me(target)
-        wrapped_changeset = self._recreate_me(changeset) if changeset is not None else None
-        return wrapped_target, wrapped_changeset, errors
-
-    def generate_metrics(self):
-        return self.allocation_value.generate_metrics()
-
-    def unwrap(self):
-        return self.allocation_value
-
-
-class ContextualErrorAllocationValue(AllocationValueDelegator):
-    """Prefixes errors messages with given string."""
-
-    def __init__(self, allocation_value: AllocationValue, prefix_message: str):
-        assert isinstance(allocation_value, AllocationValue)
-        super().__init__(allocation_value)
-        self.prefix_message = prefix_message
-
-    def _recreate_me(self, allocation_value):
-        return ContextualErrorAllocationValue(allocation_value, self.prefix_message)
-
-    def validate(self) -> Tuple[List[str], AllocationValue]:
-        errors, new_value = super().validate()
-        prefixed_errors = ['%s%s' % (self.prefix_message, error) for error in errors]
-        return prefixed_errors, new_value
-
-
-class InvalidAllocationValue(AllocationValueDelegator):
-    """ Update any allocation values wiht common labels, when peforming generate_metrics."""
-
-    def __init__(self, allocation_value, error_message):
-        super().__init__(allocation_value)
-        self.error_message = error_message
-
-    def _recreate_me(self, allocation_value):
-        return InvalidAllocationValue(allocation_value, self.error_message)
-
-    def validate(self):
-        return [self.error_message], None
-
-
-class CommonLablesAllocationValue(AllocationValueDelegator):
-    """ Update any allocation values with common labels, when performing generate_metrics."""
-
-    def __init__(self, allocation_value, **common_labels):
-        super().__init__(allocation_value)
-        self.common_labels = common_labels
-
-    def _recreate_me(self, allocation_value):
-        return CommonLablesAllocationValue(allocation_value, **self.common_labels)
-
-    def generate_metrics(self):
-        metrics = super().generate_metrics()
-        for metric in metrics:
-            metric.labels.update(**self.common_labels)
-        return metrics
 
 
 class Registry:
@@ -400,3 +323,94 @@ def create_default_registry():
     registry.register_automapping_type(int, lambda value, ctx, mapping: BoxedNumeric(value))
     registry.register_automapping_type(float, lambda value, ctx, mapping: BoxedNumeric(value))
     return registry
+
+
+# --------------------------------------------------------------------------------------------------
+# Alocation values helper wrappers (delegators)
+# --------------------------------------------------------------------------------------------------
+
+class AllocationValueRecreatingWrapper(AllocationValue):
+    """Passes all calles down to allocation_value but
+    before returning AllocationValues, wraps them with copy of itself.
+    """
+
+    def __init__(self, allocation_value: AllocationValue):
+        self.allocation_value = allocation_value
+
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.allocation_value)
+
+    def validate(self) -> Tuple[List[str], AllocationValue]:
+        errors, new_value = self.allocation_value.validate()
+        return errors, self._recreate_me(new_value) if new_value is not None else None
+
+    def perform_allocations(self):
+        self.allocation_value.perform_allocations()
+
+    def calculate_changeset(self, current):
+        target, changeset, errors = self.allocation_value.calculate_changeset(current)
+        wrapped_target = self._recreate_me(target)
+        wrapped_changeset = self._recreate_me(changeset) if changeset is not None else None
+        return wrapped_target, wrapped_changeset, errors
+
+    def generate_metrics(self):
+        return self.allocation_value.generate_metrics()
+
+    def unwrap(self):
+        return self.allocation_value
+
+    @abstractmethod
+    def _recreate_me(self, allocation_value):
+        """Copy delegator object with wrapped object (delegate) replaced from argument."""
+        ...
+
+
+class ContextualErrorAllocationValue(AllocationValueRecreatingWrapper):
+    """Prefixes errors messages with given string."""
+
+    def __init__(self, allocation_value: AllocationValue, prefix_message: str):
+        assert isinstance(allocation_value, AllocationValue)
+        super().__init__(allocation_value)
+        self.prefix_message = prefix_message
+
+    def _recreate_me(self, allocation_value):
+        return ContextualErrorAllocationValue(allocation_value, self.prefix_message)
+
+    def validate(self) -> Tuple[List[str], AllocationValue]:
+        errors, new_value = super().validate()
+        prefixed_errors = ['%s%s' % (self.prefix_message, error) for error in errors]
+        return prefixed_errors, new_value
+
+
+class InvalidAllocationValue(AllocationValueRecreatingWrapper):
+    """ Update any allocation values wiht common labels, when peforming generate_metrics."""
+
+    def __init__(self, allocation_value, error_message):
+        super().__init__(allocation_value)
+        self.error_message = error_message
+
+    def generate_metrics(self):
+        return []
+
+    def _recreate_me(self, allocation_value):
+        return InvalidAllocationValue(allocation_value, self.error_message)
+
+    def validate(self):
+        return [self.error_message], None
+
+
+class CommonLablesAllocationValue(AllocationValueRecreatingWrapper):
+    """ Update any allocation values with common labels, when performing generate_metrics."""
+
+    def __init__(self, allocation_value, **common_labels):
+        super().__init__(allocation_value)
+        self.common_labels = common_labels
+
+    def _recreate_me(self, allocation_value):
+        return CommonLablesAllocationValue(allocation_value, **self.common_labels)
+
+    def generate_metrics(self):
+        metrics = super().generate_metrics()
+        for metric in metrics:
+            metric.labels.update(**self.common_labels)
+        return metrics

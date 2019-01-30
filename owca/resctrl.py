@@ -220,6 +220,12 @@ class RDTAllocation:
     # MBM: optional - when no provided doesn't change the existing allocation
     mb: str = None
 
+from owca.allocations import AllocationValueRecreatingWrapper
+
+
+
+
+
 
 @dataclass
 class RDTAllocationValue(AllocationValue):
@@ -269,7 +275,7 @@ class RDTAllocationValue(AllocationValue):
         if not self.rdt_allocation.l3 and not self.rdt_allocation.mb:
             return []
 
-        group_name = self.resgroup.name or ''
+        group_name = self.get_resgroup_name()
 
         metrics = []
         if self.rdt_allocation.l3:
@@ -605,6 +611,30 @@ def clean_taskless_groups(mon_groups_relation: Dict[str, List[str]]):
                         log.log(TRACE, 'rmdir(%r)', mon_group_to_remove)
 
 
+
+class DeduplicatingRDTAllocationsValue(AllocationValueRecreatingWrapper):
+
+    def __init__(self, rdt_allocation_value: RDTAllocationValue,
+                 already_executed_resgroup_names: set):
+        super().__init__(rdt_allocation_value)
+        self.rdt_allocation_value = rdt_allocation_value
+        self.already_executed_resgroup_names = already_executed_resgroup_names
+
+    def _recreate_me(self, allocation_value):
+        return DeduplicatingRDTAllocationsValue(
+            allocation_value, self.already_executed_resgroup_names
+        )
+
+    def perform_allocations(self):
+        resgroup_name = self.rdt_allocation_value.get_resgroup_name()
+        if resgroup_name not in self.already_executed_resgroup_names:
+            self.rdt_allocation_value.perform_allocations()
+            self.already_executed_resgroup_names.add(
+                self.rdt_allocation_value.get_resgroup_name()
+            )
+        else:
+            log.debug('DeduplicatingRDTAllocationsValue: %s already performed', resgroup_name)
+
 #
 # ------------------------ helpers -----------------------------------
 #
@@ -694,3 +724,6 @@ def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
         raise ValueError(str(number_of_cbm_bits) +
                          " cbm bits. Requires minimum " +
                          str(min_cbm_bits))
+
+
+

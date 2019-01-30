@@ -181,23 +181,23 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
 @pytest.mark.parametrize('rdt_allocation, extra_labels, expected_metrics', (
         (RDTAllocation(), {}, []),
         (RDTAllocation(mb='mb:0=20'), {}, [
-            allocation_metric('rdt_mb', 20, group_name='', domain_id='0', container_name='c1')
+            allocation_metric('rdt_mb', 20, group_name='c1', domain_id='0', container_name='c1')
         ]),
         (RDTAllocation(mb='mb:0=20'), {'foo': 'bar'}, [
-            allocation_metric('rdt_mb', 20, group_name='', domain_id='0',
+            allocation_metric('rdt_mb', 20, group_name='c1', domain_id='0',
                               container_name='c1', foo='bar')
         ]),
         (RDTAllocation(mb='mb:0=20'), {}, [
-            allocation_metric('rdt_mb', 20, group_name='', domain_id='0', container_name='c1')
+            allocation_metric('rdt_mb', 20, group_name='c1', domain_id='0', container_name='c1')
         ]),
         (RDTAllocation(mb='mb:0=20;1=30'), {}, [
-            allocation_metric('rdt_mb', 20, group_name='', domain_id='0', container_name='c1'),
-            allocation_metric('rdt_mb', 30, group_name='', domain_id='1', container_name='c1'),
+            allocation_metric('rdt_mb', 20, group_name='c1', domain_id='0', container_name='c1'),
+            allocation_metric('rdt_mb', 30, group_name='c1', domain_id='1', container_name='c1'),
         ]),
         (RDTAllocation(l3='l3:0=ff'), {}, [
-            allocation_metric('rdt_l3_cache_ways', 8, group_name='', domain_id='0',
+            allocation_metric('rdt_l3_cache_ways', 8, group_name='c1', domain_id='0',
                               container_name='c1'),
-            allocation_metric('rdt_l3_mask', 255, group_name='', domain_id='0',
+            allocation_metric('rdt_l3_mask', 255, group_name='c1', domain_id='0',
                               container_name='c1'),
         ]),
         (RDTAllocation(name='be', l3='l3:0=ff', mb='mb:0=20;1=30'), {}, [

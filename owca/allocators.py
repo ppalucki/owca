@@ -32,6 +32,8 @@ class AllocationType(str, Enum):
     SHARES = 'cpu_shares'
     RDT = 'rdt'
 
+    def __repr__(self):
+        return repr(self.value)
 
 TaskAllocations = Dict[AllocationType, Any]
 TasksAllocations = Dict[TaskId, TaskAllocations]

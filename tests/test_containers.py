@@ -90,7 +90,7 @@ def test_sync_containers_state(platform_mock, sync_mock,
     got_containers = runner.containers_manager.sync_containers_state(tasks)
 
     # Check internal state ...
-    assert expected_running_containers == got_containers
+    assert got_containers == expected_running_containers
 
     # Check other side effects like calling sync() on external objects.
     assert sync_mock.call_count == len(expected_running_containers)

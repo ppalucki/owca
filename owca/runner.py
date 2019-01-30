@@ -38,7 +38,7 @@ from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
 from owca.resctrl import check_resctrl, cleanup_resctrl, get_max_rdt_values, RDTAllocationValue, \
-    RDTAllocation
+    RDTAllocation, DeduplicatingRDTAllocationsValue
 from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
@@ -358,7 +358,7 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                     allocation_value)
             allocation_value = CommonLablesAllocationValue(
                 allocation_value,
-                **dict(container_name=container.container_name)
+                container_name=container.container_name,
             )
             log.log(TRACE, 'adapter: common labels constructor: %r', allocation_value)
             allocation_value = ContextualErrorAllocationValue(
@@ -370,12 +370,15 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
         return generic_constructor
 
+    shared_already_executed_names = set()
+
     def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation, container: Container):
-        return RDTAllocationValue(container.container_name,
+        rdt_value = RDTAllocationValue(container.container_name,
                                   rdt_allocation, container.resgroup, container.cgroup,
                                   platform.sockets, platform.rdt_mb_control_enabled,
                                   platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
                                   )
+        return DeduplicatingRDTAllocationsValue(rdt_value, shared_already_executed_names)
 
     registry.register_automapping_type((AllocationType.RDT, RDTAllocation),
                                        context_aware_adapter(rdt_allocation_value_constructor))
@@ -449,27 +452,35 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 new_tasks_allocations, self.containers_manager.containers, platform,
                 self.allocation_configuration)
 
+
             validation_errors, new_allocations = new_allocations.validate()
             if validation_errors:
                 log.warning('Validation errors: %s', validation_errors)
 
-            log.log(TRACE, 'new (after validation):\n %s', pprint.pformat(new_allocations))
+            # if there are left allocations to apply
+            if new_allocations is not None:
 
-            target_allocations, allocations_changeset, calculating_errors = \
-                new_allocations.calculate_changeset(current_allocations)
+                log.log(TRACE, 'new (after validation):\n %s', pprint.pformat(new_allocations))
 
-            if calculating_errors:
-                log.warning('Calculating changeset errors: %s', calculating_errors)
+                target_allocations, allocations_changeset, calculating_errors = \
+                    new_allocations.calculate_changeset(current_allocations)
 
-            log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
-            log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))
-            log.debug('---------------------------------------')
-            log.log(TRACE, 'allocation_changeset:\n %s', pprint.pformat(allocations_changeset))
-            log.debug('---------------------------------------')
+                if calculating_errors:
+                    log.warning('Calculating changeset errors: %s', calculating_errors)
 
-            # MAIN function
-            if allocations_changeset:
-                allocations_changeset.perform_allocations()
+                log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
+                log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))
+                log.debug('---------------------------------------')
+                log.log(TRACE, 'allocation_changeset:\n %s', pprint.pformat(allocations_changeset))
+                log.debug('---------------------------------------')
+
+                # MAIN function
+                if allocations_changeset:
+                    allocations_changeset.perform_allocations()
+
+            else:
+                calculating_errors = []
+                target_allocations = current_allocations
 
             # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
             anomaly_metrics = convert_anomalies_to_metrics(anomalies)

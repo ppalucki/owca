@@ -101,7 +101,7 @@ class Cgroup:
     def set_normalized_quota(self, quota_normalized: float):
         """Unconditionally sets quota and period if nessesary."""
         assert self.allocation_configuration is not None, \
-            'allocation configuration cannot be used without configuration!'
+            'setting quota cannot be used without configuration!'
         current_period = self._read(CPU_PERIOD)
 
         # synchornize quota if nessesary
