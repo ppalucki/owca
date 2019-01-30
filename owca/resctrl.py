@@ -426,7 +426,6 @@ class RDTAllocationValue(AllocationValue):
 
     def perform_allocations(self):
         """
-        TODO:
         - move to new group is source_group is not None
         - update schemata file
         - remove old group (source) optional
@@ -607,6 +606,12 @@ def clean_taskless_groups(mon_groups_relation: Dict[str, List[str]]):
 
 
 class DeduplicatingRDTAllocationsValue(AllocationValueRecreatingWrapper):
+    """Wrapper over RDTAllocationsValus, that ignores perform_allocations
+    on the same RDTAllocationValue if this operates on the same ResGroup (the same name).
+
+    Have to be created properly, thats shares resgroup names set with other objects
+    of this kind but only for one run.
+    """
 
     def __init__(self, rdt_allocation_value: RDTAllocationValue,
                  already_executed_resgroup_names: set):
@@ -620,11 +625,14 @@ class DeduplicatingRDTAllocationsValue(AllocationValueRecreatingWrapper):
         )
 
     def perform_allocations(self):
+        force_execution = (self.rdt_allocation_value.rdt_allocation.name is None or
+                           self.rdt_allocation_value.source_resgroup is not None)
+
         resgroup_name = self.rdt_allocation_value.get_resgroup_name()
-        if resgroup_name not in self.already_executed_resgroup_names:
+        if force_execution or resgroup_name not in self.already_executed_resgroup_names:
             self.rdt_allocation_value.perform_allocations()
             self.already_executed_resgroup_names.add(
-                self.rdt_allocation_value.get_resgroup_name()
+                resgroup_name
             )
         else:
             log.debug('DeduplicatingRDTAllocationsValue: %s already performed', resgroup_name)

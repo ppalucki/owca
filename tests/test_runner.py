@@ -351,6 +351,22 @@ def test_allocation_runner_containers_state(*mocks):
                     },
                     2
             ),
+            # The tasks in root group (even with diffrent l3 values)
+            (
+                    {
+                        't1_task_id': {'rdt': RDTAllocation(name='', l3='L3:0=ff')},
+                        't2_task_id': {'rdt': RDTAllocation(name='', l3='L3:0=ff')}
+                    },
+                    1
+            ),
+            # The tasks are in autonamed groups (force execution always)
+            (
+                    {
+                        't1_task_id': {'rdt': RDTAllocation(l3='L3:0=ff')},
+                        't2_task_id': {'rdt': RDTAllocation(l3='L3:0=ff')}
+                    },
+                    2
+            ),
     )
 )
 def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocation_count):
