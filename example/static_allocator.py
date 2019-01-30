@@ -78,7 +78,7 @@ class StaticAllocator(Allocator):
             if type(rules) != list:
                 log.warning('StaticAllocator: improper format of config (expected list of rules)')
                 return {}, [], []
-            new_tasks_allocations = {}
+            target_tasks_allocations = {}
             all_tasks_ids = (set(tasks_labels.keys())
                              | set(tasks_resources.keys()) | set(tasks_allocations.keys()))
 
@@ -118,7 +118,7 @@ class StaticAllocator(Allocator):
                     log.debug('StaticAllocator(%s):  match all tasks', rule_idx)
                     match_task_ids.update(all_tasks_ids)
 
-                # for matching tasks calculcate and remember new_tasks_allocations
+                # for matching tasks calculcate and remember target_tasks_allocations
                 log.info('StaticAllocator(%s):  applaying allocations for %i tasks', rule_idx,
                          len(match_task_ids))
 
@@ -130,36 +130,23 @@ class StaticAllocator(Allocator):
                 registry = create_default_registry()
 
                 def dummy_construsctor(v, ctx, registry):
-                    resgroup = ResGroup(name='some')
-                    return RDTAllocationValue('some', v, resgroup, None, 0, False, '', '')
+                    resgroup = ResGroup(name=v.name or 'unknown')
+                    return RDTAllocationValue(v.name or 'unknown', v, resgroup, None, 0, False, '', '')
 
                 registry.register_automapping_type(RDTAllocation, dummy_construsctor)
-                new_tasks_allocations_values, this_rule_allocations_value_changeset, errors = \
-                    AllocationsDict(new_tasks_allocations, registry=registry).calculate_changeset(
-                        AllocationsDict(this_rule_tasks_allocations, registry=registry), )
+
+                # Get the difference
+                target_tasks_allocations, _, errors = \
+                    AllocationsDict(this_rule_tasks_allocations, registry=registry).calculate_changeset(
+                        AllocationsDict(target_tasks_allocations, registry=registry), )
 
                 if errors:
                     log.warning('There are some errors in rules: %s', errors)
 
-                log.debug('StaticAllocator(%s): new tasks allocations values: \n %s',
-                          rule_idx,
-                          pprint.pformat(new_tasks_allocations_values))
+                target_tasks_allocations = target_tasks_allocations.unwrap_to_simple()
+                log.debug('StaticAllocator(%s):  after this rule final tasks allocations: \n %s',
+                          rule_idx, pprint.pformat(target_tasks_allocations))
 
-                if new_tasks_allocations_values is not None:
-                    new_tasks_allocations = new_tasks_allocations_values.unwrap_to_simple()
-                    log.debug('StaticAllocator(%s): new tasks allocations: \n %s',
-                              rule_idx,
-                              pprint.pformat(new_tasks_allocations))
-                else:
-                    new_tasks_allocations = None
-
-                if this_rule_allocations_value_changeset is not None:
-                    this_rule_allocations_value = \
-                        this_rule_allocations_value_changeset.unwrap_to_simple()
-                    log.debug('StaticAllocator(%s): this rule allocations changeset: \n %s',
-                              rule_idx,
-                              pprint.pformat(this_rule_allocations_value))
-
-            log.debug('StaticAllocator: final tasks allocations: \n %s',
-                      pprint.pformat(new_tasks_allocations))
-            return new_tasks_allocations, [], []
+            log.info('StaticAllocator: final tasks allocations: \n %s',
+                      pprint.pformat(target_tasks_allocations))
+            return target_tasks_allocations, [], []

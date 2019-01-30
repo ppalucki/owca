@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import math
 import os
 from typing import Optional, List
 
@@ -31,6 +32,7 @@ CPU_SHARES = 'cpu.shares'
 TASKS = 'tasks'
 BASE_SUBSYSTEM_PATH = '/sys/fs/cgroup/cpu'
 
+QUOTA_CLOSE_TO_ZERO_SENSITIVITY = 0.01
 
 @dataclass
 class Cgroup:
@@ -104,11 +106,21 @@ class Cgroup:
             'setting quota cannot be used without configuration!'
         current_period = self._read(CPU_PERIOD)
 
-        # synchornize quota if nessesary
         if current_period != self.allocation_configuration.cpu_quota_period:
             self._write(CPU_PERIOD, self.allocation_configuration.cpu_quota_period)
-        quota = int(quota_normalized * self.allocation_configuration.cpu_quota_period *
-                    self.platform_cpus)
+
+        if quota_normalized == float('inf') or math.isclose(
+                quota_normalized, 0, rel_tol=QUOTA_CLOSE_TO_ZERO_SENSITIVITY
+                ):
+            quota = -1
+        else:
+            # synchornize period if nessesary
+            quota = int(quota_normalized * self.allocation_configuration.cpu_quota_period *
+                        self.platform_cpus)
+            # Minimum quota detected
+            if quota < 1000:
+                quota = -1
+
         self._write(CPU_QUOTA, quota)
 
     def get_allocations(self) -> TaskAllocations:
@@ -133,7 +145,7 @@ class QuotaAllocationValue(BoxedNumeric):
     def __init__(self, normalized_quota: float, cgroup: Cgroup):
         self.normalized_quota = normalized_quota
         self.cgroup = cgroup
-        super().__init__(value=normalized_quota, min_value=0, max_value=cgroup.platform_cpus)
+        super().__init__(value=normalized_quota, min_value=0, max_value=1.0)
 
     def generate_metrics(self):
         metrics = super().generate_metrics()
