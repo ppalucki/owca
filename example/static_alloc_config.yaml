@@ -10,7 +10,7 @@
   labels:
     job_uniq_id: '0'
   allocations:
-    # cpu_shares: 0.5
+    cpu_shares: 0.5
     cpu_quota: 0.01
     rdt:
         name: 'be'
