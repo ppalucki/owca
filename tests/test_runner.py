@@ -28,7 +28,8 @@ from owca.detectors import AnomalyDetector
 from owca.mesos import MesosNode, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.resctrl import RDTAllocation
-from owca.runner import DetectionRunner, AllocationRunner, convert_to_allocations_values
+from owca.runners.allocation import convert_to_allocations_values, AllocationRunner
+from owca.runners.detection import DetectionRunner
 from owca.testing import anomaly_metrics, anomaly, task, container, metric, allocation_metric
 
 platform_mock = Mock(
@@ -41,7 +42,7 @@ platform_mock = Mock(
         platform_mock, [metric('platform-cpu-usage')], {}))
 @patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
 @patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
-@patch('owca.runner.are_privileges_sufficient', return_value=True)
+@patch('owca.runners.base.are_privileges_sufficient', return_value=True)
 @patch('owca.containers.ResGroup')
 @patch('owca.containers.PerfCounters')
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
@@ -152,8 +153,8 @@ def test_detection_runner_containers_state(*mocks):
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
 @patch('owca.platforms.collect_platform_information', return_value=(
         platform_mock, [metric('platform-cpu-usage')], {}))
-@patch('owca.runner.are_privileges_sufficient', return_value=True)
-@patch('owca.runner.AllocationRunner.configure_rdt', return_value=True)
+@patch('owca.runners.base.are_privileges_sufficient', return_value=True)
+@patch('owca.runners.allocation.AllocationRunner.configure_rdt', return_value=True)
 @patch('owca.containers.PerfCounters')
 @patch('owca.cgroups.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
 @patch('owca.cgroups.Cgroup.get_pids', return_value=['123'])

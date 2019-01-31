@@ -129,15 +129,18 @@ class StaticAllocator(Allocator):
 
                 registry = create_default_registry()
 
-                def dummy_construsctor(v, ctx, registry):
-                    resgroup = ResGroup(name=v.name or 'unknown')
-                    return RDTAllocationValue(v.name or 'unknown', v, resgroup, None, 0, False, '', '')
+                def dummy_construsctor(rdt_value, ctx, registry):
+                    resgroup_name = rdt_value.name or 'unknown'
+                    resgroup = ResGroup(resgroup_name)
+                    return RDTAllocationValue(resgroup_name, rdt_value, resgroup, None, 0, False,
+                                              '', '')
 
                 registry.register_automapping_type(RDTAllocation, dummy_construsctor)
 
                 # Get the difference
                 target_tasks_allocations, _, errors = \
-                    AllocationsDict(this_rule_tasks_allocations, registry=registry).calculate_changeset(
+                    AllocationsDict(this_rule_tasks_allocations,
+                                    registry=registry).calculate_changeset(
                         AllocationsDict(target_tasks_allocations, registry=registry), )
 
                 if errors:
@@ -148,5 +151,5 @@ class StaticAllocator(Allocator):
                           rule_idx, pprint.pformat(target_tasks_allocations))
 
             log.info('StaticAllocator: final tasks allocations: \n %s',
-                      pprint.pformat(target_tasks_allocations))
+                     pprint.pformat(target_tasks_allocations))
             return target_tasks_allocations, [], []

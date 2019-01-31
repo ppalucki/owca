@@ -93,15 +93,17 @@ def test_set_normalized_shares(normalized_shares, allocation_configuration, expe
     'normalized_quota, cpu_quota_period, platforms_cpu, initial_period_value, '
     'expected_period_write, expected_quota_write', [
             (0., 2000, 1, 1000,
-             2000, -1),
+             2000, 1000),
             (1., 2000, 1, 1000,
-             2000, 2000),
+             2000, -1),
             (2., 1000, 1, 1000,
-             None, 2000),
-            (8., 1000, 8, 1000,
-             None, 64000),
-            (8., 1000, 8, 1000,
-             None, 64000),
+             None, -1),
+            (1., 1000, 8, 1000,
+             None, -1),
+            (.5, 1000, 8, 1000,
+             None, 4000),
+            (.25, 10000, 8, 1000,
+             None, 20000),
     ]
 )
 def test_set_normalized_quota(normalized_quota, cpu_quota_period, platforms_cpu,

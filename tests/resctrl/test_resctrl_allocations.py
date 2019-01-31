@@ -213,7 +213,7 @@ def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, extra_la
                                          expected_metrics):
     rdt_allocation_value = RDTAllocationValue(
         'c1',
-        rdt_allocation, cgroup=Cgroup('/', platform_cpus=1),
+        rdt_allocation, get_pids=lambda: [],
         resgroup=ResGroup(name=rdt_allocation.name or ''),
         platform_sockets=1, rdt_mb_control_enabled=False,
         rdt_cbm_mask='fff', rdt_min_cbm_bits='1',

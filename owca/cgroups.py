@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import math
 import os
 from typing import Optional, List
 
@@ -33,6 +32,7 @@ TASKS = 'tasks'
 BASE_SUBSYSTEM_PATH = '/sys/fs/cgroup/cpu'
 
 QUOTA_CLOSE_TO_ZERO_SENSITIVITY = 0.01
+
 
 @dataclass
 class Cgroup:
@@ -107,9 +107,7 @@ class Cgroup:
         if current_period != self.allocation_configuration.cpu_quota_period:
             self._write(CPU_PERIOD, self.allocation_configuration.cpu_quota_period)
 
-        if quota_normalized == float('inf') or math.isclose(
-                quota_normalized, 0, rel_tol=QUOTA_CLOSE_TO_ZERO_SENSITIVITY
-                ):
+        if quota_normalized >= 1.0:
             quota = -1
         else:
             # synchornize period if nessesary
@@ -117,7 +115,7 @@ class Cgroup:
                         self.platform_cpus)
             # Minimum quota detected
             if quota < 1000:
-                quota = -1
+                quota = 1000
 
         self._write(CPU_QUOTA, quota)
 

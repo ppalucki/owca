@@ -17,7 +17,7 @@ from unittest.mock import patch, Mock
 import pytest
 
 from owca.containers import _calculate_desired_state
-from owca.runner import DetectionRunner
+from owca.runners.detection import DetectionRunner
 from owca.testing import task, container
 
 

@@ -14,11 +14,10 @@
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 
 from dataclasses import dataclass
 
-from owca.allocations import AllocationValue
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.mesos import TaskId
 from owca.metrics import Metric
@@ -36,11 +35,8 @@ class AllocationType(str, Enum):
         return repr(self.value)
 
 
-TaskAllocations = Dict[AllocationType, Any]
+TaskAllocations = Dict[AllocationType, Union[float, int, Any]]
 TasksAllocations = Dict[TaskId, TaskAllocations]
-
-TaskAllocationsValues = List[AllocationValue]
-TasksAllocationsValues = Dict[TaskId, TaskAllocationsValues]
 
 
 @dataclass

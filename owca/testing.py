@@ -25,7 +25,7 @@ from owca.detectors import ContendedResource, ContentionAnomaly, _create_uuid_fr
 from owca.mesos import MesosTask, TaskId
 from owca.metrics import Metric, MetricType
 from owca.resctrl import ResGroup
-from owca.runner import Runner
+from owca.runners.base import Runner
 
 
 def relative_module_path(module_file, relative_path):

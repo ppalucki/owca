@@ -17,14 +17,13 @@
 import errno
 import logging
 import os
-from typing import Tuple, List, Optional, Dict
+from typing import Tuple, List, Optional, Dict, Callable
 
 from dataclasses import dataclass
 
 from owca import logger
 from owca.allocations import AllocationValue
 from owca.allocators import AllocationType, TaskAllocations
-from owca.cgroups import Cgroup
 from owca.logger import TRACE
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
@@ -231,7 +230,7 @@ class RDTAllocationValue(AllocationValue):
     container_name: str
     rdt_allocation: RDTAllocation
     resgroup: ResGroup
-    cgroup: Cgroup
+    get_pids: Callable[[], List[str]]  # Used as pid provider
     platform_sockets: int
     rdt_mb_control_enabled: bool
     rdt_cbm_mask: str
@@ -250,7 +249,7 @@ class RDTAllocationValue(AllocationValue):
         return RDTAllocationValue(
             container_name=container_name or self.container_name,
             rdt_allocation=rdt_allocation,
-            cgroup=self.cgroup,
+            get_pids=self.get_pids,
             resgroup=resgroup if resgroup is not None else self.resgroup,
             platform_sockets=self.platform_sockets,
             rdt_mb_control_enabled=self.rdt_mb_control_enabled,
@@ -436,7 +435,7 @@ class RDTAllocationValue(AllocationValue):
                       self.source_resgroup.name, self.resgroup.name)
 
             # three cases (to root, from root, or between new resgroups)
-            self.resgroup.add_pids(pids=self.cgroup.get_pids(),
+            self.resgroup.add_pids(pids=self.get_pids(),
                                    mongroup_name=self.container_name)
 
             if len(self.source_resgroup.get_mon_groups()) == 1:
