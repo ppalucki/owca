@@ -8,7 +8,7 @@
 
 - name: first task with label0
   labels:
-    job_uniq_id: '0'
+    job_uniq_id: '[01]'
   allocations:
     # cpu_shares: 0.5
     # cpu_quota: 0.01
@@ -18,10 +18,10 @@
 
 - name: 1-9 tasks
   labels:
-    job_uniq_id: '[123456789]'
+    job_uniq_id: '[23456789]'
   allocations:
     cpu_shares: 0.1
-    cpu_quota: 0.05
+    cpu_quota: 1.
     rdt:
         name: 'onetoten'
         l3: 'L3:0=00001;1=00001'
