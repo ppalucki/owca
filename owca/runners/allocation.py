@@ -52,21 +52,24 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
 
     def context_aware_adapter(specific_constructor):
         def generic_constructor(raw_value, ctx, registry):
+            if len(ctx) != 2:
+                return InvalidAllocationValue(
+                    raw_value, 'expected context to be task_id/allocation_type got %s' % ','.join(
+                        ctx))
             task_id = ctx[0]
-            allocation_type = ctx[1]
 
             if task_id not in task_id_to_containers:
                 return InvalidAllocationValue(raw_value, 'task_id %r not found (ctx=%r)' % (
-                    task_id, ctx))
-
-            if allocation_type not in (AllocationType.QUOTA,
-                                       AllocationType.SHARES,
-                                       AllocationType.RDT):
-                return InvalidAllocationValue(raw_value, 'unknown allocation type %r (ctx=%r)' % (
-                    allocation_type, ctx))
+                    task_id, '.'.join(ctx)))
 
             container = task_id_to_containers[task_id]
             allocation_value = specific_constructor(raw_value, container)
+
+            errors, new_allocation_value = allocation_value.validate()
+            if new_allocation_value is None:
+                return InvalidAllocationValue(allocation_value, 'some errors during creation',
+                                              errors)
+
             log.log(TRACE, 'adapter: specific constructor: %r -> %r', specific_constructor,
                     allocation_value)
             allocation_value = CommonLablesAllocationValue(
@@ -76,7 +79,7 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
             log.log(TRACE, 'adapter: common labels constructor: %r', allocation_value)
             allocation_value = ContextualErrorAllocationValue(
                 allocation_value,
-                prefix_message='Invalid allocation type=%r for task=%r' % (allocation_type, task_id)
+                prefix_message='for task=%r - ' % task_id
             )
             log.log(TRACE, 'adapter: ContextualError constructor: %r', allocation_value)
             return allocation_value
@@ -84,6 +87,7 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
         return generic_constructor
 
     shared_already_executed_names = set()
+    all_resgroups_names = set()
 
     def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation, container: Container):
         rdt_value = RDTAllocationValue(
@@ -92,7 +96,12 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
             platform.sockets, platform.rdt_mb_control_enabled,
             platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
         )
-        return DeduplicatingRDTAllocationsValue(rdt_value, shared_already_executed_names)
+        return DeduplicatingRDTAllocationsValue(
+            rdt_value,
+            maximum_closids=platform.rdt_num_closids,
+            already_executed_resgroup_names=shared_already_executed_names,
+            existing_groups=all_resgroups_names,
+        )
 
     registry.register_automapping_type((AllocationType.RDT, RDTAllocation),
                                        context_aware_adapter(rdt_allocation_value_constructor))
@@ -112,6 +121,13 @@ def convert_to_allocations_values(tasks_allocations: TasksAllocations,
                                        context_aware_adapter(quota_allocation_value_constructor))
     registry.register_automapping_type((AllocationType.QUOTA, int),
                                        context_aware_adapter(quota_allocation_value_constructor))
+
+    def invalid_type_constructor(raw_value, ctx, registry):
+        allocation_type = ctx[1]
+        return InvalidAllocationValue(raw_value, 'unknown allocation type %r on %s' % (
+            allocation_type, '.'.join(ctx)))
+
+    registry.register_automapping_type(None, invalid_type_constructor)
 
     return AllocationsDict(tasks_allocations, None, registry=registry)
 
@@ -183,6 +199,10 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
                 if calculating_errors:
                     log.warning('Calculating changeset errors: %s', calculating_errors)
+
+                target_validation_errors, target_allocations = target_allocations.validate()
+                if target_validation_errors:
+                    log.warning('Validation target errors: %s', target_validation_errors)
 
                 log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
                 log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))

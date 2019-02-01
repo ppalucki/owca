@@ -16,6 +16,8 @@ import math
 from abc import ABC, abstractmethod
 from typing import List, Dict, Union, Tuple, Optional, Any, Type, Callable
 
+from dataclasses import dataclass
+
 from owca.logger import TRACE
 from owca.metrics import Metric, MetricType
 
@@ -95,7 +97,7 @@ class Registry:
 
     def register_automapping_type(
             self,
-            any_type: Union[Type, Tuple[str, Type]],
+            any_type: Union[Optional[Type], Tuple[str, Type]],
             constructor: Callable[[Any, List[str], 'Registry'], AllocationValue]):
         """Register given type or pair of (key, type) to use given constructor to
         create corresponding AllocationValue instance."""
@@ -116,9 +118,14 @@ class Registry:
             log.log(TRACE, 'registry: found constructor %r, base on type %r', constructor,
                     type_of_value)
         else:
-            raise Exception('cannot convert %r (type=%r under %r key) '
-                            'to AllocationValue using provided mapping=%r' %
-                            (value, type(value), key, self._mapping))
+            # use the default constructor (None) key
+            if None in self._mapping:
+                constructor = self._mapping[None]
+                log.log(TRACE, 'registry: using the default constructor %r', constructor)
+            else:
+                raise Exception('cannot convert %r (type=%r under %r key) '
+                                'to AllocationValue using provided mapping=%r' %
+                                (value, type(value), key, self._mapping))
         allocation_value = constructor(value, base_ctx + [key], self)
         log.log(TRACE, 'registry: constructor %r used to create: %r', constructor, allocation_value)
         return allocation_value
@@ -380,12 +387,16 @@ class ContextualErrorAllocationValue(AllocationValueRecreatingWrapper):
         return prefixed_errors, new_value
 
 
+@dataclass
 class InvalidAllocationValue(AllocationValueRecreatingWrapper):
     """ Update any allocation values wiht common labels, when peforming generate_metrics."""
 
-    def __init__(self, allocation_value, error_message):
-        super().__init__(allocation_value)
-        self.error_message = error_message
+    allocation_value: Any
+    error_message: str
+    errors: Optional[List[str]] = None
+
+    def __post_init__(self):
+        super().__init__(self.allocation_value)
 
     def generate_metrics(self):
         return []
@@ -394,7 +405,7 @@ class InvalidAllocationValue(AllocationValueRecreatingWrapper):
         return InvalidAllocationValue(allocation_value, self.error_message)
 
     def validate(self):
-        return [self.error_message], None
+        return [self.error_message] + (self.errors if self.errors else []), None
 
 
 class CommonLablesAllocationValue(AllocationValueRecreatingWrapper):

@@ -34,7 +34,31 @@ from owca.testing import anomaly_metrics, anomaly, task, container, metric, allo
 
 platform_mock = Mock(
     spec=platforms.Platform, sockets=1,
-    rdt_cbm_mask='fffff', rdt_min_cbm_bits=1, rdt_mb_control_enabled=False)
+    rdt_cbm_mask='fffff', rdt_min_cbm_bits=1, rdt_mb_control_enabled=False, rdt_num_closids=2)
+
+
+@pytest.mark.parametrize('tasks_allocations,expected_errors', [
+    ({'tx': {'cpu_shares': 3}}, ["task_id 'tx' not found (ctx='tx.cpu_shares')"]),
+    ({'cpu_shares': 3}, ['expected context to be task_id/allocation_type got cpu_shares']),
+    ({'t1': {'wrong_type': 5}}, ["unknown allocation type 'wrong_type' on t1.wrong_type"]),
+    ({'t1_task_id': {'rdt': RDTAllocation()},
+      't2_task_id': {'rdt': RDTAllocation()},
+      't3_task_id': {'rdt': RDTAllocation()}},
+     ["for task='t1_task_id' - too many closids(3)!",
+      "for task='t2_task_id' - too many closids(3)!",
+      'some errors during creation',
+      'too many closids(3)!']),
+])
+def test_convert_invalid_task_allocations(tasks_allocations, expected_errors):
+    allocation_configuration = AllocationConfiguration()
+    containers = {task('/t1'): container('/t1'),
+                  task('/t2'): container('/t2'),
+                  task('/t3'): container('/t3'),
+                  }
+    got_allocations_values = convert_to_allocations_values(
+        tasks_allocations, containers, platform_mock, allocation_configuration)
+    errors, got_allocations_values = got_allocations_values.validate()
+    assert errors == expected_errors
 
 
 # We are mocking objects used by containers.

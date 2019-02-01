@@ -23,11 +23,11 @@ from dataclasses import dataclass
 
 from owca import logger
 from owca.allocations import AllocationValue
+from owca.allocations import AllocationValueRecreatingWrapper
 from owca.allocators import AllocationType, TaskAllocations
 from owca.logger import TRACE
 from owca.metrics import Measurements, MetricName, Metric, MetricType
 from owca.security import SetEffectiveRootUid
-from owca.allocations import AllocationValueRecreatingWrapper
 
 RESCTRL_ROOT_NAME = ''
 BASE_RESCTRL_PATH = '/sys/fs/resctrl'
@@ -613,14 +613,22 @@ class DeduplicatingRDTAllocationsValue(AllocationValueRecreatingWrapper):
     """
 
     def __init__(self, rdt_allocation_value: RDTAllocationValue,
-                 already_executed_resgroup_names: set):
+                 maximum_closids,
+                 already_executed_resgroup_names: set,
+                 existing_groups: set):
         super().__init__(rdt_allocation_value)
+        self.maximum_closids = maximum_closids
         self.rdt_allocation_value = rdt_allocation_value
         self.already_executed_resgroup_names = already_executed_resgroup_names
+        self.existing_groups = existing_groups
+        self.existing_groups.add(rdt_allocation_value.get_resgroup_name())
 
     def _recreate_me(self, allocation_value):
         return DeduplicatingRDTAllocationsValue(
-            allocation_value, self.already_executed_resgroup_names
+            allocation_value,
+            self.maximum_closids,
+            self.already_executed_resgroup_names,
+            self.existing_groups,
         )
 
     def perform_allocations(self):
@@ -635,6 +643,19 @@ class DeduplicatingRDTAllocationsValue(AllocationValueRecreatingWrapper):
             )
         else:
             log.debug('DeduplicatingRDTAllocationsValue: %s already performed', resgroup_name)
+
+    def validate(self):
+        """Count the number of all resctrl groups and return error if number of groups
+        is higher than allowed. """
+        errors, new_rdt_allocation_value = self.rdt_allocation_value.validate()
+        if new_rdt_allocation_value is not None:
+            if len(self.existing_groups) > self.maximum_closids:
+                assert isinstance(errors, list)
+                errors = list(errors)
+                errors.extend(['too many closids(%s)!' % len(self.existing_groups)])
+                return errors, None
+        return errors, self._recreate_me(new_rdt_allocation_value) if new_rdt_allocation_value \
+            else None
 
 
 #

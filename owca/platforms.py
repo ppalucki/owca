@@ -66,6 +66,7 @@ class Platform:
     rdt_mb_control_enabled: bool  # based on 'MB:' in /sys/fs/resctrl/info/L3/cbm_mask
     rdt_cbm_mask: Optional[str]  # based on /sys/fs/resctrl/info/L3/cbm_mask
     rdt_min_cbm_bits: Optional[str]  # based on /sys/fs/resctrl/info/L3/min_cbm_bits
+    rdt_num_closids: Optional[int]  # based on /sys/fs/resctrl/info/L3/num_closids
 
 
 def create_metrics(platform: Platform) -> List[Metric]:
@@ -228,20 +229,21 @@ def collect_topology_information() -> (int, int, int):
     return nr_of_online_cpus, nr_of_cores, nr_of_sockets
 
 
-def collect_rdt_information(rdt_enabled: bool) -> (str, str, bool):
+def collect_rdt_information(rdt_enabled: bool) -> (str, str, bool, int):
     """Returns rdt_cbm_mask, min_cbm_bits values."""
     if rdt_enabled:
         with open('/sys/fs/resctrl/info/L3/cbm_mask') as f:
             cbm_mask = f.read().strip()
         with open('/sys/fs/resctrl/info/L3/min_cbm_bits') as f:
             min_cbm_bits = f.read().strip()
+        with open('/sys/fs/resctrl/info/L3/num_closids') as f:
+            num_closids = int(f.read().strip())
         with open('/sys/fs/resctrl/schemata') as f:
             schemata_body = f.read()
             rdt_mb_control_enabled = 'MB:' in schemata_body
-
-        return cbm_mask, min_cbm_bits, rdt_mb_control_enabled
+        return cbm_mask, min_cbm_bits, rdt_mb_control_enabled, num_closids
     else:
-        return None, None, False
+        return None, None, False, None
 
 
 def collect_platform_information(rdt_enabled: bool = True) -> (
@@ -259,7 +261,8 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     """
     # Static information
     nr_of_cpus, nr_of_cores, no_of_sockets = collect_topology_information()
-    rdt_cbm_mask, rdt_min_cbm_bits, rdt_mb_control_enabled = collect_rdt_information(rdt_enabled)
+    rdt_cbm_mask, rdt_min_cbm_bits, rdt_mb_control_enabled, num_closids = \
+        collect_rdt_information(rdt_enabled)
 
     # Dynamic information
     cpus_usage = parse_proc_stat(read_proc_stat())
@@ -272,7 +275,9 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
                         timestamp=time.time(),
                         rdt_mb_control_enabled=rdt_mb_control_enabled,
                         rdt_cbm_mask=rdt_cbm_mask,
-                        rdt_min_cbm_bits=rdt_min_cbm_bits)
+                        rdt_min_cbm_bits=rdt_min_cbm_bits,
+                        rdt_num_closids=num_closids,
+                        )
     assert len(platform.cpus_usage) == platform.cpus,\
         "Inconsistency in cpu data returned by kernel"
     return platform, create_metrics(platform), create_labels(platform)
