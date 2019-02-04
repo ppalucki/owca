@@ -23,12 +23,17 @@ import pytest
 
 from owca import platforms
 from owca import storage
-from owca.allocators import Allocator, AllocationType, AllocationConfiguration
+from owca.allocations import InvalidAllocations
+from owca.allocators import Allocator, AllocationType, RDTAllocation
+from owca.cgroups import Cgroup
+from owca.containers import Container
 from owca.detectors import AnomalyDetector
 from owca.mesos import MesosNode, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
-from owca.resctrl import RDTAllocation
-from owca.runners.allocation import convert_to_allocations_values, AllocationRunner
+from owca.resctrl import ResGroup
+from owca.resctrl_allocations import RDTAllocationValue
+from owca.resctrl_allocations import RDTGroups
+from owca.runners.allocation import AllocationRunner, TasksAllocationsValues, TaskAllocationsValues
 from owca.runners.detection import DetectionRunner
 from owca.testing import anomaly_metrics, anomaly, task, container, metric, allocation_metric
 
@@ -37,28 +42,23 @@ platform_mock = Mock(
     rdt_cbm_mask='fffff', rdt_min_cbm_bits=1, rdt_mb_control_enabled=False, rdt_num_closids=2)
 
 
-@pytest.mark.parametrize('tasks_allocations,expected_errors', [
-    ({'tx': {'cpu_shares': 3}}, ["task_id 'tx' not found (ctx='tx.cpu_shares')"]),
-    ({'cpu_shares': 3}, ['expected context to be task_id/allocation_type got cpu_shares']),
-    ({'t1': {'wrong_type': 5}}, ["unknown allocation type 'wrong_type' on t1.wrong_type"]),
+@pytest.mark.parametrize('tasks_allocations,expected_error', [
+    ({'tx': {'cpu_shares': 3}}, 'invalid task id'),
+    ({'t1_task_id': {'wrong_type': 5}}, 'unknown allocation type'),
     ({'t1_task_id': {'rdt': RDTAllocation()},
       't2_task_id': {'rdt': RDTAllocation()},
       't3_task_id': {'rdt': RDTAllocation()}},
-     ["for task='t1_task_id' - too many closids(3)!",
-      "for task='t2_task_id' - too many closids(3)!",
-      'some errors during creation',
-      'too many closids(3)!']),
+     'too many resource groups for available CLOSids'),
 ])
-def test_convert_invalid_task_allocations(tasks_allocations, expected_errors):
-    allocation_configuration = AllocationConfiguration()
+def test_convert_invalid_task_allocations(tasks_allocations, expected_error):
     containers = {task('/t1'): container('/t1'),
                   task('/t2'): container('/t2'),
                   task('/t3'): container('/t3'),
                   }
-    got_allocations_values = convert_to_allocations_values(
-        tasks_allocations, containers, platform_mock, allocation_configuration)
-    errors, got_allocations_values = got_allocations_values.validate()
-    assert errors == expected_errors
+    with pytest.raises(InvalidAllocations, match=expected_error):
+        got_allocations_values = TasksAllocationsValues.create(
+            tasks_allocations, containers, platform_mock)
+        got_allocations_values.validate()
 
 
 # We are mocking objects used by containers.
@@ -256,15 +256,18 @@ def test_allocation_runner_containers_state(*mocks):
     # [0][0] means all arguments [0][0][0] means first of plain arguments
     assert allocations_storage_mock.store.call_args_list[0][0][0] == [
         Metric(name='allocation', value=0.5,
-               labels={'allocation_type': 'cpu_quota', 'container_name': 't1'},
+               labels={'allocation_type': 'cpu_quota', 'container_name': 't1',
+                       'task': 't1_task_id'},
                type='gauge'),
         Metric(name='allocation', value=4,
                labels={'allocation_type': 'rdt_l3_cache_ways',
-                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1'},
+                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1',
+                       'task': 't1_task_id'},
                type='gauge'),
         Metric(name='allocation', value=0xf,
                labels={'allocation_type': 'rdt_l3_mask',
-                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1'},
+                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1',
+                       'task': 't1_task_id'},
                type='gauge'),
         Metric(name='allocations_count', value=1, labels={}, type='counter'),
         Metric(name='allocations_errors', value=0, labels={}, type='counter'),
@@ -282,27 +285,32 @@ def test_allocation_runner_containers_state(*mocks):
     assert allocations_storage_mock.store.call_args[0][0] == [
         # First tasks allocations after explict set
         Metric(name='allocation', value=0.5,
-               labels={'allocation_type': 'cpu_quota', 'container_name': 't1'},
+               labels={'allocation_type': 'cpu_quota', 'container_name': 't1',
+                       'task': 't1_task_id'},
                type='gauge'),
         Metric(name='allocation', value=4,
                labels={'allocation_type': 'rdt_l3_cache_ways',
-                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1'},
+                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1',
+                       'task': 't1_task_id'},
                type='gauge'),
         Metric(name='allocation', value=15,
                labels={'allocation_type': 'rdt_l3_mask',
-                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1'},
+                       'group_name': 't1', 'domain_id': '0', 'container_name': 't1',
+                       'task': 't1_task_id'},
                type='gauge'),
         # Second task allocations based on date from system
         Metric(name='allocation', value=1.,
-               labels={'allocation_type': 'cpu_quota', 'container_name': 't2'},
+               labels={'allocation_type': 'cpu_quota', 'container_name': 't2',
+                       'task': 't2_task_id'},
                type='gauge'),
         Metric(name='allocation', value=20,
                labels={'allocation_type': 'rdt_l3_cache_ways',
-                       'group_name': '', 'domain_id': '0', 'container_name': 't2'},
+                       'group_name': '', 'domain_id': '0', 'container_name': 't2',
+                       'task': 't2_task_id'},
                type='gauge'),
         Metric(name='allocation', value=0xfffff,
                labels={'allocation_type': 'rdt_l3_mask', 'group_name': '',
-                       'domain_id': '0', 'container_name': 't2'},
+                       'domain_id': '0', 'container_name': 't2', 'task': 't2_task_id'},
                type='gauge'),
         Metric(name='allocations_count', value=2, labels={}, type='counter'),
         Metric(name='allocations_errors', value=0, labels={}, type='counter'),
@@ -327,22 +335,28 @@ def test_allocation_runner_containers_state(*mocks):
     assert allocations_storage_mock.store.call_args[0][0] == [
         # Task t1
         Metric(name='allocation', value=0.7, type='gauge',
-               labels={'allocation_type': 'cpu_quota', 'container_name': 't1'}),
+               labels={'allocation_type': 'cpu_quota', 'container_name': 't1',
+                       'task': 't1_task_id'}),
         Metric(name='allocation', value=12, type='gauge',
                labels={'allocation_type': 'rdt_l3_cache_ways',
-                       'group_name': 'one_group', 'domain_id': '0', 'container_name': 't1'}),
+                       'group_name': 'one_group', 'domain_id': '0', 'container_name': 't1',
+                       'task': 't1_task_id'}),
         Metric(name='allocation', value=0xfff, type='gauge',
                labels={'allocation_type': 'rdt_l3_mask',
-                       'group_name': 'one_group', 'domain_id': '0', 'container_name': 't1'}),
+                       'group_name': 'one_group', 'domain_id': '0', 'container_name': 't1',
+                       'task': 't1_task_id'}),
         # Task t2
         Metric(name='allocation', value=0.8, type='gauge',
-               labels={'allocation_type': 'cpu_quota', 'container_name': 't2'}),
+               labels={'allocation_type': 'cpu_quota', 'container_name': 't2',
+                       'task': 't2_task_id'}),
         Metric(name='allocation', value=12, type='gauge',
                labels={'allocation_type': 'rdt_l3_cache_ways',
-                       'group_name': 'one_group', 'domain_id': '0', 'container_name': 't2'}),
+                       'group_name': 'one_group', 'domain_id': '0', 'container_name': 't2',
+                       'task': 't2_task_id'}),
         Metric(name='allocation', value=4095, type='gauge',
                labels={'allocation_type': 'rdt_l3_mask',
-                       'group_name': 'one_group', 'domain_id': '0', 'container_name': 't2'}),
+                       'group_name': 'one_group', 'domain_id': '0', 'container_name': 't2',
+                       'task': 't2_task_id'}),
         # Stats
         Metric(name='allocations_count', value=4, labels={}, type='counter'),
         Metric(name='allocations_errors', value=0, labels={}, type='counter'),
@@ -401,18 +415,15 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
 
        The goal is achieved by checking how many times
        Container.write_schemata is called with allocate_rdt=True."""
-    allocation_configuration = AllocationConfiguration()
     containers = {task('/t1'): container('/t1', resgroup_name='', with_config=True),
                   task('/t2'): container('/t2', resgroup_name='', with_config=True)}
-    allocations = convert_to_allocations_values(
-        tasks_allocations, containers, platform_mock, allocation_configuration)
-    errors, allocations = allocations.validate()
-    assert not errors
-    if allocations:
-        with patch('owca.resctrl.ResGroup.write_schemata') as mock, \
-                patch('owca.cgroups.Cgroup._write'), patch('owca.cgroups.Cgroup._read'):
-            allocations.perform_allocations()
-            assert mock.call_count == expected_resgroup_reallocation_count
+    allocations = TasksAllocationsValues.create(
+        tasks_allocations, containers, platform_mock)
+    allocations.validate()
+    with patch('owca.resctrl.ResGroup.write_schemata') as mock, \
+            patch('owca.cgroups.Cgroup._write'), patch('owca.cgroups.Cgroup._read'):
+        allocations.perform_allocations()
+        assert mock.call_count == expected_resgroup_reallocation_count
 
 
 @pytest.mark.parametrize('tasks_allocations,expected_metrics', (
@@ -420,19 +431,23 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
         ({'t1_task_id': {AllocationType.SHARES: 0.5}}, [
             Metric(name='allocation', value=0.5,
                    type=MetricType.GAUGE,
-                   labels={'allocation_type': 'cpu_shares', 'container_name': 't1'})
+                   labels={'allocation_type': 'cpu_shares', 'container_name': 't1',
+                           'task': 't1_task_id'})
         ]),
         ({'t1_task_id': {AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
-            allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1')
+            allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
+                              task='t1_task_id')
         ]),
         ({'t1_task_id': {AllocationType.SHARES: 0.5,
                          AllocationType.RDT: RDTAllocation(mb='mb:0=20')}}, [
              Metric(
                  name='allocation', value=0.5,
                  type=MetricType.GAUGE,
-                 labels={'allocation_type': AllocationType.SHARES, 'container_name': 't1'}
+                 labels={'allocation_type': AllocationType.SHARES, 'container_name': 't1',
+                         'task': 't1_task_id'}
              ),
-             allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1')
+             allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
+                               task='t1_task_id')
          ]),
         ({'t1_task_id': {
             AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='mb:0=30')
@@ -445,31 +460,82 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
              Metric(
                  name='allocation', value=0.5,
                  type=MetricType.GAUGE,
-                 labels={'allocation_type': AllocationType.SHARES, 'container_name': 't1'}
+                 labels={'allocation_type': AllocationType.SHARES, 'container_name': 't1',
+                         'task': 't1_task_id'}
              ),
-             allocation_metric('rdt_mb', 30, group_name='t1', domain_id='0', container_name='t1'),
+             allocation_metric('rdt_mb', 30, group_name='t1', domain_id='0', container_name='t1',
+                               task='t1_task_id'),
              Metric(
                  name='allocation', value=0.6,
                  type=MetricType.GAUGE,
-                 labels={'allocation_type': AllocationType.QUOTA, 'container_name': 't2'}
+                 labels={'allocation_type': AllocationType.QUOTA, 'container_name': 't2',
+                         'task': 't2_task_id'}
              ),
              allocation_metric('rdt_l3_cache_ways', 4, group_name='b',
-                               domain_id='0', container_name='t2'),
+                               domain_id='0', container_name='t2', task='t2_task_id'),
              allocation_metric('rdt_l3_mask', 15, group_name='b',
-                               domain_id='0', container_name='t2'),
+                               domain_id='0', container_name='t2', task='t2_task_id'),
          ]),
 ))
 def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics):
-    allocation_configuration = AllocationConfiguration()
     containers = {task('/t1'): container('/t1'),
                   task('/t2'): container('/t2'),
                   }
-    allocations = convert_to_allocations_values(
-        tasks_allocations, containers, platform_mock, allocation_configuration)
-    errors, allocations = allocations.validate()
-    assert not errors
-    if allocations:
-        metrics_got = allocations.generate_metrics()
-    else:
-        metrics_got = []
+    allocations = TasksAllocationsValues.create(
+        tasks_allocations, containers, platform_mock)
+    allocations.validate()
+    metrics_got = allocations.generate_metrics()
     assert metrics_got == expected_metrics
+
+
+@pytest.mark.parametrize(
+    'current, new, expected_target, expected_changeset', [
+        ({}, {"rdt": RDTAllocation(name='', l3='ff')},
+         {"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='', l3='ff')}),
+        ({"rdt": RDTAllocation(name='', l3='ff')}, {},
+         {"rdt": RDTAllocation(name='', l3='ff')}, None),
+        ({"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')},
+         {"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')}),
+        ({"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='dd')},
+         {"rdt": RDTAllocation(name='x', l3='dd')}, {"rdt": RDTAllocation(name='x', l3='dd')}),
+        ({"rdt": RDTAllocation(name='x', l3='dd', mb='ff')},
+         {"rdt": RDTAllocation(name='x', mb='ff')},
+         {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, None),
+    ]
+)
+def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_changeset):
+    # Extra mapping
+
+    CgroupMock = Mock(spec=Cgroup)
+    ResGroupMock = Mock(spec=ResGroup)
+    ContainerMock = Mock(spec=Container)
+    rdt_groups = RDTGroups(20)
+
+    def rdt_allocation_value_constructor(allocation_value, container, common_labels):
+        return RDTAllocationValue('c1', allocation_value, CgroupMock(), ResGroupMock(),
+                                  platform_sockets=1, rdt_mb_control_enabled=False,
+                                  rdt_cbm_mask='fff', rdt_min_cbm_bits='1',
+                                  rdt_groups=rdt_groups,
+                                  common_labels=common_labels,
+                                  )
+
+    def convert_dict(simple_dict):
+        return TaskAllocationsValues.create(
+            simple_dict,
+            container=ContainerMock(),
+            registry={AllocationType.RDT: rdt_allocation_value_constructor},
+            common_labels={})
+
+    # Conversion
+    current_dict = convert_dict(current)
+    new_dict = convert_dict(new)
+
+    # Merge
+    got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
+    got_target_dict_simple = got_target_dict.unwrap_to_simple()
+
+    assert got_target_dict_simple == expected_target
+
+    got_changeset = got_changeset_dict.unwrap_to_simple() if got_changeset_dict is not None else \
+        None
+    assert got_changeset == expected_changeset

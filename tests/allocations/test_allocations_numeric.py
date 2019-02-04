@@ -14,7 +14,7 @@
 
 import pytest
 
-from owca.allocations import BoxedNumeric
+from owca.allocations import BoxedNumeric, InvalidAllocations
 
 
 ############################################################################
@@ -22,23 +22,26 @@ from owca.allocations import BoxedNumeric
 ############################################################################
 
 @pytest.mark.parametrize(
-    'value, min_value, max_value, float_value_change_sensitivity, expected_errors', (
-            (1, 2, 3, 0.00001, ['1 does not belong to range <2;3>']),
-            (1.1, 2, 3, 0.00001, ['1.1 does not belong to range <2;3>']),
-            (2.5, 2, 3, 0.00001, []),
-            (3, 2.5, 3.0, 0.00001, []),
-            (2.0, 2, 3.0, 0.00001, []),
-            (2.0, None, 3.0, 0.00001, []),
-            (2.0, 1, None, 0.00001, []),
+    'value, min_value, max_value, float_value_change_sensitivity, expected_error', (
+            (1, 2, 3, 0.00001, '1 does not belong to range'),
+            (1.1, 2, 3, 0.00001, 'does not belong to range'),
+            (2.5, 2, 3, 0.00001, None),
+            (3, 2.5, 3.0, 0.00001, None),
+            (2.0, 2, 3.0, 0.00001, None),
+            (2.0, None, 3.0, 0.00001, None),
+            (2.0, 1, None, 0.00001, None),
     )
 )
 def test_boxed_numeric_validation(value, min_value, max_value, float_value_change_sensitivity,
-                                  expected_errors):
-    boxed_value = BoxedNumeric(value, min_value, max_value, float_value_change_sensitivity)
-    expected_new_value = None if expected_errors else boxed_value
-    got_errors, got_new_value = boxed_value.validate()
-    assert got_errors == expected_errors
-    assert got_new_value == expected_new_value
+                                  expected_error):
+    boxed_value = BoxedNumeric(value, min_value=min_value,
+                               max_value=max_value,
+                               float_value_change_sensitivity=float_value_change_sensitivity)
+    if expected_error:
+        with pytest.raises(InvalidAllocations, match=expected_error):
+            boxed_value.validate()
+    else:
+        boxed_value.validate()
 
 
 @pytest.mark.parametrize(
@@ -53,10 +56,9 @@ def test_boxed_numeric_calculated_changeset(current, new, expected_target, expec
         if expected_changeset is not None else None
     expected_target = BoxedNumeric(expected_target)
 
-    got_target, got_changeset, errors = BoxedNumeric(new).calculate_changeset(BoxedNumeric(current))
+    got_target, got_changeset = BoxedNumeric(new).calculate_changeset(BoxedNumeric(current))
 
     # compare
-    assert not errors
     assert got_target == expected_target
     assert got_changeset == expected_changeset
 

@@ -2,19 +2,21 @@ import logging
 import os
 import pprint
 import re
-import ruamel
 from typing import List
 
 import dataclasses
+import ruamel
 from dataclasses import dataclass
 
-from owca.allocations import AllocationsDict, create_default_registry
-from owca.allocators import Allocator, TasksAllocations, AllocationType
+from owca.allocations import InvalidAllocations
+from owca.allocators import Allocator, TasksAllocations, AllocationType, RDTAllocation
 from owca.config import load_config
+from owca.containers import Container
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
 from owca.platforms import Platform
-from owca.resctrl import RDTAllocation, RDTAllocationValue, ResGroup
+from owca.resctrl import ResGroup
+from owca.runners.allocation import TasksAllocationsValues
 
 log = logging.getLogger(__name__)
 
@@ -127,26 +129,24 @@ class StaticAllocator(Allocator):
                 for match_task_id in match_task_ids:
                     this_rule_tasks_allocations[match_task_id] = new_task_allocations
 
-                registry = create_default_registry()
+                # recreate containers object
+                containers = {task_id: Container(task_id, platform.cpus, resgroup=ResGroup(task_id))
+                              for task_id in all_tasks_ids}
 
-                def dummy_construsctor(rdt_value, ctx, registry):
-                    resgroup_name = rdt_value.name or 'unknown'
-                    resgroup = ResGroup(resgroup_name)
-                    return RDTAllocationValue(resgroup_name, rdt_value, resgroup, None, 0, False,
-                                              '', '')
+                this_rule_tasks_allocations_values = TasksAllocationsValues.create(
+                    this_rule_tasks_allocations, containers, platform)
 
-                registry.register_automapping_type(RDTAllocation, dummy_construsctor)
+                target_tasks_allocations_values = TasksAllocationsValues.create(
+                    target_tasks_allocations, containers, platform)
 
                 # Get the difference
-                target_tasks_allocations, _, errors = \
-                    AllocationsDict(this_rule_tasks_allocations,
-                                    registry=registry).calculate_changeset(
-                        AllocationsDict(target_tasks_allocations, registry=registry), )
+                try:
+                    target_tasks_allocations_values, _ = this_rule_tasks_allocations_values.calculate_changeset(
+                        target_tasks_allocations)
+                except InvalidAllocations as e:
+                    log.error('invalid allocations %s' % e)
 
-                if errors:
-                    log.warning('There are some errors in rules: %s', errors)
-
-                target_tasks_allocations = target_tasks_allocations.unwrap_to_simple()
+                target_tasks_allocations = target_tasks_allocations_values.unwrap_to_simple()
                 log.debug('StaticAllocator(%s):  after this rule final tasks allocations: \n %s',
                           rule_idx, pprint.pformat(target_tasks_allocations))
 

@@ -43,9 +43,10 @@ def create_open_mock(paths: Dict[str, Mock]):
     For typical example of usage, check tests/test_testing:test_create_open_mock()
 
     """
+
     class OpenMock:
         def __init__(self, paths: Dict[str, Union[str, Mock]]):
-            self.paths = {os.path.normpath(k):v for k, v in paths.items()}
+            self.paths = {os.path.normpath(k): v for k, v in paths.items()}
             self._mocks = {}
 
         def __call__(self, path, mode='rb'):
@@ -79,14 +80,14 @@ def anomaly_metrics(contended_task_id: TaskId, contending_task_ids: List[TaskId]
     for task_id in contending_task_ids:
         uuid = _create_uuid_from_tasks_ids(contending_task_ids + [contended_task_id])
         metrics.append(Metric(
-                name='anomaly',
-                value=1,
-                labels=dict(
-                    contended_task_id=contended_task_id, contending_task_id=task_id,
-                    resource=ContendedResource.MEMORY_BW, uuid=uuid, type='contention'
-                ),
-                type=MetricType.COUNTER
-            ))
+            name='anomaly',
+            value=1,
+            labels=dict(
+                contended_task_id=contended_task_id, contending_task_id=task_id,
+                resource=ContendedResource.MEMORY_BW, uuid=uuid, type='contention'
+            ),
+            type=MetricType.COUNTER
+        ))
     return metrics
 
 
@@ -107,12 +108,12 @@ def task(cgroup_path, labels=None, resources=None):
     prefix = cgroup_path.replace('/', '')
     return MesosTask(
         cgroup_path=cgroup_path,
-        name=prefix+'_tasks_name',
+        name=prefix + '_tasks_name',
         executor_pid=1,
-        container_id=prefix+'_container_id',
-        task_id=prefix+'_task_id',
-        executor_id=prefix+'_executor_id',
-        agent_id=prefix+'_agent_id',
+        container_id=prefix + '_container_id',
+        task_id=prefix + '_task_id',
+        executor_id=prefix + '_executor_id',
+        agent_id=prefix + '_agent_id',
         labels=labels or dict(),
         resources=resources or dict()
     )
@@ -147,7 +148,7 @@ def allocation_metric(allocation_type, value, **labels):
         type=MetricType.GAUGE,
         value=value,
         labels=labels
-        )
+    )
 
 
 class DummyRunner(Runner):
