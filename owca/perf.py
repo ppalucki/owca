@@ -22,7 +22,10 @@ from typing import List, Dict, BinaryIO
 from owca import perf_const as pc
 from owca.metrics import Measurements, MetricName
 
-LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
+try:
+    LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
+except OSError:
+    LIBC = None
 
 log = logging.getLogger(__name__)
 

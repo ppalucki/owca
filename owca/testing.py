@@ -45,11 +45,12 @@ def create_open_mock(paths: Dict[str, Mock]):
     """
     class OpenMock:
         def __init__(self, paths: Dict[str, Union[str, Mock]]):
-            self.paths = paths
+            self.paths = {os.path.normpath(k):v for k, v in paths.items()}
             self._mocks = {}
 
         def __call__(self, path, mode='rb'):
             """Used instead of open function."""
+            path = os.path.normpath(path)
             if path not in self.paths:
                 raise Exception('opening %r is not mocked with OpenMock!' % path)
             mock_or_str = self.paths[path]
@@ -61,6 +62,7 @@ def create_open_mock(paths: Dict[str, Mock]):
             return mock(path, mode)
 
         def __getitem__(self, path):
+            path = os.path.normpath(path)
             if path not in self._mocks:
                 raise Exception('mock %r was not open!' % path)
 
