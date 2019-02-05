@@ -47,9 +47,9 @@ def test_boxed_numeric_validation(value, min_value, max_value, float_value_chang
 @pytest.mark.parametrize(
     'current, new, expected_target, expected_changeset', (
             (10, 10.01,
-                 10, None),
+             10, None),
             (10, 10.99,
-                 10.99, 10.99),
+             10.99, 10.99),
     )
 )
 def test_boxed_numeric_calculated_changeset(current, new, expected_target, expected_changeset):

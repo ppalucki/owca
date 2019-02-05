@@ -16,8 +16,8 @@ import math
 from abc import ABC, abstractmethod
 from typing import List, Union, Tuple, Optional, Any, Dict
 
-from owca.metrics import Metric, MetricType
 from owca.logger import TRACE
+from owca.metrics import Metric, MetricType
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +29,8 @@ class InvalidAllocations(Exception):
 class AllocationValue(ABC):
 
     @abstractmethod
-    def calculate_changeset(self, current: 'AllocationValue') -> Tuple['AllocationValue', Optional['AllocationValue']]:
+    def calculate_changeset(self, current: 'AllocationValue') \
+            -> Tuple['AllocationValue', Optional['AllocationValue']]:
         """Calculate difference between current value and self(new) value and
         return merged state (sum) as *target* and difference as *changeset*
         :returns target, changeset
@@ -183,10 +184,10 @@ class BoxedNumeric(AllocationValue):
         assert isinstance(other, BoxedNumeric), 'expected BoxedNumeric instance got %r(%s)' % (
             other, type(other))
         isclose = math.isclose(self.value, other.value,
-                            abs_tol=self.float_value_change_sensitivity)
+                               abs_tol=self.float_value_change_sensitivity)
 
-        log.log(TRACE, 'me=%s other=%s close=%s sens=%s', self, other, isclose, 
-                  self.float_value_change_sensitivity)
+        log.log(TRACE, 'me=%s other=%s close=%s sens=%s', self, other, isclose,
+                self.float_value_change_sensitivity)
         return isclose
 
     def generate_metrics(self) -> List[Metric]:

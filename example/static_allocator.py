@@ -2,10 +2,10 @@ import logging
 import os
 import pprint
 import re
+import ruamel
 from typing import List
 
 import dataclasses
-import ruamel
 from dataclasses import dataclass
 
 from owca.allocators import Allocator, TasksAllocations, AllocationType, RDTAllocation
@@ -14,13 +14,15 @@ from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anoma
 from owca.metrics import Metric
 from owca.platforms import Platform
 
-
 log = logging.getLogger(__name__)
 
-def merge_rules(existing_tasks_allocations: TasksAllocations, new_tasks_allocations:TasksAllocations):
+
+def merge_rules(existing_tasks_allocations: TasksAllocations,
+                new_tasks_allocations: TasksAllocations):
     merged_tasks_allcations = {}
     for task_id, task_allocations in new_tasks_allocations.items():
-        merged_tasks_allcations[task_id] = dict(existing_tasks_allocations.get(task_id, {}), **task_allocations)
+        merged_tasks_allcations[task_id] = dict(existing_tasks_allocations.get(task_id, {}),
+                                                **task_allocations)
     for task_id, task_allocations in existing_tasks_allocations.items():
         if task_id not in merged_tasks_allcations:
             merged_tasks_allcations[task_id] = dict(task_allocations)
@@ -57,7 +59,7 @@ class StaticAllocator(Allocator):
                         | set(tasks_resources.keys()) | set(tasks_allocations.keys()))
             rules = []
             for task_id in task_ids:
-                rule = {}
+                rule = dict()
                 rule['task_id'] = task_id
                 if task_id in tasks_labels:
                     rule['labels'] = tasks_labels[task_id]
@@ -139,7 +141,6 @@ class StaticAllocator(Allocator):
                 for match_task_id in match_task_ids:
                     this_rule_tasks_allocations[match_task_id] = new_task_allocations
 
-
                 target_tasks_allocations = merge_rules(target_tasks_allocations,
                                                        this_rule_tasks_allocations)
 
@@ -169,7 +170,6 @@ class StaticAllocator(Allocator):
                 # target_tasks_allocations = target_tasks_allocations_values.unwrap_to_simple()
                 # log.debug('StaticAllocator(%s):  after this rule final tasks allocations: \n %s',
                 #           rule_idx, pprint.pformat(target_tasks_allocations))
-
 
             log.info('StaticAllocator: final tasks allocations: \n %s',
                      pprint.pformat(target_tasks_allocations))

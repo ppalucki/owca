@@ -40,17 +40,17 @@ def test_clean_resctrl(exists_mock, isdir_mock, rmdir_mock, listdir_mock):
 
     schemata_mock = mock_open()
 
-    with patch('builtins.open', new=create_open_mock({
-        "/sys/fs/resctrl/mesos-1/tasks": "1\n2\n",
-        # resctrl group to recycle - expected to be removed.
-        "/sys/fs/resctrl/mesos-2/tasks": "",
-        "/sys/fs/resctrl/mesos-3/tasks": "2",
-        "/sys/fs/resctrl/mon_groups/mesos-1/tasks": "1\n2\n",
-        # resctrl group to recycle - should be removed.
-        "/sys/fs/resctrl/mon_groups/mesos-2/tasks": "",
-        "/sys/fs/resctrl/mon_groups/mesos-3/tasks": "2",
-        # default values expected to be written
-        "/sys/fs/resctrl/schemata": schemata_mock})):
+    with patch('builtins.open', new=create_open_mock(
+            {"/sys/fs/resctrl/mesos-1/tasks": "1\n2\n",
+             # resctrl group to recycle - expected to be removed.
+             "/sys/fs/resctrl/mesos-2/tasks": "",
+             "/sys/fs/resctrl/mesos-3/tasks": "2",
+             "/sys/fs/resctrl/mon_groups/mesos-1/tasks": "1\n2\n",
+             # resctrl group to recycle - should be removed.
+             "/sys/fs/resctrl/mon_groups/mesos-2/tasks": "",
+             "/sys/fs/resctrl/mon_groups/mesos-3/tasks": "2",
+             # default values expected to be written
+             "/sys/fs/resctrl/schemata": schemata_mock})):
         cleanup_resctrl(root_rdt_l3='L3:0=ff', root_rdt_mb='MB:0=100', reset_resctrl=True)
 
     listdir_mock.assert_has_calls([
