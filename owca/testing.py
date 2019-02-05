@@ -55,7 +55,7 @@ def create_open_mock(paths: Dict[str, Mock]):
             if path not in self.paths:
                 raise Exception('opening %r is not mocked with OpenMock!' % path)
             mock_or_str = self.paths[path]
-            if isinstance(mock_or_str, str):
+            if isinstance(mock_or_str, str) or isinstance(mock_or_str, bytes):
                 mock = mock_open(read_data=mock_or_str)
                 self._mocks[path] = mock
             else:

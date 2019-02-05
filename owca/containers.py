@@ -30,7 +30,8 @@ from owca.resctrl import ResGroup
 
 log = logging.getLogger(__name__)
 
-DEFAULT_EVENTS = (MetricName.INSTRUCTIONS, MetricName.CYCLES, MetricName.CACHE_MISSES)
+DEFAULT_EVENTS = (MetricName.INSTRUCTIONS, MetricName.CYCLES,
+                  MetricName.CACHE_MISSES, MetricName.MEMSTALL)
 
 
 def flatten_measurements(measurements: List[Measurements]):
