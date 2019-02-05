@@ -161,7 +161,7 @@ class BoxedNumeric(AllocationValue):
     """
     # Defines default how sensitive in terms of
     # float precision are changes from RDTAllocation detected.
-    FLOAT_VALUES_CHANGE_DETECTION = 0.1
+    FLOAT_VALUES_CHANGE_DETECTION = 0.05
 
     def __init__(self, value: Union[float, int],
                  common_labels: Dict[str, str] = None,

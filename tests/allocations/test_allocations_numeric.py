@@ -46,19 +46,19 @@ def test_boxed_numeric_validation(value, min_value, max_value, float_value_chang
 
 @pytest.mark.parametrize(
     'current, new, expected_target, expected_changeset', (
-            (10, 10.1, 10, None),
-            (10, 10.99, 10.99, 10.99),
+            (10, 10.01,
+                 10, None),
+            (10, 10.99,
+                 10.99, 10.99),
     )
 )
 def test_boxed_numeric_calculated_changeset(current, new, expected_target, expected_changeset):
-    # convert to values
     expected_changeset = BoxedNumeric(expected_changeset) \
         if expected_changeset is not None else None
     expected_target = BoxedNumeric(expected_target)
 
     got_target, got_changeset = BoxedNumeric(new).calculate_changeset(BoxedNumeric(current))
 
-    # compare
     assert got_target == expected_target
     assert got_changeset == expected_changeset
 
@@ -67,7 +67,7 @@ def test_boxed_numeric_calculated_changeset(current, new, expected_target, expec
     'left, right, is_equal', (
             (BoxedNumeric(10), BoxedNumeric(10), True),
             (BoxedNumeric(10), BoxedNumeric(11), False),
-            (BoxedNumeric(10), BoxedNumeric(10.1), True),
+            (BoxedNumeric(10), BoxedNumeric(10.01), True),
             (BoxedNumeric(10), BoxedNumeric(10.11), False),
             (BoxedNumeric(10.99), BoxedNumeric(10.99), True),
     )
