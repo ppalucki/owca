@@ -71,14 +71,14 @@ class TasksAllocationsValues(AllocationsDict):
                                              common_labels):
             return RDTAllocationValue(
                 container.container_name,
-                rdt_allocation, 
-                container.resgroup, 
+                rdt_allocation,
+                container.resgroup,
                 container.cgroup.get_pids,
-                platform.sockets, 
+                platform.sockets,
                 platform.rdt_mb_control_enabled,
-                platform.rdt_cbm_mask, 
+                platform.rdt_cbm_mask,
                 platform.rdt_min_cbm_bits,
-                common_labels=common_labels, 
+                common_labels=common_labels,
                 rdt_groups=rdt_groups,
             )
 
@@ -175,11 +175,10 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                             pprint.pformat(allocations_changeset))
                     log.log(TRACE, '---------------------------------------')
 
-                    log.debug('changeset:\n %s', pprint.pformat(
-                        allocations_changeset.unwrap_to_simple()) 
-                              if allocations_changeset else None)
-
                     if allocations_changeset:
+                        log.debug('changeset:\n %s', pprint.pformat(
+                            allocations_changeset.unwrap_to_simple()))
+                        log.info('performing allocations on %d tasks', len(allocations_changeset))
                         allocations_changeset.perform_allocations()
 
                 else:

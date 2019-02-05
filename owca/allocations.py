@@ -17,6 +17,7 @@ from abc import ABC, abstractmethod
 from typing import List, Union, Tuple, Optional, Any, Dict
 
 from owca.metrics import Metric, MetricType
+from owca.logger import TRACE
 
 log = logging.getLogger(__name__)
 
@@ -160,7 +161,7 @@ class BoxedNumeric(AllocationValue):
     """
     # Defines default how sensitive in terms of
     # float precision are changes from RDTAllocation detected.
-    FLOAT_VALUES_CHANGE_DETECTION = 1e-02
+    FLOAT_VALUES_CHANGE_DETECTION = 0.1
 
     def __init__(self, value: Union[float, int],
                  common_labels: Dict[str, str] = None,
@@ -181,8 +182,12 @@ class BoxedNumeric(AllocationValue):
     def __eq__(self, other: 'BoxedNumeric'):
         assert isinstance(other, BoxedNumeric), 'expected BoxedNumeric instance got %r(%s)' % (
             other, type(other))
-        return math.isclose(self.value, other.value,
-                            rel_tol=self.float_value_change_sensitivity)
+        isclose = math.isclose(self.value, other.value,
+                            abs_tol=self.float_value_change_sensitivity)
+
+        log.log(TRACE, 'me=%s other=%s close=%s sens=%s', self, other, isclose, 
+                  self.float_value_change_sensitivity)
+        return isclose
 
     def generate_metrics(self) -> List[Metric]:
         """ Default metrics encoding method for float and integers values."""
