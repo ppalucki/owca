@@ -33,9 +33,6 @@ class QuotaAllocationValue(BoxedNumeric):
     def perform_allocations(self):
         self.cgroup.set_normalized_quota(self.value)
 
-    def __repr__(self):
-        return '%s(normalized_quota=%r)' % (self.__class__.__name__, self.normalized_quota)
-
 
 class SharesAllocationValue(BoxedNumeric):
 
@@ -52,6 +49,3 @@ class SharesAllocationValue(BoxedNumeric):
 
     def perform_allocations(self):
         self.cgroup.set_normalized_shares(self.value)
-
-    def __repr__(self):
-        return '%s(normalized_shares=%r)' % (self.__class__.__name__, self.normalized_shares)

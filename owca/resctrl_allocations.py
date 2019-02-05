@@ -76,7 +76,10 @@ class RDTAllocationValue(AllocationValue):
         self.labels_updater = LabelsUpdater(self.common_labels)
 
     def __repr__(self):
-        return 'RDTAllocationValue(rdt_allocation=%r)' % self.rdt_allocation
+        return repr(self.rdt_allocation)
+
+    def __eq__(self, other):
+        return self.rdt_allocation == other.rdt_allocation
 
     def _copy(self, rdt_allocation: RDTAllocation, source_resgroup=None,
               resgroup=None):
@@ -274,9 +277,6 @@ class RDTAllocationValue(AllocationValue):
                     l3=self.rdt_allocation.l3,
                     mb=self.rdt_allocation.mb
                 )
-
-    def unwrap(self):
-        return self.rdt_allocation
 
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:

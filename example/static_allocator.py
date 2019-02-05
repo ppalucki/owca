@@ -144,33 +144,6 @@ class StaticAllocator(Allocator):
                 target_tasks_allocations = merge_rules(target_tasks_allocations,
                                                        this_rule_tasks_allocations)
 
-                # from owca.allocations import InvalidAllocations
-                # from owca.containers import Container
-                # from owca.resctrl import ResGroup
-                # from owca.runners.allocation import TasksAllocationsValues
-                # # recreate containers object
-                # containers = {task_id: Container('/'+task_id, platform.cpus,
-                #                                  resgroup=ResGroup(task_id))
-                #               for task_id in all_tasks_ids}
-                #
-                # this_rule_tasks_allocations_values = TasksAllocationsValues.create(
-                #     this_rule_tasks_allocations, containers, platform)
-                #
-                # target_tasks_allocations_values = TasksAllocationsValues.create(
-                #     target_tasks_allocations, containers, platform)
-                #
-                # # Get the difference
-                # try:
-                #     target_tasks_allocations_values, _ = \
-                #         this_rule_tasks_allocations_values.calculate_changeset(
-                #             target_tasks_allocations)
-                # except InvalidAllocations as e:
-                #     log.error('invalid allocations %s' % e)
-                #
-                # target_tasks_allocations = target_tasks_allocations_values.unwrap_to_simple()
-                # log.debug('StaticAllocator(%s):  after this rule final tasks allocations: \n %s',
-                #           rule_idx, pprint.pformat(target_tasks_allocations))
-
             log.info('StaticAllocator: final tasks allocations: \n %s',
                      pprint.pformat(target_tasks_allocations))
             return target_tasks_allocations, [], []

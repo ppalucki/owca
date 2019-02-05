@@ -118,13 +118,11 @@ def test_rdt_allocations_changeset(
     current_value = convert(current)
     new_value = convert(new)
 
-    got_target_value, got_changeset_value = \
+    got_target, got_changeset = \
         new_value.calculate_changeset(current_value)
-    got_changeset = got_changeset_value.unwrap() if got_changeset_value else None
-    got_target_value = got_target_value.unwrap()
 
-    assert got_target_value == expected_target
-    assert got_changeset == expected_changeset
+    assert got_target == convert(expected_target)
+    assert got_changeset == convert(expected_changeset)
 
 
 @pytest.mark.parametrize('rdt_allocation, extra_labels, expected_metrics', (

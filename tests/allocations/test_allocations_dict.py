@@ -20,21 +20,6 @@ from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, Inv
 from owca.testing import allocation_metric
 
 
-@pytest.mark.parametrize('allocation_value, expected_object', [
-    (AllocationsDict({}), {}),
-    (BoxedNumeric(3), 3),
-    (AllocationsDict({'x': AllocationsDict({}), 'y': 2}),
-     {'x': {}, 'y': 2}),
-    (AllocationsDict({'x': BoxedNumeric(4)}),
-     {'x': 4}),
-    (AllocationsDict({'x': AllocationsDict({'y': 5})}),
-     {'x': {'y': 5}}),
-])
-def test_unwrap_simple(allocation_value, expected_object):
-    got_object = allocation_value.unwrap_to_simple()
-    assert got_object == expected_object
-
-
 @pytest.mark.parametrize(
     'current, new, expected_target, expected_changeset', [
         ({}, {},
@@ -67,12 +52,15 @@ def test_unwrap_simple(allocation_value, expected_object):
 def test_allocations_dict_merging(current, new,
                                   expected_target, expected_changeset):
     def convert_to_allocations_dict(d: dict):
-        registry = {
-            float: BoxedNumeric,
-            int: BoxedNumeric,
-            dict: convert_to_allocations_dict,
-        }
-        return AllocationsDict({k: registry[type(v)](v) for k, v in d.items()})
+        if d is not None:
+            registry = {
+                float: BoxedNumeric,
+                int: BoxedNumeric,
+                dict: convert_to_allocations_dict,
+            }
+            return AllocationsDict({k: registry[type(v)](v) for k, v in d.items()})
+        else:
+            return None
 
     # Conversion
     current_dict = convert_to_allocations_dict(current)
@@ -81,12 +69,8 @@ def test_allocations_dict_merging(current, new,
     # Merge
     got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
 
-    got_target = got_target_dict.unwrap_to_simple()
-
-    assert got_target == expected_target
-    got_changeset = got_changeset_dict.unwrap_to_simple() \
-        if got_changeset_dict is not None else None
-    assert got_changeset == expected_changeset
+    assert got_target_dict == convert_to_allocations_dict(expected_target)
+    assert got_changeset_dict == convert_to_allocations_dict(expected_changeset)
 
 
 @pytest.mark.parametrize('allocation_dict, expected_error', [

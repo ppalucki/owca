@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import pprint
 import time
 from typing import Dict, Callable, Any
 
@@ -26,7 +25,7 @@ from owca.cgroup_allocations import QuotaAllocationValue, SharesAllocationValue
 from owca.containers import Container
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information
-from owca.logger import TRACE, trace
+from owca.logger import trace
 from owca.resctrl_allocations import RDTAllocationValue, RDTGroups
 from owca.runners.base import Runner, BaseRunnerMixin
 from owca.storage import MetricPackage
@@ -133,10 +132,10 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
         while True:
             # Prepare algorithm inputs and send input based metrics.
-            platform, tasks_measurements, tasks_resources, \
-                tasks_labels, current_tasks_allocations, common_labels = \
-                self._prepare_input_data_and_send_metrics_package(
-                    self.node, self.metrics_storage, self.extra_labels)
+            (platform, tasks_measurements, tasks_resources, tasks_labels,
+                current_tasks_allocations, common_labels) = \
+                    self._prepare_input_data_and_send_metrics_package(
+                        self.node, self.metrics_storage, self.extra_labels)
 
             # Allocator callback
             allocate_start = time.time()
@@ -149,11 +148,11 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
                 log.debug('Anomalies detected: %d', len(anomalies))
 
-                log.debug('current:\n %s', pprint.pformat(current_tasks_allocations))
+                log.debug('current: %s', current_tasks_allocations)
                 current_allocations = TasksAllocationsValues.create(
                     current_tasks_allocations, self.containers_manager.containers, platform)
 
-                log.debug('new:\n %s', pprint.pformat(new_tasks_allocations))
+                log.debug('new: %s', new_tasks_allocations)
                 new_allocations = TasksAllocationsValues.create(
                     new_tasks_allocations, self.containers_manager.containers, platform)
 
@@ -162,22 +161,23 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 # if there are left allocations to apply
                 if new_allocations is not None:
 
-                    log.log(TRACE, 'new (after validation):\n %s', pprint.pformat(new_allocations))
+                    # log.log(TRACE, 'new (after validation):\n %s', pprint.pformat(
+                    # new_allocations))
 
                     target_allocations, allocations_changeset = new_allocations.calculate_changeset(
                         current_allocations)
                     target_allocations.validate()
 
-                    log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
-                    log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))
-                    log.log(TRACE, '---------------------------------------')
-                    log.log(TRACE, 'allocation_changeset:\n %s',
-                            pprint.pformat(allocations_changeset))
-                    log.log(TRACE, '---------------------------------------')
+                    # log.log(TRACE, 'current (values):\n %r', pprint.pformat(current_allocations))
+                    # log.log(TRACE, 'new (values):\n %r', pprint.pformat(new_allocations))
+                    # log.log(TRACE, '---------------------------------------')
+                    # log.log(TRACE, 'allocation_changeset:\n %r',
+                    #         pprint.pformat(allocations_changeset))
+                    # log.log(TRACE, '---------------------------------------')
 
                     if allocations_changeset:
-                        log.debug('changeset:\n %s', pprint.pformat(
-                            allocations_changeset.unwrap_to_simple()))
+                        log.debug('changeset str: %s', allocations_changeset)
+                        log.debug('changeset repr: %r', allocations_changeset)
                         log.info('performing allocations on %d tasks', len(allocations_changeset))
                         allocations_changeset.perform_allocations()
 

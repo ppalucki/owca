@@ -14,7 +14,7 @@
 import logging
 import math
 from abc import ABC, abstractmethod
-from typing import List, Union, Tuple, Optional, Any, Dict
+from typing import List, Union, Tuple, Optional, Dict
 
 from owca.logger import TRACE
 from owca.metrics import Metric, MetricType
@@ -48,24 +48,6 @@ class AllocationValue(ABC):
     def perform_allocations(self):
         """Perform allocations. Returns nothing."""
 
-    @abstractmethod
-    def unwrap(self) -> Any:
-        """Decode one level. If possible return object under this object (just one level)."""
-
-    def unwrap_to_simple(self) -> Any:
-        """Decode all levels. If possible return object hidden depth until simple
-        (not AllocationValue type) is returned (recursive).
-        Note: for dict like AllocationValue object it just returns dict that should not contain
-        AllocationValues
-        """
-
-        def _unwrap_to_simple(value: Any) -> Any:
-            while isinstance(value, AllocationValue):
-                value = value.unwrap()
-            return value
-
-        return _unwrap_to_simple(self.unwrap())
-
 
 class AllocationsDict(dict, AllocationValue):
     """Base class for dict based Tasks and Task Allocations plain classes to
@@ -75,9 +57,6 @@ class AllocationsDict(dict, AllocationValue):
     - serialization to metrics
     - and recursive perform allocations
     """
-
-    def __repr__(self):
-        return 'AllocationsDict(%s)' % dict.__repr__(self)
 
     def calculate_changeset(self, current) \
             -> Tuple[AllocationValue, Optional[AllocationValue]]:
@@ -128,18 +107,6 @@ class AllocationsDict(dict, AllocationValue):
         for _, value in self.items():
             value.validate()
 
-    def unwrap(self) -> dict:
-        return {k: v for k, v in self.items() if v is not None}
-
-    def unwrap_to_simple(self):
-        d = {}
-        for k, v in self.items():
-            if isinstance(v, AllocationValue):
-                d[k] = v.unwrap_to_simple()
-            else:
-                d[k] = v
-        return d
-
 
 class LabelsUpdater:
     """ Update any allocation values with common labels, when performing generate_metrics."""
@@ -170,7 +137,7 @@ class BoxedNumeric(AllocationValue):
                  max_value: Optional[Union[int, float]] = None,
                  float_value_change_sensitivity=FLOAT_VALUES_CHANGE_DETECTION,
                  ):
-        # assert isinstance(value, (float, int))
+        assert isinstance(value, (float, int))
         self.value = value
         self.float_value_change_sensitivity = float_value_change_sensitivity
         self.min_value = min_value if min_value is not None else -math.inf
@@ -178,7 +145,7 @@ class BoxedNumeric(AllocationValue):
         self.labels_updater = LabelsUpdater(common_labels or {})
 
     def __repr__(self):
-        return 'BoxedNumeric(%r)' % self.value
+        return repr(self.value)
 
     def __eq__(self, other: 'BoxedNumeric'):
         assert isinstance(other, BoxedNumeric), 'expected BoxedNumeric instance got %r(%s)' % (
@@ -230,6 +197,3 @@ class BoxedNumeric(AllocationValue):
 
     def perform_allocations(self):
         raise NotImplementedError('tried to execute perform_allocations on numeric value %r' % self)
-
-    def unwrap(self):
-        return self.value
