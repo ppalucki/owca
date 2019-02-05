@@ -133,9 +133,10 @@ class AllocationRunner(Runner, BaseRunnerMixin):
         while True:
             # Prepare algorithm inputs and send input based metrics.
             (platform, tasks_measurements, tasks_resources, tasks_labels,
-                current_tasks_allocations, common_labels) = \
-                    self._prepare_input_data_and_send_metrics_package(
-                        self.node, self.metrics_storage, self.extra_labels)
+             current_tasks_allocations, common_labels) = \
+                self._prepare_input_data_and_send_metrics_package(
+                    self.node, self.metrics_storage, self.extra_labels)
+            log.debug('Tasks detected: %r', list(current_tasks_allocations.keys()))
 
             # Allocator callback
             allocate_start = time.time()
@@ -144,13 +145,14 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 current_tasks_allocations)
             allocate_duration = time.time() - allocate_start
 
+            log.debug('Anomalies detected: %d', len(anomalies))
+
+            log.debug('current: %s', current_tasks_allocations)
+            current_allocations = TasksAllocationsValues.create(
+                current_tasks_allocations, self.containers_manager.containers, platform)
+
+            allocations_changeset = None
             try:
-
-                log.debug('Anomalies detected: %d', len(anomalies))
-
-                log.debug('current: %s', current_tasks_allocations)
-                current_allocations = TasksAllocationsValues.create(
-                    current_tasks_allocations, self.containers_manager.containers, platform)
 
                 log.debug('new: %s', new_tasks_allocations)
                 new_allocations = TasksAllocationsValues.create(
@@ -168,19 +170,6 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                         current_allocations)
                     target_allocations.validate()
 
-                    # log.log(TRACE, 'current (values):\n %r', pprint.pformat(current_allocations))
-                    # log.log(TRACE, 'new (values):\n %r', pprint.pformat(new_allocations))
-                    # log.log(TRACE, '---------------------------------------')
-                    # log.log(TRACE, 'allocation_changeset:\n %r',
-                    #         pprint.pformat(allocations_changeset))
-                    # log.log(TRACE, '---------------------------------------')
-
-                    if allocations_changeset:
-                        log.debug('changeset str: %s', allocations_changeset)
-                        log.debug('changeset repr: %r', allocations_changeset)
-                        log.info('performing allocations on %d tasks', len(allocations_changeset))
-                        allocations_changeset.perform_allocations()
-
                 else:
                     target_allocations = current_allocations
 
@@ -191,6 +180,11 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 errors = [str(e)]
                 target_allocations = TasksAllocationsValues.create(
                     current_tasks_allocations, self.containers_manager.containers, platform)
+
+            if allocations_changeset:
+                log.debug('changeset: %s', allocations_changeset)
+                log.info('performing allocations on %d tasks', len(allocations_changeset))
+                allocations_changeset.perform_allocations()
 
             # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
             anomaly_metrics = convert_anomalies_to_metrics(anomalies)

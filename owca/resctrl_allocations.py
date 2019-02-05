@@ -35,11 +35,8 @@ class RDTGroups:
         self.existing_groups = set()
 
     def should_perform_schemata_write(self, rdt_allocation_value):
-        force_execution = (rdt_allocation_value.rdt_allocation.name is None or
-                           rdt_allocation_value.source_resgroup is not None)
-
         resgroup_name = rdt_allocation_value.get_resgroup_name()
-        if force_execution or resgroup_name not in self.already_executed_resgroup_names:
+        if resgroup_name not in self.already_executed_resgroup_names:
             self.already_executed_resgroup_names.add(resgroup_name)
             return True
         else:
@@ -190,7 +187,7 @@ class RDTAllocationValue(AllocationValue):
         if current_group_name != new_group_name:
             # We need to move to another group.
             log.debug('resctrl changeset: move to new group=%r from=%r',
-                      new.resgroup.name, current.get_resgroup_name())
+                      current_group_name, new_group_name)
             return new, new._copy(new.rdt_allocation,
                                   resgroup=ResGroup(name=new_group_name),
                                   source_resgroup=ResGroup(name=current.get_resgroup_name()))
@@ -259,7 +256,7 @@ class RDTAllocationValue(AllocationValue):
 
         # move to approriate group first
         if self.source_resgroup is not None:
-            log.debug('resctrl: perform_allocations moving to new group (%s -> %s)',
+            log.debug('resctrl: perform_allocations moving to new group (from %r to %r)',
                       self.source_resgroup.name, self.resgroup.name)
 
             # three cases (to root, from root, or between new resgroups)
@@ -272,7 +269,7 @@ class RDTAllocationValue(AllocationValue):
         if self.rdt_groups.should_perform_schemata_write(self):
             # now update the schema
             if self.rdt_allocation.l3 or self.rdt_allocation.mb:
-                log.debug('resctrl: perform_allocations update schemata in %s', self.resgroup.name)
+                log.debug('resctrl: perform_allocations update schemata in %r', self.resgroup.name)
                 self.resgroup.write_schemata(
                     l3=self.rdt_allocation.l3,
                     mb=self.rdt_allocation.mb
