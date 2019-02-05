@@ -71,10 +71,15 @@ class TasksAllocationsValues(AllocationsDict):
                                              common_labels):
             return RDTAllocationValue(
                 container.container_name,
-                rdt_allocation, container.resgroup, container.cgroup.get_pids,
-                platform.sockets, platform.rdt_mb_control_enabled,
-                platform.rdt_cbm_mask, platform.rdt_min_cbm_bits,
-                common_labels=common_labels, rdt_groups=rdt_groups,
+                rdt_allocation, 
+                container.resgroup, 
+                container.cgroup.get_pids,
+                platform.sockets, 
+                platform.rdt_mb_control_enabled,
+                platform.rdt_cbm_mask, 
+                platform.rdt_min_cbm_bits,
+                common_labels=common_labels, 
+                rdt_groups=rdt_groups,
             )
 
         registry = {
@@ -165,12 +170,15 @@ class AllocationRunner(Runner, BaseRunnerMixin):
 
                     log.log(TRACE, 'current (values):\n %s', pprint.pformat(current_allocations))
                     log.log(TRACE, 'new (values):\n %s', pprint.pformat(new_allocations))
-                    log.debug('---------------------------------------')
+                    log.log(TRACE, '---------------------------------------')
                     log.log(TRACE, 'allocation_changeset:\n %s',
                             pprint.pformat(allocations_changeset))
-                    log.debug('---------------------------------------')
+                    log.log(TRACE, '---------------------------------------')
 
-                    # MAIN function
+                    log.debug('changeset:\n %s', pprint.pformat(
+                        allocations_changeset.unwrap_to_simple()) 
+                              if allocations_changeset else None)
+
                     if allocations_changeset:
                         allocations_changeset.perform_allocations()
 
@@ -180,7 +188,7 @@ class AllocationRunner(Runner, BaseRunnerMixin):
                 errors = []
 
             except InvalidAllocations as e:
-                log.error('invalid allocations')
+                log.error('invalid allocations: %s', str(e))
                 errors = [str(e)]
                 target_allocations = TasksAllocationsValues.create(
                     current_tasks_allocations, self.containers_manager.containers, platform)

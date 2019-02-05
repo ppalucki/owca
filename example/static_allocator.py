@@ -8,17 +8,23 @@ import dataclasses
 import ruamel
 from dataclasses import dataclass
 
-from owca.allocations import InvalidAllocations
 from owca.allocators import Allocator, TasksAllocations, AllocationType, RDTAllocation
 from owca.config import load_config
-from owca.containers import Container
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
 from owca.platforms import Platform
-from owca.resctrl import ResGroup
-from owca.runners.allocation import TasksAllocationsValues
+
 
 log = logging.getLogger(__name__)
+
+def merge_rules(existing_tasks_allocations: TasksAllocations, new_tasks_allocations:TasksAllocations):
+    merged_tasks_allcations = {}
+    for task_id, task_allocations in new_tasks_allocations.items():
+        merged_tasks_allcations[task_id] = dict(existing_tasks_allocations.get(task_id, {}), **task_allocations)
+    for task_id, task_allocations in existing_tasks_allocations.items():
+        if task_id not in merged_tasks_allcations:
+            merged_tasks_allcations[task_id] = dict(task_allocations)
+    return merged_tasks_allcations
 
 
 @dataclass
@@ -94,6 +100,10 @@ class StaticAllocator(Allocator):
                          '(%s)' % rule['name'] if 'name' in rule else '')
 
                 new_task_allocations = rule['allocations']
+                if not new_task_allocations:
+                    log.debug('StaticAllocator(%s): allocations are empty - ignore!', rule_idx)
+                    continue
+
                 if 'rdt' in new_task_allocations:
                     new_task_allocations[AllocationType.RDT] = RDTAllocation(
                         **new_task_allocations['rdt'])
@@ -129,26 +139,37 @@ class StaticAllocator(Allocator):
                 for match_task_id in match_task_ids:
                     this_rule_tasks_allocations[match_task_id] = new_task_allocations
 
-                # recreate containers object
-                containers = {task_id: Container(task_id, platform.cpus, resgroup=ResGroup(task_id))
-                              for task_id in all_tasks_ids}
 
-                this_rule_tasks_allocations_values = TasksAllocationsValues.create(
-                    this_rule_tasks_allocations, containers, platform)
+                target_tasks_allocations = merge_rules(target_tasks_allocations,
+                                                       this_rule_tasks_allocations)
 
-                target_tasks_allocations_values = TasksAllocationsValues.create(
-                    target_tasks_allocations, containers, platform)
+                # from owca.allocations import InvalidAllocations
+                # from owca.containers import Container
+                # from owca.resctrl import ResGroup
+                # from owca.runners.allocation import TasksAllocationsValues
+                # # recreate containers object
+                # containers = {task_id: Container('/'+task_id, platform.cpus,
+                #                                  resgroup=ResGroup(task_id))
+                #               for task_id in all_tasks_ids}
+                #
+                # this_rule_tasks_allocations_values = TasksAllocationsValues.create(
+                #     this_rule_tasks_allocations, containers, platform)
+                #
+                # target_tasks_allocations_values = TasksAllocationsValues.create(
+                #     target_tasks_allocations, containers, platform)
+                #
+                # # Get the difference
+                # try:
+                #     target_tasks_allocations_values, _ = \
+                #         this_rule_tasks_allocations_values.calculate_changeset(
+                #             target_tasks_allocations)
+                # except InvalidAllocations as e:
+                #     log.error('invalid allocations %s' % e)
+                #
+                # target_tasks_allocations = target_tasks_allocations_values.unwrap_to_simple()
+                # log.debug('StaticAllocator(%s):  after this rule final tasks allocations: \n %s',
+                #           rule_idx, pprint.pformat(target_tasks_allocations))
 
-                # Get the difference
-                try:
-                    target_tasks_allocations_values, _ = this_rule_tasks_allocations_values.calculate_changeset(
-                        target_tasks_allocations)
-                except InvalidAllocations as e:
-                    log.error('invalid allocations %s' % e)
-
-                target_tasks_allocations = target_tasks_allocations_values.unwrap_to_simple()
-                log.debug('StaticAllocator(%s):  after this rule final tasks allocations: \n %s',
-                          rule_idx, pprint.pformat(target_tasks_allocations))
 
             log.info('StaticAllocator: final tasks allocations: \n %s',
                      pprint.pformat(target_tasks_allocations))

@@ -197,7 +197,7 @@ class BoxedNumeric(AllocationValue):
         return metrics
 
     def validate(self):
-        if not self.value >= self.min_value or not self.value <= self.max_value:
+        if self.value < self.min_value or self.value > self.max_value:
             raise InvalidAllocations('%s does not belong to range <%s;%s>' % (
                 self.value, self.min_value, self.max_value))
 

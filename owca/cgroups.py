@@ -93,7 +93,7 @@ class Cgroup:
         current_quota = self._read(CPU_QUOTA)
         current_period = self._read(CPU_PERIOD)
         if current_quota == -1:
-            return float('Inf')  # quota is not set (TODO: consider using 0)
+            return 1.0
         # Period 0 is invalid arugment for cgroup cpu subsystem. so division is safe.
         return current_quota / current_period / self.platform_cpus
 
