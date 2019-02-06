@@ -115,6 +115,7 @@ def test_sync_containers_state(cleanup_mock, sync_mock, PerfCoutners_mock, ResGr
 
 
 # We are mocking objects used by containers.
+@pytest.mark.skip('par')
 @patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
 @patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
 @patch('owca.runner.are_privileges_sufficient', return_value=True)
