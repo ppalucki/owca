@@ -162,9 +162,10 @@ class BoxedNumeric(AllocationValue):
 
         assert isinstance(self.value, (float, int))
         metrics = [Metric(
-            name='allocation',
+            name='allocation_numeric',
             value=self.value,
             type=MetricType.GAUGE,
+            labels=dict(allocation_type='numeric')
         )]
         self.labels_updater.update_labels(metrics)
         return metrics

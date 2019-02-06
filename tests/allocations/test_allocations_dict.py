@@ -89,14 +89,14 @@ def test_allocation_value_validate(allocation_dict, expected_error):
     (AllocationsDict({}),
      []),
     (BoxedNumeric(2),
-     [allocation_metric(None, 2)]),
+     [allocation_metric('numeric', 2)]),
     (AllocationsDict({'x': BoxedNumeric(2), 'y': BoxedNumeric(3)}),
-     [allocation_metric(None, 2), allocation_metric(None, 3)]),
+     [allocation_metric('numeric', 2), allocation_metric('numeric', 3)]),
     (AllocationsDict({'x': BoxedNumeric(2), 'y': BoxedNumeric(3)}),
-     [allocation_metric(None, 2), allocation_metric(None, 3)]),
+     [allocation_metric('numeric', 2), allocation_metric('numeric', 3)]),
     (AllocationsDict({'x': BoxedNumeric(2),
                       'y': BoxedNumeric(3.5, common_labels=dict(foo='bar'))}),
-     [allocation_metric(None, 2), allocation_metric(None, 3.5, foo='bar')]),
+     [allocation_metric('numeric', 2), allocation_metric('numeric', 3.5, foo='bar')]),
 ])
 def test_allocation_values_metrics(allocation_value: AllocationValue, expected_metrics):
     got_metrics = allocation_value.generate_metrics()
