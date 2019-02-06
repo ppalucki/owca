@@ -37,6 +37,7 @@ def metric(name, labels=None):
     return Metric(name=name, value=1234, labels=labels or {})
 
 
+@pytest.mark.skip()
 @pytest.mark.parametrize(
     'discovered_tasks,containers,expected_new_tasks,expected_containers_to_delete', (
         # scenario when two task are created and them first one is removed,
