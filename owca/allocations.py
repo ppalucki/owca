@@ -1,4 +1,4 @@
-# Copyright (c) 2018 Intel Corporation
+# Copyright (c) 2019 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,7 +87,7 @@ class AllocationsDict(dict, AllocationValue):
                 if value_changeset is not None:
                     changeset[key] = value_changeset
 
-        # If there is no fields in changeset dict return None
+        # If there are no fields in changeset dict return None
         # to indicate no changes are required at all.
         if not changeset:
             changeset = None
@@ -122,24 +122,23 @@ class LabelsUpdater:
 
 
 class BoxedNumeric(AllocationValue):
-    """ AllocationValue for numeric like values (floats and ints).
+    """ AllocationValue for numeric values (floats and ints).
     Wrapper for floats and integers.
     If min_value is None then it becomes negative infinity (default is 0).
     If max_value is None then it becomes infinity (default is None(infinity).
     """
-    # Defines default how sensitive in terms of
-    # float precision are changes are detected.
-    FLOAT_VALUES_CHANGE_DETECTION = 0.05
+    # Defines precision of number comparison. See: math.isclose()
+    VALUE_CHANGE_SENSITIVITY = 0.05
 
     def __init__(self, value: Union[float, int],
                  common_labels: Dict[str, str] = None,
                  min_value: Optional[Union[int, float]] = 0,
                  max_value: Optional[Union[int, float]] = None,
-                 float_value_change_sensitivity=FLOAT_VALUES_CHANGE_DETECTION,
+                 value_change_sensitivity: float = VALUE_CHANGE_SENSITIVITY,
                  ):
         assert isinstance(value, (float, int))
         self.value = value
-        self.float_value_change_sensitivity = float_value_change_sensitivity
+        self.value_change_sensitivity = value_change_sensitivity
         self.min_value = min_value if min_value is not None else -math.inf
         self.max_value = max_value if max_value is not None else math.inf
         self.labels_updater = LabelsUpdater(common_labels or {})
@@ -148,11 +147,11 @@ class BoxedNumeric(AllocationValue):
         return repr(self.value)
 
     def __eq__(self, other: 'BoxedNumeric') -> bool:
-        """Compare numeric value to another value taking float_value_change_sensitivity into
+        """Compare numeric value to another value taking value_change_sensitivity into
         consideration."""
         assert isinstance(other, BoxedNumeric)
         return math.isclose(self.value, other.value,
-                            abs_tol=self.float_value_change_sensitivity)
+                            abs_tol=self.value_change_sensitivity)
 
     def generate_metrics(self) -> List[Metric]:
         """Encode numeric based allocation."""
@@ -184,14 +183,13 @@ class BoxedNumeric(AllocationValue):
             value_changed = (self != current)
 
         if value_changed:
-            # For floats merge is simple, is value is change, the
-            # new_value just become target and changeset
-            # target and changeset (overwrite policy)
+            # If value is changed then self becomes target state
+            # and changeset.
             return self, self
         else:
-            # If value is not changed, then is assumed current value is the same as
+            # If value is not changed, then value is the same as
             # new so we can return any of them (lets return the new one) as target
             return current, None
 
     def perform_allocations(self):
-        raise NotImplementedError('tried to execute perform_allocations on numeric value %r' % self)
+        """Np-op method to be overriden by subclass."""
