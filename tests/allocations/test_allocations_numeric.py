@@ -22,25 +22,33 @@ from owca.allocations import BoxedNumeric, InvalidAllocations
 ############################################################################
 
 @pytest.mark.parametrize(
-    'value, min_value, max_value, float_value_change_sensitivity, expected_error', (
-            (1, 2, 3, 0.00001, '1 does not belong to range'),
-            (1.1, 2, 3, 0.00001, 'does not belong to range'),
-            (2.5, 2, 3, 0.00001, None),
-            (3, 2.5, 3.0, 0.00001, None),
-            (2.0, 2, 3.0, 0.00001, None),
-            (2.0, None, 3.0, 0.00001, None),
-            (2.0, 1, None, 0.00001, None),
+    'value, min_value, max_value, value_change_sensitivity', (
+            (2.5, 2, 3, 0.00001),
+            (3, 2.5, 3.0, 0.00001),
+            (2.0, 2, 3.0, 0.00001),
+            (2.0, None, 3.0, 0.00001),
+            (2.0, 1, None, 0.00001),
     )
 )
-def test_boxed_numeric_validation(value, min_value, max_value, float_value_change_sensitivity,
-                                  expected_error):
+def test_boxed_numeric_validation(value, min_value, max_value, value_change_sensitivity):
     boxed_value = BoxedNumeric(value, min_value=min_value,
                                max_value=max_value,
-                               float_value_change_sensitivity=float_value_change_sensitivity)
-    if expected_error:
-        with pytest.raises(InvalidAllocations, match=expected_error):
-            boxed_value.validate()
-    else:
+                               value_change_sensitivity=value_change_sensitivity)
+    boxed_value.validate()
+
+
+@pytest.mark.parametrize(
+    'value, min_value, max_value, value_change_sensitivity, expected_error', (
+            (1, 2, 3, 0.00001, '1 does not belong to range'),
+            (1.1, 2, 3, 0.00001, 'does not belong to range'),
+    )
+)
+def test_boxed_numeric_validation_invalid(value, min_value, max_value, value_change_sensitivity,
+                                          expected_error):
+    boxed_value = BoxedNumeric(value, min_value=min_value,
+                               max_value=max_value,
+                               value_change_sensitivity=value_change_sensitivity)
+    with pytest.raises(InvalidAllocations, match=expected_error):
         boxed_value.validate()
 
 

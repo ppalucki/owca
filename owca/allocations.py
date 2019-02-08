@@ -138,7 +138,7 @@ class BoxedNumeric(AllocationValue):
                  ):
         assert isinstance(value, (float, int))
         self.value = value
-        self.float_value_change_sensitivity = float_value_change_sensitivity
+        self.value_change_sensitivity = value_change_sensitivity
         self.min_value = min_value if min_value is not None else -math.inf
         self.max_value = max_value if max_value is not None else math.inf
         self.labels_updater = LabelsUpdater(common_labels or {})
@@ -147,11 +147,11 @@ class BoxedNumeric(AllocationValue):
         return repr(self.value)
 
     def __eq__(self, other: 'BoxedNumeric') -> bool:
-        """Compare numeric value to another value taking float_value_change_sensitivity into
+        """Compare numeric value to another value taking value_change_sensitivity into
         consideration."""
         assert isinstance(other, BoxedNumeric)
         return math.isclose(self.value, other.value,
-                            abs_tol=self.float_value_change_sensitivity)
+                            abs_tol=self.value_change_sensitivity)
 
     def generate_metrics(self) -> List[Metric]:
         """Encode numeric based allocation."""
@@ -192,4 +192,4 @@ class BoxedNumeric(AllocationValue):
             return current, None
 
     def perform_allocations(self):
-        raise NotImplementedError('tried to execute perform_allocations on numeric value %r' % self)
+        """Np-op method to be overriden by subclass."""
