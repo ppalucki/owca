@@ -64,6 +64,19 @@ class ResGroup:
         return pids
 
     def _add_pids_to_tasks_file(self, pids, tasks_filepath):
+        """Writes pids to task file.
+
+        Error handling is based on cases available in:
+        https://github.com/torvalds/linux/blob/v4.20/arch/x86/kernel/cpu/intel_rdt_rdtgroup.c#L676
+        and are mapped to python exceptions
+        https://github.com/python/cpython/blob/v3.6.8/Objects/exceptions.c#L2658
+
+        ESRCH -> ProcessLookupError
+        ENOENT -> FileNotFoundError
+        """
+        if not pids:
+            return
+
         log.log(logger.TRACE, 'resctrl: write(%s): number_of_pids=%r', tasks_filepath, len(pids))
         with open(tasks_filepath, 'w') as ftasks:
             with SetEffectiveRootUid():
@@ -72,8 +85,22 @@ class ResGroup:
                         ftasks.write(pid)
                         ftasks.flush()
                     except ProcessLookupError:
-                        log.warning('Could not write pid %s to resctrl (%r). '
+                        log.warning('Could not write pid %s to resctrl (%r): '
                                     'Process probably does not exist. ', pid, tasks_filepath)
+                    except FileNotFoundError:
+                        log.error('Could not write pid %s to resctrl (%r): '
+                                  'rdt group was not found (moved/deleted - race detected).',
+                                  pid, tasks_filepath)
+                    except OSError as e:
+                        if e.errno == errno.EINVAL:
+                            # (kstrtoint(strstrip(buf), 0, &pid) || pid < 0)
+                            log.error(
+                                'Could not write pid %s to resctrl (%r): '
+                                'Invalid argument %r.', pid, tasks_filepath, pid)
+                        else:
+                            log.error(
+                                'Could not write pid %s to resctrl (%r): '
+                                'Unexpected errno %r.', pid, tasks_filepath, e.errno)
 
     def _create_controlgroup_directory(self):
         """Create control group directory"""
