@@ -190,6 +190,3 @@ class BoxedNumeric(AllocationValue):
             # If value is not changed, then value is the same as
             # new so we can return any of them (lets return the new one) as target
             return current, None
-
-    def perform_allocations(self):
-        """Np-op method to be overriden by subclass."""
