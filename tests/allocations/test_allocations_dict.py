@@ -16,8 +16,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, InvalidAllocations
-from owca.testing import allocation_metric
+from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, InvalidAllocations, \
+    LabelsUpdater
+from owca.testing import allocation_metric, metric
 
 
 @pytest.mark.parametrize(
@@ -101,3 +102,17 @@ def test_allocation_value_validate(allocation_dict, expected_error):
 def test_allocation_values_metrics(allocation_value: AllocationValue, expected_metrics):
     got_metrics = allocation_value.generate_metrics()
     assert got_metrics == expected_metrics
+
+
+@pytest.mark.parametrize('input_metrics,common_labels,expected_metrics', [
+    ([metric('foo')], dict(), [metric('foo')]),
+    ([metric('foo')], dict(foo='bar'), [metric('foo', labels=dict(foo='bar'))]),
+    ([metric('foo')], dict(foo='bar', baz='fooz'),
+     [metric('foo', labels=dict(foo='bar', baz='fooz'))]),
+    ([metric('foo'), metric('bar')], dict(foo='bar', baz='fooz'),
+     [metric('foo', labels=dict(foo='bar', baz='fooz')),
+      metric('bar', labels=dict(foo='bar', baz='fooz'))]),
+])
+def test_labels_updater(input_metrics, common_labels, expected_metrics):
+    LabelsUpdater(common_labels).update_labels(input_metrics)
+    assert input_metrics == expected_metrics
