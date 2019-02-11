@@ -21,6 +21,11 @@ from owca.allocations import AllocationsDict, BoxedNumeric, AllocationValue, Inv
 from owca.testing import allocation_metric, metric
 
 
+class BoxedNumericDummy(BoxedNumeric):
+    def perform_allocations(self):
+        pass
+
+
 @pytest.mark.parametrize(
     'current, new, expected_target, expected_changeset', [
         ({}, {},
@@ -55,8 +60,8 @@ def test_allocations_dict_merging(current, new,
     def convert_to_allocations_dict(d: dict):
         if d is not None:
             registry = {
-                float: BoxedNumeric,
-                int: BoxedNumeric,
+                float: BoxedNumericDummy,
+                int: BoxedNumericDummy,
                 dict: convert_to_allocations_dict,
             }
             return AllocationsDict({k: registry[type(v)](v) for k, v in d.items()})
@@ -78,8 +83,9 @@ def test_allocations_dict_merging(current, new,
     (AllocationsDict({'bad_generic': Mock(spec=AllocationValue, validate=Mock(
         side_effect=InvalidAllocations('some generic error')))}),
      'some generic error'),
-    (AllocationsDict({'x': BoxedNumeric(-1)}), 'does not belong to range'),
-    (AllocationsDict({'x': AllocationsDict({'y': BoxedNumeric(-1)})}), 'does not belong to range'),
+    (AllocationsDict({'x': BoxedNumericDummy(-1)}), 'does not belong to range'),
+    (AllocationsDict({'x': AllocationsDict({'y': BoxedNumericDummy(-1)})}),
+     'does not belong to range'),
 ])
 def test_allocation_value_validate(allocation_dict, expected_error):
     with pytest.raises(InvalidAllocations, match=expected_error):
@@ -89,14 +95,14 @@ def test_allocation_value_validate(allocation_dict, expected_error):
 @pytest.mark.parametrize('allocation_value, expected_metrics', [
     (AllocationsDict({}),
      []),
-    (BoxedNumeric(2),
+    (BoxedNumericDummy(2),
      [allocation_metric('numeric', 2)]),
-    (AllocationsDict({'x': BoxedNumeric(2), 'y': BoxedNumeric(3)}),
+    (AllocationsDict({'x': BoxedNumericDummy(2), 'y': BoxedNumericDummy(3)}),
      [allocation_metric('numeric', 2), allocation_metric('numeric', 3)]),
-    (AllocationsDict({'x': BoxedNumeric(2), 'y': BoxedNumeric(3)}),
+    (AllocationsDict({'x': BoxedNumericDummy(2), 'y': BoxedNumericDummy(3)}),
      [allocation_metric('numeric', 2), allocation_metric('numeric', 3)]),
-    (AllocationsDict({'x': BoxedNumeric(2),
-                      'y': BoxedNumeric(3.5, common_labels=dict(foo='bar'))}),
+    (AllocationsDict({'x': BoxedNumericDummy(2),
+                      'y': BoxedNumericDummy(3.5, common_labels=dict(foo='bar'))}),
      [allocation_metric('numeric', 2), allocation_metric('numeric', 3.5, foo='bar')]),
 ])
 def test_allocation_values_metrics(allocation_value: AllocationValue, expected_metrics):
