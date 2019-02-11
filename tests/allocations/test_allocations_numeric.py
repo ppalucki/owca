@@ -20,6 +20,10 @@ from owca.allocations import BoxedNumeric, InvalidAllocations
 ############################################################################
 # BoxedNumericTests
 ############################################################################
+class BoxedNumericDummy(BoxedNumeric):
+    def perform_allocations(self):
+        pass
+
 
 @pytest.mark.parametrize(
     'value, min_value, max_value, value_change_sensitivity', (
@@ -31,9 +35,9 @@ from owca.allocations import BoxedNumeric, InvalidAllocations
     )
 )
 def test_boxed_numeric_validation(value, min_value, max_value, value_change_sensitivity):
-    boxed_value = BoxedNumeric(value, min_value=min_value,
-                               max_value=max_value,
-                               value_change_sensitivity=value_change_sensitivity)
+    boxed_value = BoxedNumericDummy(value, min_value=min_value,
+                                    max_value=max_value,
+                                    value_change_sensitivity=value_change_sensitivity)
     boxed_value.validate()
 
 
@@ -45,9 +49,9 @@ def test_boxed_numeric_validation(value, min_value, max_value, value_change_sens
 )
 def test_boxed_numeric_validation_invalid(value, min_value, max_value, value_change_sensitivity,
                                           expected_error):
-    boxed_value = BoxedNumeric(value, min_value=min_value,
-                               max_value=max_value,
-                               value_change_sensitivity=value_change_sensitivity)
+    boxed_value = BoxedNumericDummy(value, min_value=min_value,
+                                    max_value=max_value,
+                                    value_change_sensitivity=value_change_sensitivity)
     with pytest.raises(InvalidAllocations, match=expected_error):
         boxed_value.validate()
 
@@ -61,11 +65,12 @@ def test_boxed_numeric_validation_invalid(value, min_value, max_value, value_cha
     )
 )
 def test_boxed_numeric_calculated_changeset(current, new, expected_target, expected_changeset):
-    expected_changeset = BoxedNumeric(expected_changeset) \
+    expected_changeset = BoxedNumericDummy(expected_changeset) \
         if expected_changeset is not None else None
-    expected_target = BoxedNumeric(expected_target)
+    expected_target = BoxedNumericDummy(expected_target)
 
-    got_target, got_changeset = BoxedNumeric(new).calculate_changeset(BoxedNumeric(current))
+    got_target, got_changeset = BoxedNumericDummy(new).calculate_changeset(
+        BoxedNumericDummy(current))
 
     assert got_target == expected_target
     assert got_changeset == expected_changeset
@@ -73,11 +78,11 @@ def test_boxed_numeric_calculated_changeset(current, new, expected_target, expec
 
 @pytest.mark.parametrize(
     'left, right, is_equal', (
-            (BoxedNumeric(10), BoxedNumeric(10), True),
-            (BoxedNumeric(10), BoxedNumeric(11), False),
-            (BoxedNumeric(10), BoxedNumeric(10.01), True),
-            (BoxedNumeric(10), BoxedNumeric(10.11), False),
-            (BoxedNumeric(10.99), BoxedNumeric(10.99), True),
+            (BoxedNumericDummy(10), BoxedNumericDummy(10), True),
+            (BoxedNumericDummy(10), BoxedNumericDummy(11), False),
+            (BoxedNumericDummy(10), BoxedNumericDummy(10.01), True),
+            (BoxedNumericDummy(10), BoxedNumericDummy(10.11), False),
+            (BoxedNumericDummy(10.99), BoxedNumericDummy(10.99), True),
     )
 )
 def test_boxed_numeric_equal(left, right, is_equal):
