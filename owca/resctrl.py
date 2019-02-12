@@ -87,10 +87,12 @@ class ResGroup:
                     except ProcessLookupError:
                         log.warning('Could not write pid %s to resctrl (%r): '
                                     'Process probably does not exist. ', pid, tasks_filepath)
+                        break
                     except FileNotFoundError:
                         log.error('Could not write pid %s to resctrl (%r): '
                                   'rdt group was not found (moved/deleted - race detected).',
                                   pid, tasks_filepath)
+                        break
                     except OSError as e:
                         if e.errno == errno.EINVAL:
                             # (kstrtoint(strstrip(buf), 0, &pid) || pid < 0)
@@ -101,6 +103,7 @@ class ResGroup:
                             log.error(
                                 'Could not write pid %s to resctrl (%r): '
                                 'Unexpected errno %r.', pid, tasks_filepath, e.errno)
+                        break
 
     def _create_controlgroup_directory(self):
         """Create control group directory"""
