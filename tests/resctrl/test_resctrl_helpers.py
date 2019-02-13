@@ -143,5 +143,3 @@ def test_clean_tasksless_resctrl_groups(rmdir_mock):
         call('/sys/fs/resctrl/empty'),
         call('/sys/fs/resctrl/half_empty/mon_groups/c6')
     ])
-
-
