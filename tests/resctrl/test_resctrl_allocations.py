@@ -113,21 +113,20 @@ def test_resgroup_add_pids(makedirs_mock, SetEffectiveRootId_mock, resgroup_name
 @patch('os.makedirs')
 @pytest.mark.parametrize('side_effect, log_call', [
     (OSError(errno.E2BIG, 'other'),
-     call.error('Could not write pid %s to resctrl (%r): Unexpected errno %r.', '123',
+     call.error('Could not write pid to resctrl (%r): Unexpected errno %r.',
                 '/sys/fs/resctrl/tasks', 7)),
     (OSError(errno.ESRCH, 'no such proc'),
-     call.warning('Could not write pid %s to resctrl (%r): Process probably does not exist. ',
-                  '123', '/sys/fs/resctrl/tasks')),
+     call.warning('Could not write pid to resctrl (%r): Process probably does not exist. ',
+                  '/sys/fs/resctrl/tasks')),
     (OSError(errno.EINVAL, 'no such proc'),
-     call.error('Could not write pid %s to resctrl (%r): Invalid argument %r.', '123',
-                '/sys/fs/resctrl/tasks', '123')),
+     call.error('Could not write pid to resctrl (%r): Invalid argument %r.',
+                '/sys/fs/resctrl/tasks')),
 ])
 def test_resgroup_add_pids_invalid(makedirs_mock, SetEffectiveRootId_mock,
                                    side_effect, log_call):
     resgroup = ResGroup(name='')
     writes_mock = {
-        '/sys/fs/resctrl/tasks': Mock(return_value=MagicMock(__enter__=Mock(
-            return_value=Mock(write=Mock(side_effect=side_effect))))),
+        '/sys/fs/resctrl/tasks': Mock(return_value=Mock(write=Mock(side_effect=side_effect))),
         '/sys/fs/resctrl/mon_groups/c1/tasks': MagicMock()
     }
     with patch('builtins.open', new=create_open_mock(writes_mock)), patch(
