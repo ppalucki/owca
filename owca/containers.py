@@ -46,7 +46,7 @@ class Container:
     rdt_enabled: bool = True
 
     def __post_init__(self):
-        self.cgroup = Cgroup(self.cgroup_path, platform_cpus=1)
+        self.cgroup = Cgroup(self.cgroup_path)
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
         self.resgroup = ResGroup(self.cgroup_path) if self.rdt_enabled else None
 
