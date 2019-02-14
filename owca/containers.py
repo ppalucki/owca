@@ -78,14 +78,6 @@ class Container:
         if self.rdt_enabled:
             self.resgroup.add_pids(self.cgroup.get_pids(), mongroup_name=self.container_name)
 
-    # def change_resgroup(self, new_resgroup):
-    #     """Remove tasks from current group and add to the new one."""
-    #     assert self.rdt_enabled
-    #     # Remove pids from old group
-    #     self.resgroup.remove_pids(mongroup_name=self.container_name)
-    #     # Add pids to new group
-    #     new_resgroup.add_pids(self.cgroup.get_pids(), mongroup_name=self.container_name)
-    #     self.resgroup = new_resgroup
 
     def get_measurements(self) -> Measurements:
         try:
@@ -119,9 +111,6 @@ class Container:
                   self.container_name, self.resgroup, pprint.pformat(allocations))
 
         return allocations
-
-    def __hash__(self):
-        return hash(str(self.cgroup_path))
 
 
 class ContainerManager:
