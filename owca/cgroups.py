@@ -73,26 +73,14 @@ class Cgroup:
             log.log(logger.TRACE, 'cgroup: write %s=%r', file.name, raw_value)
             file.write(raw_value)
 
-    def get_normalized_shares(self) -> float:
+    def _get_normalized_shares(self) -> float:
         """Return normalized using cpu_shares and cpu_shares_unit for normalization."""
         assert self.allocation_configuration is not None, \
             'normalization configuration cannot be used without configuration!'
         shares = self._read(CPU_SHARES)
         return shares / self.allocation_configuration.cpu_shares_unit
 
-    def set_normalized_shares(self, shares_normalized):
-        """Store shares normalized values in cgroup files system. For de-normalization,
-        we use reverse formula to get_normalized_shares."""
-        assert self.allocation_configuration is not None, \
-            'allocation configuration cannot be used without configuration!'
-
-        shares = int(shares_normalized * self.allocation_configuration.cpu_shares_unit)
-        if shares < MIN_SHARES:
-            shares = MIN_SHARES
-
-        self._write(CPU_SHARES, shares)
-
-    def get_normalized_quota(self) -> float:
+    def _get_normalized_quota(self) -> float:
         """Read normalized quota against configured period and number of available cpus."""
         assert self.allocation_configuration is not None, \
             'normalization configuration cannot be used without configuration!'
@@ -102,6 +90,30 @@ class Cgroup:
             return QUOTA_NORMALIZED_MAX
         # Period 0 is invalid argument for cgroup cpu subsystem. so division is safe.
         return current_quota / current_period / self.platform_cpus
+
+    def get_allocations(self) -> TaskAllocations:
+        assert self.allocation_configuration is not None, \
+            'reading normalized allocations is not possible without configuration!'
+        return {
+            AllocationType.QUOTA: self._get_normalized_quota(),
+            AllocationType.SHARES: self._get_normalized_shares(),
+        }
+
+    def get_pids(self) -> List[str]:
+        with open(os.path.join(self.cgroup_fullpath, TASKS)) as file:
+            return list(file.read().splitlines())
+
+    def set_normalized_shares(self, shares_normalized):
+        """Store shares normalized values in cgroup files system. For de-normalization,
+        we use reverse formula to _get_normalized_shares."""
+        assert self.allocation_configuration is not None, \
+            'allocation configuration cannot be used without configuration!'
+
+        shares = int(shares_normalized * self.allocation_configuration.cpu_shares_unit)
+        if shares < MIN_SHARES:
+            shares = MIN_SHARES
+
+        self._write(CPU_SHARES, shares)
 
     def set_normalized_quota(self, quota_normalized: float):
         """Unconditionally sets quota and period if necessary."""
@@ -123,15 +135,3 @@ class Cgroup:
                 quota = QUOTA_MINIMUM_VALUE
 
         self._write(CPU_QUOTA, quota)
-
-    def get_allocations(self) -> TaskAllocations:
-        assert self.allocation_configuration is not None, \
-            'reading normalized allocations is not possible without configuration!'
-        return {
-            AllocationType.QUOTA: self.get_normalized_quota(),
-            AllocationType.SHARES: self.get_normalized_shares(),
-        }
-
-    def get_pids(self) -> List[str]:
-        with open(os.path.join(self.cgroup_fullpath, TASKS)) as file:
-            return list(file.read().splitlines())
