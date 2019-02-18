@@ -43,7 +43,7 @@ QUOTA_NORMALIZED_MAX = 1.0
 class Cgroup:
     cgroup_path: str
 
-    # Values used for normlization of allocations
+    # Values used for normalization of allocations
     platform_cpus: int = None  # required for quota normalization (None by default until others PRs)
     allocation_configuration: Optional[AllocationConfiguration] = None
 
@@ -73,16 +73,16 @@ class Cgroup:
             log.log(logger.TRACE, 'cgroup: write %s=%r', file.name, raw_value)
             file.write(raw_value)
 
-    def _get_normalized_shares(self) -> float:
-        """Return normalized using cpu_shreas_min and cpu_shares_unit for normalization."""
+    def get_normalized_shares(self) -> float:
+        """Return normalized using cpu_shares and cpu_shares_unit for normalization."""
         assert self.allocation_configuration is not None, \
             'normalization configuration cannot be used without configuration!'
         shares = self._read(CPU_SHARES)
         return shares / self.allocation_configuration.cpu_shares_unit
 
     def set_normalized_shares(self, shares_normalized):
-        """Store shares normalized values in cgroup files system. For denormalization
-        we use reverse formule to _get_normalized_shares."""
+        """Store shares normalized values in cgroup files system. For de-normalization,
+        we use reverse formula to get_normalized_shares."""
         assert self.allocation_configuration is not None, \
             'allocation configuration cannot be used without configuration!'
 
@@ -93,18 +93,18 @@ class Cgroup:
         self._write(CPU_SHARES, shares)
 
     def get_normalized_quota(self) -> float:
-        """Read normlalized quota against configured period and number of available cpus."""
+        """Read normalized quota against configured period and number of available cpus."""
         assert self.allocation_configuration is not None, \
             'normalization configuration cannot be used without configuration!'
         current_quota = self._read(CPU_QUOTA)
         current_period = self._read(CPU_PERIOD)
         if current_quota == QUOTA_NOT_SET:
             return QUOTA_NORMALIZED_MAX
-        # Period 0 is invalid arugment for cgroup cpu subsystem. so division is safe.
+        # Period 0 is invalid argument for cgroup cpu subsystem. so division is safe.
         return current_quota / current_period / self.platform_cpus
 
     def set_normalized_quota(self, quota_normalized: float):
-        """Unconditionally sets quota and period if nessesary."""
+        """Unconditionally sets quota and period if necessary."""
         assert self.allocation_configuration is not None, \
             'setting quota cannot be used without configuration!'
         current_period = self._read(CPU_PERIOD)
@@ -115,7 +115,7 @@ class Cgroup:
         if quota_normalized >= QUOTA_NORMALIZED_MAX:
             quota = QUOTA_NOT_SET
         else:
-            # synchornize period if nessesary
+            # synchronize period if necessary
             quota = int(quota_normalized * self.allocation_configuration.cpu_quota_period *
                         self.platform_cpus)
             # Minimum quota detected
@@ -129,7 +129,7 @@ class Cgroup:
             'reading normalized allocations is not possible without configuration!'
         return {
             AllocationType.QUOTA: self.get_normalized_quota(),
-            AllocationType.SHARES: self._get_normalized_shares(),
+            AllocationType.SHARES: self.get_normalized_shares(),
         }
 
     def get_pids(self) -> List[str]:
