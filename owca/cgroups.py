@@ -32,6 +32,12 @@ BASE_SUBSYSTEM_PATH = '/sys/fs/cgroup/cpu'
 
 QUOTA_CLOSE_TO_ZERO_SENSITIVITY = 0.01
 
+# Constants (range limits0 when dealing with cgroups quota and shares.
+MIN_SHARES = 2
+QUOTA_NOT_SET = -1
+QUOTA_MINIMUM_VALUE = 1000
+QUOTA_NORMALIZED_MAX = 1.0
+
 
 @dataclass
 class Cgroup:
@@ -55,24 +61,24 @@ class Cgroup:
 
     def _read(self, cgroup_control_file: str) -> int:
         """Read helper to store any and convert value from cgroup control file."""
-        with open(os.path.join(self.cgroup_fullpath, cgroup_control_file)) as f:
-            v = int(f.read())
-            log.log(logger.TRACE, 'cgroup: read %s=%r', f.name, v)
-            return v
+        with open(os.path.join(self.cgroup_fullpath, cgroup_control_file)) as file:
+            raw_value = int(file.read())
+            log.log(logger.TRACE, 'cgroup: read %s=%r', file.name, raw_value)
+            return raw_value
 
     def _write(self, cgroup_control_file: str, value: int):
         """Write helper to store any int value in cgroup control file."""
-        with open(os.path.join(self.cgroup_fullpath, cgroup_control_file), 'wb') as f:
+        with open(os.path.join(self.cgroup_fullpath, cgroup_control_file), 'wb') as file:
             raw_value = bytes(str(value), encoding='utf8')
-            log.log(logger.TRACE, 'cgroup: write %s=%r', f.name, raw_value)
-            f.write(raw_value)
+            log.log(logger.TRACE, 'cgroup: write %s=%r', file.name, raw_value)
+            file.write(raw_value)
 
     def _get_normalized_shares(self) -> float:
         """Return normalized using cpu_shreas_min and cpu_shares_unit for normalization."""
         assert self.allocation_configuration is not None, \
             'normalization configuration cannot be used without configuration!'
         shares = self._read(CPU_SHARES)
-        return (shares / self.allocation_configuration.cpu_shares_unit)
+        return shares / self.allocation_configuration.cpu_shares_unit
 
     def set_normalized_shares(self, shares_normalized):
         """Store shares normalized values in cgroup files system. For denormalization
@@ -81,8 +87,8 @@ class Cgroup:
             'allocation configuration cannot be used without configuration!'
 
         shares = int(shares_normalized * self.allocation_configuration.cpu_shares_unit)
-        if shares < 2:
-            shares = 2
+        if shares < MIN_SHARES:
+            shares = MIN_SHARES
 
         self._write(CPU_SHARES, shares)
 
@@ -92,8 +98,8 @@ class Cgroup:
             'normalization configuration cannot be used without configuration!'
         current_quota = self._read(CPU_QUOTA)
         current_period = self._read(CPU_PERIOD)
-        if current_quota == -1:
-            return 1.0
+        if current_quota == QUOTA_NOT_SET:
+            return QUOTA_NORMALIZED_MAX
         # Period 0 is invalid arugment for cgroup cpu subsystem. so division is safe.
         return current_quota / current_period / self.platform_cpus
 
@@ -106,15 +112,15 @@ class Cgroup:
         if current_period != self.allocation_configuration.cpu_quota_period:
             self._write(CPU_PERIOD, self.allocation_configuration.cpu_quota_period)
 
-        if quota_normalized >= 1.0:
-            quota = -1
+        if quota_normalized >= QUOTA_NORMALIZED_MAX:
+            quota = QUOTA_NOT_SET
         else:
             # synchornize period if nessesary
             quota = int(quota_normalized * self.allocation_configuration.cpu_quota_period *
                         self.platform_cpus)
             # Minimum quota detected
-            if quota < 1000:
-                quota = 1000
+            if quota < QUOTA_MINIMUM_VALUE:
+                quota = QUOTA_MINIMUM_VALUE
 
         self._write(CPU_QUOTA, quota)
 
@@ -127,5 +133,5 @@ class Cgroup:
         }
 
     def get_pids(self) -> List[str]:
-        with open(os.path.join(self.cgroup_fullpath, TASKS)) as f:
-            return list(f.read().splitlines())
+        with open(os.path.join(self.cgroup_fullpath, TASKS)) as file:
+            return list(file.read().splitlines())
