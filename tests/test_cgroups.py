@@ -16,10 +16,10 @@ from unittest.mock import patch, mock_open, MagicMock, call
 
 import pytest
 
+from owca.cgroups_allocations import QuotaAllocationValue, SharesAllocationValue
 from owca.metrics import MetricName
 from owca.allocators import AllocationConfiguration
 from owca.cgroups import Cgroup
-from owca.cgroup_allocations import QuotaAllocationValue, SharesAllocationValue
 from owca.containers import Container
 from owca.testing import create_open_mock, allocation_metric
 
@@ -53,7 +53,7 @@ def test_cgroup_write():
 def test_get_normalized_shares(_read_mock):
     cgroup = Cgroup('/some/foo1', platform_cpus=1,
                     allocation_configuration=AllocationConfiguration())
-    assert cgroup._get_normalized_shares() == pytest.approx(1, 0.01)
+    assert cgroup.get_normalized_shares() == pytest.approx(1, 0.01)
 
 
 @patch('builtins.open', create_open_mock({
