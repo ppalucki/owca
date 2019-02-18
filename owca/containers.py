@@ -78,7 +78,6 @@ class Container:
         if self.rdt_enabled:
             self.resgroup.add_pids(self.cgroup.get_pids(), mongroup_name=self.container_name)
 
-
     def get_measurements(self) -> Measurements:
         try:
             return flatten_measurements([
