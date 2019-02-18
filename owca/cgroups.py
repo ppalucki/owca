@@ -103,19 +103,19 @@ class Cgroup:
         with open(os.path.join(self.cgroup_fullpath, TASKS)) as file:
             return list(file.read().splitlines())
 
-    def set_normalized_shares(self, shares_normalized):
+    def set_shares(self, normalized_shares: float):
         """Store shares normalized values in cgroup files system. For de-normalization,
         we use reverse formula to _get_normalized_shares."""
         assert self.allocation_configuration is not None, \
             'allocation configuration cannot be used without configuration!'
 
-        shares = int(shares_normalized * self.allocation_configuration.cpu_shares_unit)
+        shares = int(normalized_shares * self.allocation_configuration.cpu_shares_unit)
         if shares < MIN_SHARES:
             shares = MIN_SHARES
 
         self._write(CPU_SHARES, shares)
 
-    def set_normalized_quota(self, quota_normalized: float):
+    def set_quota(self, normalized_quota: float):
         """Unconditionally sets quota and period if necessary."""
         assert self.allocation_configuration is not None, \
             'setting quota cannot be used without configuration!'
@@ -124,11 +124,11 @@ class Cgroup:
         if current_period != self.allocation_configuration.cpu_quota_period:
             self._write(CPU_PERIOD, self.allocation_configuration.cpu_quota_period)
 
-        if quota_normalized >= QUOTA_NORMALIZED_MAX:
+        if normalized_quota >= QUOTA_NORMALIZED_MAX:
             quota = QUOTA_NOT_SET
         else:
             # synchronize period if necessary
-            quota = int(quota_normalized * self.allocation_configuration.cpu_quota_period *
+            quota = int(normalized_quota * self.allocation_configuration.cpu_quota_period *
                         self.platform_cpus)
             # Minimum quota detected
             if quota < QUOTA_MINIMUM_VALUE:
