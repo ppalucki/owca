@@ -86,8 +86,9 @@ class Container:
                 self.perf_counters.get_measurements(),
             ])
         except FileNotFoundError:
-            log.debug('Could not read measurements for container %s. '
-                      'Probably the mesos container has died during the current runner iteration.',
+            log.warning('Could not read measurements for container %s. '
+                        'Probably the mesos container has died during '
+                        'the current runner iteration.',
                       self.cgroup_path)
             # Returning empty measurements.
             return {}
