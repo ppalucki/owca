@@ -60,7 +60,9 @@ def test_allocation_runner_containers_state(*mocks):
 
     # Patch Container get_allocations
     initial_tasks_allocations = {AllocationType.QUOTA: 1.,
-                                 AllocationType.RDT: RDTAllocation(name='', l3='L3:0=fffff')}
+                                 AllocationType.RDT: RDTAllocation(name='',
+                                                                   l3='L3:0=fffff',
+                                                                   mb='mb:0=50')}
     patch('owca.containers.Container.get_allocations',
           return_value=initial_tasks_allocations).__enter__()
 
@@ -166,6 +168,10 @@ def test_allocation_runner_containers_state(*mocks):
                labels={'allocation_type': 'rdt_l3_mask', 'group_name': '',
                        'domain_id': '0', 'container_name': 't2', 'task': 't2_task_id'},
                type='gauge'),
+        Metric(name='allocation_rdt_mb', value=50,
+               labels={'allocation_type': 'rdt_mb',
+                       'group_name': '', 'domain_id': '0', 'container_name': 't2',
+                       'task': 't2_task_id'}, type='gauge'),
         Metric(name='allocations_count', value=2, labels={}, type='counter'),
         Metric(name='allocations_errors', value=0, labels={}, type='counter'),
         Metric(name='allocation_duration', value=0.0, labels={}, type='gauge')
