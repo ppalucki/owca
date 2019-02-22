@@ -27,6 +27,7 @@ platform_mock = Mock(
     rdt_cbm_mask='fffff', rdt_min_cbm_bits=1, rdt_mb_control_enabled=False, rdt_num_closids=2)
 
 
+@patch('resource.getrusage', return_value=Mock(ru_maxrss=1234))
 @patch('owca.platforms.collect_platform_information', return_value=(
         platform_mock, [metric('platform-cpu-usage')], {}))
 @patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
@@ -102,6 +103,20 @@ def test_detection_runner_containers_state(*mocks):
     assert metrics_storage.store.call_args[0][0] == [
         Metric('owca_up', type=MetricType.COUNTER, value=1234567890.123, labels=extra_labels),
         Metric('owca_tasks', type=MetricType.GAUGE, value=1, labels=extra_labels),
+        Metric('owca_memory_usage_bytes', type=MetricType.GAUGE, value=2468*1024,
+               labels=extra_labels),
+        Metric('owca_duration_seconds', value=0.0, type='gauge',
+               labels=dict(extra_labels, function='collect_platform_information'), ),
+        Metric('owca_duration_seconds', value=0.0, type='gauge',
+               labels=dict(extra_labels, function='get_tasks')),
+        Metric('owca_duration_seconds', value=0.0, type='gauge',
+               labels=dict(extra_labels, function='iteration')),
+        Metric('owca_duration_seconds', value=0.0, type='gauge',
+               labels=dict(extra_labels, function='prepare_task_data')),
+        Metric('owca_duration_seconds', value=0.0, type='gauge',
+               labels=dict(extra_labels, function='sleep')),
+        Metric('owca_duration_seconds', value=0.0, type='gauge',
+               labels=dict(extra_labels, function='sync')),
         metric('platform-cpu-usage', labels=extra_labels),  # Store metrics from platform ...
         Metric(name='cpu_usage', value=23,
                labels=dict(extra_labels, **task_labels_sanitized_with_task_id)),

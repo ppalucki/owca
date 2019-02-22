@@ -33,6 +33,7 @@ platform_mock = Mock(
         platform_mock, [metric('platform-cpu-usage')], {}))
 @patch('owca.runners.base.are_privileges_sufficient', return_value=True)
 @patch('owca.runners.allocation.AllocationRunner.configure_rdt', return_value=True)
+@patch('resource.getrusage', return_value=Mock(ru_maxrss=1234))
 @patch('owca.containers.PerfCounters')
 @patch('owca.cgroups.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
 @patch('owca.cgroups.Cgroup.get_pids', return_value=['123'])

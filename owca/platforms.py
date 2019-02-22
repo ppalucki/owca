@@ -237,7 +237,7 @@ def collect_rdt_information(rdt_enabled: bool) -> (
         Optional[int],  # min of L3/num_closids or MB/num_closids
         Optional[int],  # mb_bandwidth_gran
         Optional[int]   # mb_min_bandwidth
-    ): #
+        ):
     """Returns rdt information values."""
     if rdt_enabled:
         with open('/sys/fs/resctrl/info/L3/cbm_mask') as f:
