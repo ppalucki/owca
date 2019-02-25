@@ -27,8 +27,8 @@ from owca.testing import create_open_mock, allocation_metric
 
 @pytest.mark.parametrize(
     'resgroup_name, write_schemata_lines, expected_writes', [
-        ('', ['ble'],
-         {'/sys/fs/resctrl/schemata': [b'ble\n']}),
+        ('', ['any-string'],
+         {'/sys/fs/resctrl/schemata': [b'any-string\n']}),
         ('be', ['l3write', 'mbwrite'],
          {'/sys/fs/resctrl/be/schemata': [b'l3write\n']}),
         ('be', ['l3write', 'mbwrite'],
