@@ -271,12 +271,14 @@ class RDTAllocationValue(AllocationValue):
 
         # Now update the schemata file.
         if self.rdt_groups.should_perform_schemata_write(self):
-            if self.rdt_allocation.l3 or self.rdt_allocation.mb:
+            lines = []
+            if self.rdt_allocation.l3:
+                lines.append(self.rdt_allocation.l3)
+            if self.rdt_allocation.mb and self.rdt_mb_control_enabled:
+                lines.append(self.rdt_allocation.mb)
+            if lines:
                 log.debug('resctrl: perform_allocations update schemata in %r', self.resgroup.name)
-                self.resgroup.write_schemata(
-                    l3=self.rdt_allocation.l3,
-                    mb=self.rdt_allocation.mb
-                )
+                self.resgroup.write_schemata(lines)
 
 
 def _parse_schemata_file_row(line: str) -> Dict[str, str]:
