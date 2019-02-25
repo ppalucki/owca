@@ -84,9 +84,9 @@ def test_get_measurements(*mock):
           '/sys/fs/resctrl/be/mon_groups/c1/tasks': ['123'],
           }, 2, [call('/sys/fs/resctrl/be/mon_groups/c1', exist_ok=True)]),
     ])
-def test_resgroup_add_pids(makedirs_mock, SetEffectiveRootId_mock, resgroup_name, pids,
-                           mongroup_name, expected_writes, expected_setuid_calls_count,
-                           expected_makedirs):
+def test_resgroup_add_pids(makedirs_mock, SetEffectiveRootId_mock,
+                           resgroup_name, pids, mongroup_name,
+                           expected_writes, expected_setuid_calls_count, expected_makedirs):
     write_mocks = {filename: mock_open() for filename in expected_writes}
     resgroup = ResGroup(name=resgroup_name)
 
@@ -105,36 +105,6 @@ def test_resgroup_add_pids(makedirs_mock, SetEffectiveRootId_mock, resgroup_name
     # setuid used (at least number of times)
     expected_setuid_calls = [call.__enter__()] * expected_setuid_calls_count
     SetEffectiveRootId_mock.assert_has_calls(expected_setuid_calls, any_order=True)
-
-
-@patch('owca.resctrl.log.warning')
-@patch('os.path.exists', return_value=True)
-@patch('os.makedirs')
-@patch('owca.resctrl.SetEffectiveRootUid')
-def test_resgroup_add_pids_exact_call_check(*args):
-    root_tasks_mock = MagicMock()
-    tasks_mock = MagicMock()
-    mongroup_tasks_mock = MagicMock()
-    open_mock = create_open_mock({
-        "/sys/fs/resctrl": "0",
-        "/sys/fs/resctrl/tasks": root_tasks_mock,
-        # for best_efforts resctrl group
-        "/sys/fs/resctrl/best_efforts/tasks": tasks_mock,
-        "/sys/fs/resctrl/best_efforts/mon_groups/task_id/tasks": mongroup_tasks_mock,
-    })
-    with patch('builtins.open', open_mock):
-        resgroup = ResGroup("best_efforts")
-        resgroup.add_pids(['123', '124'], 'task_id')
-
-        tasks_mock.assert_called_once_with(
-            '/sys/fs/resctrl/best_efforts/tasks', 'w')
-        tasks_mock.assert_has_calls([call().write('123')])
-        tasks_mock.assert_has_calls([call().write('124')])
-
-        mongroup_tasks_mock.assert_called_once_with(
-            '/sys/fs/resctrl/best_efforts/mon_groups/task_id/tasks', 'w')
-        mongroup_tasks_mock.assert_has_calls([call().write('123')])
-        mongroup_tasks_mock.assert_has_calls([call().write('124')])
 
 
 @patch('owca.resctrl.SetEffectiveRootUid')
