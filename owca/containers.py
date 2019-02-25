@@ -140,6 +140,8 @@ class ContainerManager:
         - perf counters opens file descriptors for counters,
         - resctrl (ResGroups) creates and manages directories under resctrl fs and scarce "clsid"
             hardware identifiers
+
+        Can throw OutOfClosidsException.
         """
 
         # Find difference between discovered Mesos tasks and already watched containers.
