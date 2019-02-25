@@ -27,8 +27,8 @@ from owca.testing import create_open_mock, allocation_metric
 
 @pytest.mark.parametrize(
     'resgroup_name, write_schemata_lines, expected_writes', [
-        ('', ['ble'],
-         {'/sys/fs/resctrl/schemata': [b'ble\n']}),
+        ('', ['any-string'],
+         {'/sys/fs/resctrl/schemata': [b'any-string\n']}),
         ('be', ['l3write', 'mbwrite'],
          {'/sys/fs/resctrl/be/schemata': [b'l3write\n']}),
         ('be', ['l3write', 'mbwrite'],
@@ -53,27 +53,36 @@ def test_resgroup_write_schemata(resgroup_name, write_schemata_lines,
 @pytest.mark.parametrize(
     'current, new,'
     'expected_target,expected_changeset', (
-            # within the same group
+            # --- Test cases withing the same group.
+            # Set l3 within the same auto group.
             (RDTAllocation(), RDTAllocation(l3='x'),
              RDTAllocation(l3='x'), RDTAllocation(l3='x')),
+            # Set mb within the same auto group to existing l3.
             (RDTAllocation(l3='x'), RDTAllocation(mb='y'),
              RDTAllocation(l3='x', mb='y'), RDTAllocation(mb='y')),
+            # Set l3 within the same auto group to existing l3 and mb.
             (RDTAllocation(l3='x'), RDTAllocation(l3='x', mb='y'),
              RDTAllocation(l3='x', mb='y'), RDTAllocation(mb='y')),
+            # Set l3 within the same auto group to existing l3 and mb.
             (RDTAllocation(l3='x'), RDTAllocation(name='', l3='x'),
              RDTAllocation(name='', l3='x'), RDTAllocation(name='', l3='x')),
-            # moving between groups
-            (None, RDTAllocation(),  # initial put into auto-group
+            # --- Move moving between groups.
+            # Initial put into auto-group.
+            (None, RDTAllocation(),
              RDTAllocation(), RDTAllocation()),
-            (RDTAllocation(name=''), RDTAllocation(),  # moving to auto-group from root
+            # Move to auto-group from root group.
+            (RDTAllocation(name=''), RDTAllocation(),
              RDTAllocation(), RDTAllocation()),
-            (RDTAllocation(), RDTAllocation(name='be'),  # moving to named group from auto-group
+            # Move to explicit named group from auto-group.
+            (RDTAllocation(), RDTAllocation(name='be'),
              RDTAllocation(name='be'), RDTAllocation(name='be')),
+            # Move to named group values are ignored.
             (RDTAllocation(l3='x'), RDTAllocation(name='be'),
-             # moving to named group ignoring values
              RDTAllocation(name='be'), RDTAllocation(name='be')),
-            (RDTAllocation(l3='x'), RDTAllocation(name=''),  # moving to root group ignoring values
+            # Move to root group values are ignored.
+            (RDTAllocation(l3='x'), RDTAllocation(name=''),
              RDTAllocation(name=''), RDTAllocation(name='')),
+            # Move to 'new' group with new values.
             (RDTAllocation(l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y'),
              RDTAllocation(name='new', l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y')),
     )
