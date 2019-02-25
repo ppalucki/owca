@@ -44,7 +44,9 @@ ResGroupName = str
 
 
 class ResGroup:
-    """ Represents ctrl group (can represent root default when name == RESCTRL_ROOT_NAME)"""
+    """Represents and abstracts operations on specific resource control group
+    (represents root default group when name == RESCTRL_ROOT_NAME).
+    """
 
     def __init__(self, name: str, rdt_mb_control_enabled: bool = True):
         self.name: ResGroupName = name
@@ -66,10 +68,10 @@ class ResGroup:
     def _add_pids_to_tasks_file(self, pids, tasks_filepath):
         """Writes pids to task file.
 
-        This function is susceptible to races caused by writing the pids,
-        happens after the while there were read - causing an errors like: ProcessLookupError
+        This function is susceptible to races caused by time that passes between read and write.
+        - causing errors like: ProcessLookupError
 
-        Error handling is based on cases available in:
+        Error handling is based on edge cases available in:
         https://github.com/torvalds/linux/blob/v4.20/arch/x86/kernel/cpu/intel_rdt_rdtgroup.c#L676
         and are mapped to python exceptions
         https://github.com/python/cpython/blob/v3.6.8/Objects/exceptions.c#L2658
@@ -78,7 +80,7 @@ class ResGroup:
         ENOENT -> FileNotFoundError
 
         Important note: any writing/flushing error is going the reappear during closing,
-            that is why it is again wrapped by try:except becuase close()
+            that is why it is again wrapped by try:except (and why context manager is not used).
         """
         if not pids:
             return
@@ -154,7 +156,7 @@ class ResGroup:
         self._add_pids_to_tasks_file(pids, os.path.join(mongroup_fullpath, 'tasks'))
 
     def remove(self, mongroup_name):
-        """Remove resctrl ctrl directory or just mon_group if this is root or not last
+        """Remove resctrl control directory or just mon_group if this is root or not last
         container under control.
          """
         # Try to clean itself if I'm the last mon_group and not root.
@@ -201,7 +203,7 @@ class ResGroup:
         return {MetricName.MEM_BW: mbm_total, MetricName.LLC_OCCUPANCY: llc_occupancy}
 
     def get_allocations(self) -> TaskAllocations:
-        """Return TaskAllocations represeting allocation for RDT resource."""
+        """Return TaskAllocations representing allocation for RDT resource."""
         rdt_allocations_mb, rdt_allocations_l3 = None, None
         with open(os.path.join(self.fullpath, SCHEMATA)) as schemata:
             for line in schemata:
