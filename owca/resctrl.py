@@ -52,9 +52,8 @@ class ResGroup:
     (represents root default group when name == RESCTRL_ROOT_NAME).
     """
 
-    def __init__(self, name: str, rdt_mb_control_enabled: bool = True):
+    def __init__(self, name: str):
         self.name: ResGroupName = name
-        self.rdt_mb_control_enabled = rdt_mb_control_enabled
         self.fullpath = BASE_RESCTRL_PATH + ("/" + name if name != "" else "")
 
     def __repr__(self):
@@ -224,11 +223,10 @@ class ResGroup:
         )
         return {AllocationType.RDT: rdt_allocations}
 
-    def write_schemata(self, l3=None, mb=None):
+    def write_schemata(self, lines: List[str]):
         """Enforce RDT allocations from task_allocations."""
 
         def _write_schemata_line(value, schemata_file):
-
             log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata_file.name, value)
             try:
                 schemata_file.write(bytes(value + '\n', encoding='utf-8'))
@@ -237,14 +235,8 @@ class ResGroup:
                 log.error('Cannot set rdt allocation: {}'.format(e))
 
         with open(os.path.join(self.fullpath, SCHEMATA), 'bw') as schemata_file:
-
-            # Cache allocation.
-            if l3:
-                _write_schemata_line(l3, schemata_file)
-
-            # Optional memory bandwidth allocation.
-            if self.rdt_mb_control_enabled and mb:
-                _write_schemata_line(mb, schemata_file)
+            for line in lines:
+                _write_schemata_line(line, schemata_file)
 
     def get_mon_groups(self):
         """Return list of containers_name under mon_groups."""

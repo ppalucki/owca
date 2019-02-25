@@ -26,22 +26,22 @@ from owca.testing import create_open_mock, allocation_metric
 
 
 @pytest.mark.parametrize(
-    'resgroup_args, write_schemata_args, expected_writes', [
-        (dict(name=''), dict(l3='ble'),
+    'resgroup_name, write_schemata_lines, expected_writes', [
+        ('', ['ble'],
          {'/sys/fs/resctrl/schemata': [b'ble\n']}),
-        (dict(name='be', rdt_mb_control_enabled=False), dict(l3='l3write', mb='mbwrite'),
+        ('be', ['l3write', 'mbwrite'],
          {'/sys/fs/resctrl/be/schemata': [b'l3write\n']}),
-        (dict(name='be', rdt_mb_control_enabled=True), dict(l3='l3write', mb='mbwrite'),
+        ('be', ['l3write', 'mbwrite'],
          {'/sys/fs/resctrl/be/schemata': [b'l3write\n', b'mbwrite\n']}),
     ]
 )
-def test_resgroup_write_schemata(resgroup_args, write_schemata_args,
+def test_resgroup_write_schemata(resgroup_name, write_schemata_lines,
                                  expected_writes: Dict[str, List[str]]):
     write_mocks = {filename: mock_open() for filename in expected_writes}
-    resgroup = ResGroup(**resgroup_args)
+    resgroup = ResGroup(resgroup_name)
 
     with patch('builtins.open', new=create_open_mock(write_mocks)):
-        resgroup.write_schemata(**write_schemata_args)
+        resgroup.write_schemata(write_schemata_lines)
 
     for filename, write_mock in write_mocks.items():
         expected_filename_writes = expected_writes[filename]
