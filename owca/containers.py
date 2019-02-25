@@ -207,10 +207,7 @@ class ContainerManager:
                         rdt_mb_control_enabled=self.rdt_mb_control_enabled)
                 else:
                     # Every newly detected containers is first assigne to root group.
-                    container.resgroup = ResGroup(
-                        name='',
-                        rdt_mb_control_enabled=self.rdt_mb_control_enabled
-                    )
+                    container.resgroup = ResGroup(name='')
             container.sync()
 
         return self.containers
