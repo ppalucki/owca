@@ -69,17 +69,18 @@ def test_get_measurements(*mock):
 @pytest.mark.parametrize(
     'resgroup_name, pids, mongroup_name, '
     'expected_writes, expected_setuid_calls_count, expected_makedirs', [
-        # root groups
+        # 1) Write to root cgroup with one pid.
         ('', ['123'], 'c1',
          {'/sys/fs/resctrl/tasks': ['123'],
           '/sys/fs/resctrl/mon_groups/c1/tasks': ['123']
           }, 2, [call('/sys/fs/resctrl/mon_groups/c1', exist_ok=True)]),
+        # 2) Write to root cgroup with two pids.
         ('', ['123', '456'], 'c1',  # two pids
          {'/sys/fs/resctrl/tasks': ['123', '456'],
           '/sys/fs/resctrl/mon_groups/c1/tasks': ['123'],
           }, 2, [call('/sys/fs/resctrl/mon_groups/c1', exist_ok=True)]),
-        # non-root groups
-        ('be', ['123'], 'c1',  # no pids at all
+        # 3) Write to non-root cgroup with two pids.
+        ('be', ['123'], 'c1',
          {'/sys/fs/resctrl/be/tasks': ['123'],
           '/sys/fs/resctrl/be/mon_groups/c1/tasks': ['123'],
           }, 2, [call('/sys/fs/resctrl/be/mon_groups/c1', exist_ok=True)]),
@@ -87,6 +88,10 @@ def test_get_measurements(*mock):
 def test_resgroup_add_pids(makedirs_mock, SetEffectiveRootId_mock,
                            resgroup_name, pids, mongroup_name,
                            expected_writes, expected_setuid_calls_count, expected_makedirs):
+    """Test that for ResGroup created with resgroup_name, when add_pids() is called with
+    pids and given mongroup_name, expected writes (filenames with expected bytes writes)
+    will happen together with number of setuid calls and makedirs calls.
+    """
     write_mocks = {filename: mock_open() for filename in expected_writes}
     resgroup = ResGroup(name=resgroup_name)
 
