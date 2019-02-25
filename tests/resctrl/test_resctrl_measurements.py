@@ -29,7 +29,7 @@ import pytest
 @patch('os.listdir', side_effects=lambda path: {
     '/sys/fs/resctrl/best_efforts/mon_groups/some_container': [],
 })
-def test_resgroup_remove(listdir_mock, SetEffectiveRootUid_mock, rmdir_mock, isdir_mock):
+def test_resgroup_remove(listdir_mock, set_effective_root_uid_mock, rmdir_mock, isdir_mock):
     open_mock = create_open_mock({
         "/sys/fs/resctrl": "0",
         "/sys/fs/resctrl/best_efforts/mon_groups/some_container/tasks": "123\n124\n",
@@ -85,7 +85,7 @@ def test_get_measurements(*mock):
           '/sys/fs/resctrl/be/mon_groups/c1/tasks': ['123'],
           }, 2, [call('/sys/fs/resctrl/be/mon_groups/c1', exist_ok=True)]),
     ])
-def test_resgroup_add_pids(makedirs_mock, SetEffectiveRootId_mock,
+def test_resgroup_add_pids(makedirs_mock, set_effective_root_uid_mock,
                            resgroup_name, pids, mongroup_name,
                            expected_writes, expected_setuid_calls_count, expected_makedirs):
     """Test that for ResGroup created with resgroup_name, when add_pids() is called with
@@ -109,7 +109,7 @@ def test_resgroup_add_pids(makedirs_mock, SetEffectiveRootId_mock,
 
     # setuid used (at least number of times)
     expected_setuid_calls = [call.__enter__()] * expected_setuid_calls_count
-    SetEffectiveRootId_mock.assert_has_calls(expected_setuid_calls, any_order=True)
+    set_effective_root_uid_mock.assert_has_calls(expected_setuid_calls, any_order=True)
 
 
 @patch('owca.resctrl.SetEffectiveRootUid')
@@ -125,7 +125,7 @@ def test_resgroup_add_pids(makedirs_mock, SetEffectiveRootId_mock,
      call.error('Could not write pid to resctrl (%r): Invalid argument %r.',
                 '/sys/fs/resctrl/tasks')),
 ])
-def test_resgroup_add_pids_invalid(makedirs_mock, SetEffectiveRootId_mock,
+def test_resgroup_add_pids_invalid(makedirs_mock, set_effective_root_uid_mock,
                                    side_effect, log_call):
     resgroup = ResGroup(name='')
     writes_mock = {
