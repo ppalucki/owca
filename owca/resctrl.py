@@ -43,6 +43,10 @@ log = logging.getLogger(__name__)
 ResGroupName = str
 
 
+class OutOfClosidsException(Exception):
+    pass
+
+
 class ResGroup:
     """Represents and abstracts operations on specific resource control group
     (represents root default group when name == RESCTRL_ROOT_NAME).
@@ -125,7 +129,8 @@ class ResGroup:
             os.makedirs(self.fullpath, exist_ok=True)
         except OSError as e:
             if e.errno == errno.ENOSPC:  # "No space left on device"
-                raise Exception("Limit of workloads reached! (Oot of available CLoSes/RMIDs!)")
+                raise OutOfClosidsException(
+                    "Limit of workloads reached! (Oot of available CLoSes/RMIDs!)")
             raise
 
     def add_pids(self, pids, mongroup_name):
