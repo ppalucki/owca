@@ -169,7 +169,7 @@ class ContainerManager:
 
         # Prepare state of currently assigned resgroups
         # and remove some orphaned resgroups
-        container_name_to_mon_group = {}
+        container_name_to_ctrl_group = {}
         if self.rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
             log.debug('mon_groups_relation: %s', pprint.pformat(mon_groups_relation))
@@ -179,12 +179,13 @@ class ContainerManager:
             log.debug('mon_groups_relation (after cleanup): %s',
                       pprint.pformat(mon_groups_relation))
 
-            # Calculate inverse relastion of task_id to res_group name based on mon_groups_relations
+            # Calculate inverse relastion of container_name
+            # to res_group name based on mon_groups_relations
             for ctrl_group, container_names in mon_groups_relation.items():
                 for container_name in container_names:
-                    container_name_to_mon_group[container_name] = ctrl_group
-            log.debug('container_name_to_mon_group: %s',
-                      pprint.pformat(container_name_to_mon_group))
+                    container_name_to_ctrl_group[container_name] = ctrl_group
+            log.debug('container_name_to_ctrl_group: %s',
+                      pprint.pformat(container_name_to_ctrl_group))
 
         # Create new containers and store them.
         for new_task in new_tasks:
@@ -201,10 +202,9 @@ class ContainerManager:
         # Note: only the pids are synchronized, not the allocations.
         for container in self.containers.values():
             if self.rdt_enabled:
-                if container.container_name in container_name_to_mon_group:
-                    container.resgroup = ResGroup(
-                        name=container_name_to_mon_group[container.container_name],
-                        rdt_mb_control_enabled=self.rdt_mb_control_enabled)
+                if container.container_name in container_name_to_ctrl_group:
+                    resgroup_name = container_name_to_ctrl_group[container.container_name]
+                    container.resgroup = ResGroup(name=resgroup_name)
                 else:
                     # Every newly detected containers is first assigne to root group.
                     container.resgroup = ResGroup(name='')

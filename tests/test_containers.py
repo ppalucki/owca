@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 import pytest
 
@@ -22,7 +22,7 @@ from owca.allocators import AllocationConfiguration
 
 
 @pytest.mark.parametrize(
-    'discovered_tasks,containers,expected_new_tasks,expected_containers_to_delete', (
+    'discovered_tasks, containers, expected_new_tasks, expected_containers_to_delete', (
         # scenario when two task are created and them first one is removed,
         ([task('/t1')], [],  # one new task, just arrived
          [task('/t1')], []),  # should created one container
@@ -54,44 +54,57 @@ def test_calculate_desired_state(
     assert containers_to_delete == expected_containers_to_delete
 
 
-@patch('owca.containers.ResGroup')
+@patch('owca.containers.ResGroup.add_pids')
+@patch('owca.resctrl.clean_taskless_groups')
 @patch('owca.containers.PerfCounters')
 @patch('owca.containers.Container.sync')
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
-@pytest.mark.parametrize('tasks,existing_containers,expected_running_containers', (
-    ([], {},
+@pytest.mark.parametrize(
+  'tasks, existing_containers, mon_groups_relation, expected_running_containers', (
+    # No new containers and no existing containers, nothing in resctrl,
+    ([], {}, {},
      {}),
-    ([task('/t1')], {},
+    # One new task, should result in one new container, nothing in resctrl,
+    ([task('/t1')], {}, {},
      {task('/t1'): container('/t1')}),
-    ([task('/t1')], {task('/t2'): container('/t2')},
+    # One another new task t2, should result in one another container, both in 'be' resgroup.
+    ([task('/t1')], {task('/t2'): container('/t2')}, {'be': ['t2', 't1']},
      {task('/t1'): container('/t1')}),
-    ([task('/t1')], {task('/t1'): container('/t1'), task('/t2'): container('/t2')},
+    # Task t2 disapears, only t1 task/container should stay (t2 has it's own resgroup)
+    ([task('/t1')], {task('/t1'): container('/t1'), task('/t2'): container('/t2')}, {'t2': ['t2']},
      {task('/t1'): container('/t1')}),
-    ([], {task('/t1'): container('/t1'), task('/t2'): container('/t2')},
-     {}),
-))
+    # All tasks disapears, should result in no containers.
+    ([], {task('/t1'): container('/t1'), task('/t2'): container('/t2')}, {},
+     {})))
 def test_sync_containers_state(platform_mock, sync_mock,
-                               PerfCoutners_mock, ResGroup_mock,
-                               tasks, existing_containers,
+                               PerfCoutners_mock, clean_mock, ResGroup_mock,
+                               tasks, existing_containers, mon_groups_relation,
                                expected_running_containers):
 
     containers_manager = ContainerManager(
-        rdt_enabled=False,
+        rdt_enabled=True,
         rdt_mb_control_enabled=False,
         platform_cpus=1,
         allocation_configuration=AllocationConfiguration(),
     )
-
 
     # Prepare internal state used by sync_containers_state function - mock.
     # Use list for copying to have original list.
     containers_manager.containers = dict(existing_containers)
 
     # Call it.
-    got_containers = containers_manager.sync_containers_state(tasks)
+    with patch('owca.resctrl.read_mon_groups_relation', return_value=mon_groups_relation):
+        got_containers = containers_manager.sync_containers_state(tasks)
 
     # Check internal state ...
     assert sorted(got_containers) == sorted(expected_running_containers)
 
     # Check other side effects like calling sync() on external objects.
     assert sync_mock.call_count == len(expected_running_containers)
+
+    # Check container objects has proper resgroup assigned.
+    for resgroup_name, container_names in mon_groups_relation.items():
+        for container_name in container_names:
+            for got_container in got_containers.values():
+                if got_container.container_name == container_name:
+                    assert got_container.resgroup.name == resgroup_name
