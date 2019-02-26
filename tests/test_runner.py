@@ -36,6 +36,7 @@ def metric(name, labels=None):
     """Helper method to create metric with default values. Value is ignored during tests."""
     return Metric(name=name, value=1234, labels=labels or {})
 
+
 @pytest.mark.skip('will be rewritten in next PR')
 @pytest.mark.parametrize(
     'discovered_tasks,containers,expected_new_tasks,expected_containers_to_delete', (
