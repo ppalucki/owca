@@ -16,9 +16,9 @@ from unittest.mock import patch, Mock
 
 import pytest
 
-from owca.containers import _calculate_desired_state
-from owca.runners.detection import DetectionRunner
+from owca.containers import _calculate_desired_state, ContainerManager
 from owca.testing import task, container
+from owca.allocators import AllocationConfiguration
 
 
 @pytest.mark.parametrize(
@@ -74,23 +74,24 @@ def test_sync_containers_state(platform_mock, sync_mock,
                                PerfCoutners_mock, ResGroup_mock,
                                tasks, existing_containers,
                                expected_running_containers):
-    # Mocker runner, because we're only interested in one sync_containers_state function.
-    runner = DetectionRunner(
-        node=Mock(),
-        metrics_storage=Mock(),
-        anomalies_storage=Mock(),
-        detector=Mock(),
+
+    containers_manager = ContainerManager(
         rdt_enabled=False,
+        rdt_mb_control_enabled=False,
+        platform_cpus=1,
+        allocation_configuration=AllocationConfiguration(),
     )
+
+
     # Prepare internal state used by sync_containers_state function - mock.
     # Use list for copying to have original list.
-    runner.containers_manager.containers = dict(existing_containers)
+    containers_manager.containers = dict(existing_containers)
 
     # Call it.
-    got_containers = runner.containers_manager.sync_containers_state(tasks)
+    got_containers = containers_manager.sync_containers_state(tasks)
 
     # Check internal state ...
-    assert got_containers == expected_running_containers
+    assert sorted(got_containers) == sorted(expected_running_containers)
 
     # Check other side effects like calling sync() on external objects.
     assert sync_mock.call_count == len(expected_running_containers)
