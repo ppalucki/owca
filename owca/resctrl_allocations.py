@@ -20,7 +20,6 @@ from owca.allocations import AllocationValue, InvalidAllocations, LabelsUpdater
 from owca.allocators import RDTAllocation
 from owca.metrics import Metric, MetricType
 from owca.resctrl import ResGroup
-from owca.logger import TRACE
 
 log = logging.getLogger(__name__)
 
@@ -179,8 +178,9 @@ class RDTAllocationValue(AllocationValue):
         # new name, then new allocation will be used (overwrite) but no merge
         if current is None:
             # New tasks or is moved from root group.
-            log.log(TRACE, 'resctrl changeset: new name or no '
-                    'previous allocation exists (moving from root group!)')
+            log.debug(
+                'resctrl changeset: new name or no previous allocation exists (moving from root '
+                'group!)')
             return new, new._copy(new.rdt_allocation,
                                   resgroup=ResGroup(name=new_group_name),
                                   source_resgroup=ResGroup(name=''))
@@ -189,14 +189,13 @@ class RDTAllocationValue(AllocationValue):
 
         if current_group_name != new_group_name:
             # We need to move to another group.
-            log.log(TRACE, 'resctrl changeset: move to new group=%r from=%r',
-                    current_group_name, new_group_name)
+            log.debug('resctrl changeset: move to new group=%r from=%r',
+                      current_group_name, new_group_name)
             return new, new._copy(new.rdt_allocation,
                                   resgroup=ResGroup(name=new_group_name),
                                   source_resgroup=ResGroup(name=current.get_resgroup_name()))
         else:
-            log.log(TRACE,
-                    'resctrl changeset: merging existing rdt allocation (the same resgroup name)')
+            log.debug('resctrl changeset: merging existing rdt allocation (the same resgroup name)')
 
             # Prepare target first, overwrite current l3 & mb values with new
             target_rdt_allocation = RDTAllocation(
