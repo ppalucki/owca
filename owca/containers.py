@@ -127,12 +127,12 @@ class ContainerManager:
         self.allocation_configuration = allocation_configuration
 
     def sync_containers_state(self, tasks) -> Dict[Task, Container]:
-        """Syncs state of ContainerManager with a system by removing orphaned containers, 
+        """Syncs state of ContainerManager with a system by removing orphaned containers,
         and creating containers for newly arrived tasks, and synchronizing containers' state.
 
         Function is responsible for cleaning and initializing stateful subsystems such as:
         - perf counters: opens file descriptors for counters,
-        - resctrl (ResGroups): creates and manages directories in resctrl filesystem and scarce 
+        - resctrl (ResGroups): creates and manages directories in resctrl filesystem and scarce
             "closid" hardware identifiers
 
         Can throw OutOfClosidsException.
@@ -165,7 +165,8 @@ class ContainerManager:
         # and remove some orphaned resgroups
         if self.rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
-            log.debug('mon_groups_relation (before cleanup): %s', pprint.pformat(mon_groups_relation))
+            log.debug('mon_groups_relation (before cleanup): %s',
+                      pprint.pformat(mon_groups_relation))
             resctrl.clean_taskless_groups(mon_groups_relation)
 
             mon_groups_relation = resctrl.read_mon_groups_relation()
