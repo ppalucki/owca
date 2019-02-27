@@ -240,25 +240,21 @@ class RDTInformation:
     mb_min_bandwidth: Optional[int]
 
 
-def collect_rdt_information(rdt_enabled: bool) -> RDTInformation:
+def collect_rdt_information() -> RDTInformation:
     """Returns rdt information values."""
-    with open('/sys/fs/resctrl/info/L3/cbm_mask') as f:
-        cbm_mask = f.read().strip()
-    with open('/sys/fs/resctrl/info/L3/min_cbm_bits') as f:
-        min_cbm_bits = f.read().strip()
-    with open('/sys/fs/resctrl/info/L3/num_closids') as f:
-        num_closids = int(f.read().strip())
-    with open('/sys/fs/resctrl/schemata') as f:
-        schemata_body = f.read()
-        rdt_mb_control_enabled = 'MB:' in schemata_body
+    def _read_value(subpath):
+        with open(os.path.join('/sys/fs/resctrl/', subpath)) as f:
+            return f.read().strip()
+    cbm_mask = _read_value('info/L3/cbm_mask')
+    min_cbm_bits = _read_value('info/L3/min_cbm_bits')
+    num_closids = int(_read_value('info/L3/num_closids'))
+    schemata_body = _read_value('schemata')
+    rdt_mb_control_enabled = 'MB:' in schemata_body
     if rdt_mb_control_enabled:
-        with open('/sys/fs/resctrl/info/MB/bandwidth_gran') as f:
-            mb_bandwidth_gran = int(f.read())
-        with open('/sys/fs/resctrl/info/MB/min_bandwidth') as f:
-            mb_min_bandwidth = int(f.read())
-        with open('/sys/fs/resctrl/info/MB/num_closids') as f:
-            mb_num_closids = int(f.read())
-            num_closids = min(num_closids, mb_num_closids)
+        mb_bandwidth_gran = int(_read_value('info/MB/bandwidth_gran'))
+        mb_min_bandwidth = int(_read_value('info/MB/min_bandwidth'))
+        mb_num_closids = int(_read_value('info/MB/num_closids'))
+        num_closids = min(num_closids, mb_num_closids)
     else:
         mb_bandwidth_gran, mb_min_bandwidth = None, None
 
@@ -283,26 +279,27 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     # Static information
     nr_of_cpus, nr_of_cores, no_of_sockets = collect_topology_information()
     if rdt_enabled:
-        rdt_information = collect_rdt_information(rdt_enabled)
+        rdt_information = collect_rdt_information()
     else:
         rdt_information = RDTInformation(None, None, False, 0, 0, 0)
 
     # Dynamic information
     cpus_usage = parse_proc_stat(read_proc_stat())
     total_memory_used = parse_proc_meminfo(read_proc_meminfo())
-    platform = Platform(sockets=no_of_sockets,
-                        cores=nr_of_cores,
-                        cpus=nr_of_cpus,
-                        cpus_usage=cpus_usage,
-                        total_memory_used=total_memory_used,
-                        timestamp=time.time(),
-                        rdt_mb_control_enabled=rdt_information.rdt_mb_control_enabled,
-                        rdt_cbm_mask=rdt_information.cbm_mask,
-                        rdt_min_cbm_bits=rdt_information.min_cbm_bits,
-                        rdt_num_closids=rdt_information.num_closids,
-                        rdt_mb_bandwidth_gran=rdt_information.mb_bandwidth_gran,
-                        rdt_mb_min_bandwidth=rdt_information.mb_min_bandwidth,
-                        )
+    platform = Platform(
+        sockets=no_of_sockets,
+        cores=nr_of_cores,
+        cpus=nr_of_cpus,
+        cpus_usage=cpus_usage,
+        total_memory_used=total_memory_used,
+        timestamp=time.time(),
+        rdt_mb_control_enabled=rdt_information.rdt_mb_control_enabled,
+        rdt_cbm_mask=rdt_information.cbm_mask,
+        rdt_min_cbm_bits=rdt_information.min_cbm_bits,
+        rdt_num_closids=rdt_information.num_closids,
+        rdt_mb_bandwidth_gran=rdt_information.mb_bandwidth_gran,
+        rdt_mb_min_bandwidth=rdt_information.mb_min_bandwidth,
+    )
     assert len(platform.cpus_usage) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
     return platform, create_metrics(platform), create_labels(platform)

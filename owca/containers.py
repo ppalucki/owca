@@ -44,8 +44,7 @@ def flatten_measurements(measurements: List[Measurements]):
     return all_measurements_flat
 
 
-def _convert_cgroup_path_to_resgroup_name(cgroup_path):
-    """Return resgroup compatbile name for cgroup path (remove special characters like /)."""
+def _sanitize_cgroup_path(cgroup_path):
     assert cgroup_path.startswith('/'), 'Provide cgroup_path with leading /'
     # cgroup path without leading '/'
     relative_cgroup_path = cgroup_path[1:]
@@ -61,7 +60,7 @@ class Container:
     allocation_configuration: Optional[AllocationConfiguration] = None
     rdt_enabled: bool = True
     rdt_mb_control_enabled: bool = False
-    container_name: str = None  # defaults to flattened value of provided cgroup_path
+    container_name: str = None  # defaults to faltten value of provided cgroup_path
 
     def __post_init__(self):
         self.cgroup = Cgroup(
@@ -70,7 +69,7 @@ class Container:
             allocation_configuration=self.allocation_configuration,
         )
         self.container_name = (self.container_name or
-                               _convert_cgroup_path_to_resgroup_name(self.cgroup_path))
+                               _sanitize_cgroup_path(self.cgroup_path))
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def sync(self):
@@ -215,8 +214,8 @@ class ContainerManager:
 def _find_new_and_dead_tasks(
         discovered_tasks: List[Task], known_containers: List[Container]
 ) -> (List[Task], List[Container]):
-    """Return the list of newly discovered and containers without tasks,
-    by comparing actually running tasks and already watched containers.
+    """Returns the of newly discovered tasks and containers without tasks,
+    by comparing running tasks against list of known containers.
 
     Assumptions:
     * One-to-one relationship between task and container
