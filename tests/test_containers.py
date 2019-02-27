@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-from owca.containers import _calculate_desired_state, ContainerManager
+from owca.containers import _find_new_and_dead_tasks, ContainerManager
 from owca.testing import task, container
 from owca.allocators import AllocationConfiguration
 
@@ -41,12 +41,12 @@ from owca.allocators import AllocationConfiguration
                                       container('/t2')],  # t2 replaced with t3
          [task('/t3')], [container('/t2')]),  # nothing to do,
     ))
-def test_calculate_desired_state(
+def test_find_new_and_dead_tasks(
         discovered_tasks,
         containers,
         expected_new_tasks,
         expected_containers_to_delete):
-    new_tasks, containers_to_delete = _calculate_desired_state(
+    new_tasks, containers_to_delete = _find_new_and_dead_tasks(
         discovered_tasks, containers
     )
 

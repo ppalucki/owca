@@ -116,11 +116,6 @@ class Container:
 class ContainerManager:
     """Responsible for synchronizing state between found orchestration software tasks,
     their containers and resctrl system.
-
-    - sync_container_state - is responsible for mapping Tasks to Container objects
-            and managing underlaying ResGroup objects
-    - sync_allocations - is responsible for applying TaskAllocations to underlaying
-            Cgroup and ResGroup objects
     """
 
     def __init__(self, rdt_enabled: bool, rdt_mb_control_enabled: bool, platform_cpus: int,
@@ -132,19 +127,19 @@ class ContainerManager:
         self.allocation_configuration = allocation_configuration
 
     def sync_containers_state(self, tasks) -> Dict[Task, Container]:
-        """Syncs state of ContainerManager with a system by removing orphaned containers, and creating containers
-        for newly arrived tasks, and synchronizing containers' state.
+        """Syncs state of ContainerManager with a system by removing orphaned containers, 
+        and creating containers for newly arrived tasks, and synchronizing containers' state.
 
         Function is responsible for cleaning and initializing stateful subsystems such as:
         - perf counters: opens file descriptors for counters,
-        - resctrl (ResGroups): creates and manages directories in resctrl filesystem and scarce "clsid"
-            hardware identifiers
+        - resctrl (ResGroups): creates and manages directories in resctrl filesystem and scarce 
+            "closid" hardware identifiers
 
         Can throw OutOfClosidsException.
         """
 
-        # Find difference between discovered Mesos tasks and already watched containers.
-        new_tasks, containers_to_cleanup = _calculate_desired_state(
+        # Find difference between discovered tasks and already watched containers.
+        new_tasks, containers_to_cleanup = _find_new_and_dead_tasks(
             tasks, list(self.containers.values()))
 
         if containers_to_cleanup:
@@ -153,9 +148,9 @@ class ContainerManager:
             log.log(logger.TRACE, 'sync_containers_state: containers_to_cleanup=%r',
                     containers_to_cleanup)
 
-        # Cleanup and remove orphaned containers (_cleanup).
-        for container_to_cleanup in containers_to_cleanup:
-            container_to_cleanup.cleanup()
+            # Clean up and remove orphaned containers.
+            for container_to_cleanup in containers_to_cleanup:
+                container_to_cleanup.cleanup()
 
         # Recreate self.containers.
         self.containers = {task: container
@@ -168,7 +163,6 @@ class ContainerManager:
 
         # Prepare state of currently assigned resgroups
         # and remove some orphaned resgroups
-        container_name_to_ctrl_group = {}
         if self.rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
             log.debug('mon_groups_relation (before cleanup): %s', pprint.pformat(mon_groups_relation))
@@ -180,6 +174,7 @@ class ContainerManager:
 
             # Calculate inverse relation of container_name
             # to res_group name based on mon_groups_relations
+            container_name_to_ctrl_group = {}
             for ctrl_group, container_names in mon_groups_relation.items():
                 for container_name in container_names:
                     container_name_to_ctrl_group[container_name] = ctrl_group
@@ -205,7 +200,7 @@ class ContainerManager:
                     resgroup_name = container_name_to_ctrl_group[container.container_name]
                     container.resgroup = ResGroup(name=resgroup_name)
                 else:
-                    # Every newly detected containers is first assigne to root group.
+                    # Every newly detected containers is first assigned to root group.
                     container.resgroup = ResGroup(name='')
             container.sync()
 
@@ -217,19 +212,20 @@ class ContainerManager:
             container.cleanup()
 
 
-def _calculate_desired_state(
+def _find_new_and_dead_tasks(
         discovered_tasks: List[Task], known_containers: List[Container]
 ) -> (List[Task], List[Container]):
-    """Prepare desired state of system by comparing actual running Mesos tasks and already
-    watched containers.
+    """Return the list of newly discovered and containers without tasks,
+    by comparing actually running tasks and already watched containers.
 
     Assumptions:
     * One-to-one relationship between task and container
     * cgroup_path for task and container need to be identical to establish the relationship
     * cgroup_path is unique for each task
 
-    :returns "list of Mesos tasks to start watching"
-    and "orphaned containers to clean up" (there are no more Mesos tasks matching those containers)
+    :returns
+    - list of tasks to start watching
+    - orphaned containers to clean up
     """
     discovered_task_cgroup_paths = {task.cgroup_path for task in discovered_tasks}
     containers_cgroup_paths = {container.cgroup_path for container in known_containers}
