@@ -208,7 +208,6 @@ class ContainerManager:
         return self.containers
 
     def cleanup(self):
-        # _cleanup
         for container in self.containers.values():
             container.cleanup()
 
