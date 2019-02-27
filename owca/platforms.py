@@ -279,7 +279,7 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     # Static information
     nr_of_cpus, nr_of_cores, no_of_sockets = collect_topology_information()
     if rdt_enabled:
-        rdt_information = collect_rdt_information(rdt_enabled)
+        rdt_information = collect_rdt_information()
     else:
         rdt_information = RDTInformation(None, None, False, 0, 0, 0)
 
