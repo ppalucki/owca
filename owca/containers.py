@@ -44,7 +44,7 @@ def flatten_measurements(measurements: List[Measurements]):
     return all_measurements_flat
 
 
-def _convert_cgroup_path_to_resgroup_name(cgroup_path):
+def _sanitize_cgroup_path(cgroup_path):
     assert cgroup_path.startswith('/'), 'Provide cgroup_path with leading /'
     # cgroup path without leading '/'
     relative_cgroup_path = cgroup_path[1:]
@@ -69,7 +69,7 @@ class Container:
             allocation_configuration=self.allocation_configuration,
         )
         self.container_name = (self.container_name or
-                               _convert_cgroup_path_to_resgroup_name(self.cgroup_path))
+                               _sanitize_cgroup_path(self.cgroup_path))
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def sync(self):
