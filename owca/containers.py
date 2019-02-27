@@ -215,8 +215,8 @@ class ContainerManager:
 def _find_new_and_dead_tasks(
         discovered_tasks: List[Task], known_containers: List[Container]
 ) -> (List[Task], List[Container]):
-    """Return the list of newly discovered and containers without tasks,
-    by comparing actually running tasks and already watched containers.
+    """Returns the of newly discovered tasks and containers without tasks,
+    by comparing running tasks against list of known containers.
 
     Assumptions:
     * One-to-one relationship between task and container
