@@ -286,19 +286,20 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     # Dynamic information
     cpus_usage = parse_proc_stat(read_proc_stat())
     total_memory_used = parse_proc_meminfo(read_proc_meminfo())
-    platform = Platform(sockets=no_of_sockets,
-                        cores=nr_of_cores,
-                        cpus=nr_of_cpus,
-                        cpus_usage=cpus_usage,
-                        total_memory_used=total_memory_used,
-                        timestamp=time.time(),
-                        rdt_mb_control_enabled=rdt_information.rdt_mb_control_enabled,
-                        rdt_cbm_mask=rdt_information.cbm_mask,
-                        rdt_min_cbm_bits=rdt_information.min_cbm_bits,
-                        rdt_num_closids=rdt_information.num_closids,
-                        rdt_mb_bandwidth_gran=rdt_information.mb_bandwidth_gran,
-                        rdt_mb_min_bandwidth=rdt_information.mb_min_bandwidth,
-                        )
+    platform = Platform(
+        sockets=no_of_sockets,
+        cores=nr_of_cores,
+        cpus=nr_of_cpus,
+        cpus_usage=cpus_usage,
+        total_memory_used=total_memory_used,
+        timestamp=time.time(),
+        rdt_mb_control_enabled=rdt_information.rdt_mb_control_enabled,
+        rdt_cbm_mask=rdt_information.cbm_mask,
+        rdt_min_cbm_bits=rdt_information.min_cbm_bits,
+        rdt_num_closids=rdt_information.num_closids,
+        rdt_mb_bandwidth_gran=rdt_information.mb_bandwidth_gran,
+        rdt_mb_min_bandwidth=rdt_information.mb_min_bandwidth,
+    )
     assert len(platform.cpus_usage) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
     return platform, create_metrics(platform), create_labels(platform)
