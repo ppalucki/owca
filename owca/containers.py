@@ -60,7 +60,7 @@ class Container:
     allocation_configuration: Optional[AllocationConfiguration] = None
     rdt_enabled: bool = True
     rdt_mb_control_enabled: bool = False
-    container_name: str = None  # defaults to flattened value of provided cgroup_path
+    container_name: str = None  # defaults to faltten value of provided cgroup_path
 
     def __post_init__(self):
         self.cgroup = Cgroup(
