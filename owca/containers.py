@@ -61,7 +61,7 @@ class Container:
     allocation_configuration: Optional[AllocationConfiguration] = None
     rdt_enabled: bool = True
     rdt_mb_control_enabled: bool = False
-    container_name: str = None  # defaults to flatten value of provided cgroup_path
+    container_name: str = None  # defaults to flattened value of provided cgroup_path
 
     def __post_init__(self):
         self.cgroup = Cgroup(
@@ -74,7 +74,7 @@ class Container:
         self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def sync(self):
-        """Called every run iteration to keep pids of cgroup and resctrl in sync."""
+        """Called every iteration to keep pids of cgroup and resctrl in sync."""
         if self.rdt_enabled:
             self.resgroup.add_pids(self.cgroup.get_pids(), mongroup_name=self.container_name)
 
@@ -114,8 +114,8 @@ class Container:
 
 
 class ContainerManager:
-    """Main engine of synchornizing state between found orechestratios software tasks,
-    its containers and resctrl system.
+    """Responsible for synchronizing state between found orchestration software tasks,
+    their containers and resctrl system.
 
     - sync_container_state - is responsible for mapping Tasks to Container objects
             and managing underlaying ResGroup objects
@@ -132,13 +132,12 @@ class ContainerManager:
         self.allocation_configuration = allocation_configuration
 
     def sync_containers_state(self, tasks) -> Dict[Task, Container]:
-        """Sync internal state of runner by removing orphaned containers, and creating containers
+        """Syncs state of ContainerManager with a system by removing orphaned containers, and creating containers
         for newly arrived tasks, and synchronizing containers' state.
 
-        Function is responsible for cleaning or initializing measurements stateful subsystems
-        and their external resources, e.g.:
-        - perf counters opens file descriptors for counters,
-        - resctrl (ResGroups) creates and manages directories under resctrl fs and scarce "clsid"
+        Function is responsible for cleaning and initializing stateful subsystems such as:
+        - perf counters: opens file descriptors for counters,
+        - resctrl (ResGroups): creates and manages directories in resctrl filesystem and scarce "clsid"
             hardware identifiers
 
         Can throw OutOfClosidsException.
@@ -172,14 +171,14 @@ class ContainerManager:
         container_name_to_ctrl_group = {}
         if self.rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
-            log.debug('mon_groups_relation: %s', pprint.pformat(mon_groups_relation))
+            log.debug('mon_groups_relation (before cleanup): %s', pprint.pformat(mon_groups_relation))
             resctrl.clean_taskless_groups(mon_groups_relation)
 
             mon_groups_relation = resctrl.read_mon_groups_relation()
             log.debug('mon_groups_relation (after cleanup): %s',
                       pprint.pformat(mon_groups_relation))
 
-            # Calculate inverse relastion of container_name
+            # Calculate inverse relation of container_name
             # to res_group name based on mon_groups_relations
             for ctrl_group, container_names in mon_groups_relation.items():
                 for container_name in container_names:
@@ -230,7 +229,7 @@ def _calculate_desired_state(
     * cgroup_path is unique for each task
 
     :returns "list of Mesos tasks to start watching"
-    and "orphaned containers to _cleanup" (there are no more Mesos tasks matching those containers)
+    and "orphaned containers to clean up" (there are no more Mesos tasks matching those containers)
     """
     discovered_task_cgroup_paths = {task.cgroup_path for task in discovered_tasks}
     containers_cgroup_paths = {container.cgroup_path for container in known_containers}
