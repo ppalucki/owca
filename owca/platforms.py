@@ -240,25 +240,21 @@ class RDTInformation:
     mb_min_bandwidth: Optional[int]
 
 
-def collect_rdt_information(rdt_enabled: bool) -> RDTInformation:
+def collect_rdt_information() -> RDTInformation:
     """Returns rdt information values."""
-    with open('/sys/fs/resctrl/info/L3/cbm_mask') as f:
-        cbm_mask = f.read().strip()
-    with open('/sys/fs/resctrl/info/L3/min_cbm_bits') as f:
-        min_cbm_bits = f.read().strip()
-    with open('/sys/fs/resctrl/info/L3/num_closids') as f:
-        num_closids = int(f.read().strip())
-    with open('/sys/fs/resctrl/schemata') as f:
-        schemata_body = f.read()
-        rdt_mb_control_enabled = 'MB:' in schemata_body
+    def _read_value(subpath):
+        with open(os.path.join('/sys/fs/resctrl/', subpath)) as f:
+            return f.read().strip()
+    cbm_mask = _read_value('info/L3/cbm_mask')
+    min_cbm_bits = _read_value('info/L3/min_cbm_bits')
+    num_closids = int(_read_value('info/L3/num_closids'))
+    schemata_body = _read_value('schemata')
+    rdt_mb_control_enabled = 'MB:' in schemata_body
     if rdt_mb_control_enabled:
-        with open('/sys/fs/resctrl/info/MB/bandwidth_gran') as f:
-            mb_bandwidth_gran = int(f.read())
-        with open('/sys/fs/resctrl/info/MB/min_bandwidth') as f:
-            mb_min_bandwidth = int(f.read())
-        with open('/sys/fs/resctrl/info/MB/num_closids') as f:
-            mb_num_closids = int(f.read())
-            num_closids = min(num_closids, mb_num_closids)
+        mb_bandwidth_gran = int(_read_value('info/MB/bandwidth_gran'))
+        mb_min_bandwidth = int(_read_value('info/MB/min_bandwidth'))
+        mb_num_closids = int(_read_value('info/MB/num_closids'))
+        num_closids = min(num_closids, mb_num_closids)
     else:
         mb_bandwidth_gran, mb_min_bandwidth = None, None
 
