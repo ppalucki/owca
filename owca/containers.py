@@ -45,7 +45,6 @@ def flatten_measurements(measurements: List[Measurements]):
 
 
 def _convert_cgroup_path_to_resgroup_name(cgroup_path):
-    """Return resgroup compatbile name for cgroup path (remove special characters like /)."""
     assert cgroup_path.startswith('/'), 'Provide cgroup_path with leading /'
     # cgroup path without leading '/'
     relative_cgroup_path = cgroup_path[1:]
