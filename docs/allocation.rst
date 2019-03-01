@@ -253,13 +253,15 @@ based on ``/sys/fs/resctrl/info/`` and ``procfs``
 
     class Platform:
         ...
+        rdt_information: RDTInformation
+        ...
 
-        # example
+   class RDTInformation:
+        ...
         rdt_min_cbm_bits: str  # /sys/fs/resctrl/info/L3/min_cbm_bits
         rdt_cbm_mask: str  #  /sys/fs/resctrl/info/L3/cbm_mask
         rdt_min_bandwidth: str  # /sys/fs/resctrl/info/MB/min_bandwidth
         ...
-
 
 Refer to `Kernel x86/intel_rdt_ui.txt <https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt>`_ document for further reference.
 
