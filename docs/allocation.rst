@@ -276,12 +276,14 @@ based on ``/sys/fs/resctrl/info/`` and ``procfs``
 
     class Platform:
         ...
+        rdt_information: RDTInformation
+        ...
 
-        # rdt information
-        rdt_mb_control_enabled: bool     # based on 'MB:' in /sys/fs/resctrl/schemata
-        rdt_cbm_mask: Optional[str]      # based on /sys/fs/resctrl/info/L3/cbm_mask
-        rdt_min_cbm_bits: Optional[str]  # based on /sys/fs/resctrl/info/L3/min_cbm_bits
-
+   class RDTInformation:
+        ...
+        rdt_min_cbm_bits: str  # /sys/fs/resctrl/info/L3/min_cbm_bits
+        rdt_cbm_mask: str  #  /sys/fs/resctrl/info/L3/cbm_mask
+        rdt_min_bandwidth: str  # /sys/fs/resctrl/info/MB/min_bandwidth
         ...
 
 

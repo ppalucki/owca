@@ -72,7 +72,7 @@ class Platform:
     timestamp: float
 
     # rdt information
-    rdt_info: RDTInformation
+    rdt_information: RDTInformation
 
 
 def create_metrics(platform: Platform) -> List[Metric]:
@@ -288,7 +288,7 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
         cpus_usage=cpus_usage,
         total_memory_used=total_memory_used,
         timestamp=time.time(),
-        rdt_info=rdt_information
+        rdt_information=rdt_information
     )
     assert len(platform.cpus_usage) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
