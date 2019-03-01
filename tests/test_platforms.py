@@ -19,7 +19,7 @@ import pytest
 
 from owca.metrics import Metric, MetricName
 from owca.platforms import Platform, parse_proc_meminfo, parse_proc_stat, \
-    collect_topology_information, collect_platform_information
+    collect_topology_information, collect_platform_information, RDTInformation
 from owca.testing import create_open_mock
 
 
@@ -116,8 +116,8 @@ def test_collect_topology_information_2_cores_per_socket_all_cpus_online(*mocks)
 @patch('time.time', return_value=1536071557.123456)
 def test_collect_platform_information(*mocks):
     assert collect_platform_information() == (
-        Platform(1, 1, 2, {0: 100, 1: 200}, 1337, 1536071557.123456, True, 'fffff', '2',
-                 8, 10, 20),
+        Platform(1, 1, 2, {0: 100, 1: 200}, 1337, 1536071557.123456,
+                 RDTInformation('fffff', '2', True, 8, 10, 20)),
         [
             Metric.create_metric_with_metadata(
                 name=MetricName.MEM_USAGE, value=1337
