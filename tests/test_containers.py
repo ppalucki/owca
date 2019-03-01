@@ -103,7 +103,7 @@ def test_sync_containers_state(platform_mock, sync_mock,
     assert sync_mock.call_count == len(expected_running_containers)
 
     # Check container objects has proper resgroup assigned.
-    got_container_resgroup_names = {c.container_name: 
+    got_container_resgroup_names = {c.container_name:
                                     c.resgroup.name for c in got_containers.values()}
     for expected_resgroup_name, container_names in mon_groups_relation.items():
         for container_name in container_names:

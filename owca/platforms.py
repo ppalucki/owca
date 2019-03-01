@@ -43,6 +43,16 @@ def get_owca_version():
 
 
 @dataclass
+class RDTInformation:
+    cbm_mask: Optional[str]  # based on /sys/fs/resctrl/info/L3/cbm_mask
+    min_cbm_bits: Optional[str]  # based on /sys/fs/resctrl/info/L3/min_cbm_bits
+    rdt_mb_control_enabled: bool  # based on 'MB:' in /sys/fs/resctrl/info/L3/cbm_mask
+    num_closids: Optional[int]  # based on /sys/fs/resctrl/info/L3/num_closids
+    mb_bandwidth_gran: Optional[int]  # based on /sys/fs/resctrl/info/MB/bandwidth_gran
+    mb_min_bandwidth: Optional[int]  # based on /sys/fs/resctrl/info/MB/bandwidth_gran
+
+
+@dataclass
 class Platform:
     # Topology:
     sockets: int  # number of sockets
@@ -62,12 +72,7 @@ class Platform:
     timestamp: float
 
     # rdt information
-    rdt_mb_control_enabled: bool  # based on 'MB:' in /sys/fs/resctrl/info/L3/cbm_mask
-    rdt_cbm_mask: Optional[str]  # based on /sys/fs/resctrl/info/L3/cbm_mask
-    rdt_min_cbm_bits: Optional[str]  # based on /sys/fs/resctrl/info/L3/min_cbm_bits
-    rdt_num_closids: Optional[int]  # based on /sys/fs/resctrl/info/L3/num_closids
-    rdt_mb_bandwidth_gran: Optional[int]  # based on /sys/fs/resctrl/info/MB/bandwidth_gran
-    rdt_mb_min_bandwidth: Optional[int]  # based on /sys/fs/resctrl/info/MB/bandwidth_gran
+    rdt_info: RDTInformation
 
 
 def create_metrics(platform: Platform) -> List[Metric]:
@@ -230,17 +235,7 @@ def collect_topology_information() -> (int, int, int):
     return nr_of_online_cpus, nr_of_cores, nr_of_sockets
 
 
-@dataclass
-class RDTInformation:
-    cbm_mask: Optional[str]
-    min_cbm_bits: Optional[str]
-    rdt_mb_control_enabled: bool
-    num_closids: Optional[int]
-    mb_bandwidth_gran: Optional[int]
-    mb_min_bandwidth: Optional[int]
-
-
-def collect_rdt_information() -> RDTInformation:
+def _collect_rdt_information() -> RDTInformation:
     """Returns rdt information values."""
     def _read_value(subpath):
         with open(os.path.join('/sys/fs/resctrl/', subpath)) as f:
@@ -279,7 +274,7 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     # Static information
     nr_of_cpus, nr_of_cores, no_of_sockets = collect_topology_information()
     if rdt_enabled:
-        rdt_information = collect_rdt_information()
+        rdt_information = _collect_rdt_information()
     else:
         rdt_information = RDTInformation(None, None, False, 0, 0, 0)
 
@@ -293,12 +288,7 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
         cpus_usage=cpus_usage,
         total_memory_used=total_memory_used,
         timestamp=time.time(),
-        rdt_mb_control_enabled=rdt_information.rdt_mb_control_enabled,
-        rdt_cbm_mask=rdt_information.cbm_mask,
-        rdt_min_cbm_bits=rdt_information.min_cbm_bits,
-        rdt_num_closids=rdt_information.num_closids,
-        rdt_mb_bandwidth_gran=rdt_information.mb_bandwidth_gran,
-        rdt_mb_min_bandwidth=rdt_information.mb_min_bandwidth,
+        rdt_info=rdt_information
     )
     assert len(platform.cpus_usage) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
