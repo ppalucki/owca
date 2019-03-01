@@ -240,7 +240,7 @@ class RDTInformation:
     mb_min_bandwidth: Optional[int]
 
 
-def collect_rdt_information() -> RDTInformation:
+def _collect_rdt_information() -> RDTInformation:
     """Returns rdt information values."""
     def _read_value(subpath):
         with open(os.path.join('/sys/fs/resctrl/', subpath)) as f:
@@ -279,7 +279,7 @@ def collect_platform_information(rdt_enabled: bool = True) -> (
     # Static information
     nr_of_cpus, nr_of_cores, no_of_sockets = collect_topology_information()
     if rdt_enabled:
-        rdt_information = collect_rdt_information()
+        rdt_information = _collect_rdt_information()
     else:
         rdt_information = RDTInformation(None, None, False, 0, 0, 0)
 
