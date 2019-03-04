@@ -184,6 +184,4 @@ def update_anomalies_metrics_with_task_information(anomaly_metrics: List[Metric]
         # Extra labels for anomaly metrics for information about task.
         if 'contended_task_id' in anomaly_metric.labels:  # Only for anomaly metrics.
             contended_task_id = anomaly_metric.labels['contended_task_id']
-            anomaly_metric.labels.update(
-                tasks_labels.get(contended_task_id, {})
-            )
+            anomaly_metric.labels.update(tasks_labels.get(contended_task_id, {}))
