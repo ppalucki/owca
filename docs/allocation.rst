@@ -286,7 +286,6 @@ based on ``/sys/fs/resctrl/info/`` and ``procfs``
         rdt_min_bandwidth: str  # /sys/fs/resctrl/info/MB/min_bandwidth
         ...
 
-
 Refer to `Kernel x86/intel_rdt_ui.txt <https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt>`_ document for further reference.
 
 ``TaskAllocations`` metrics
