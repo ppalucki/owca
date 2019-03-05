@@ -25,6 +25,7 @@ from owca.detectors import ContendedResource, ContentionAnomaly, _create_uuid_fr
 from owca.nodes import TaskId, Task
 from owca.metrics import Metric, MetricType
 from owca.resctrl import ResGroup
+from owca.runners.base import Runner
 
 
 def relative_module_path(module_file, relative_path):
@@ -144,3 +145,9 @@ def allocation_metric(allocation_type, value, **labels):
         value=value,
         labels=labels
     )
+
+
+class DummyRunner(Runner):
+
+    def run(self):
+        pass
