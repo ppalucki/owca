@@ -41,17 +41,18 @@ class Runner(ABC):
 
 
 class BaseRunnerMixin:
-    """Provides common functionallity for both Allocator and Detector.
+    """Provides common functionality for both Allocator and Detector.
     - configure_rdt based on self.rdt_enabled property
     - wait_or_finish based on self.action_delay property
     - includes container manager to sync container state
-    - prepare nessesary data for allocation and detection logic (_prepare_task_data)
+    - prepare necessary data for allocation and detection logic (_prepare_task_data)
     - metrics_storage and extra_labels for input data labeling and storing
     """
 
     def __init__(self,
                  rdt_enabled: bool,
                  rdt_mb_control_enabled: bool,
+                 action_delay: float,
                  allocation_configuration: Optional[AllocationConfiguration] = None):
         platform_cpus, _, platform_sockets = platforms.collect_topology_information()
         self.containers_manager = ContainerManager(
@@ -61,46 +62,49 @@ class BaseRunnerMixin:
             allocation_configuration=allocation_configuration
         )
 
-        # statistics state
-        self.anomaly_last_occurence = None
-        self.anomaly_counter = 0
-        self.allocations_counter = 0
-        self.allocations_errors = 0
-        self.rdt_enabled = rdt_enabled  # as mixin it can override the value from base class
-        self.rdt_mb_control_enabled = rdt_mb_control_enabled
-        self.allocation_configuration = allocation_configuration
-        self.last_iteration = time.time()
+        # Special fields that are defined in is defined by mixed dataclass as well.
+        # There are redefined again to make that explicit in BaseRunnerMixin
+        self._rdt_enabled = rdt_enabled
+        self._allocation_configuration = allocation_configuration
+        self._action_delay = action_delay
 
-    def configure_rdt(self, rdt_enabled, ignore_privileges_check: bool):
-        """Check required permission for using rdt and initilize subsystem.
+        # statistics state
+        self._anomaly_last_occurrence = None
+        self._anomaly_counter = 0
+        self._allocations_counter = 0
+        self._allocations_errors = 0
+        self._rdt_mb_control_enabled = rdt_mb_control_enabled
+        self._last_iteration = time.time()
+
+    def configure_rdt(self, rdt_enabled, ignore_privileges_check: bool) -> bool:
+        """Check required permission for using rdt and initialize subsystem.
         Returns False, if rdt wasn't properly configured. """
         if rdt_enabled and not check_resctrl():
             return False
         elif not rdt_enabled:
             log.warning('Rdt disabled. Skipping collecting measurements '
                         'and resctrl synchronization')
-            self.rdt_mb_control_enabled = False
+            self._rdt_mb_control_enabled = False
         else:
-            # Resctrl is enabled and available - _cleanup previous runs.
+            # Resctrl is enabled and available - cleanup after a previous run.
             platform, _, _ = platforms.collect_platform_information()
-            max_rdt_l3, max_rdt_mb = get_max_rdt_values(platform.rdt_cbm_mask, platform.sockets)
 
-            if self.rdt_mb_control_enabled and not platform.rdt_mb_control_enabled:
+            if self._rdt_mb_control_enabled and not platform.rdt_mb_control_enabled:
                 raise Exception("RDT MB control is not support by platform!")
-            elif self.rdt_mb_control_enabled is None:
-                self.rdt_mb_control_enabled = platform.rdt_mb_control_enabled
+            elif self._rdt_mb_control_enabled is None:
+                self._rdt_mb_control_enabled = platform.rdt_mb_control_enabled
             else:
-                assert self.rdt_mb_control_enabled is False
+                assert self._rdt_mb_control_enabled is False
 
-            if self.allocation_configuration is not None:
-                root_rtd_l3 = self.allocation_configuration.default_rdt_l3 or max_rdt_l3
-                if self.rdt_mb_control_enabled:
-                    root_rdt_mb = self.allocation_configuration.default_rdt_mb or max_rdt_mb
-                else:
-                    root_rdt_mb = None
-            else:
-                root_rtd_l3 = max_rdt_l3
+            root_rtd_l3, root_rdt_mb = get_max_rdt_values(platform.rdt_cbm_mask, platform.sockets)
+            if self._allocation_configuration is not None:
+                if self._allocation_configuration.default_rdt_l3 is not None:
+                    root_rtd_l3 = self._allocation_configuration.default_rdt_l3
+                if self._allocation_configuration.default_rdt_mb is not None:
+                    root_rdt_mb = self._allocation_configuration.default_rdt_mb
+            if not platform.rdt_mb_control_enabled:
                 root_rdt_mb = None
+                log.warning('Rdt enabled, but RDT memory bandwidth (MB) allocation does not work.')
             cleanup_resctrl(root_rtd_l3, root_rdt_mb)
 
         if ignore_privileges_check:
@@ -122,16 +126,16 @@ class BaseRunnerMixin:
         time.sleep(delay)
         return True
 
-    def get_internal_metrics(self, tasks, durations: Dict[str, float]):
+    def get_internal_metrics(self, tasks, durations: Dict[str, float]) -> Dict[str, float]:
         """Internal owca metrics."""
 
         # Iteration_duration.
         now = time.time()
-        iteration_duration = now - self.last_iteration
-        self.last_iteration = now
+        iteration_duration = now - self._last_iteration
+        self._last_iteration = now
 
         durations['iteration'] = iteration_duration
-        durations['sleep'] = self.action_delay
+        durations['sleep'] = self._action_delay
 
         # Memory usage.
         memory_usage_rss_self = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -158,16 +162,16 @@ class BaseRunnerMixin:
     def get_anomalies_statistics_metrics(self, anomalies, detect_duration=None):
         """Extra external plugin anomaly statistics."""
         if len(anomalies):
-            self.anomaly_last_occurence = time.time()
-            self.anomaly_counter += len(anomalies)
+            self._anomaly_last_occurrence = time.time()
+            self._anomaly_counter += len(anomalies)
 
         statistics_metrics = [
-            Metric(name='anomaly_count', type=MetricType.COUNTER, value=self.anomaly_counter),
+            Metric(name='anomaly_count', type=MetricType.COUNTER, value=self._anomaly_counter),
         ]
-        if self.anomaly_last_occurence:
+        if self._anomaly_last_occurrence:
             statistics_metrics.extend([
-                Metric(name='anomaly_last_occurence', type=MetricType.COUNTER,
-                       value=self.anomaly_last_occurence),
+                Metric(name='_anomaly_last_occurrence', type=MetricType.COUNTER,
+                       value=self._anomaly_last_occurrence),
             ])
         if detect_duration is not None:
             statistics_metrics.extend([
@@ -179,14 +183,14 @@ class BaseRunnerMixin:
                                            allocation_duration, allocations_errors):
         """Extra external plugin allocaton statistics."""
         if len(tasks_allocations):
-            self.allocations_counter += len(tasks_allocations)
-            self.allocations_errors += len(allocations_errors)
+            self._allocations_counter += len(tasks_allocations)
+            self._allocations_errors += len(allocations_errors)
 
         statistics_metrics = [
             Metric(name='allocations_count', type=MetricType.COUNTER,
-                   value=self.allocations_counter),
-            Metric(name='allocations_errors', type=MetricType.COUNTER,
-                   value=self.allocations_errors),
+                   value=self._allocations_counter),
+            Metric(name='_allocations_errors', type=MetricType.COUNTER,
+                   value=self._allocations_errors),
         ]
 
         if allocation_duration is not None:
@@ -218,7 +222,7 @@ class BaseRunnerMixin:
         # Platform information
         collect_platform_information_start = time.time()
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(
-            self.rdt_enabled)
+            self._rdt_enabled)
         collect_platform_information_duration = time.time() - collect_platform_information_start
 
         # Common labels

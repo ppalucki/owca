@@ -132,7 +132,7 @@ def test_detection_runner_containers_state(*mocks):
                labels=dict({'uuid': 'fake-uuid', 'type': 'anomaly'}, **extra_labels)),
         metric('bar', extra_labels),
         Metric('anomaly_count', type=MetricType.COUNTER, value=1, labels=extra_labels),
-        Metric('anomaly_last_occurence', type=MetricType.COUNTER, value=1234567890.123,
+        Metric('_anomaly_last_occurrence', type=MetricType.COUNTER, value=1234567890.123,
                labels=extra_labels),
         Metric(name='detect_duration', value=0.0, labels={'el': 'ev'}, type=MetricType.GAUGE),
     ])

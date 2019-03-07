@@ -45,6 +45,7 @@ class DetectionRunner(Runner, BaseRunnerMixin):
             self,
             rdt_enabled=self.rdt_enabled,
             rdt_mb_control_enabled=False,
+            action_delay=self.action_delay,
             allocation_configuration=None
         )
 
