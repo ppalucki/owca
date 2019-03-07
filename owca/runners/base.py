@@ -189,7 +189,7 @@ class BaseRunnerMixin:
         statistics_metrics = [
             Metric(name='allocations_count', type=MetricType.COUNTER,
                    value=self._allocations_counter),
-            Metric(name='_allocations_errors', type=MetricType.COUNTER,
+            Metric(name='allocations_errors', type=MetricType.COUNTER,
                    value=self._allocations_errors),
         ]
 
