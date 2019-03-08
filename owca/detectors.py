@@ -17,9 +17,10 @@ import hashlib
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 from typing import List, Dict
+
+from dataclasses import dataclass
 
 from owca.logger import trace
 from owca.metrics import Metric, Measurements, MetricType
@@ -35,7 +36,6 @@ TasksLabels = Dict[TaskId, Dict[str, str]]
 
 
 class ContendedResource(str, Enum):
-
     MEMORY_BW = 'memory bandwidth'
     LLC = 'cache'
     CPUS = 'cpus'
@@ -60,7 +60,6 @@ class Anomaly(ABC):
 
 @dataclass
 class ContentionAnomaly(Anomaly):
-
     resource: ContendedResource
     contended_task_id: TaskId
     contending_task_ids: List[TaskId]
@@ -110,8 +109,10 @@ class ContentionAnomaly(Anomaly):
 
         # HELP anomaly ...
         # TYPE anomaly counter
-        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task2",  resource="cache", uuid="1234"} 1 # noqa
-        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task3", resource="cache", uuid="1234"} 1 # noqa
+        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task2",
+        resource="cache", uuid="1234"} 1 # noqa
+        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task3",
+        resource="cache", uuid="1234"} 1 # noqa
         cpi{contended_task_id="task1", uuid="1234", type="anomaly"} 10
         """
         metrics = []
@@ -154,7 +155,7 @@ class AnomalyDetector(ABC):
             tasks_measurements: TasksMeasurements,
             tasks_resources: TasksResources,
             tasks_labels: TasksLabels
-            ) -> (List[Anomaly], List[Metric]):
+    ) -> (List[Anomaly], List[Metric]):
         ...
 
 
@@ -185,15 +186,3 @@ def update_anomalies_metrics_with_task_information(anomaly_metrics: List[Metric]
         if 'contended_task_id' in anomaly_metric.labels:  # Only for anomaly metrics.
             contended_task_id = anomaly_metric.labels['contended_task_id']
             anomaly_metric.labels.update(tasks_labels.get(contended_task_id, {}))
-
-
-def update_anomalies_metrics_with_task_information(anomaly_metrics: List[Metric],
-                                                   tasks_labels: Dict[str, Dict[str, str]],
-                                                   ):
-    for anomaly_metric in anomaly_metrics:
-        # Extra labels for anomaly metrics for information about task.
-        if 'contended_task_id' in anomaly_metric.labels:  # Only for anomaly metrics.
-            contended_task_id = anomaly_metric.labels['contended_task_id']
-            anomaly_metric.labels.update(
-                tasks_labels.get(contended_task_id, {})
-            )

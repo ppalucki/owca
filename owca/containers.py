@@ -26,6 +26,7 @@ from owca.cgroups import Cgroup
 from owca.metrics import Measurements, MetricName
 from owca.nodes import Task
 from owca.perf import PerfCounters
+from owca.profiling import profile_duration
 from owca.resctrl import ResGroup
 
 log = logging.getLogger(__name__)
@@ -125,6 +126,7 @@ class ContainerManager:
         self.platform_cpus = platform_cpus
         self.allocation_configuration = allocation_configuration
 
+    @profile_duration
     def sync_containers_state(self, tasks) -> Dict[Task, Container]:
         """Syncs state of ContainerManager with a system by removing orphaned containers,
         and creating containers for newly arrived tasks, and synchronizing containers' state.
@@ -162,6 +164,7 @@ class ContainerManager:
 
         # Prepare state of currently assigned resgroups
         # and remove some orphaned resgroups
+        container_name_to_ctrl_group = {}
         if self.rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
             log.debug('mon_groups_relation (before cleanup): %s',
@@ -174,7 +177,6 @@ class ContainerManager:
 
             # Calculate inverse relation of container_name
             # to res_group name based on mon_groups_relations
-            container_name_to_ctrl_group = {}
             for ctrl_group, container_names in mon_groups_relation.items():
                 for container_name in container_names:
                     container_name_to_ctrl_group[container_name] = ctrl_group

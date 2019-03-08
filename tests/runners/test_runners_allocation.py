@@ -14,25 +14,21 @@
 from unittest.mock import Mock
 from unittest.mock import patch, call
 
-from owca import platforms
 from owca import storage
 from owca.allocators import AllocationType, RDTAllocation, Allocator
 from owca.mesos import MesosNode
 from owca.metrics import Metric
 from owca.runners.allocation import AllocationRunner
-from owca.testing import metric, task
-
-platform_mock = Mock(
-    spec=platforms.Platform, sockets=1,
-    rdt_cbm_mask='fffff', rdt_min_cbm_bits=1, rdt_mb_control_enabled=False, rdt_num_closids=2)
+from owca.testing import metric, task, platform_mock
 
 
 @patch('time.time', return_value=1234567890.123)
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
 @patch('owca.platforms.collect_platform_information', return_value=(
         platform_mock, [metric('platform-cpu-usage')], {}))
-@patch('owca.runners.base.are_privileges_sufficient', return_value=True)
-@patch('owca.runners.allocation.AllocationRunner.configure_rdt', return_value=True)
+@patch('owca.runners.measurement.are_privileges_sufficient', return_value=True)  # ignore non-root
+@patch('owca.runners.measurement.check_resctrl', return_value=True)  # assume RDT works
+@patch('owca.runners.allocation.cleanup_resctrl')  # ignore all IO operations on RDT
 @patch('resource.getrusage', return_value=Mock(ru_maxrss=1234))
 @patch('owca.containers.PerfCounters')
 @patch('owca.cgroups.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
@@ -89,7 +85,7 @@ def test_allocation_runner_containers_state(*mocks):
         allocator=allocator_mock,
         extra_labels={},
     )
-    runner.wait_or_finish = Mock(return_value=False)
+    runner._wait_or_finish = Mock(return_value=False)
 
     ############
     # First run.

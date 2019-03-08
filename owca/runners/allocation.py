@@ -15,9 +15,7 @@ import logging
 import time
 from typing import Dict, Callable, Any
 
-from dataclasses import dataclass, field
-
-from owca import nodes, storage
+from owca import nodes, storage, platforms
 from owca.allocations import AllocationsDict, InvalidAllocations, AllocationValue
 from owca.allocators import TasksAllocations, AllocationConfiguration, AllocationType, Allocator, \
     TaskAllocations, RDTAllocation
@@ -25,9 +23,11 @@ from owca.cgroups_allocations import QuotaAllocationValue, SharesAllocationValue
 from owca.containers import Container
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information
-from owca.logger import trace
+from owca.metrics import Metric, MetricType
+from owca.resctrl import get_max_rdt_values, cleanup_resctrl
 from owca.resctrl_allocations import RDTAllocationValue, RDTGroups
-from owca.runners.base import Runner, BaseRunnerMixin
+from owca.runners.detection import AnomalyStatistics
+from owca.runners.measurement import MeasuringRunner
 from owca.storage import MetricPackage
 
 log = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class TasksAllocationsValues(AllocationsDict):
         """
 
         # Shared object to optimize schemata write and detect CLOSids exhaustion.
-        rdt_groups = RDTGroups(closids_limit=platform.rdt_num_closids)
+        rdt_groups = RDTGroups(closids_limit=platform.rdt_information.num_closids)
 
         def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation, container,
                                              common_labels):
@@ -74,9 +74,9 @@ class TasksAllocationsValues(AllocationsDict):
                 container.resgroup,
                 container.cgroup.get_pids,
                 platform.sockets,
-                platform.rdt_mb_control_enabled,
-                platform.rdt_cbm_mask,
-                platform.rdt_min_cbm_bits,
+                platform.rdt_information.rdt_mb_control_enabled,
+                platform.rdt_information.cbm_mask,
+                platform.rdt_information.min_cbm_bits,
                 common_labels=common_labels,
                 rdt_groups=rdt_groups,
             )
@@ -103,104 +103,161 @@ class TasksAllocationsValues(AllocationsDict):
         return TasksAllocationsValues(simple_dict)
 
 
-@dataclass
-class AllocationRunner(Runner, BaseRunnerMixin):
-    # Required
-    node: nodes.Node
-    allocator: Allocator
-    metrics_storage: storage.Storage
-    anomalies_storage: storage.Storage
-    allocations_storage: storage.Storage
+class AllocationRunner(MeasuringRunner):
 
-    # Optional
-    action_delay: float = 1.  # [s]
-    rdt_enabled: bool = True
-    rdt_mb_control_enabled: bool = None  # None means will be automatically set during configure_rdt
-    extra_labels: Dict[str, str] = field(default_factory=dict)
-    ignore_privileges_check: bool = False
-    allocation_configuration: AllocationConfiguration = \
-        field(default_factory=AllocationConfiguration)
+    def __init__(self,
+                 node: nodes.Node,
+                 allocator: Allocator,
+                 metrics_storage: storage.Storage,
+                 anomalies_storage: storage.Storage,
+                 allocations_storage: storage.Storage,
+                 action_delay: float = 1.,  # [s]
+                 rdt_enabled: bool = True,
+                 rdt_mb_control_enabled: bool = None,  # None means will
+                 extra_labels: Dict[str, str] = None,
+                 ignore_privileges_check: bool = False,
+                 allocation_configuration: AllocationConfiguration = None,
+                 ):
 
-    def __post_init__(self):
-        BaseRunnerMixin.__init__(
-            self, self.rdt_enabled, self.rdt_mb_control_enabled, self.allocation_configuration)
+        super().__init__(node, metrics_storage, action_delay, rdt_enabled,
+                         extra_labels, ignore_privileges_check)
 
-    @trace(log)
-    def run(self):
-        if not self.configure_rdt(self.rdt_enabled, self.ignore_privileges_check):
-            return
+        # Allocation specific.
+        self.allocator = allocator
+        self.allocations_storage = allocations_storage
+        self.rdt_mb_control_enabled = rdt_mb_control_enabled
+        self.allocation_configuration = allocation_configuration
 
-        while True:
-            # Prepare algorithm inputs and send input based metrics.
-            (platform, tasks_measurements, tasks_resources, tasks_labels,
-             current_tasks_allocations, common_labels) = \
-                self._prepare_input_data_and_send_metrics_package(
-                    self.node, self.metrics_storage, self.extra_labels)
-            log.debug('Tasks detected: %r', list(current_tasks_allocations.keys()))
+        # Anomaly.
+        self.anomalies_storage = anomalies_storage
+        self.anomalies_statistics = AnomalyStatistics()
 
-            # Allocator callback
-            allocate_start = time.time()
-            new_tasks_allocations, anomalies, extra_metrics = self.allocator.allocate(
-                platform, tasks_measurements, tasks_resources, tasks_labels,
-                current_tasks_allocations)
-            allocate_duration = time.time() - allocate_start
+        # Internal allocation statistics
+        self._allocations_counter = 0
+        self._allocations_errors = 0
 
-            log.debug('Anomalies detected: %d', len(anomalies))
+    def _rdt_initialization(self):
+        platform, _, _ = platforms.collect_platform_information()
 
-            log.debug('Current allocations: %s', current_tasks_allocations)
-            current_allocations = TasksAllocationsValues.create(
+        if self.rdt_mb_control_enabled and not platform.rdt_information.rdt_mb_control_enabled:
+            raise Exception("RDT MB control is not support by platform!")
+        elif self.rdt_mb_control_enabled is None:
+            self.rdt_mb_control_enabled = platform.rdt_information.rdt_mb_control_enabled
+        else:
+            assert self.rdt_mb_control_enabled is False, 'assert explicit disabling'
+
+        root_rtd_l3, root_rdt_mb = get_max_rdt_values(platform.rdt_information.cbm_mask,
+                                                      platform.sockets)
+        if self.allocation_configuration is not None:
+            if self.allocation_configuration.default_rdt_l3 is not None:
+                root_rtd_l3 = self.allocation_configuration.default_rdt_l3
+            if self.allocation_configuration.default_rdt_mb is not None:
+                root_rdt_mb = self.allocation_configuration.default_rdt_mb
+        if not platform.rdt_information.rdt_mb_control_enabled:
+            root_rdt_mb = None
+            log.warning('Rdt enabled, but RDT memory bandwidth (MB) allocation does not work.')
+        cleanup_resctrl(root_rtd_l3, root_rdt_mb)
+
+    def _get_tasks_allocations(self, containers) -> TasksAllocations:
+        tasks_allocations: TasksAllocations = {}
+        for task, container in containers.items():
+            task_allocations = container.get_allocations()
+            tasks_allocations[task.task_id] = task_allocations
+        return tasks_allocations
+
+    def get_allocations_statistics_metrics(self, tasks_allocations,
+                                           allocation_duration, allocations_errors):
+        """Extra external plugin allocaton statistics."""
+        if len(tasks_allocations):
+            self._allocations_counter += len(tasks_allocations)
+            self._allocations_errors += len(allocations_errors)
+
+        statistics_metrics = [
+            Metric(name='allocations_count', type=MetricType.COUNTER,
+                   value=self._allocations_counter),
+            Metric(name='allocations_errors', type=MetricType.COUNTER,
+                   value=self._allocations_errors),
+        ]
+
+        if allocation_duration is not None:
+            statistics_metrics.extend([
+                Metric(name='allocation_duration', type=MetricType.GAUGE,
+                       value=allocation_duration)
+            ])
+
+        return statistics_metrics
+
+    def _run_body(self,
+                  containers, platform,
+                  tasks_measurements, tasks_resources,
+                  tasks_labels, common_labels):
+        """Allocator callback body."""
+
+        current_tasks_allocations = self._get_tasks_allocations(containers)
+
+        # Allocator callback
+        allocate_start = time.time()
+        new_tasks_allocations, anomalies, extra_metrics = self.allocator.allocate(
+            platform, tasks_measurements, tasks_resources, tasks_labels,
+            current_tasks_allocations)
+        allocate_duration = time.time() - allocate_start
+
+        log.debug('Anomalies detected: %d', len(anomalies))
+        log.debug('Current allocations: %s', current_tasks_allocations)
+
+        # Create context allocations objects for current allocations.
+        current_allocations = TasksAllocationsValues.create(
+            current_tasks_allocations, self.containers_manager.containers, platform)
+
+        allocations_changeset = None
+        target_allocations = current_allocations
+        errors = []
+        try:
+            # Create and validate context allocations objects for new allocations.
+            log.debug('New allocations: %s', new_tasks_allocations)
+            new_allocations = TasksAllocationsValues.create(
+                new_tasks_allocations, self.containers_manager.containers, platform)
+            new_allocations.validate()
+
+            # Update changeset and target_allocations, using information about new allocations.
+            if new_allocations is not None:
+                target_allocations, allocations_changeset = new_allocations.calculate_changeset(
+                    current_allocations)
+                target_allocations.validate()
+
+        except InvalidAllocations as e:
+            log.error('Invalid allocations: %s', str(e))
+            errors = [str(e)]
+            target_allocations = TasksAllocationsValues.create(
                 current_tasks_allocations, self.containers_manager.containers, platform)
 
-            allocations_changeset = None
-            try:
+        if allocations_changeset:
+            log.debug('Allocations changeset: %s', allocations_changeset)
+            log.info('Performing allocations on %d tasks.', len(allocations_changeset))
+            allocations_changeset.perform_allocations()
 
-                log.debug('New allocations: %s', new_tasks_allocations)
-                new_allocations = TasksAllocationsValues.create(
-                    new_tasks_allocations, self.containers_manager.containers, platform)
+        # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
+        anomaly_metrics = convert_anomalies_to_metrics(anomalies)
+        update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_labels)
 
-                new_allocations.validate()
-                if new_allocations is not None:
-                    target_allocations, allocations_changeset = new_allocations.calculate_changeset(
-                        current_allocations)
-                    target_allocations.validate()
-                else:
-                    target_allocations = current_allocations
-                errors = []
+        # Store anomalies information
+        anomalies_package = MetricPackage(self.anomalies_storage)
+        anomalies_package.add_metrics(
+            anomaly_metrics,
+            extra_metrics,
+            self.anomalies_statistics.get_metrics(anomalies)
+        )
+        anomalies_package.send(common_labels)
 
-            except InvalidAllocations as e:
-                log.error('Invalid allocations: %s', str(e))
-                errors = [str(e)]
-                target_allocations = TasksAllocationsValues.create(
-                    current_tasks_allocations, self.containers_manager.containers, platform)
+        # Store allocations information
+        allocations_metrics = target_allocations.generate_metrics()
+        allocations_package = MetricPackage(self.allocations_storage)
 
-            if allocations_changeset:
-                log.debug('Allocations changeset: %s', allocations_changeset)
-                log.info('Performing allocations on %d tasks.', len(allocations_changeset))
-                allocations_changeset.perform_allocations()
-
-            # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
-            anomaly_metrics = convert_anomalies_to_metrics(anomalies)
-            update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_labels)
-
-            anomalies_package = MetricPackage(self.anomalies_storage)
-            anomalies_package.add_metrics(self.get_anomalies_statistics_metrics(anomalies))
-            anomalies_package.add_metrics(extra_metrics)
-            anomalies_package.send(common_labels)
-
-            # Store allocations information
-            allocations_metrics = target_allocations.generate_metrics()
-            allocations_package = MetricPackage(self.allocations_storage)
-
-            allocations_statistic_metrics = self.get_allocations_statistics_metrics(
-                new_tasks_allocations, allocate_duration, errors)
-            allocations_package.add_metrics(
-                allocations_metrics,
-                extra_metrics,
-                allocations_statistic_metrics,
-            )
-            allocations_package.send(common_labels)
-
-            if not self.wait_or_finish(self.action_delay):
-                break
-
-        self.cleanup()
+        allocations_statistic_metrics = self.get_allocations_statistics_metrics(
+            new_tasks_allocations, allocate_duration, errors)
+        allocations_package.add_metrics(
+            allocations_metrics,
+            extra_metrics,
+            allocations_statistic_metrics,
+        )
+        allocations_package.send(common_labels)

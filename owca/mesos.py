@@ -32,7 +32,6 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class MesosTask(Task):
-
     # Fields only used debugging purposes.
     executor_pid: int
     container_id: str  # Mesos containerizer identifier "ID used to uniquely identify a container"

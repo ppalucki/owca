@@ -16,7 +16,6 @@ from unittest.mock import patch
 
 import pytest
 
-from owca import platforms
 from owca.allocations import InvalidAllocations
 from owca.allocators import AllocationType, RDTAllocation
 from owca.cgroups import Cgroup
@@ -25,10 +24,7 @@ from owca.resctrl import ResGroup
 from owca.resctrl_allocations import RDTGroups, RDTAllocationValue
 from owca.runners.allocation import TasksAllocationsValues, TaskAllocationsValues
 from owca.testing import allocation_metric, task, container
-
-platform_mock = Mock(
-    spec=platforms.Platform, sockets=1,
-    rdt_cbm_mask='fffff', rdt_min_cbm_bits=1, rdt_mb_control_enabled=False, rdt_num_closids=2)
+from testing import platform_mock
 
 
 @pytest.mark.parametrize('tasks_allocations,expected_metrics', (

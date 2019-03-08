@@ -19,13 +19,15 @@ import os
 from typing import List, Dict, Union
 from unittest.mock import mock_open, Mock, patch
 
+from owca import platforms
 from owca.allocators import AllocationConfiguration
 from owca.containers import Container
 from owca.detectors import ContendedResource, ContentionAnomaly, _create_uuid_from_tasks_ids
 from owca.nodes import TaskId, Task
 from owca.metrics import Metric, MetricType
+from owca.platforms import RDTInformation
 from owca.resctrl import ResGroup
-from owca.runners.base import Runner
+from owca.runners import Runner
 
 
 def relative_module_path(module_file, relative_path):
@@ -151,3 +153,16 @@ class DummyRunner(Runner):
 
     def run(self):
         pass
+
+
+platform_mock = Mock(
+    spec=platforms.Platform,
+    sockets=1,
+    rdt_information=RDTInformation(
+        cbm_mask='fffff',
+        min_cbm_bits='1',
+        rdt_mb_control_enabled=False,
+        num_closids=2,
+        mb_bandwidth_gran=None,
+        mb_min_bandwidth=None,
+    ))

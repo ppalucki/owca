@@ -11,20 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 from unittest.mock import patch
 
-from owca import platforms
 from owca import storage
 from owca.detectors import AnomalyDetector
 from owca.mesos import sanitize_mesos_label, MesosNode
 from owca.metrics import Metric, MetricType
 from owca.runners.detection import DetectionRunner
-from owca.testing import metric, task, anomaly, anomaly_metrics, container
-
-platform_mock = Mock(
-    spec=platforms.Platform, sockets=1,
-    rdt_cbm_mask='fffff', rdt_min_cbm_bits=1, rdt_mb_control_enabled=False, rdt_num_closids=2)
+from owca.testing import metric, task, anomaly, anomaly_metrics, container, platform_mock
 
 
 @patch('resource.getrusage', return_value=Mock(ru_maxrss=1234))
@@ -32,12 +27,13 @@ platform_mock = Mock(
         platform_mock, [metric('platform-cpu-usage')], {}))
 @patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
 @patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
-@patch('owca.runners.base.are_privileges_sufficient', return_value=True)
+@patch('owca.runners.measurement.are_privileges_sufficient', return_value=True)
 @patch('owca.containers.ResGroup')
 @patch('owca.containers.PerfCounters')
 @patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
 @patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
 @patch('time.time', return_value=1234567890.123)
+@patch('owca.profiling._durations', new=MagicMock(items=Mock(return_value=[('foo', 0.)])))
 def test_detection_runner_containers_state(*mocks):
     """Tests proper interaction between runner instance and functions for
     creating anomalies and calculating the desired state.
@@ -94,7 +90,7 @@ def test_detection_runner_containers_state(*mocks):
     )
 
     # Mock to finish after one iteration.
-    runner.wait_or_finish = Mock(return_value=False)
+    runner._wait_or_finish = Mock(return_value=False)
 
     runner.run()
 
@@ -103,20 +99,10 @@ def test_detection_runner_containers_state(*mocks):
     assert metrics_storage.store.call_args[0][0] == [
         Metric('owca_up', type=MetricType.COUNTER, value=1234567890.123, labels=extra_labels),
         Metric('owca_tasks', type=MetricType.GAUGE, value=1, labels=extra_labels),
-        Metric('owca_memory_usage_bytes', type=MetricType.GAUGE, value=2468*1024,
+        Metric('owca_memory_usage_bytes', type=MetricType.GAUGE, value=2468 * 1024,
                labels=extra_labels),
         Metric('owca_duration_seconds', value=0.0, type='gauge',
-               labels=dict(extra_labels, function='collect_platform_information'), ),
-        Metric('owca_duration_seconds', value=0.0, type='gauge',
-               labels=dict(extra_labels, function='get_tasks')),
-        Metric('owca_duration_seconds', value=0.0, type='gauge',
-               labels=dict(extra_labels, function='iteration')),
-        Metric('owca_duration_seconds', value=0.0, type='gauge',
-               labels=dict(extra_labels, function='prepare_task_data')),
-        Metric('owca_duration_seconds', value=0.0, type='gauge',
-               labels=dict(extra_labels, function='sleep')),
-        Metric('owca_duration_seconds', value=0.0, type='gauge',
-               labels=dict(extra_labels, function='sync')),
+               labels=dict(extra_labels, function='foo')),
         metric('platform-cpu-usage', labels=extra_labels),  # Store metrics from platform ...
         Metric(name='cpu_usage', value=23,
                labels=dict(extra_labels, **task_labels_sanitized_with_task_id)),
@@ -134,9 +120,9 @@ def test_detection_runner_containers_state(*mocks):
         Metric('anomaly_count', type=MetricType.COUNTER, value=1, labels=extra_labels),
         Metric('_anomaly_last_occurrence', type=MetricType.COUNTER, value=1234567890.123,
                labels=extra_labels),
-        Metric(name='detect_duration', value=0.0, labels={'el': 'ev'}, type=MetricType.GAUGE),
+        # Metric(name='detect_duration', value=0.0, labels={'el': 'ev'}, type=MetricType.GAUGE),
     ])
-    anomalies_storage.store.assert_called_once_with(expected_anomaly_metrics)
+    assert anomalies_storage.store.mock_calls[0][1][0] == expected_anomaly_metrics
 
     # Check that detector was called with proper arguments.
     detector_mock.detect.assert_called_once_with(
@@ -150,4 +136,4 @@ def test_detection_runner_containers_state(*mocks):
     assert (runner.containers_manager.containers ==
             {task('/t1', resources=dict(cpus=8.), labels=task_labels): container('/t1')})
 
-    runner.wait_or_finish.assert_called_once()
+    runner._wait_or_finish.assert_called_once()
