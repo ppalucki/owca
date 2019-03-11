@@ -126,7 +126,7 @@ class AllocationRunner(MeasuringRunner):
         self.allocator = allocator
         self.allocations_storage = allocations_storage
         self.rdt_mb_control_enabled = rdt_mb_control_enabled
-        self.allocation_configuration = allocation_configuration
+        self.allocation_configuration = allocation_configuration or AllocationConfiguration()
 
         # Anomaly.
         self.anomalies_storage = anomalies_storage
