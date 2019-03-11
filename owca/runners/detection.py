@@ -19,7 +19,7 @@ from owca import nodes, storage, detectors, profiling
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information
 from owca.metrics import Metric, MetricType
-from owca.runners.measurement import MeasuringRunner
+from owca.runners.measurement import MeasurementRunner
 from owca.storage import MetricPackage
 
 log = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class AnomalyStatistics:
         return statistics_metrics
 
 
-class DetectionRunner(MeasuringRunner):
+class DetectionRunner(MeasurementRunner):
     """Watch over tasks running on this cluster on this node, collect observation
     and report externally (using storage) detected anomalies.
     """

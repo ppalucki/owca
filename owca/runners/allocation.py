@@ -27,7 +27,7 @@ from owca.metrics import Metric, MetricType
 from owca.resctrl import get_max_rdt_values, cleanup_resctrl
 from owca.resctrl_allocations import RDTAllocationValue, RDTGroups
 from owca.runners.detection import AnomalyStatistics
-from owca.runners.measurement import MeasuringRunner
+from owca.runners.measurement import MeasurementRunner
 from owca.storage import MetricPackage
 
 log = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ class TasksAllocationsValues(AllocationsDict):
         return TasksAllocationsValues(simple_dict)
 
 
-class AllocationRunner(MeasuringRunner):
+class AllocationRunner(MeasurementRunner):
 
     def __init__(self,
                  node: nodes.Node,

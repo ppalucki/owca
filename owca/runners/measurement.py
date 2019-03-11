@@ -32,7 +32,7 @@ from owca.storage import MetricPackage
 log = logging.getLogger(__name__)
 
 
-class MeasuringRunner(Runner):
+class MeasurementRunner(Runner):
 
     def __init__(
             self,
