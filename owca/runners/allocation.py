@@ -120,17 +120,18 @@ class AllocationRunner(MeasurementRunner):
                  ):
 
         super().__init__(node, metrics_storage, action_delay, rdt_enabled,
-                         extra_labels, ignore_privileges_check)
+                         extra_labels, ignore_privileges_check,
+                         allocation_configuration=allocation_configuration)
 
         # Allocation specific.
-        self.allocator = allocator
-        self.allocations_storage = allocations_storage
-        self.rdt_mb_control_enabled = rdt_mb_control_enabled
-        self.allocation_configuration = allocation_configuration or AllocationConfiguration()
+        self._allocator = allocator
+        self._allocations_storage = allocations_storage
+        self._rdt_mb_control_enabled = rdt_mb_control_enabled
+        self._allocation_configuration = allocation_configuration or AllocationConfiguration()
 
         # Anomaly.
-        self.anomalies_storage = anomalies_storage
-        self.anomalies_statistics = AnomalyStatistics()
+        self._anomalies_storage = anomalies_storage
+        self._anomalies_statistics = AnomalyStatistics()
 
         # Internal allocation statistics
         self._allocations_counter = 0
@@ -139,20 +140,20 @@ class AllocationRunner(MeasurementRunner):
     def _rdt_initialization(self):
         platform, _, _ = platforms.collect_platform_information()
 
-        if self.rdt_mb_control_enabled and not platform.rdt_information.rdt_mb_control_enabled:
+        if self._rdt_mb_control_enabled and not platform.rdt_information.rdt_mb_control_enabled:
             raise Exception("RDT MB control is not support by platform!")
-        elif self.rdt_mb_control_enabled is None:
-            self.rdt_mb_control_enabled = platform.rdt_information.rdt_mb_control_enabled
+        elif self._rdt_mb_control_enabled is None:
+            self._rdt_mb_control_enabled = platform.rdt_information.rdt_mb_control_enabled
         else:
-            assert self.rdt_mb_control_enabled is False, 'assert explicit disabling'
+            assert self._rdt_mb_control_enabled is False, 'assert explicit disabling'
 
         root_rtd_l3, root_rdt_mb = get_max_rdt_values(platform.rdt_information.cbm_mask,
                                                       platform.sockets)
-        if self.allocation_configuration is not None:
-            if self.allocation_configuration.default_rdt_l3 is not None:
-                root_rtd_l3 = self.allocation_configuration.default_rdt_l3
-            if self.allocation_configuration.default_rdt_mb is not None:
-                root_rdt_mb = self.allocation_configuration.default_rdt_mb
+        if self._allocation_configuration is not None:
+            if self._allocation_configuration.default_rdt_l3 is not None:
+                root_rtd_l3 = self._allocation_configuration.default_rdt_l3
+            if self._allocation_configuration.default_rdt_mb is not None:
+                root_rdt_mb = self._allocation_configuration.default_rdt_mb
         if not platform.rdt_information.rdt_mb_control_enabled:
             root_rdt_mb = None
             log.warning('Rdt enabled, but RDT memory bandwidth (MB) allocation does not work.')
@@ -197,7 +198,7 @@ class AllocationRunner(MeasurementRunner):
 
         # Allocator callback
         allocate_start = time.time()
-        new_tasks_allocations, anomalies, extra_metrics = self.allocator.allocate(
+        new_tasks_allocations, anomalies, extra_metrics = self._allocator.allocate(
             platform, tasks_measurements, tasks_resources, tasks_labels,
             current_tasks_allocations)
         allocate_duration = time.time() - allocate_start
@@ -241,17 +242,17 @@ class AllocationRunner(MeasurementRunner):
         update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_labels)
 
         # Store anomalies information
-        anomalies_package = MetricPackage(self.anomalies_storage)
+        anomalies_package = MetricPackage(self._anomalies_storage)
         anomalies_package.add_metrics(
             anomaly_metrics,
             extra_metrics,
-            self.anomalies_statistics.get_metrics(anomalies)
+            self._anomalies_statistics.get_metrics(anomalies)
         )
         anomalies_package.send(common_labels)
 
         # Store allocations information
         allocations_metrics = target_allocations.generate_metrics()
-        allocations_package = MetricPackage(self.allocations_storage)
+        allocations_package = MetricPackage(self._allocations_storage)
 
         allocations_statistic_metrics = self.get_allocations_statistics_metrics(
             new_tasks_allocations, allocate_duration, errors)

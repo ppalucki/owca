@@ -14,9 +14,10 @@
 import logging
 import resource
 import time
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from owca import nodes, storage, platforms, profiling
+from owca.allocators import AllocationConfiguration
 from owca.containers import ContainerManager, Container
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels
 from owca.logger import trace
@@ -42,21 +43,22 @@ class MeasurementRunner(Runner):
             rdt_enabled: bool = True,
             extra_labels: Dict[str, str] = None,
             ignore_privileges_check: bool = False,
+            allocation_configuration: Optional[AllocationConfiguration] = None,
     ):
 
-        self.node = node
-        self.metrics_storage = metrics_storage
-        self.action_delay = action_delay
-        self.rdt_enabled = rdt_enabled
-        self.extra_labels = extra_labels or dict()
-        self.ignore_privileges_check = ignore_privileges_check
+        self._node = node
+        self._metrics_storage = metrics_storage
+        self._action_delay = action_delay
+        self._rdt_enabled = rdt_enabled
+        self._extra_labels = extra_labels or dict()
+        self._ignore_privileges_check = ignore_privileges_check
 
         platform_cpus, _, platform_sockets = platforms.collect_topology_information()
         self.containers_manager = ContainerManager(
-            self.rdt_enabled,
+            self._rdt_enabled,
             rdt_mb_control_enabled=False,
             platform_cpus=platform_cpus,
-            allocation_configuration=None,
+            allocation_configuration=allocation_configuration,
         )
 
         self._last_iteration = time.time()
@@ -69,7 +71,7 @@ class MeasurementRunner(Runner):
         iteration_duration = now - self._last_iteration
         self._last_iteration = now
 
-        residual_time = max(0., self.action_delay - iteration_duration)
+        residual_time = max(0., self._action_delay - iteration_duration)
         time.sleep(residual_time)
         return True
 
@@ -96,16 +98,16 @@ class MeasurementRunner(Runner):
     @profile_duration(name='iteration')
     def run(self):
         # Initialization.
-        if self.rdt_enabled and not check_resctrl():
+        if self._rdt_enabled and not check_resctrl():
             return
-        elif not self.rdt_enabled:
+        elif not self._rdt_enabled:
             log.warning('Rdt disabled. Skipping collecting measurements '
                         'and resctrl synchronization')
         else:
             # Resctrl is enabled and available, call a placholder to allow further initialization.
             self._rdt_initialization()
 
-        if not self.ignore_privileges_check and not are_privileges_sufficient():
+        if not self._ignore_privileges_check and not are_privileges_sufficient():
             log.critical("Impossible to use perf_event_open. You need to: adjust "
                          "/proc/sys/kernel/perf_event_paranoid; or has CAP_DAC_OVERRIDE capability"
                          " set. You can run process as root too. See man 2 perf_event_open for "
@@ -114,17 +116,17 @@ class MeasurementRunner(Runner):
 
         while True:
             # Get information about tasks.
-            tasks = self.node.get_tasks()
+            tasks = self._node.get_tasks()
 
             # Keep sync of found tasks and internally managed containers.
             containers = self.containers_manager.sync_containers_state(tasks)
 
             # Platform information
             platform, platform_metrics, platform_labels = platforms.collect_platform_information(
-                self.rdt_enabled)
+                self._rdt_enabled)
 
             # Common labels
-            common_labels = dict(platform_labels, **self.extra_labels)
+            common_labels = dict(platform_labels, **self._extra_labels)
 
             # Tasks data
             tasks_metrics, tasks_measurements, tasks_resources, tasks_labels = \
@@ -132,7 +134,7 @@ class MeasurementRunner(Runner):
 
             internal_metrics = self._get_internal_metrics(tasks)
 
-            metrics_package = MetricPackage(self.metrics_storage)
+            metrics_package = MetricPackage(self._metrics_storage)
             metrics_package.add_metrics(internal_metrics)
             metrics_package.add_metrics(platform_metrics)
             metrics_package.add_metrics(tasks_metrics)

@@ -93,7 +93,7 @@ def test_allocation_runner_containers_state(*mocks):
 
     # Check whether allocate run with proper arguments.
     # [0][0] means all arguments
-    assert runner.allocator.allocate.call_args_list[0][0] == (
+    assert runner._allocator.allocate.call_args_list[0][0] == (
         platform_mock,
         {'t1_task_id': {'cpu_usage': 23}},
         {'t1_task_id': {'cpus': 8}},
@@ -101,7 +101,7 @@ def test_allocation_runner_containers_state(*mocks):
         {'t1_task_id': initial_tasks_allocations},
     )
 
-    runner.node.assert_has_calls([call.get_tasks()])
+    runner._node.assert_has_calls([call.get_tasks()])
     metrics_storage_mock.store.assert_called_once()
     anomalies_storage_mock.store.assert_called_once()
     allocations_storage_mock.store.assert_called_once()
@@ -176,7 +176,7 @@ def test_allocation_runner_containers_state(*mocks):
 
     ############
     # Third run - modify L3 cache and put in the same group
-    runner.allocator.allocate.return_value = \
+    runner._allocator.allocate.return_value = \
         {
             't1_task_id': {
                 AllocationType.QUOTA: 0.7,

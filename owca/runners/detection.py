@@ -53,7 +53,7 @@ class AnomalyStatistics:
 
 
 class DetectionRunner(MeasurementRunner):
-    """Watch over tasks running on this cluster on this node, collect observation
+    """Watch over tasks running on this cluster on this _node, collect observation
     and report externally (using storage) detected anomalies.
     """
 
@@ -71,18 +71,18 @@ class DetectionRunner(MeasurementRunner):
         super().__init__(node, metrics_storage,
                          action_delay, rdt_enabled,
                          extra_labels, ignore_privileges_check)
-        self.detector = detector
+        self._detector = detector
 
         # Anomaly.
-        self.anomalies_storage = anomalies_storage
-        self.anomalies_statistics = AnomalyStatistics()
+        self._anomalies_storage = anomalies_storage
+        self._anomalies_statistics = AnomalyStatistics()
 
     def _run_body(self, containers, platform, tasks_measurements,
                   tasks_resources, tasks_labels, common_labels):
         """Detector callback body."""
 
         detect_start = time.time()
-        anomalies, extra_metrics = self.detector.detect(
+        anomalies, extra_metrics = self._detector.detect(
             platform, tasks_measurements, tasks_resources, tasks_labels)
         detect_duration = time.time() - detect_start
         profiling.register_duration('detect', detect_duration)
@@ -93,10 +93,10 @@ class DetectionRunner(MeasurementRunner):
         update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_labels)
 
         # Prepare and send all output (anomalies) metrics.
-        anomalies_package = MetricPackage(self.anomalies_storage)
+        anomalies_package = MetricPackage(self._anomalies_storage)
         anomalies_package.add_metrics(
             anomaly_metrics,
             extra_metrics,
-            self.anomalies_statistics.get_metrics(anomalies)
+            self._anomalies_statistics.get_metrics(anomalies)
         )
         anomalies_package.send(common_labels)
