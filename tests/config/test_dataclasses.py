@@ -11,24 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-from typing import List, Union
-from dataclasses import dataclass, field
+from enum import Enum
+from typing import List, Union, Optional
 
 import pytest
+from dataclasses import dataclass, field
 
 from owca import config
 from owca import testing
+
+
+class FooEnum(Enum):
+    BAR = 'foobar'
+    BAZ = 'foobaz'
 
 
 @config.register
 @dataclass
 class DCExample:
     x: int
-    y: str = 'bleblo'
+    y: Optional[str] = 'abc'
     d: Union[int, str] = 'notset'
     z: List[int] = field(default_factory=lambda: [1, 2, 3])
+    foo: FooEnum = FooEnum.BAR
 
 
 def test_dataclass():
@@ -37,24 +42,32 @@ def test_dataclass():
 
     dc1 = data['dc1']
     assert dc1.x == 5
-    assert dc1.y == 'bleblo'
+    assert dc1.y is None
     assert dc1.z == [1, 2, 3]
     assert dc1.d == 'asd'
+    assert dc1.foo == 'foobaz'
 
     dc2 = data['dc2']
     assert dc2.x == 1
     assert dc2.y == 'newble'
     assert dc2.z == [3, 4, 5]
     assert dc2.d == 4
+    assert dc2.foo == FooEnum.BAR
 
 
 def test_invalid_dataclass():
     test_config_path = testing.relative_module_path(__file__, 'test_dataclasses_invalid.yaml')
-    with pytest.raises(config.ConfigLoadError, match="has improper type"):
+    with pytest.raises(config.ConfigLoadError, match="field 'x'.*improper type"):
         config.load_config(test_config_path)
 
 
 def test_invalid_dataclass_union():
     test_config_path = testing.relative_module_path(__file__, 'test_dataclasses_invalid_union.yaml')
-    with pytest.raises(config.ConfigLoadError, match="has improper type"):
+    with pytest.raises(config.ConfigLoadError, match="field 'd'.*improper type from union"):
+        config.load_config(test_config_path)
+
+
+def test_dataclass_invalid_field():
+    test_config_path = testing.relative_module_path(__file__, 'test_dataclasses_invalid_field.yaml')
+    with pytest.raises(config.ConfigLoadError, match="constructor signature"):
         config.load_config(test_config_path)

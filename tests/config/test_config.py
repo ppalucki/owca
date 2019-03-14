@@ -17,6 +17,7 @@ import pytest
 
 from owca import config
 from owca import testing
+from owca.config import ConfigLoadError
 
 
 class OldClass:
@@ -25,19 +26,19 @@ class OldClass:
         self.y = y
 
 
-@config.register
+@config.register(strict_mode=False)
 class NewClass(OldClass):
     pass
 
 
-@config.register
+@config.register(strict_mode=False)
 class Foo:
     def __init__(self, s: str, f: float = 1.) -> None:
         self.s = s
         self.f = f
 
 
-@config.register
+@config.register(strict_mode=False)
 class Boo:
     def __init__(self, foo: Foo = None, items=None, nc: NewClass = None) -> None:
         self.foo = foo
@@ -51,9 +52,8 @@ class Item:
 
 
 def test_config_with_simple_classes():
-
     # Another method for registering items (other than using decorator).
-    config.register(Item)
+    config.register(Item, strict_mode=False)
 
     test_config_path = testing.relative_module_path(__file__, 'test_config.yaml')
 
@@ -77,7 +77,6 @@ def test_config_with_simple_classes():
 
 
 def test_config_unsafe_object_creation():
-
     from ruamel import yaml
     import calendar
 
@@ -88,6 +87,15 @@ def test_config_unsafe_object_creation():
     assert 'time' in data
     assert isinstance(data['time'], calendar.Calendar)
 
-    # With use safe version only to allow construct previosuly registered objects
+    # With use safe version only to allow construct previously registered objects
     with pytest.raises(config.ConfigLoadError, match='could not determine a constructor'):
+        config.load_config(test_config_path)
+
+
+def test_config_strict_mode_errors():
+    config.register(Item, strict_mode=True)
+
+    test_config_path = testing.relative_module_path(__file__, 'test_config.yaml')
+
+    with pytest.raises(ConfigLoadError, match='missing type declaration'):
         config.load_config(test_config_path)

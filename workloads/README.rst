@@ -159,7 +159,7 @@ The template file contains comments aimed at helping to understand the structure
 
 Below resource allocation definition for a workload. It will be applied to all hosts.
 
-.. code-block:: yml
+.. code-block:: yaml
 
     application_hosts:
         hosts:
@@ -181,7 +181,7 @@ We can overwrite set values for a choosen host (we also need to set hash_behavio
 `doc <https://docs.ansible.com/ansible/2.4/intro_configuration.html#hash-behaviour>`_).
 To achieve this we create dictionary ``workloads`` under the choosen host:
 
-.. code-block:: yml
+.. code-block:: yaml
 
     application_hosts:
         hosts:
@@ -210,7 +210,7 @@ To achieve this we create dictionary ``workloads`` under the choosen host:
 Below we include an example configuration of a workload with comments marking values which translates
 into common.aurora parameteres:
 
-.. code-block:: yml
+.. code-block:: yaml
 
     docker_registry: 10.10.10.99:80
     # other params goes here ...

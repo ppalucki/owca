@@ -43,6 +43,10 @@ application_hosts:
     wrapper_kafka_brokers: 10.10.10.99
     docker_registry: 10.10.10.99:80
 
+    # Allow to add additional labels to all newly created workloads.
+    additional_labels:
+      key: "value"
+
     default_resources:
       cpu: 1
       ram: 1
