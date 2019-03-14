@@ -168,7 +168,7 @@ def test_reset_and_enable_group_event_leaders_reset_fail(
     prf = perf.PerfCounters('/mycgroup', [metrics.MetricName.CYCLES])
     # cpu0 group event leader mock
     prf._group_event_leader_files = {0: Mock()}
-    with pytest.raises(OSError, message="Cannot reset perf counts"):
+    with pytest.raises(OSError, match="Cannot reset perf counts"):
         prf._reset_and_enable_group_event_leaders()
 
 
@@ -181,7 +181,7 @@ def test_reset_and_enable_group_event_leaders_enable_fail(
     prf = perf.PerfCounters('/mycgroup', [metrics.MetricName.CYCLES])
     # cpu0 group event leader mock
     prf._group_event_leader_files = {0: Mock()}
-    with pytest.raises(OSError, message="Cannot enable perf counts"):
+    with pytest.raises(OSError, match="Cannot enable perf counts"):
         prf._reset_and_enable_group_event_leaders()
 
 

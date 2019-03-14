@@ -61,7 +61,7 @@
     env_uniq_id: "{{env_uniq_id}}"
     image_name: "{{image_name}}"
     image_tag: "{{image_tag_}}"
-    labels: "{{workload_version.labels | default({}) | to_json }}"
+    labels: "{{workload_version.labels | default({}) | combine(additional_labels | default({})) | to_json }}"
 
     cpu: "{{resources.cpu}}"
     ram: "{{resources.ram}}"

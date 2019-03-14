@@ -14,7 +14,7 @@
 
 
 dc1: !DCExample
-  x: 'asdf'
+  x: 'some_random_string'
 dc2: !DCExample
   x: 1
   y: newble

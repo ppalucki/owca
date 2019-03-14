@@ -13,13 +13,8 @@
 # limitations under the License.
 
 
-dc1: !DCExample
-  x: 5
-  y: null
-  d: 'asd'
-  foo: 'foobaz'
-dc2: !DCExample
-  x: 1
-  y: newble
-  z: [3,4,5]
-  d: 4
+dc1: !DCExampleValidation
+  i: [5]
+  rr:
+    - [2, 3]
+    - ['asdf']

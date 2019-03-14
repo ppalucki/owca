@@ -32,7 +32,7 @@ application_version_name = os.environ.get('application_version_name', workload_v
 
 # Cluster job key identification.
 cluster = os.environ.get('cluster', 'example')
-role = os.environ.get('role', os.environ['USER'])
+role = os.environ.get('role', os.environ.get('USER', 'root'))
 env_uniq_id = os.environ['env_uniq_id']
 
 environment = 'staging' + env_uniq_id
@@ -63,12 +63,12 @@ wrapper_kafka_topic = os.environ.get('wrapper_kafka_topic', '')
 wrapper_log_level = os.environ.get('wrapper_log_level', 'DEBUG')
 # Here as dict, must be passed to wrapper as json string.
 #   Can be extended as desired in workload's aurora manifests.
-extra_labels = json.loads(os.environ.get('labels', '{}'))
 wrapper_labels = {
     'workload_name': workload_name,
     'workload_version_name': workload_version_name,
+    'workload_instance': '--'.join([workload_name, workload_version_name, env_uniq_id, job_uniq_id]),
     'replica_index': replica_index,
-    'name': job_name,       # not to break compability
+    'name': job_name,       # backward compatibility
     'job_name': job_name,   #
     'application': application,
     'application_version_name': application_version_name,
@@ -79,9 +79,10 @@ wrapper_labels = {
     'application_host_ip': application_host_ip,
     'load_generator_host_ip': load_generator_host_ip,
 }
+extra_labels = json.loads(os.environ.get('labels', '{}'))
 wrapper_labels.update(extra_labels)
 
-# For debug purposes.
+# For debugging purposes.
 print 'job_uniq_id:', job_uniq_id
 print 'job_name:', job_name
 print 'workload_name:', workload_name
@@ -102,8 +103,9 @@ class AddMetadata:
         self.labels = labels
 
     def pre_create_job(self, config):
-        for label_nama, label_value in self.labels.items():
-            config.add_metadata(label_nama, label_value)
+        for label_name, label_value in self.labels.items():
+            print 'adding Aurora metadata {name} with value: {value}'.format(name=label_name, value=label_value)
+            config.add_metadata(label_name, label_value)
         return config
 
 def dedent(s):

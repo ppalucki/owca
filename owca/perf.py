@@ -34,7 +34,7 @@ def _get_cpu_model() -> pc.CPUModel:
         with open("/dev/cpu/0/cpuid", "rb") as f:
             b = f.read(32)
             eax = int(b[16]) + (int(b[17]) << 8) + (int(b[18]) << 16) + (int(b[19]) << 24)
-            log.log(logger.TRACE, '16,17,18,19th bytes from /dev/cpu/0/cpuoid: %b %b %b %b',
+            log.log(logger.TRACE, '16,17,18,19th bytes from /dev/cpu/0/cpuid: %02x %02x %02x %02x',
                     b[16], b[17], b[18], b[19])
             model = (eax >> 4) & 0xF
             family = (eax >> 8) & 0xF

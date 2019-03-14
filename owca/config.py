@@ -25,15 +25,15 @@ It is connected with 'components' module which plays a role of registry of all c
 One additionally feature is builtin support for including other yaml files
 using special tag called !file (check _file_loader_constructor docs for detailed descriptor).
 """
-from typing import Any
+import enum
 import functools
 import inspect
 import io
 import logging
 import typing
 from os.path import exists  # direct target import for mocking purposes in test_main
-
 from ruamel import yaml
+from typing import Any
 
 from owca import logger
 
@@ -51,7 +51,123 @@ class ConfigLoadError(Exception):
     pass
 
 
-def _constructor(loader: yaml.loader.Loader, node: yaml.nodes.Node, cls: type):
+class ValidationError(Exception):
+    """Used for serious validation errors, that force program to stop. """
+
+
+class WeakValidationError(ValidationError):
+    """Used for weak validation errors, that handling depends on strict_mode setting.
+    Such errors can be handled in following ways:
+    - re-raise ValidationError exception
+    - just print log.warning.
+    """
+
+
+def _assure_list_type(value: list, expected_type):
+    """Validate that value is type of list and recursively matches expected List type."""
+    if not isinstance(value, list):
+        raise ValidationError('expected list-like type %r, but got %r', expected_type,
+                              type(value))
+    else:
+        expected_item_type = expected_type.__args__[0]
+        for idx, item in enumerate(value):
+            # Recursion to inspect list elements.
+            try:
+                _assure_type(item, expected_item_type)
+            except ValidationError as e:
+                raise ValidationError('invalid item in list at index %s: %s' % (idx, e)) \
+                    from e
+
+
+def _assure_dict_type(value: dict, expected_type):
+    """Validate that value is type of dict and recursively matches expected Dict type."""
+    if not isinstance(value, dict):
+        raise ValidationError('expected dict-like type %r, but got %r', expected_type,
+                              type(value))
+    else:
+        expected_key_type, expected_value_type = expected_type.__args__
+        for key, item_value in value.items():
+            try:
+                _assure_type(key, expected_key_type)
+            except ValidationError as e:
+                raise ValidationError('Invalid key=%r in dict: %s' % (key, e)) from e
+            try:
+                _assure_type(item_value, expected_value_type)
+            except ValidationError as e:
+                raise ValidationError(
+                    'invalid value %r in in dict at key %s: %s' % (
+                        item_value, key, e)) from e
+
+
+def _assure_union_type(value, expected_type):
+    """Validate that value is type of Union and recursively matches expected Union type."""
+    for union_expected_type in expected_type.__args__:
+        if isinstance(value, union_expected_type):
+            break
+    else:
+        # Value doesn't match any type from union.
+        raise ValidationError(
+            'improper type from union (got=%r expected=%r)!' % (type(value), expected_type))
+
+
+def _assure_enum_type(value, expected_type):
+    """Validate that value according available values of enum."""
+
+    assert isinstance(expected_type, enum.Enum.__class__)
+    allowed_enum_instances = expected_type.__members__.values()
+
+    # Check according enum instances.
+    if value in allowed_enum_instances:
+        return
+
+    # Check according enum values.
+    allowed_enum_values = [i.value for i in allowed_enum_instances]
+    if value in allowed_enum_values:
+        return
+
+    # Value doesn't equal any value from Enum type.
+    raise ValidationError(
+        'improper value from enum kind (got=%r allowed=%r)!' % (value, allowed_enum_values))
+
+
+def _assure_type(value, expected_type):
+    """Should raise ValidationError based exception if value is not an instance of expected_type.
+    """
+    if expected_type == inspect.Parameter.empty:
+        raise WeakValidationError('missing type declaration!')
+
+    if isinstance(expected_type, typing.GenericMeta):
+        if issubclass(expected_type, typing.List):
+            _assure_list_type(value, expected_type)
+            return
+
+        elif issubclass(expected_type, typing.Dict):
+            _assure_dict_type(value, expected_type)
+            return
+
+        else:
+            # Warn about generic unhandled types (e.g. Iterable[int]), because:
+            # "Parameterized generics cannot be used with class or instance checks" limitation.
+            raise WeakValidationError('generic type found %r' % expected_type)
+
+    # Handle union type.
+    if isinstance(expected_type, typing.Union.__class__):
+        _assure_union_type(value, expected_type)
+        return
+
+    # Handle union type.
+    if isinstance(expected_type, enum.Enum.__class__):
+        _assure_enum_type(value, expected_type)
+        return
+
+    # Handle simple types.
+    else:
+        if not isinstance(value, expected_type):
+            raise ValidationError(
+                'improper type (got=%r expected=%r)!' % (type(value), expected_type))
+
+
+def _constructor(loader: yaml.loader.Loader, node: yaml.nodes.Node, cls: type, strict_mode: bool):
     """Create instance of registered class ('cls" from closure) in recursive manner.
     First create "blank" uninitialized instance, then validate provided data,
     and then when whole hierarchy was processed initialize them in reverse order.
@@ -96,32 +212,27 @@ def _constructor(loader: yaml.loader.Loader, node: yaml.nodes.Node, cls: type):
             inspect.Parameter.VAR_POSITIONAL,
             inspect.Parameter.VAR_KEYWORD,
         ), 'YAML constructor only supports named ' \
-            'keyword arguments got parameter %r(%r) for %r' % (parameter, parameter.kind, cls)
+           'keyword arguments got parameter %r(%r) for %r' % (parameter, parameter.kind, cls)
 
         expected_type = parameter.annotation
-
-        # Ignore type check if there is no type annotation or for generic types because:
-        # "Parameterized generics cannot be used with class or instance checks" limitation.
-        if expected_type == inspect._empty or isinstance(expected_type, typing.GenericMeta):
-            continue
 
         # Only validate provided values (ignore defaults).
         if name in arguments:
             value = arguments[name]
-            if isinstance(expected_type, typing.Union.__class__):
-                for union_expected_type in expected_type.__args__:
-                    if isinstance(value, union_expected_type):
-                        break
+            try:
+                _assure_type(value, expected_type)
+            except WeakValidationError as e:
+                msg = 'Invalid value %r%s for field %r in class %r: %s' % (
+                    value, node.start_mark, name, cls.__name__, e)
+                if strict_mode:
+                    raise ConfigLoadError(msg) from e
                 else:
-                    raise ConfigLoadError(
-                        'Value %r%s for field %r in class %r '
-                        'has improper type (got=%r expected=%r)!' %
-                        (value, node.start_mark, name, cls.__name__, type(value), expected_type))
-            elif not isinstance(value, expected_type):
+                    log.warning(msg)
+
+            except ValidationError as e:
                 raise ConfigLoadError(
-                    'Value %r%s for field %r in class %r '
-                    'has improper type (got=%r expected=%r)!' %
-                    (value, node.start_mark, name, cls.__name__, type(value), expected_type))
+                    'Invalid value %r%s for field %r in class %r: %s' % (
+                        value, node.start_mark, name, cls.__name__, e)) from e
 
     # End the creation step.
     yield instance
@@ -144,7 +255,7 @@ def _constructor(loader: yaml.loader.Loader, node: yaml.nodes.Node, cls: type):
     log.log(logger.TRACE, '%s(0x%x)=%r', cls.__name__, id(instance), vars(instance))
 
 
-def register(cls):
+def register(cls=None, strict_mode: bool = True):
     """Register constructor from yaml for a given class.
     The class can be then initialized during yaml processing if appropriate tag is found.
 
@@ -165,14 +276,33 @@ def register(cls):
         foo = Foo.__new__(Foo)  # construct uninitialized (blank) instance of given class
         foo.__init__(x=1) # initialize instance
 
+
+    Can be used as function or decorator.
+
+    @register  # with default strict_mode enabled
+    class Foo: pass
+
+    @register(strict_mode=False)
+    class Foo: pass
+
+    register(Foo, strict_mode=False)
     """
 
-    # Just simply register new constructor for given cls.
-    log.log(logger.TRACE, 'registered class %r' % (cls.__name__))
-    _yaml.constructor.add_constructor('!%s' % cls.__name__,
-                                      functools.partial(_constructor, cls=cls))
-    _registered_tags.add(cls.__name__)
-    return cls
+    def _register(cls):
+        # Just simply register new constructor for given cls.
+        log.log(logger.TRACE, 'registered class %r' % (cls.__name__))
+        _yaml.constructor.add_constructor(
+            '!%s' % cls.__name__, functools.partial(_constructor, cls=cls, strict_mode=strict_mode))
+        _registered_tags.add(cls.__name__)
+        return cls
+
+    # See if we're being called as @dataclass or @dataclass().
+    if cls is None:
+        # We're called with parens with decorator parameters e.g. strict_mode
+        return _register
+
+    # We're called as without parens.
+    return _register(cls)
 
 
 def _parse(yaml_body: io.StringIO) -> Any:

@@ -68,7 +68,7 @@ workload_version_name    no (default)             Used to seperate between diffe
                                                   thread count and target QPS -
                                                   then two versions of a workload
                                                   can be created.
-application_version_name no (default)            Used for grouping mutliple instances    - big
+application_version_name no (default)             Used for grouping mutliple instances    - big
                                                   of an application among different       - small
                                                   workloads.                      
 job_name                 yes                      Used as Aurora job_name (last part      twemcache_rpcperf.default--twemcache--11211.0
@@ -159,7 +159,7 @@ The template file contains comments aimed at helping to understand the structure
 
 Below resource allocation definition for a workload. It will be applied to all hosts.
 
-.. code-block:: yml
+.. code-block:: yaml
 
     application_hosts:
         hosts:
@@ -181,7 +181,7 @@ We can overwrite set values for a choosen host (we also need to set hash_behavio
 `doc <https://docs.ansible.com/ansible/2.4/intro_configuration.html#hash-behaviour>`_).
 To achieve this we create dictionary ``workloads`` under the choosen host:
 
-.. code-block:: yml
+.. code-block:: yaml
 
     application_hosts:
         hosts:
@@ -210,7 +210,7 @@ To achieve this we create dictionary ``workloads`` under the choosen host:
 Below we include an example configuration of a workload with comments marking values which translates
 into common.aurora parameteres:
 
-.. code-block:: yml
+.. code-block:: yaml
 
     docker_registry: 10.10.10.99:80
     # other params goes here ...
