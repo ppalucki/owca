@@ -89,7 +89,7 @@ class DetectionRunner(MeasurementRunner):
         log.debug('Anomalies detected (in %.2fs): %d', detect_duration, len(anomalies))
 
         # Prepare anomaly metrics
-        anomaly_metrics = convert_anomalies_to_metrics(anomalies)
+        anomaly_metrics = convert_anomalies_to_metrics(anomalies, tasks_labels)
         update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_labels)
 
         # Prepare and send all output (anomalies) metrics.

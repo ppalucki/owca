@@ -7,24 +7,21 @@ pipeline {
         stage("Flake8 formatting scan") {
             steps {
                 sh '''
-                  pip3 install --user tox==3.5.2
-                  tox -e flake8
+                  make venv flake8
                 '''
             }
         }
         stage("Run unit tests suite") {
             steps {
                 sh '''
-                  pip3 install --user tox==3.5.2
-                  tox -e unit
+                  make venv unit
                 '''
             }
         }
         stage("Build pex files") {
             steps {
                 sh '''
-                  pip3 install --user tox==3.5.2
-                  tox -e wrapper_package,owca_package
+                  make venv owca_package wrapper_package
                 '''
                 stash(name: "wrappers", includes: "dist/**")
                 archiveArtifacts(artifacts: "dist/**")

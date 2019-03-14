@@ -20,8 +20,13 @@ import socket
 import time
 from typing import List, Dict, Set, Tuple, Optional
 
+try:
+    from pkg_resources import get_distribution, DistributionNotFound
+except ImportError:
+    # When running from pex use vendored library from pex.
+    from pex.vendor._vendored.setuptools.pkg_resources import get_distribution, DistributionNotFound
+
 from dataclasses import dataclass
-from pkg_resources import DistributionNotFound, get_distribution
 
 from owca.metrics import Metric, MetricName
 from owca.profiling import profile_duration
@@ -241,9 +246,11 @@ def collect_topology_information() -> (int, int, int):
 
 def _collect_rdt_information() -> RDTInformation:
     """Returns rdt information values."""
+
     def _read_value(subpath):
         with open(os.path.join('/sys/fs/resctrl/', subpath)) as f:
             return f.read().strip()
+
     cbm_mask = _read_value('info/L3/cbm_mask')
     min_cbm_bits = _read_value('info/L3/min_cbm_bits')
     num_closids = int(_read_value('info/L3/num_closids'))

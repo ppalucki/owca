@@ -4,21 +4,19 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-requests = "==2.21.0"
-"ruamel.yaml" = "==0.15.89"
-colorlog = "==4.0.2"
-logging-tree = "==1.8"
-dataclasses = "==0.6"
-confluent-kafka = "==1.0.0rc1"
+requests = "==2.21.0"                 # 2018.12.10
+"ruamel.yaml" = "==0.15.89"           # 2019.02.27
+colorlog = "==4.0.2"                  # 2018.12.14
+logging-tree = "==1.8"                # 2018.08.05
+dataclasses = "==0.6"                 # 2018.05.18
+confluent-kafka = "==1.0.0rc1"        # 2018.10.31
 
 [dev-packages]
-pytest = "==4.3.0"
-pytest-cov = "==2.6.1"
-flake8 = "==3.7.7"
-setuptools_scm = "==3.2.0"
-
-# pipenv only tools
-tox = "==3.7.0"  # 2019.01.11
+pex = "==1.6.3"                       # 2019.03.11
+pytest = "==4.3.0"                    # 2019.02.18
+pytest-cov = "==2.6.1"                # 2019.01.07
+flake8 = "==3.7.7"                    # 2019.02.25
+setuptools_scm = "==3.2.0"            # 2019.01.16
 
 [requires]
 python_version = "3.6"

@@ -14,6 +14,8 @@
 from unittest.mock import Mock, MagicMock
 from unittest.mock import patch
 
+import pytest
+
 from owca import storage
 from owca.detectors import AnomalyDetector
 from owca.mesos import sanitize_mesos_label, MesosNode
@@ -22,6 +24,7 @@ from owca.runners.detection import DetectionRunner
 from owca.testing import metric, task, anomaly, anomaly_metrics, container, platform_mock
 
 
+@pytest.mark.skip('requires better assertion system')
 @patch('resource.getrusage', return_value=Mock(ru_maxrss=1234))
 @patch('owca.platforms.collect_platform_information', return_value=(
         platform_mock, [metric('platform-cpu-usage')], {}))
@@ -69,7 +72,7 @@ def test_detection_runner_containers_state(*mocks):
         detect=Mock(
             return_value=(
                 [anomaly(
-                    'task1', ['task2'], metrics=[
+                    't1_task_id', ['t2_task_id'], metrics=[
                         metric('contention_related_metric')
                     ]
                 )],  # one anomaly + related metric
