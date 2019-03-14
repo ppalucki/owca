@@ -2,9 +2,6 @@ dist: xenial
 language: python
 python: 3.6
 install: 
-- pip install tox==3.5.2
+- pip install pipenv
 script:
-- tox -e flake8
-- tox -e unit
-- tox -e owca_package
-- tox -e wrapper_package
+- make

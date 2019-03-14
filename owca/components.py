@@ -14,7 +14,11 @@
 
 
 from typing import List
-import pkg_resources
+try:
+    import pkg_resources
+except ImportError:
+    # When running from pex use vendored library from pex.
+    from pex.vendor._vendored.setuptools import pkg_resources
 
 import owca.runners.detection
 from owca import config

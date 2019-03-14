@@ -17,11 +17,11 @@ import hashlib
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 from typing import List, Dict
 
-from owca.logger import trace
+from dataclasses import dataclass
+
 from owca.metrics import Metric, Measurements, MetricType
 from owca.nodes import TaskId
 from owca.platforms import Platform
@@ -29,13 +29,17 @@ from owca.platforms import Platform
 log = logging.getLogger(__name__)
 
 # Mapping from task to its measurements.
+WORKLOAD_NOT_FOUND = 'workload not found'
+LABEL_CONTENDING_WORKLOAD_INSTANCE = 'contending_workload_instance'
+LABEL_WORKLOAD_INSTANCE = 'workload_instance'
+LABEL_CONTENDING_TASK_ID = 'contending_task_id'
+LABEL_CONTENDED_TASK_ID = 'contended_task_id'
 TasksMeasurements = Dict[TaskId, Measurements]
 TasksResources = Dict[TaskId, Dict[str, float]]
 TasksLabels = Dict[TaskId, Dict[str, str]]
 
 
 class ContendedResource(str, Enum):
-
     MEMORY_BW = 'memory bandwidth'
     LLC = 'cache'
     CPUS = 'cpus'
@@ -60,7 +64,6 @@ class Anomaly(ABC):
 
 @dataclass
 class ContentionAnomaly(Anomaly):
-
     resource: ContendedResource
     contended_task_id: TaskId
     contending_task_ids: List[TaskId]
@@ -110,7 +113,7 @@ class ContentionAnomaly(Anomaly):
 
         # HELP anomaly ...
         # TYPE anomaly counter
-        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task2",  resource="cache", uuid="1234"} 1 # noqa
+        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task2", resource="cache", uuid="1234"} 1 # noqa
         anomaly{type="contention", contended_task_id="task1", contending_task_ids="task3", resource="cache", uuid="1234"} 1 # noqa
         cpi{contended_task_id="task1", uuid="1234", type="anomaly"} 10
         """
@@ -154,7 +157,7 @@ class AnomalyDetector(ABC):
             tasks_measurements: TasksMeasurements,
             tasks_resources: TasksResources,
             tasks_labels: TasksLabels
-            ) -> (List[Anomaly], List[Metric]):
+    ) -> (List[Anomaly], List[Metric]):
         ...
 
 
@@ -164,17 +167,31 @@ class NOPAnomalyDetector(AnomalyDetector):
         return [], []
 
 
-@trace(log, verbose=False)
-def convert_anomalies_to_metrics(anomalies: List[Anomaly]) -> List[Metric]:
+def convert_anomalies_to_metrics(
+        anomalies: List[Anomaly],
+        tasks_labels: TasksLabels) -> List[Metric]:
     """Takes anomalies on input and convert them to something that can be
     stored persistently adding help/type fields and labels.
     # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
     """
-    metrics = []
+    anomaly_metrics = []
     for anomaly in anomalies:
-        metrics.extend(anomaly.generate_metrics())
+        anomaly_metrics.extend(anomaly.generate_metrics())
 
-    return metrics
+    for anomaly_metric in anomaly_metrics:
+        # Extra labels for anomaly metrics for information about task.
+        if LABEL_CONTENDED_TASK_ID in anomaly_metric.labels:  # Only for anomaly metrics.
+            contended_task_id = anomaly_metric.labels[LABEL_CONTENDED_TASK_ID]
+            anomaly_metric.labels.update(
+                tasks_labels.get(contended_task_id, {})
+            )
+        if LABEL_CONTENDING_TASK_ID in anomaly_metric.labels:
+            contending_task_id = anomaly_metric.labels[LABEL_CONTENDING_TASK_ID]
+            anomaly_metric.labels[LABEL_CONTENDING_WORKLOAD_INSTANCE] = \
+                tasks_labels.get(contending_task_id, {}).get(
+                    LABEL_WORKLOAD_INSTANCE, WORKLOAD_NOT_FOUND)
+
+    return anomaly_metrics
 
 
 def update_anomalies_metrics_with_task_information(anomaly_metrics: List[Metric],

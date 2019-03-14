@@ -72,22 +72,25 @@ def create_open_mock(paths: Dict[str, Mock]):
     return OpenMock(paths)
 
 
-def anomaly_metrics(contended_task_id: TaskId, contending_task_ids: List[TaskId]):
+def anomaly_metrics(contended_task_id: TaskId, contending_task_ids: List[TaskId],
+                    contending_workload_instances: Dict[TaskId, str] = {},
+                    labels: Dict[TaskId, Dict[str, str]] = {}):
     """Helper method to create metric based on anomaly.
     uuid is used if provided.
     """
     metrics = []
     for task_id in contending_task_ids:
         uuid = _create_uuid_from_tasks_ids(contending_task_ids + [contended_task_id])
-        metrics.append(Metric(
-            name='anomaly',
-            value=1,
-            labels=dict(
-                contended_task_id=contended_task_id, contending_task_id=task_id,
-                resource=ContendedResource.MEMORY_BW, uuid=uuid, type='contention'
-            ),
-            type=MetricType.COUNTER
-        ))
+        metric = Metric(name='anomaly', value=1,
+                        labels=dict(contended_task_id=contended_task_id, contending_task_id=task_id,
+                                    resource=ContendedResource.MEMORY_BW, uuid=uuid,
+                                    type='contention',
+                                    contending_workload_instance=contending_workload_instances[
+                                        task_id], workload_instance=contending_workload_instances[
+                                            contended_task_id]), type=MetricType.COUNTER)
+        if contended_task_id in labels:
+            metric.labels.update(labels[contended_task_id])
+        metrics.append(metric)
     return metrics
 
 
