@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from unittest.mock import patch, call, mock_open
-from owca.testing import create_open_mock, _is_dict_match, assert_metric
+from owca.testing import create_open_mock, _is_dict_match, assert_metric, assert_subdict
 from owca.metrics import Metric
 import pytest
 
@@ -76,3 +76,31 @@ def test_assert_metric(got_metrics, expected_metric_name,
     else:
         assert_metric(got_metrics, expected_metric_name,
                       expected_metric_labels, expected_metric_value)
+
+
+@pytest.mark.parametrize(
+    'got_dict, expected_subdict, exception_message', [
+        # propery empty or simple dicts
+        (dict(), dict(), None),
+        (dict(x=1), dict(), None),
+        (dict(x=1), dict(), None),
+        (dict(x=1, y=1), dict(x=1), None),
+        # invalid flat dicts
+        (dict(x=1, y=1), dict(x=1, z=2), "key 'z' not found"),
+        (dict(x=1, y=1), dict(x=1, y=2), "value differs"),
+        (dict(x=1, y=1), dict(x=1, y=2), "value differs"),
+        # proper nested dicts
+        (dict(x=1, y=dict(z=1)), dict(x=1), None),
+        (dict(x=1, y=dict(z=1)), dict(x=1, y=dict()), None),
+        (dict(x=1, y=dict(z=1)), dict(x=1, y=dict(z=1)), None),
+        (dict(x=1, y=dict(z=1)), dict(y=dict(z=1)), None),
+        # some deep value differs
+        (dict(x=1, y=dict(z=1)), dict(x=1, y=dict(z=2)), "value differs"),
+        (dict(x=1, y=dict(z=1)), dict(y=dict(not_existient_key=2)), "not found"),
+    ])
+def test_assert_subdict(got_dict, expected_subdict, exception_message):
+    if exception_message is not None:
+        with pytest.raises(AssertionError, match=exception_message):
+            assert_subdict(got_dict, expected_subdict)
+    else:
+        assert_subdict(got_dict, expected_subdict)
