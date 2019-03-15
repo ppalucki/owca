@@ -24,7 +24,7 @@ from owca.resctrl import ResGroup
 from owca.resctrl_allocations import RDTGroups, RDTAllocationValue
 from owca.runners.allocation import TasksAllocationsValues, TaskAllocationsValues
 from owca.testing import allocation_metric, task, container
-from testing import platform_mock
+from owca.testing import platform_mock
 
 
 @pytest.mark.parametrize('tasks_allocations,expected_metrics', (
