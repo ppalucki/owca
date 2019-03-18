@@ -20,7 +20,7 @@ from owca.mesos import MesosNode
 from owca.runners.detection import DetectionRunner
 from owca.testing import metric, anomaly, \
     assert_metric, redis_task_with_default_labels, prepare_runner_patches, \
-    platform_mock, assert_subdict
+    platform_mock, assert_subdict, TASK_CPU_USAGE
 
 
 @prepare_runner_patches
@@ -73,10 +73,10 @@ def test_detection_runner():
     # Check that detector was called with proper arguments.
     (platform, tasks_measurements,
      tasks_resources, tasks_labels) = detector_mock.detect.mock_calls[0][1]
-    # Make sure that proper values are propaget to detect method for t1.
+    # Make sure that proper values are propage to detect method for t1.
     assert platform == platform_mock
     # Measurements have to mach get_measurements mock from measurements_patch decorator.
-    assert_subdict(tasks_measurements, {t1.task_id: {'cpu_usage': 23}})
+    assert_subdict(tasks_measurements, {t1.task_id: {'cpu_usage': TASK_CPU_USAGE}})
     # Labels should have extra LABEL_WORKLOAD_INSTANCE based on redis_task_with_default_labels
     # and sanitized version of other labels for mesos (without prefix).
     assert_subdict(tasks_labels, {t1.task_id: {LABEL_WORKLOAD_INSTANCE: 'redis_6792_t1'}})
