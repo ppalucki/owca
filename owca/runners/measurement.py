@@ -161,9 +161,9 @@ class MeasurementRunner(Runner):
 @trace(log, verbose=False)
 def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
         Tuple[List[Metric], TasksMeasurements, TasksResources, TasksLabels]:
-    """ Based on containers, prepare all nessesary data for allocation and detection logic,
+    """ Based on containers, prepare all necessary data for allocation and detection logic,
     including, measurements, resources, labels and derived metrics.
-    In runner to fulfil common data requirments for Allocator and Detector class.
+    In runner to fulfil common data requirements for Allocator and Detector class.
     """
     # Prepare empty structures for return all the information.
     tasks_measurements: TasksMeasurements = {}

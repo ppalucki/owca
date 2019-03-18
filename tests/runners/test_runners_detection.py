@@ -11,24 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock, MagicMock
-from unittest.mock import patch
+from unittest.mock import Mock
 
 from owca import storage
-from owca.detectors import AnomalyDetector
+from owca.detectors import AnomalyDetector, LABEL_CONTENDED_TASK_ID, \
+    LABEL_CONTENDING_WORKLOAD_INSTANCE, LABEL_WORKLOAD_INSTANCE
 from owca.mesos import MesosNode
 from owca.runners.detection import DetectionRunner
 from owca.testing import metric, anomaly, \
-    assert_metric, assert_subdict, redis_task_with_default_labels, measurements_runner_patches
+    assert_metric, redis_task_with_default_labels, measurements_runner_patches, \
+    platform_mock, assert_subdict
 
-from pprint import pprint
 
 @measurements_runner_patches
-@patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
-@patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
-def test_detection_runner(*mocks):
-
-    # Node mock
+def test_detection_runner():
+    # Tasks mock
     t1 = redis_task_with_default_labels('t1')
     t2 = redis_task_with_default_labels('t2')
 
@@ -42,7 +39,7 @@ def test_detection_runner(*mocks):
                         metric('contention_related_metric')
                     ]
                 )],  # one anomaly + related metric
-                [metric('bar')]  # one extra metric
+                [metric('extra_metric_from_detector')]  # one extra metric
             )
         )
     )
@@ -60,24 +57,29 @@ def test_detection_runner(*mocks):
     runner._wait_or_finish = Mock(return_value=False)
     runner.run()
 
-
-    got_metrics = runner._metrics_storage.store.call_args[0][0]
-    print()
-    print('------- metrics: ')
-    pprint(got_metrics)
-    assert_metric(got_metrics, 'owca_up', dict(extra_label='extra_value'))
-    assert_metric(got_metrics, 'owca_tasks', expected_metric_value=2)
-    assert_metric(got_metrics, 'cpu_usage', dict(application='redis', task_id='t1_task_id'), expected_metric_value=23)
-    assert_metric(got_metrics, 'cpu_usage', dict(application='redis', task_id='t2_task_id'), expected_metric_value=23)
-
     got_anomalies_metrics = runner._anomalies_storage.store.mock_calls[0][1][0]
-    print('-------- anomalies:')
-    pprint(got_anomalies_metrics)
+
+    # Check that anomaly based metrics,
+    assert_metric(got_anomalies_metrics, 'anomaly', expected_metric_some_labels={
+        LABEL_CONTENDED_TASK_ID: t1.task_id,
+        LABEL_CONTENDING_WORKLOAD_INSTANCE: t2.labels[LABEL_WORKLOAD_INSTANCE]
+    })
+    assert_metric(got_anomalies_metrics, 'contention_related_metric',
+                  expected_metric_some_labels=dict(extra_label='extra_value'))
+    assert_metric(got_anomalies_metrics, 'extra_metric_from_detector')
+    assert_metric(got_anomalies_metrics, 'anomaly_count', expected_metric_value=1)
+    assert_metric(got_anomalies_metrics, 'anomaly_last_occurrence')
 
     # Check that detector was called with proper arguments.
-    platform, tasks_measurements, tasks_resources, tasks_labels = detector_mock.detect.mock_calls[0][1]
-    print('--------- detect:')
-    pprint(tasks_measurements)
-    pprint(tasks_labels)
-    assert_subdict(tasks_measurements, dict(t1_task_id=dict(cpu_usage=23)))
-
+    (platform, tasks_measurements,
+     tasks_resources, tasks_labels) = detector_mock.detect.mock_calls[0][1]
+    # Make sure that proper values are propaget to detect method for t1.
+    assert platform == platform_mock
+    # Measurements have to mach get_measurements mock from measurements_patch decorator.
+    assert_subdict(tasks_measurements, {t1.task_id: {'cpu_usage': 23}})
+    # Labels should have extra LABEL_WORKLOAD_INSTANCE based on redis_task_with_default_labels
+    # and sanitized version of other labels for mesos (without prefix).
+    assert_subdict(tasks_labels, {t1.task_id: {LABEL_WORKLOAD_INSTANCE: 'redis_6792_t1'}})
+    assert_subdict(tasks_labels, {t1.task_id: {'load_generator': 'rpc-perf-t1'}})
+    # Resources should match resources from redis_task_with_default_labels
+    assert_subdict(tasks_resources, {t1.task_id: t1.resources})

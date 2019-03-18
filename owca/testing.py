@@ -22,8 +22,7 @@ from unittest.mock import mock_open, Mock, patch, MagicMock
 from owca import platforms
 from owca.allocators import AllocationConfiguration
 from owca.containers import Container
-from owca.detectors import ContendedResource, ContentionAnomaly, _create_uuid_from_tasks_ids, \
-    LABEL_WORKLOAD_INSTANCE
+from owca.detectors import ContendedResource, ContentionAnomaly, LABEL_WORKLOAD_INSTANCE
 from owca.metrics import Metric, MetricType
 from owca.nodes import TaskId, Task
 from owca.platforms import RDTInformation
@@ -73,28 +72,6 @@ def create_open_mock(paths: Dict[str, Mock]):
             return self._mocks[path]
 
     return OpenMock(paths)
-
-
-def anomaly_metrics(contended_task_id: TaskId, contending_task_ids: List[TaskId],
-                    contending_workload_instances: Dict[TaskId, str] = {},
-                    labels: Dict[TaskId, Dict[str, str]] = {}):
-    """Helper method to create metric based on anomaly.
-    uuid is used if provided.
-    """
-    metrics = []
-    for task_id in contending_task_ids:
-        uuid = _create_uuid_from_tasks_ids(contending_task_ids + [contended_task_id])
-        metric = Metric(name='anomaly', value=1,
-                        labels=dict(contended_task_id=contended_task_id, contending_task_id=task_id,
-                                    resource=ContendedResource.MEMORY_BW, uuid=uuid,
-                                    type='contention',
-                                    contending_workload_instance=contending_workload_instances[
-                                        task_id], workload_instance=contending_workload_instances[
-                                contended_task_id]), type=MetricType.COUNTER)
-        if contended_task_id in labels:
-            metric.labels.update(labels[contended_task_id])
-        metrics.append(metric)
-    return metrics
 
 
 def anomaly(contended_task_id: TaskId, contending_task_ids: List[TaskId],
@@ -239,15 +216,28 @@ def redis_task_with_default_labels(task_id):
 
 
 def measurements_runner_patches(fun):
-
     def _decorated_function():
-        with patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23)), \
+        with patch('owca.cgroups.Cgroup.get_pids', return_value=['123']), \
+             patch('owca.cgroups.Cgroup.set_quota'), \
+             patch('owca.cgroups.Cgroup.set_shares'), \
+             patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23)), \
              patch('owca.containers.PerfCounters'), \
-             patch('owca.containers.ResGroup'), \
-             patch('owca.platforms.collect_platform_information', return_value=(platform_mock, [metric('platform-cpu-usage')], {})),  \
+             patch('owca.platforms.collect_platform_information',
+                   return_value=(platform_mock, [metric('platform-cpu-usage')], {})), \
              patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1)), \
-             patch('owca.profiling._durations', new=MagicMock(items=Mock(return_value=[('profiled_function', 1.)]))), \
+             patch('owca.profiling._durations',
+                   new=MagicMock(items=Mock(return_value=[('profiled_function', 1.)]))), \
+             patch('owca.resctrl.ResGroup.add_pids'), \
+             patch('owca.resctrl.ResGroup.get_measurements'), \
+             patch('owca.resctrl.ResGroup.get_mon_groups'), \
+             patch('owca.resctrl.ResGroup.remove'), \
+             patch('owca.resctrl.ResGroup.write_schemata'), \
              patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
-             patch('resource.getrusage', return_value=Mock(ru_maxrss=100)):
-                fun()
+             patch('resource.getrusage', return_value=Mock(ru_maxrss=100)), \
+             patch('owca.resctrl.read_mon_groups_relation', return_value={'': []}), \
+             patch('owca.runners.measurement.check_resctrl', return_value=True), \
+             patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
+             patch('owca.runners.allocation.cleanup_resctrl'):
+            fun()
+
     return _decorated_function

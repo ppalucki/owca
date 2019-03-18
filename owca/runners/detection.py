@@ -42,7 +42,7 @@ class AnomalyStatistics:
         ]
         if self._anomaly_last_occurrence:
             statistics_metrics.extend([
-                Metric(name='_anomaly_last_occurrence', type=MetricType.COUNTER,
+                Metric(name='anomaly_last_occurrence', type=MetricType.COUNTER,
                        value=self._anomaly_last_occurrence),
             ])
         if detect_duration is not None:

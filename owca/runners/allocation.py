@@ -119,15 +119,16 @@ class AllocationRunner(MeasurementRunner):
                  allocation_configuration: AllocationConfiguration = None,
                  ):
 
+        self._allocation_configuration = allocation_configuration or AllocationConfiguration()
+
         super().__init__(node, metrics_storage, action_delay, rdt_enabled,
                          extra_labels, ignore_privileges_check,
-                         allocation_configuration=allocation_configuration)
+                         allocation_configuration=self._allocation_configuration)
 
         # Allocation specific.
         self._allocator = allocator
         self._allocations_storage = allocations_storage
         self._rdt_mb_control_enabled = rdt_mb_control_enabled
-        self._allocation_configuration = allocation_configuration or AllocationConfiguration()
 
         # Anomaly.
         self._anomalies_storage = anomalies_storage
@@ -238,7 +239,7 @@ class AllocationRunner(MeasurementRunner):
             allocations_changeset.perform_allocations()
 
         # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
-        anomaly_metrics = convert_anomalies_to_metrics(anomalies)
+        anomaly_metrics = convert_anomalies_to_metrics(anomalies, tasks_labels)
         update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_labels)
 
         # Store anomalies information
