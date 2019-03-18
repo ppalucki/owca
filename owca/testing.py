@@ -215,12 +215,17 @@ def redis_task_with_default_labels(task_id):
     return task('/%s' % task_id, resources=dict(cpus=8.), labels=task_labels)
 
 
+TASK_CPU_USAGE = 23
+OWCA_MEMORY_USAGE = 100
+
+
 def prepare_runner_patches(fun):
     def _decorated_function():
         with patch('owca.cgroups.Cgroup.get_pids', return_value=['123']), \
              patch('owca.cgroups.Cgroup.set_quota'), \
              patch('owca.cgroups.Cgroup.set_shares'), \
-             patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23)), \
+             patch('owca.containers.Cgroup.get_measurements',
+                   return_value=dict(cpu_usage=TASK_CPU_USAGE)), \
              patch('owca.containers.PerfCounters'), \
              patch('owca.platforms.collect_platform_information',
                    return_value=(platform_mock, [metric('platform-cpu-usage')], {})), \
@@ -233,7 +238,7 @@ def prepare_runner_patches(fun):
              patch('owca.resctrl.ResGroup.remove'), \
              patch('owca.resctrl.ResGroup.write_schemata'), \
              patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
-             patch('resource.getrusage', return_value=Mock(ru_maxrss=100)), \
+             patch('resource.getrusage', return_value=Mock(ru_maxrss=OWCA_MEMORY_USAGE)), \
              patch('owca.resctrl.read_mon_groups_relation', return_value={'': []}), \
              patch('owca.runners.measurement.check_resctrl', return_value=True), \
              patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \

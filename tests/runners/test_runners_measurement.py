@@ -17,7 +17,8 @@ from unittest.mock import Mock
 from owca import storage
 from owca.mesos import MesosNode
 from owca.runners.measurement import MeasurementRunner
-from owca.testing import assert_metric, redis_task_with_default_labels, prepare_runner_patches
+from owca.testing import assert_metric, redis_task_with_default_labels, prepare_runner_patches, \
+    TASK_CPU_USAGE, OWCA_MEMORY_USAGE
 
 
 @prepare_runner_patches
@@ -46,10 +47,13 @@ def test_measurements_runner():
     assert_metric(got_metrics, 'owca_up', dict(extra_label='extra_value'))
     assert_metric(got_metrics, 'owca_tasks', expected_metric_value=2)
     # owca & its children memory usage (in bytes)
-    assert_metric(got_metrics, 'owca_memory_usage_bytes', expected_metric_value=100*2*1024)
+    assert_metric(got_metrics, 'owca_memory_usage_bytes',
+                  expected_metric_value=OWCA_MEMORY_USAGE * 2 * 1024)
     assert_metric(got_metrics, 'owca_duration_seconds', dict(function='profiled_function'),
                   expected_metric_value=1)
 
     # Measurements metrics about tasks, based on get_measurements mocks.
-    assert_metric(got_metrics, 'cpu_usage', dict(task_id=t1.task_id), expected_metric_value=23)
-    assert_metric(got_metrics, 'cpu_usage', dict(task_id=t2.task_id), expected_metric_value=23)
+    assert_metric(got_metrics, 'cpu_usage', dict(task_id=t1.task_id),
+                  expected_metric_value=TASK_CPU_USAGE)
+    assert_metric(got_metrics, 'cpu_usage', dict(task_id=t2.task_id),
+                  expected_metric_value=TASK_CPU_USAGE)
