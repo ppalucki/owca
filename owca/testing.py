@@ -113,19 +113,21 @@ def task(cgroup_path, labels=None, resources=None):
 
 def assert_subdict(got_dict: dict, expected_subdict: dict):
     """Assert that one dict is a subset of another dict in recursive manner.
+    Check if expected key exists and if value matches expected value.
     """
     for expected_key, expected_value in expected_subdict.items():
         if expected_key not in got_dict:
             raise AssertionError('key %r not found in %r' % (expected_key, got_dict))
         got_value = got_dict[expected_key]
         if isinstance(expected_value, dict):
-            # for dict use subsets
+            # When comparing with dict use 'containment' operation instead of equal.
+            # If expected value is a dict, call assert_subdict recursively.
             if not isinstance(got_value, dict):
                 raise AssertionError('expected dict type at %r key, got %r' % (
                     expected_key, type(got_value)))
             assert_subdict(got_value, expected_value)
         else:
-            # for other types check ordinary equality operator
+            # For any other type check using ordinary equality operator.
             assert got_value == expected_value, \
                 'value differs got=%r expected=%r at key=%r' % (
                     got_value, expected_value, expected_key)
@@ -136,9 +138,8 @@ def _is_dict_match(got_dict: dict, expected_subdict: dict):
     for expected_key, expected_value in expected_subdict.items():
         if expected_key not in got_dict:
             return False
-        else:
-            if got_dict[expected_key] != expected_value:
-                return False
+        if got_dict[expected_key] != expected_value:
+            return False
     return True
 
 
@@ -164,4 +165,6 @@ def assert_metric(got_metrics: List[Metric],
         raise AssertionError('metric %r not found' % expected_metric_name)
     # Check values as well
     if expected_metric_value is not None:
-        assert found_metric.value == expected_metric_value, 'metric value differs'
+        assert found_metric.value == expected_metric_value, \
+            'metric name=%r value differs got=%r expected=%r' % (
+                found_metric.name, found_metric.value, expected_metric_value)
