@@ -17,10 +17,10 @@ from unittest.mock import Mock
 from owca import storage
 from owca.mesos import MesosNode
 from owca.runners.measurement import MeasurementRunner
-from owca.testing import assert_metric, redis_task_with_default_labels, measurements_runner_patches
+from owca.testing import assert_metric, redis_task_with_default_labels, prepare_runner_patches
 
 
-@measurements_runner_patches
+@prepare_runner_patches
 def test_measurements_runner():
     # Node mock
     t1 = redis_task_with_default_labels('t1')

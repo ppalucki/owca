@@ -18,11 +18,11 @@ from owca import storage
 from owca.allocators import AllocationType, RDTAllocation, Allocator
 from owca.mesos import MesosNode
 from owca.runners.allocation import AllocationRunner
-from owca.testing import redis_task_with_default_labels, measurements_runner_patches, \
+from owca.testing import redis_task_with_default_labels, prepare_runner_patches, \
     assert_subdict, assert_metric
 
 
-@measurements_runner_patches
+@prepare_runner_patches
 def test_allocation_runner():
     """ Low level system calls are not mocked - but higher level objects and functions:
         Cgroup, Resgroup, Platform, etc. Thus the test do not cover the full usage scenario

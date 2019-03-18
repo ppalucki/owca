@@ -215,7 +215,7 @@ def redis_task_with_default_labels(task_id):
     return task('/%s' % task_id, resources=dict(cpus=8.), labels=task_labels)
 
 
-def measurements_runner_patches(fun):
+def prepare_runner_patches(fun):
     def _decorated_function():
         with patch('owca.cgroups.Cgroup.get_pids', return_value=['123']), \
              patch('owca.cgroups.Cgroup.set_quota'), \

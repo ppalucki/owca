@@ -19,11 +19,11 @@ from owca.detectors import AnomalyDetector, LABEL_CONTENDED_TASK_ID, \
 from owca.mesos import MesosNode
 from owca.runners.detection import DetectionRunner
 from owca.testing import metric, anomaly, \
-    assert_metric, redis_task_with_default_labels, measurements_runner_patches, \
+    assert_metric, redis_task_with_default_labels, prepare_runner_patches, \
     platform_mock, assert_subdict
 
 
-@measurements_runner_patches
+@prepare_runner_patches
 def test_detection_runner():
     # Tasks mock
     t1 = redis_task_with_default_labels('t1')
