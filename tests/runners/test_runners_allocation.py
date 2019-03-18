@@ -24,29 +24,27 @@ from owca.runners.allocation import AllocationRunner
 from owca.testing import metric, task, platform_mock
 
 
-@pytest.mark.skip('requires better assertion system')
-@patch('time.time', return_value=1234567890.123)
-@patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
-@patch('owca.platforms.collect_platform_information', return_value=(
-        platform_mock, [metric('platform-cpu-usage')], {}))
-@patch('owca.runners.measurement.are_privileges_sufficient', return_value=True)  # ignore non-root
-@patch('owca.runners.measurement.check_resctrl', return_value=True)  # assume RDT works
-@patch('owca.runners.allocation.cleanup_resctrl')  # ignore all IO operations on RDT
-@patch('resource.getrusage', return_value=Mock(ru_maxrss=1234))
-@patch('owca.containers.PerfCounters')
 @patch('owca.cgroups.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
 @patch('owca.cgroups.Cgroup.get_pids', return_value=['123'])
 @patch('owca.cgroups.Cgroup.set_quota')
 @patch('owca.cgroups.Cgroup.set_shares')
+@patch('owca.containers.PerfCounters')
+@patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
+@patch('owca.platforms.collect_platform_information', return_value=(platform_mock, [metric('platform-cpu-usage')], {}))
+@patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
 @patch('owca.resctrl.ResGroup.add_pids')
-@patch('owca.resctrl.ResGroup.remove')
 @patch('owca.resctrl.ResGroup.get_measurements')
 @patch('owca.resctrl.ResGroup.get_mon_groups')
+@patch('owca.resctrl.ResGroup.remove')
 @patch('owca.resctrl.ResGroup.write_schemata')
 @patch('owca.resctrl.read_mon_groups_relation', return_value={'': []})
-@patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
+@patch('owca.runners.allocation.cleanup_resctrl')  # ignore all IO operations on RDT
+@patch('owca.runners.measurement.are_privileges_sufficient', return_value=True)  # ignore non-root
+@patch('owca.runners.measurement.check_resctrl', return_value=True)  # assume RDT works
 @patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
-def test_allocation_runner_containers_state(*mocks):
+@patch('resource.getrusage', return_value=Mock(ru_maxrss=1234))
+@patch('time.time', return_value=1234567890.123)
+def test_allocation_runner(*mocks):
     """ Low level system calls are not mocked - but higher level objects and functions:
         Cgroup, Resgroup, Platform, etc. Thus the test do not cover the full usage scenario
         (such tests would be much harder to write).

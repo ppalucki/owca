@@ -17,14 +17,15 @@
 
 import os
 from typing import List, Dict, Union, Optional
-from unittest.mock import mock_open, Mock, patch
+from unittest.mock import mock_open, Mock, patch, MagicMock
 
 from owca import platforms
 from owca.allocators import AllocationConfiguration
 from owca.containers import Container
-from owca.detectors import ContendedResource, ContentionAnomaly, _create_uuid_from_tasks_ids
-from owca.nodes import TaskId, Task
+from owca.detectors import ContendedResource, ContentionAnomaly, _create_uuid_from_tasks_ids, \
+    LABEL_WORKLOAD_INSTANCE
 from owca.metrics import Metric, MetricType
+from owca.nodes import TaskId, Task
 from owca.platforms import RDTInformation
 from owca.resctrl import ResGroup
 from owca.runners import Runner
@@ -89,7 +90,7 @@ def anomaly_metrics(contended_task_id: TaskId, contending_task_ids: List[TaskId]
                                     type='contention',
                                     contending_workload_instance=contending_workload_instances[
                                         task_id], workload_instance=contending_workload_instances[
-                                            contended_task_id]), type=MetricType.COUNTER)
+                                contended_task_id]), type=MetricType.COUNTER)
         if contended_task_id in labels:
             metric.labels.update(labels[contended_task_id])
         metrics.append(metric)
@@ -225,3 +226,28 @@ def assert_metric(got_metrics: List[Metric],
     # Check values as well
     if expected_metric_value is not None:
         assert found_metric.value == expected_metric_value, 'metric value differs'
+
+
+def redis_task_with_default_labels(task_id):
+    """Returns task instance and its labels."""
+    task_labels = {
+        'org.apache.aurora.metadata.load_generator': 'rpc-perf-%s' % task_id,
+        'org.apache.aurora.metadata.name': 'redis-6792-%s' % task_id,
+        LABEL_WORKLOAD_INSTANCE: 'redis_6792_%s' % task_id
+    }
+    return task('/%s' % task_id, resources=dict(cpus=8.), labels=task_labels)
+
+
+def measurements_runner_patches(fun):
+
+    def _decorated_function():
+        with patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23)), \
+             patch('owca.containers.PerfCounters'), \
+             patch('owca.containers.ResGroup'), \
+             patch('owca.platforms.collect_platform_information', return_value=(platform_mock, [metric('platform-cpu-usage')], {})),  \
+             patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1)), \
+             patch('owca.profiling._durations', new=MagicMock(items=Mock(return_value=[('profiled_function', 1.)]))), \
+             patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
+             patch('resource.getrusage', return_value=Mock(ru_maxrss=100)):
+                fun()
+    return _decorated_function

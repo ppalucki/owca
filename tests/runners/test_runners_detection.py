@@ -14,63 +14,23 @@
 from unittest.mock import Mock, MagicMock
 from unittest.mock import patch
 
-import pytest
-
 from owca import storage
 from owca.detectors import AnomalyDetector
-from owca.mesos import sanitize_mesos_label, MesosNode
-from owca.metrics import Metric, MetricType
+from owca.mesos import MesosNode
 from owca.runners.detection import DetectionRunner
-from owca.testing import metric, task, anomaly, anomaly_metrics, container, platform_mock, \
-    assert_metric, assert_subdict
+from owca.testing import metric, anomaly, \
+    assert_metric, assert_subdict, redis_task_with_default_labels, measurements_runner_patches
 
 from pprint import pprint
 
-def _prepare_task_and_labels(task_id):
-    """Returns task instance and its labels."""
-    task_labels = {
-        'org.apache.aurora.metadata.application': 'redis',
-        'org.apache.aurora.metadata.load_generator': 'rpc-perf-%s' % task_id,
-        'org.apache.aurora.metadata.name': 'redis--6792-%s' % task_id,
-    }
-    task_labels_sanitized = {
-        sanitize_mesos_label(label_key): label_value
-        for label_key, label_value
-        in task_labels.items()
-    }
-    task_labels_sanitized_with_task_id = {'task_id': '%s_task_id'  % task_id}
-    task_labels_sanitized_with_task_id.update(task_labels_sanitized)
-    return task('/%s' % task_id, resources=dict(cpus=8.), labels=task_labels), task_labels
-
-
-@patch('resource.getrusage', return_value=Mock(ru_maxrss=1234))
-@patch('owca.platforms.collect_platform_information', return_value=(
-        platform_mock, [metric('platform-cpu-usage')], {}))
-@patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
+@measurements_runner_patches
 @patch('owca.detectors._create_uuid_from_tasks_ids', return_value='fake-uuid')
-@patch('owca.runners.measurement.are_privileges_sufficient', return_value=True)
-@patch('owca.containers.ResGroup')
-@patch('owca.containers.PerfCounters')
-@patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1))
-@patch('owca.containers.Cgroup.get_measurements', return_value=dict(cpu_usage=23))
-@patch('time.time', return_value=1234567890.123)
-@patch('owca.profiling._durations', new=MagicMock(items=Mock(return_value=[('foo', 0.)])))
-def test_detection_runner_containers_state(*mocks):
-    """Tests proper interaction between runner instance and functions for
-    creating anomalies and calculating the desired state.
-
-    Also tests labelling of metrics during iteration loop.
-    """
+@patch('owca.testing._create_uuid_from_tasks_ids', return_value='fake-uuid')
+def test_detection_runner(*mocks):
 
     # Node mock
-    t1, t1_labels = _prepare_task_and_labels('t1')
-    t2, t2_labels = _prepare_task_and_labels('t2')
-
-    node_mock = Mock(spec=MesosNode, get_tasks=Mock(return_value=[t1, t2]))
-
-    # Storage mocks
-    metrics_storage = Mock(spec=storage.Storage, store=Mock())
-    anomalies_storage = Mock(spec=storage.Storage, store=Mock())
+    t1 = redis_task_with_default_labels('t1')
+    t2 = redis_task_with_default_labels('t2')
 
     # Detector mock - simulate returning one anomaly and additional metric
     detector_mock = Mock(
@@ -78,7 +38,7 @@ def test_detection_runner_containers_state(*mocks):
         detect=Mock(
             return_value=(
                 [anomaly(
-                    't1_task_id', ['t2_task_id'], metrics=[
+                    t1.task_id, [t2.task_id], metrics=[
                         metric('contention_related_metric')
                     ]
                 )],  # one anomaly + related metric
@@ -87,15 +47,13 @@ def test_detection_runner_containers_state(*mocks):
         )
     )
 
-    extra_labels = dict(extra_label='extra_value')  # extra label with some extra value
-
     runner = DetectionRunner(
-        node=node_mock,
-        metrics_storage=metrics_storage,
-        anomalies_storage=anomalies_storage,
+        node=Mock(spec=MesosNode, get_tasks=Mock(return_value=[t1, t2])),
+        metrics_storage=Mock(spec=storage.Storage, store=Mock()),
+        anomalies_storage=Mock(spec=storage.Storage, store=Mock()),
         detector=detector_mock,
         rdt_enabled=False,
-        extra_labels=extra_labels,
+        extra_labels=dict(extra_label='extra_value')  # extra label with some extra value
     )
 
     # Mock to finish after one iteration.
@@ -103,7 +61,7 @@ def test_detection_runner_containers_state(*mocks):
     runner.run()
 
 
-    got_metrics = metrics_storage.store.call_args[0][0]
+    got_metrics = runner._metrics_storage.store.call_args[0][0]
     print()
     print('------- metrics: ')
     pprint(got_metrics)
@@ -112,7 +70,7 @@ def test_detection_runner_containers_state(*mocks):
     assert_metric(got_metrics, 'cpu_usage', dict(application='redis', task_id='t1_task_id'), expected_metric_value=23)
     assert_metric(got_metrics, 'cpu_usage', dict(application='redis', task_id='t2_task_id'), expected_metric_value=23)
 
-    got_anomalies_metrics = anomalies_storage.store.mock_calls[0][1][0]
+    got_anomalies_metrics = runner._anomalies_storage.store.mock_calls[0][1][0]
     print('-------- anomalies:')
     pprint(got_anomalies_metrics)
 
