@@ -15,7 +15,7 @@ Wrapping ``stress-ng`` based workload example
 
 #. Build wrappers::
 
-    tox -e wrapper_package
+    make wrapper_package
 
 #. Install stress-ng (for example using ``epel`` repository)::
 

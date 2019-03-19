@@ -58,8 +58,7 @@ OWCA is targeted at and tested on Centos 7.5.
     git clone https://github.com/intel/owca
     cd owca
     pipenv install --dev
-    pipenv shell
-    tox
+    make
 
     # Run manually (alongside Mesos agent):
     sudo dist/owca.pex --config configs/mesos_example.yaml --root

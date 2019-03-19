@@ -80,24 +80,18 @@ Those command should be run from `virtual environment` created by pipenv:
 
 .. code-block:: shell
 
-    tox -e unit
-
-Alternatively you can run tests manually (without tox):
-
-.. code-block:: shell
-
-    PYTHONPATH=. pytest tests
+    make unit
 
 Code style check and building PEX files
 ---------------------------------------
 
-You can use tox to check code style, or build packages:
+You can use make to check code style, or build packages:
 
 .. code-block:: shell
 
-    tox -e flake8
-    tox -e owca_package
-    tox -e wrapper_package
+    make flake8
+    make owca_package
+    make wrapper_package
 
 Running locally (for development purposes)
 ------------------------------------------
@@ -115,4 +109,4 @@ When rebuilding you can use existing PEX build cache, to speedup building proces
 
 .. code-block:: shell
 
-    PEX_OPTIONS='--no-index --cache-ttl=604800' tox -e owca_package
+    PEX_OPTIONS='--no-index --cache-ttl=604800' make owca_package

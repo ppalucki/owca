@@ -32,9 +32,6 @@ Copyright 2018 Intel Corporation
     - Copyright (c) 2001, Nathaniel Gray <n8gray@caltech.edu>
 
 
-    This software contains portions of tox from https://github.com/tox-dev/tox
-    on MIT License available at component-linceses/MIT-LICENSE.
-
 
     This software contains portions of pytest from https://github.com/pytest-dev/pytest
     on MIT License available at component-linceses/MIT-LICENSE.
