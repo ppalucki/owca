@@ -18,15 +18,17 @@ import socket
 import time
 from typing import List, Dict, Set, Tuple, Optional
 
-from dataclasses import dataclass
-
 from owca.metrics import Metric, MetricName
+from owca.profiling import profile_duration
+
+from dataclasses import dataclass
 
 try:
     from pkg_resources import get_distribution, DistributionNotFound
 except ImportError:
     # When running from pex use vendored library from pex.
     from pex.vendor._vendored.setuptools.pkg_resources import get_distribution, DistributionNotFound
+
 
 log = logging.getLogger(__name__)
 
@@ -265,6 +267,7 @@ def _collect_rdt_information() -> RDTInformation:
                           mb_bandwidth_gran, mb_min_bandwidth)
 
 
+@profile_duration
 def collect_platform_information(rdt_enabled: bool = True) -> (
         Platform, List[Metric], Dict[str, str]):
     """Returns Platform information, metrics and common labels.
