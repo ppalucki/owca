@@ -113,10 +113,8 @@ class ContentionAnomaly(Anomaly):
 
         # HELP anomaly ...
         # TYPE anomaly counter
-        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task2",
-        resource="cache", uuid="1234"} 1 # noqa
-        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task3",
-        resource="cache", uuid="1234"} 1 # noqa
+        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task2", resource="cache", uuid="1234"} 1 # noqa
+        anomaly{type="contention", contended_task_id="task1", contending_task_ids="task3", resource="cache", uuid="1234"} 1 # noqa
         cpi{contended_task_id="task1", uuid="1234", type="anomaly"} 10
         """
         metrics = []
