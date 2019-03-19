@@ -17,12 +17,13 @@ from unittest.mock import patch
 import pytest
 
 from owca.allocations import InvalidAllocations
-from owca.allocators import AllocationType, RDTAllocation
+from owca.allocators import AllocationType, RDTAllocation, AllocationConfiguration
 from owca.cgroups import Cgroup
 from owca.containers import Container
+from owca.platforms import RDTInformation
 from owca.resctrl import ResGroup
 from owca.resctrl_allocations import RDTGroups, RDTAllocationValue
-from owca.runners.allocation import TasksAllocationsValues, TaskAllocationsValues
+from owca.runners.allocation import TasksAllocationsValues, TaskAllocationsValues, AllocationRunner
 from owca.testing import allocation_metric, task, container
 from owca.testing import platform_mock
 
@@ -202,3 +203,72 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
             patch('owca.cgroups.Cgroup._write'), patch('owca.cgroups.Cgroup._read'):
         allocations.perform_allocations()
         assert mock.call_count == expected_resgroup_reallocation_count
+
+
+@pytest.mark.parametrize(
+    'default_rdt_l3, default_rdt_mb,'
+    'config_rdt_mb_control_enabled, platform_rdt_mb_control_enabled,'
+    'expected_exception, expected_final_rdt_mb_control_enabled_with_value,'
+    'expected_cleanup_arguments', [
+        # rdt mb is not enabled and not detected on platform, there should be no call nor exception
+        (None, None, False, False, None, False, ('L3:0=111', None)),
+        # rdt mb is not enabled but detected on platform - configure l3 to max, but not mb
+        (None, None, False, True, None, False, ('L3:0=111', None)),  # mask based on cbm_mask below
+        # rdt mb is enabled and not detected on platform, there should be exception
+        (None, None, True, False, 'RDT MB control is not supported', False, None),
+        # rdt mb is enabled and available on platform, there should be no exception
+        (None, None, True, True, None, True, ('L3:0=111', 'MB:0=100')),
+        # rdt mb is enabled and available on platform, there should be no exception, but use mbmax
+        (None, 'mbmax', True, True, None, True, ('L3:0=111', 'mbmax')),
+        # rdt mb is enabled and available on platform, there should be no exception, but use l3max
+        ('l3max', None, True, True, None, True, ('l3max', 'MB:0=100')),
+        # rdt mb is enabled and available on platform, there should be no exception, but use both
+        ('l3max', 'mbmax', True, True, None, True, ('l3max', 'mbmax')),
+        # rdt mb is enabled but not available on platform, there should be no exception, but use both
+        ('l3max', 'mbmax', False, False, None, False, ('l3max', None)),
+    ]
+)
+@patch('owca.runners.allocation.cleanup_resctrl')
+# @patch('owca.resctrl.get_max_rdt_values', Mock(retrun_value=('L3MAX', 'MBMAX')))
+@patch('owca.platforms.collect_platform_information', return_value=(platform_mock, [], {}))
+def test_rdt_initializtion(rdt_max_values_mock, cleanup_resctrl_mock,
+                           default_rdt_l3, default_rdt_mb,
+                           config_rdt_mb_control_enabled,
+                           platform_rdt_mb_control_enabled,
+                           expected_exception,
+                           expected_final_rdt_mb_control_enabled_with_value,
+                           expected_cleanup_arguments,
+                           ):
+
+    allocation_configuration = AllocationConfiguration(
+        default_rdt_mb=default_rdt_mb,
+        default_rdt_l3=default_rdt_l3
+    )
+    runner = AllocationRunner(
+        node=Mock(),
+        allocator=Mock(),
+        metrics_storage=Mock(),
+        anomalies_storage=Mock(),
+        allocations_storage=Mock(),
+        action_delay=1,
+        rdt_enabled=True,
+        rdt_mb_control_enabled=config_rdt_mb_control_enabled,
+        allocation_configuration=allocation_configuration,
+    )
+
+    with patch('owca.testing.platform_mock.rdt_information', Mock(
+            spec=RDTInformation,
+            cbm_mask='111', rdt_mb_control_enabled=platform_rdt_mb_control_enabled)):
+        if expected_exception:
+            with pytest.raises(Exception, match=expected_exception):
+                runner._rdt_initialization()
+        else:
+            runner._rdt_initialization()
+
+    if expected_final_rdt_mb_control_enabled_with_value:
+        assert runner._rdt_mb_control_enabled == expected_final_rdt_mb_control_enabled_with_value
+
+    if expected_cleanup_arguments:
+        cleanup_resctrl_mock.assert_called_with(*expected_cleanup_arguments)
+    else:
+        assert cleanup_resctrl_mock.call_count == 0
