@@ -14,11 +14,13 @@
 
 from unittest.mock import Mock
 
+import pytest
+
 from owca import storage
 from owca.mesos import MesosNode
-from owca.runners.measurement import MeasurementRunner
+from owca.runners.measurement import MeasurementRunner, _build_tasks_metrics
 from owca.testing import assert_metric, redis_task_with_default_labels, prepare_runner_patches, \
-    TASK_CPU_USAGE, OWCA_MEMORY_USAGE
+    TASK_CPU_USAGE, OWCA_MEMORY_USAGE, metric, DEFAULT_METRIC_VALUE
 
 
 @prepare_runner_patches
@@ -57,3 +59,13 @@ def test_measurements_runner():
                   expected_metric_value=TASK_CPU_USAGE)
     assert_metric(got_metrics, 'cpu_usage', dict(task_id=t2.task_id),
                   expected_metric_value=TASK_CPU_USAGE)
+
+
+@pytest.mark.parametrize('tasks_labels, tasks_measurements, expected_metrics', [
+    ({}, {}, []),
+    ({'t1_task_id': {'app': 'redis'}}, {}, []),
+    ({'t1_task_id': {'app': 'redis'}}, {'t1_task_id': {'cpu_usage': DEFAULT_METRIC_VALUE}},
+     [metric('cpu_usage', {'app': 'redis'})]),
+])
+def test_build_tasks_metrics(tasks_labels, tasks_measurements, expected_metrics):
+    assert expected_metrics == _build_tasks_metrics(tasks_labels, tasks_measurements)

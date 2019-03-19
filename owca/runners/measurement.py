@@ -66,7 +66,8 @@ class MeasurementRunner(Runner):
     @profile_duration(name='sleep')
     def _wait_or_finish(self):
         """Decides how long one run takes and when to finish."""
-        # Iteration_duration.
+        # Calculate residual time, need to sleep based
+        # on already time taken by iteration.
         now = time.time()
         iteration_duration = now - self._last_iteration
         self._last_iteration = now
@@ -75,31 +76,11 @@ class MeasurementRunner(Runner):
         time.sleep(residual_time)
         return True
 
-    def _get_internal_metrics(self, tasks) -> List[Metric]:
-        """Internal owca metrics."""
-
-        # Memory usage.
-        memory_usage_rss_self = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        memory_usage_rss_children = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-        memory_usage_rss = memory_usage_rss_self + memory_usage_rss_children
-
-        metrics = [
-            Metric(name='owca_up', type=MetricType.COUNTER, value=time.time()),
-            Metric(name='owca_tasks', type=MetricType.GAUGE, value=len(tasks)),
-            Metric(name='owca_memory_usage_bytes', type=MetricType.GAUGE,
-                   value=int(memory_usage_rss * 1024)),
-        ]
-
-        # Profiling metrics.
-        metrics.extend(profiling.get_profiling_metrics())
-
-        return metrics
-
     @profile_duration(name='iteration')
-    def run(self):
+    def run(self) -> int:
         # Initialization.
         if self._rdt_enabled and not check_resctrl():
-            return
+            return 1
         elif not self._rdt_enabled:
             log.warning('Rdt disabled. Skipping collecting measurements '
                         'and resctrl synchronization')
@@ -112,7 +93,7 @@ class MeasurementRunner(Runner):
                          "/proc/sys/kernel/perf_event_paranoid; or has CAP_DAC_OVERRIDE capability"
                          " set. You can run process as root too. See man 2 perf_event_open for "
                          "details.")
-            return
+            return 1
 
         while True:
             # Get information about tasks.
@@ -129,10 +110,11 @@ class MeasurementRunner(Runner):
             common_labels = dict(platform_labels, **self._extra_labels)
 
             # Tasks data
-            tasks_metrics, tasks_measurements, tasks_resources, tasks_labels = \
-                _prepare_tasks_data(containers)
+            tasks_measurements, tasks_resources, tasks_labels = _prepare_tasks_data(containers)
 
-            internal_metrics = self._get_internal_metrics(tasks)
+            tasks_metrics = _build_tasks_metrics(tasks_labels, tasks_measurements)
+
+            internal_metrics = _get_internal_metrics(tasks)
 
             metrics_package = MetricPackage(self._metrics_storage)
             metrics_package.add_metrics(internal_metrics)
@@ -148,6 +130,7 @@ class MeasurementRunner(Runner):
 
         # Cleanup phase.
         self.containers_manager.cleanup()
+        return 0
 
     def _run_body(self, containers, platform, tasks_measurements, tasks_resources,
                   tasks_labels, common_labels):
@@ -160,7 +143,7 @@ class MeasurementRunner(Runner):
 @profile_duration(name='prepare_task_data')
 @trace(log, verbose=False)
 def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
-        Tuple[List[Metric], TasksMeasurements, TasksResources, TasksLabels]:
+        Tuple[TasksMeasurements, TasksResources, TasksLabels]:
     """ Based on containers, prepare all necessary data for allocation and detection logic,
     including, measurements, resources, labels and derived metrics.
     In runner to fulfil common data requirements for Allocator and Detector class.
@@ -169,7 +152,6 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
     tasks_measurements: TasksMeasurements = {}
     tasks_resources: TasksResources = {}
     tasks_labels: TasksLabels = {}
-    tasks_metrics: List[Metric] = []
 
     for task, container in containers.items():
         # Task measurements and measurements based metrics.
@@ -179,8 +161,6 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
                         container)
             continue
 
-        task_metrics = create_metrics(task_measurements)
-
         # Prepare tasks labels based on tasks metadata labels and task id.
         task_labels = {
             sanitize_mesos_label(label_key): label_value
@@ -189,14 +169,45 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
         }
         task_labels['task_id'] = task.task_id
 
-        # Decorate metrics with task specific labels.
-        for task_metric in task_metrics:
-            task_metric.labels.update(task_labels)
-
         # Aggregate over all tasks.
         tasks_labels[task.task_id] = task_labels
         tasks_measurements[task.task_id] = task_measurements
         tasks_resources[task.task_id] = task.resources
-        tasks_metrics += task_metrics
 
-    return tasks_metrics, tasks_measurements, tasks_resources, tasks_labels
+    return tasks_measurements, tasks_resources, tasks_labels
+
+
+def _build_tasks_metrics(tasks_labels, tasks_measurements: TasksMeasurements) -> List[Metric]:
+    tasks_metrics: List[Metric] = []
+
+    for task_id, task_labels in tasks_labels.items():
+        if task_id not in tasks_measurements:
+            continue
+        task_measurements = tasks_measurements[task_id]
+        task_metrics = create_metrics(task_measurements)
+        # Decorate metrics with task specific labels.
+        for task_metric in task_metrics:
+            task_metric.labels.update(task_labels)
+        tasks_metrics += task_metrics
+    return tasks_metrics
+
+
+def _get_internal_metrics(tasks: List[Task]) -> List[Metric]:
+    """Internal owca metrics e.g. memory usage, profiling information."""
+
+    # Memory usage.
+    memory_usage_rss_self = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    memory_usage_rss_children = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    memory_usage_rss = memory_usage_rss_self + memory_usage_rss_children
+
+    metrics = [
+        Metric(name='owca_up', type=MetricType.COUNTER, value=time.time()),
+        Metric(name='owca_tasks', type=MetricType.GAUGE, value=len(tasks)),
+        Metric(name='owca_memory_usage_bytes', type=MetricType.GAUGE,
+               value=int(memory_usage_rss * 1024)),
+    ]
+
+    # Profiling metrics.
+    metrics.extend(profiling.get_profiling_metrics())
+
+    return metrics

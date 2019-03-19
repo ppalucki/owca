@@ -137,9 +137,12 @@ def container(cgroup_path, resgroup_name=None, with_config=False):
         )
 
 
-def metric(name, labels=None):
+DEFAULT_METRIC_VALUE = 1234
+
+
+def metric(name, labels=None, value=DEFAULT_METRIC_VALUE):
     """Helper method to create metric with default values. Value is ignored during tests."""
-    return Metric(name=name, value=1234, labels=labels or {})
+    return Metric(name=name, value=value, labels=labels or {})
 
 
 def allocation_metric(allocation_type, value, **labels):
@@ -161,7 +164,7 @@ def allocation_metric(allocation_type, value, **labels):
 class DummyRunner(Runner):
 
     def run(self):
-        pass
+        return 0
 
 
 platform_mock = Mock(
@@ -175,6 +178,49 @@ platform_mock = Mock(
         mb_bandwidth_gran=None,
         mb_min_bandwidth=None,
     ))
+
+
+def redis_task_with_default_labels(task_id):
+    """Returns task instance and its labels."""
+    task_labels = {
+        'org.apache.aurora.metadata.load_generator': 'rpc-perf-%s' % task_id,
+        'org.apache.aurora.metadata.name': 'redis-6792-%s' % task_id,
+        LABEL_WORKLOAD_INSTANCE: 'redis_6792_%s' % task_id
+    }
+    return task('/%s' % task_id, resources=dict(cpus=8.), labels=task_labels)
+
+
+TASK_CPU_USAGE = 23
+OWCA_MEMORY_USAGE = 100
+
+
+def prepare_runner_patches(fun):
+    def _decorated_function():
+        with patch('owca.cgroups.Cgroup.get_pids', return_value=['123']), \
+             patch('owca.cgroups.Cgroup.set_quota'), \
+             patch('owca.cgroups.Cgroup.set_shares'), \
+             patch('owca.containers.Cgroup.get_measurements',
+                   return_value=dict(cpu_usage=TASK_CPU_USAGE)), \
+             patch('owca.containers.PerfCounters'), \
+             patch('owca.platforms.collect_platform_information',
+                   return_value=(platform_mock, [metric('platform-cpu-usage')], {})), \
+             patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1)), \
+             patch('owca.profiling._durations',
+                   new=MagicMock(items=Mock(return_value=[('profiled_function', 1.)]))), \
+             patch('owca.resctrl.ResGroup.add_pids'), \
+             patch('owca.resctrl.ResGroup.get_measurements'), \
+             patch('owca.resctrl.ResGroup.get_mon_groups'), \
+             patch('owca.resctrl.ResGroup.remove'), \
+             patch('owca.resctrl.ResGroup.write_schemata'), \
+             patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
+             patch('resource.getrusage', return_value=Mock(ru_maxrss=OWCA_MEMORY_USAGE)), \
+             patch('owca.resctrl.read_mon_groups_relation', return_value={'': []}), \
+             patch('owca.runners.measurement.check_resctrl', return_value=True), \
+             patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
+             patch('owca.runners.allocation.cleanup_resctrl'):
+            fun()
+
+    return _decorated_function
 
 
 def assert_subdict(got_dict: dict, expected_subdict: dict):
@@ -234,46 +280,3 @@ def assert_metric(got_metrics: List[Metric],
         assert found_metric.value == expected_metric_value, \
             'metric name=%r value differs got=%r expected=%r' % (
                 found_metric.name, found_metric.value, expected_metric_value)
-
-
-def redis_task_with_default_labels(task_id):
-    """Returns task instance and its labels."""
-    task_labels = {
-        'org.apache.aurora.metadata.load_generator': 'rpc-perf-%s' % task_id,
-        'org.apache.aurora.metadata.name': 'redis-6792-%s' % task_id,
-        LABEL_WORKLOAD_INSTANCE: 'redis_6792_%s' % task_id
-    }
-    return task('/%s' % task_id, resources=dict(cpus=8.), labels=task_labels)
-
-
-TASK_CPU_USAGE = 23
-OWCA_MEMORY_USAGE = 100
-
-
-def prepare_runner_patches(fun):
-    def _decorated_function():
-        with patch('owca.cgroups.Cgroup.get_pids', return_value=['123']), \
-             patch('owca.cgroups.Cgroup.set_quota'), \
-             patch('owca.cgroups.Cgroup.set_shares'), \
-             patch('owca.containers.Cgroup.get_measurements',
-                   return_value=dict(cpu_usage=TASK_CPU_USAGE)), \
-             patch('owca.containers.PerfCounters'), \
-             patch('owca.platforms.collect_platform_information',
-                   return_value=(platform_mock, [metric('platform-cpu-usage')], {})), \
-             patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1)), \
-             patch('owca.profiling._durations',
-                   new=MagicMock(items=Mock(return_value=[('profiled_function', 1.)]))), \
-             patch('owca.resctrl.ResGroup.add_pids'), \
-             patch('owca.resctrl.ResGroup.get_measurements'), \
-             patch('owca.resctrl.ResGroup.get_mon_groups'), \
-             patch('owca.resctrl.ResGroup.remove'), \
-             patch('owca.resctrl.ResGroup.write_schemata'), \
-             patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
-             patch('resource.getrusage', return_value=Mock(ru_maxrss=OWCA_MEMORY_USAGE)), \
-             patch('owca.resctrl.read_mon_groups_relation', return_value={'': []}), \
-             patch('owca.runners.measurement.check_resctrl', return_value=True), \
-             patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
-             patch('owca.runners.allocation.cleanup_resctrl'):
-            fun()
-
-    return _decorated_function

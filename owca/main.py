@@ -112,7 +112,8 @@ def main():
     runner = configuration['runner']
 
     # Prepare and run the "main loop".
-    runner.run()
+    exit_code = runner.run()
+    exit(exit_code)
 
 
 if __name__ == '__main__':

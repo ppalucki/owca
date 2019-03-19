@@ -81,6 +81,7 @@ class DetectionRunner(MeasurementRunner):
                   tasks_resources, tasks_labels, common_labels):
         """Detector callback body."""
 
+        # Call Detector's detect function.
         detect_start = time.time()
         anomalies, extra_metrics = self._detector.detect(
             platform, tasks_measurements, tasks_resources, tasks_labels)

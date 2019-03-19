@@ -18,5 +18,6 @@ class Runner(ABC):
     """Base class for main loop run that is started by main entrypoint."""
 
     @abstractmethod
-    def run(self):
+    def run(self) -> int:
+        """Returns exit code."""
         ...
