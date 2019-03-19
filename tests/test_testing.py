@@ -13,15 +13,17 @@
 # limitations under the License.
 
 from unittest.mock import patch, call, mock_open
-from owca.testing import create_open_mock, _is_dict_match, assert_metric, assert_subdict
-from owca.metrics import Metric
+
 import pytest
+
+from owca.metrics import Metric
+from owca.testing import create_open_mock, _is_dict_match, assert_metric, assert_subdict
 
 
 def test_create_open_mock_autocreated():
     with patch('builtins.open', create_open_mock({
-            '/some/path.txt': 'foo',
-            })) as mocks:
+        '/some/path.txt': 'foo',
+    })) as mocks:
         assert open('/some/path.txt').read() == 'foo'
         open('/some/path.txt', 'w').write('bar')
         mocks['/some/path.txt'].assert_has_calls(
@@ -31,8 +33,8 @@ def test_create_open_mock_autocreated():
 def test_create_open_mock_manually():
     my_own_mock_open = mock_open(read_data='foo')
     with patch('builtins.open', create_open_mock({
-            '/some/path.txt': my_own_mock_open
-            })):
+        '/some/path.txt': my_own_mock_open
+    })):
         assert open('/some/path.txt').read() == 'foo'
         open('/some/path.txt', 'w').write('bar')
         my_own_mock_open.assert_has_calls(
@@ -50,7 +52,7 @@ def test_create_open_mock_manually():
     (dict(x=1, y=1, z=3), dict(x=1, y=2), False),  # two keys mismatch
     (dict(x=1, y=2, z=3), dict(x=1, y=2), True),  # two vs three keys match
 ])
-def test_match_keys(got_dict, expected_subdict, expected_match):
+def test_is_dict_match(got_dict, expected_subdict, expected_match):
     assert _is_dict_match(got_dict, expected_subdict) == expected_match
 
 
@@ -59,9 +61,11 @@ def test_match_keys(got_dict, expected_subdict, expected_match):
     'expected_metric_labels, expected_metric_value, exception_message', [
         ([Metric('foo', 2)], 'foo', None, None, None),
         ([Metric('foo', 2)], 'foo', None, 2, None),
-        ([Metric('foo', 2)], 'foo', None, 3, 'metric value differs'),
+        ([Metric('foo', 2)],
+         'foo', None, 3, r"metric name='foo' value differs got=2 expected=3"),
         ([Metric('foo', 2)], 'foo', dict(), 2, None),
-        ([Metric('foo', 2, labels=dict(a='b'))], 'foo', None, 3, 'metric value differs'),
+        ([Metric('foo', 2, labels=dict(a='b'))],
+         'foo', None, 3, r"metric name='foo' value differs got=2 expected=3"),
         ([Metric('foo', 2, labels=dict(a='b'))], 'foo', None, 2, None),
         ([Metric('foo', 2, labels=dict(a='b'))], 'foo', dict(), 2, None),
         ([Metric('foo', 2, labels=dict(a='b'))], 'foo', dict(a='b'), 2, None),
@@ -80,22 +84,22 @@ def test_assert_metric(got_metrics, expected_metric_name,
 
 @pytest.mark.parametrize(
     'got_dict, expected_subdict, exception_message', [
-        # propery empty or simple dicts
+        # proper empty or simple dicts
         (dict(), dict(), None),
         (dict(x=1), dict(), None),
         (dict(x=1), dict(), None),
         (dict(x=1, y=1), dict(x=1), None),
         # invalid flat dicts
         (dict(x=1, y=1), dict(x=1, z=2), "key 'z' not found"),
-        (dict(x=1, y=1), dict(x=1, y=2), "value differs"),
-        (dict(x=1, y=1), dict(x=1, y=2), "value differs"),
+        (dict(x=1, y=1), dict(x=1, y=2), r"value differs got=1 expected=2 at key='y'"),
         # proper nested dicts
         (dict(x=1, y=dict(z=1)), dict(x=1), None),
         (dict(x=1, y=dict(z=1)), dict(x=1, y=dict()), None),
         (dict(x=1, y=dict(z=1)), dict(x=1, y=dict(z=1)), None),
         (dict(x=1, y=dict(z=1)), dict(y=dict(z=1)), None),
         # some deep value differs
-        (dict(x=1, y=dict(z=1)), dict(x=1, y=dict(z=2)), "value differs"),
+        (dict(x=1, y=dict(z=1)), dict(
+            x=1, y=dict(z=2)), r"value differs got=1 expected=2 at key='z'"),
         (dict(x=1, y=dict(z=1)), dict(y=dict(not_existient_key=2)), "not found"),
     ])
 def test_assert_subdict(got_dict, expected_subdict, exception_message):
