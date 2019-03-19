@@ -148,17 +148,17 @@ class AllocationRunner(MeasurementRunner):
         else:
             assert self._rdt_mb_control_enabled is False, 'assert explicit disabling'
 
-        root_rtd_l3, root_rdt_mb = get_max_rdt_values(platform.rdt_information.cbm_mask,
+        root_rdt_l3, root_rdt_mb = get_max_rdt_values(platform.rdt_information.cbm_mask,
                                                       platform.sockets)
         if self._allocation_configuration is not None:
             if self._allocation_configuration.default_rdt_l3 is not None:
-                root_rtd_l3 = self._allocation_configuration.default_rdt_l3
+                root_rdt_l3 = self._allocation_configuration.default_rdt_l3
             if self._allocation_configuration.default_rdt_mb is not None:
                 root_rdt_mb = self._allocation_configuration.default_rdt_mb
         if not platform.rdt_information.rdt_mb_control_enabled:
             root_rdt_mb = None
             log.warning('Rdt enabled, but RDT memory bandwidth (MB) allocation does not work.')
-        cleanup_resctrl(root_rtd_l3, root_rdt_mb)
+        cleanup_resctrl(root_rdt_l3, root_rdt_mb)
 
     def _get_tasks_allocations(self, containers) -> TasksAllocations:
         tasks_allocations: TasksAllocations = {}
