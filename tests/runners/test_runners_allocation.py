@@ -35,7 +35,7 @@ def test_allocation_runner():
     # Patch Container get_allocations (simulate allocations read from OS filesystem)
     os_tasks_allocations = {
         AllocationType.QUOTA: 1.,
-        AllocationType.RDT: RDTAllocation(name='', l3='L3:0=fffff', mb='mb:0=50')
+        AllocationType.RDT: RDTAllocation(name='', l3='L3:0=fffff', mb='MB:0=50')
     }
     patch('owca.containers.Container.get_allocations',
           return_value=os_tasks_allocations).__enter__()
