@@ -26,7 +26,7 @@ Building executable binary (distribution)
 
 .. code:: shell
 
-   tox -e owca_package
+   make owca_package
 
 File ``dist/owca.pex`` must be copied to ``/usr/bin/owca.pex``.
 

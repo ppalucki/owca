@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 import logging
 import os
 import re
@@ -20,16 +18,17 @@ import socket
 import time
 from typing import List, Dict, Set, Tuple, Optional
 
+from owca.metrics import Metric, MetricName
+from owca.profiling import profile_duration
+
+from dataclasses import dataclass
+
 try:
     from pkg_resources import get_distribution, DistributionNotFound
 except ImportError:
     # When running from pex use vendored library from pex.
     from pex.vendor._vendored.setuptools.pkg_resources import get_distribution, DistributionNotFound
 
-from dataclasses import dataclass
-
-from owca.metrics import Metric, MetricName
-from owca.profiling import profile_duration
 
 log = logging.getLogger(__name__)
 

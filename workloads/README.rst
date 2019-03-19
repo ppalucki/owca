@@ -23,7 +23,7 @@ sending metrics in prometheus format to a Kafka broker.
 
 .. code-block:: sh
 
-    tox -e wrapper_package
+    make wrapper_package
 
 Wrapper executables are as ``dist/wrapper_*.pex`` files.
 
