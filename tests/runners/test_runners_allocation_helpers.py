@@ -218,13 +218,13 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
         (None, None, True, False, 'RDT MB control is not supported', False, None),
         # rdt mb is enabled and available on platform, there should be no exception
         (None, None, True, True, None, True, ('L3:0=fff', 'MB:0=100')),
-        # rdt mb is enabled and available on platform, there should be no exception, but use mbmax
+        # rdt mb is enabled and available on platform, there should be no exception, but use MB=50
         (None, 'MB:0=50', True, True, None, True, ('L3:0=fff', 'MB:0=50')),
-        # rdt mb is enabled and available on platform, there should be no exception, but use l3max
+        # rdt mb is enabled and available on platform, there should be no exception, but use L3=f
         ('L3:0=00f', None, True, True, None, True, ('L3:0=00f', 'MB:0=100')),
         # rdt mb is enabled and available on platform, there should be no exception, but use both
         ('L3:0=00f', 'MB:0=50', True, True, None, True, ('L3:0=00f', 'MB:0=50')),
-        # rdt mb is enabled but not available on platform, there should be no exception, but use both
+        # rdt mb is not enabled and not available on platform, no exception, and just set L3
         ('L3:0=00f', 'MB:0=50', False, False, None, False, ('L3:0=00f', None)),
         # wrong values
         ('wrongl3', 'MB:0=50', True, True, 'l3 resources setting should start with', True, None),
