@@ -13,11 +13,11 @@
 # limitations under the License.
 import logging
 import time
-from typing import Dict
+from typing import Dict, List
 
 from owca import nodes, storage, detectors, profiling
 from owca.detectors import convert_anomalies_to_metrics, \
-    update_anomalies_metrics_with_task_information
+    update_anomalies_metrics_with_task_information, Anomaly
 from owca.metrics import Metric, MetricType
 from owca.runners.measurement import MeasurementRunner
 from owca.storage import MetricPackage
@@ -31,7 +31,7 @@ class AnomalyStatistics:
         self._anomaly_last_occurrence = None
         self._anomaly_counter = 0
 
-    def get_metrics(self, anomalies, detect_duration=None):
+    def get_metrics(self, anomalies: List[Anomaly], detect_duration=None):
         """Extra external plugin anomaly statistics."""
         if len(anomalies):
             self._anomaly_last_occurrence = time.time()
