@@ -38,7 +38,8 @@ def test_measurements_runner():
     )
 
     # Mock to finish after one iteration.
-    runner._wait_or_finish = Mock(return_value=False)
+    runner._wait = Mock()
+    runner._finish = True
     runner.run()
 
     # Check output metrics.
