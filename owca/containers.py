@@ -71,7 +71,7 @@ class Container:
         )
         self.container_name = (self.container_name or
                                _sanitize_cgroup_path(self.cgroup_path))
-        self.perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
+        self._perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def sync(self):
         """Called every iteration to keep pids of cgroup and resctrl in sync."""
@@ -83,7 +83,7 @@ class Container:
             return flatten_measurements([
                 self.cgroup.get_measurements(),
                 self.resgroup.get_measurements(self.container_name) if self.rdt_enabled else {},
-                self.perf_counters.get_measurements(),
+                self._perf_counters.get_measurements(),
             ])
         except FileNotFoundError:
             log.warning('Could not read measurements for container %s. '
@@ -94,7 +94,7 @@ class Container:
             return {}
 
     def cleanup(self):
-        self.perf_counters.cleanup()
+        self._perf_counters.cleanup()
         if self.rdt_enabled:
             self.resgroup.remove(self.container_name)
 
@@ -121,10 +121,10 @@ class ContainerManager:
     def __init__(self, rdt_enabled: bool, rdt_mb_control_enabled: bool, platform_cpus: int,
                  allocation_configuration: Optional[AllocationConfiguration]):
         self.containers: Dict[Task, Container] = {}
-        self.rdt_enabled = rdt_enabled
-        self.rdt_mb_control_enabled = rdt_mb_control_enabled
-        self.platform_cpus = platform_cpus
-        self.allocation_configuration = allocation_configuration
+        self._rdt_enabled = rdt_enabled
+        self._rdt_mb_control_enabled = rdt_mb_control_enabled
+        self._platform_cpus = platform_cpus
+        self._allocation_configuration = allocation_configuration
 
     @profile_duration
     def sync_containers_state(self, tasks) -> Dict[Task, Container]:
@@ -165,7 +165,7 @@ class ContainerManager:
         # Prepare state of currently assigned resgroups
         # and remove some orphaned resgroups
         container_name_to_ctrl_group = {}
-        if self.rdt_enabled:
+        if self._rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
             log.debug('mon_groups_relation (before cleanup): %s',
                       pprint.pformat(mon_groups_relation))
@@ -187,17 +187,17 @@ class ContainerManager:
         for new_task in new_tasks:
             container = Container(
                 new_task.cgroup_path,
-                rdt_enabled=self.rdt_enabled,
-                rdt_mb_control_enabled=self.rdt_mb_control_enabled,
-                platform_cpus=self.platform_cpus,
-                allocation_configuration=self.allocation_configuration,
+                rdt_enabled=self._rdt_enabled,
+                rdt_mb_control_enabled=self._rdt_mb_control_enabled,
+                platform_cpus=self._platform_cpus,
+                allocation_configuration=self._allocation_configuration,
             )
             self.containers[new_task] = container
 
         # Sync "state" of individual containers.
         # Note: only the pids are synchronized, not the allocations.
         for container in self.containers.values():
-            if self.rdt_enabled:
+            if self._rdt_enabled:
                 if container.container_name in container_name_to_ctrl_group:
                     resgroup_name = container_name_to_ctrl_group[container.container_name]
                     container.resgroup = ResGroup(name=resgroup_name)
