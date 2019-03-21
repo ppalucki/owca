@@ -119,7 +119,7 @@ class ContainerManager:
 
     def __init__(self, rdt_enabled: bool, rdt_mb_control_enabled: bool, platform_cpus: int,
                  allocation_configuration: Optional[AllocationConfiguration]):
-        self._containers: Dict[Task, Container] = {}
+        self.containers: Dict[Task, Container] = {}
         self._rdt_enabled = rdt_enabled
         self._rdt_mb_control_enabled = rdt_mb_control_enabled
         self._platform_cpus = platform_cpus
@@ -139,7 +139,7 @@ class ContainerManager:
 
         # Find difference between discovered tasks and already watched containers.
         new_tasks, containers_to_cleanup = _find_new_and_dead_tasks(
-            tasks, list(self._containers.values()))
+            tasks, list(self.containers.values()))
 
         if containers_to_cleanup:
             log.debug('sync_containers_state: cleaning up %d containers',
@@ -152,9 +152,9 @@ class ContainerManager:
                 container_to_cleanup.cleanup()
 
         # Recreate self.containers.
-        self._containers = {task: container
-                            for task, container in self._containers.items()
-                            if task in tasks}
+        self.containers = {task: container
+                           for task, container in self.containers.items()
+                           if task in tasks}
 
         if new_tasks:
             log.debug('sync_containers_state: found %d new tasks', len(new_tasks))
@@ -190,11 +190,11 @@ class ContainerManager:
                 platform_cpus=self._platform_cpus,
                 allocation_configuration=self._allocation_configuration,
             )
-            self._containers[new_task] = container
+            self.containers[new_task] = container
 
         # Sync "state" of individual containers.
         # Note: only the pids are synchronized, not the allocations.
-        for container in self._containers.values():
+        for container in self.containers.values():
             if self._rdt_enabled:
                 if container.container_name in container_name_to_ctrl_group:
                     resgroup_name = container_name_to_ctrl_group[container.container_name]
@@ -204,10 +204,10 @@ class ContainerManager:
                     container.resgroup = ResGroup(name='')
             container.sync()
 
-        return self._containers
+        return self.containers
 
     def cleanup(self):
-        for container in self._containers.values():
+        for container in self.containers.values():
             container.cleanup()
 
 
