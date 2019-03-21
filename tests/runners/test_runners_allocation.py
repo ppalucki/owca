@@ -52,7 +52,8 @@ def test_allocation_runner():
         allocator=Mock(spec=Allocator, allocate=Mock(return_value=({}, [], []))),
         extra_labels=dict(extra_labels='extra_value'),
     )
-    runner._wait_or_finish = Mock(return_value=False)
+    runner._wait = Mock()
+    runner._finish = True
 
     ############
     # First run (one task, one allocation).
