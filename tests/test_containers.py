@@ -90,7 +90,7 @@ def test_sync_containers_state(platform_mock, sync_mock,
 
     # Prepare internal state used by sync_containers_state function - mock.
     # Use list for copying to have original list.
-    containers_manager.containers = dict(existing_containers)
+    containers_manager._containers = dict(existing_containers)
 
     # Call it.
     with patch('owca.resctrl.read_mon_groups_relation', return_value=mon_groups_relation):
