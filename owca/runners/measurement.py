@@ -61,20 +61,20 @@ class MeasurementRunner(Runner):
             allocation_configuration=allocation_configuration,
         )
 
-        self._last_iteration = time.time()
+        self._finish = False  # Guard to stop iterations.
+        self._last_iteration = time.time()  # Used internally by wait function.
 
     @profile_duration(name='sleep')
-    def _wait_or_finish(self):
-        """Decides how long one run takes and when to finish."""
-        # Calculate residual time, need to sleep based
-        # on already time taken by iteration.
+    def _wait(self):
+        """Decides how long one iteration should take.
+        Additionally calculate residual time, based on time already taken by iteration.
+        """
         now = time.time()
         iteration_duration = now - self._last_iteration
         self._last_iteration = now
 
         residual_time = max(0., self._action_delay - iteration_duration)
         time.sleep(residual_time)
-        return True
 
     @profile_duration(name='iteration')
     def run(self) -> int:
@@ -125,7 +125,9 @@ class MeasurementRunner(Runner):
             self._run_body(containers, platform, tasks_measurements, tasks_resources,
                            tasks_labels, common_labels)
 
-            if not self._wait_or_finish():
+            self._wait()
+
+            if self._finish:
                 break
 
         # Cleanup phase.

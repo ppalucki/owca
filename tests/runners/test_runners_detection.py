@@ -54,7 +54,8 @@ def test_detection_runner():
     )
 
     # Mock to finish after one iteration.
-    runner._wait_or_finish = Mock(return_value=False)
+    runner._wait = Mock()
+    runner._finish = True
     runner.run()
 
     got_anomalies_metrics = runner._anomalies_storage.store.mock_calls[0][1][0]
