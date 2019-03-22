@@ -54,7 +54,7 @@ class MeasurementRunner(Runner):
         self._ignore_privileges_check = ignore_privileges_check
 
         platform_cpus, _, platform_sockets = platforms.collect_topology_information()
-        self.containers_manager = ContainerManager(
+        self._containers_manager = ContainerManager(
             self._rdt_enabled,
             rdt_mb_control_enabled=False,
             platform_cpus=platform_cpus,
@@ -100,7 +100,7 @@ class MeasurementRunner(Runner):
             tasks = self._node.get_tasks()
 
             # Keep sync of found tasks and internally managed containers.
-            containers = self.containers_manager.sync_containers_state(tasks)
+            containers = self._containers_manager.sync_containers_state(tasks)
 
             # Platform information
             platform, platform_metrics, platform_labels = platforms.collect_platform_information(
@@ -131,7 +131,7 @@ class MeasurementRunner(Runner):
                 break
 
         # Cleanup phase.
-        self.containers_manager.cleanup()
+        self._containers_manager.cleanup()
         return 0
 
     def _run_body(self, containers, platform, tasks_measurements, tasks_resources,
