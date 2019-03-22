@@ -22,10 +22,10 @@ from dataclasses import dataclass
 from owca import logger
 from owca import resctrl
 from owca.allocators import AllocationConfiguration, TaskAllocations
-from owca.cgroups import Cgroup
+from owca import cgroups
 from owca.metrics import Measurements, MetricName
 from owca.nodes import Task
-from owca.perf import PerfCounters
+from owca import perf
 from owca.resctrl import ResGroup
 
 log = logging.getLogger(__name__)
@@ -63,14 +63,14 @@ class Container:
     container_name: str = None  # defaults to faltten value of provided cgroup_path
 
     def __post_init__(self):
-        self.cgroup = Cgroup(
+        self.cgroup = cgroups.Cgroup(
             self.cgroup_path,
             platform_cpus=self.platform_cpus,
             allocation_configuration=self.allocation_configuration,
         )
         self.container_name = (self.container_name or
                                _sanitize_cgroup_path(self.cgroup_path))
-        self._perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
+        self._perf_counters = perf.PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def sync(self):
         """Called every iteration to keep pids of cgroup and resctrl in sync."""

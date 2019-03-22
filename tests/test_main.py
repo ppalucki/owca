@@ -28,7 +28,7 @@ runner: !DummyRunner
 @mock.patch('os.rmdir')
 @mock.patch('owca.config.exists', return_value=True)
 @mock.patch('owca.config.open', mock.mock_open(read_data=yaml_config))
-@mock.patch('owca.containers.PerfCounters')
+@mock.patch('owca.perf.PerfCounters')
 @mock.patch('owca.main.exit')
 def test_main(*mocks):
     main.main()

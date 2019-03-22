@@ -13,44 +13,80 @@
 # limitations under the License.
 # Stores information about latest call durations for given function names in seconds.
 
+import functools
 import time
-from typing import List
+from collections import defaultdict
+from typing import List, Callable
 
 from owca.metrics import Metric, MetricType
 
-_durations = {}
+
+class Profiler:
+
+    def __init__(self):
+        self._durations = {}
+        self._call_counts = defaultdict(lambda: 0)
+        self._totals = defaultdict(lambda: 0)
+
+    def profile_duration(self, name: str) -> Callable:
+        """Register function to be profiled in terms of duration.
+
+        Has to be used as decorator or you need override function manually.
+
+        Example usage:
+
+        profiler = Profile()
+
+        class B:
+            @profiler.profile_duration('bar')
+            def method_bar(self):
+                pass
+
+        @profiler.profile_duration('bar')
+        def func_foo():
+            pass
 
 
-def profile_duration(function_to_profile=None, name=None):
-    """Decorator for profiling execution time."""
+        or
+        B.method_bar = profiler.profile_duration('bar')(B.method_bar)
 
-    def _profile_duration(function_to_profile):
-        def _inner(*args, **kwargs):
-            start = time.time()
-            rv = function_to_profile(*args, **kwargs)
-            duration = time.time() - start
-            _durations[name or function_to_profile.__name__] = duration
-            return rv
+        """
 
-        return _inner
+        def _decorator(function_to_profile):
+            @functools.wraps(function_to_profile)
+            def _inner(*args, **kwargs):
+                start = time.time()
+                result = function_to_profile(*args, **kwargs)
+                duration = time.time() - start
+                function_name = name or function_to_profile.__name__
+                self.register_duration(function_name, duration)
+                return result
 
-    if function_to_profile is None:
-        return _profile_duration
+            return _inner
 
-    return _profile_duration(function_to_profile)
+        return _decorator
+
+    def register_duration(self, function_name, duration):
+        self._durations[function_name] = duration
+        self._call_counts[function_name] += 1
+        self._totals[function_name] += duration
+
+    def get_metrics(self) -> List[Metric]:
+        metrics = []
+        for function_name, last_duration_value in sorted(self._durations.items()):
+            avg_time = self._totals[function_name] / self._call_counts[function_name]
+            metrics.extend([
+                Metric(name='owca_duration_seconds',
+                       type=MetricType.GAUGE, value=last_duration_value,
+                       labels=dict(function=function_name),
+                       ),
+                Metric(name='owca_duration_seconds_avg',
+                       type=MetricType.GAUGE, value=avg_time,
+                       labels=dict(function=function_name),
+                       ),
+            ])
+        return metrics
 
 
-def register_duration(function_name: str, duration: float):
-    _durations[function_name] = duration
-
-
-def get_profiling_metrics() -> List[Metric]:
-    metrics = []
-    for duration_name, duration_value in sorted(_durations.items()):
-        metrics.append(
-            Metric(name='owca_duration_seconds',
-                   type=MetricType.GAUGE, value=duration_value,
-                   labels=dict(function=duration_name),
-                   ),
-        )
-    return metrics
+# Global shared object to be used across whole application.
+profiler = Profiler()
