@@ -47,7 +47,7 @@ def test_cgroup_write():
     ctrl_file_mock.assert_has_calls([call().__enter__().write(b'5')])
 
 
-@patch('owca.containers.Cgroup._read', return_value=1000)
+@patch('owca.cgroups.Cgroup._read', return_value=1000)
 def test_get_normalized_shares(_read_mock):
     cgroup = Cgroup('/some/foo1', platform_cpus=1,
                     allocation_configuration=AllocationConfiguration())
@@ -82,7 +82,7 @@ def test_cgroup_get_pids():
     ]
 )
 def test_set_normalized_shares(normalized_shares, allocation_configuration, expected_shares_write):
-    with patch('owca.containers.Cgroup._write') as write_mock:
+    with patch('owca.cgroups.Cgroup._write') as write_mock:
         cgroup = Cgroup('/some/foo1', platform_cpus=1,
                         allocation_configuration=allocation_configuration)
         cgroup.set_shares(normalized_shares)
@@ -108,8 +108,8 @@ def test_set_normalized_shares(normalized_shares, allocation_configuration, expe
 )
 def test_set_normalized_quota(normalized_quota, cpu_quota_period, platforms_cpu,
                               initial_period_value, expected_period_write, expected_quota_write):
-    with patch('owca.containers.Cgroup._read', return_value=initial_period_value):
-        with patch('owca.containers.Cgroup._write') as write_mock:
+    with patch('owca.cgroups.Cgroup._read', return_value=initial_period_value):
+        with patch('owca.cgroups.Cgroup._write') as write_mock:
             cgroup = Cgroup('/some/foo1', platform_cpus=platforms_cpu,
                             allocation_configuration=AllocationConfiguration(
                                 cpu_quota_period=cpu_quota_period))

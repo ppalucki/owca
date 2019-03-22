@@ -19,14 +19,14 @@ from typing import List, Optional, Dict
 
 from dataclasses import dataclass
 
+from owca import cgroups
 from owca import logger
+from owca import perf
 from owca import resctrl
 from owca.allocators import AllocationConfiguration, TaskAllocations
-from owca.cgroups import Cgroup
 from owca.metrics import Measurements, MetricName
 from owca.nodes import Task
-from owca.perf import PerfCounters
-from owca.profiling import profile_duration
+from owca.profiling import profiler
 from owca.resctrl import ResGroup
 
 log = logging.getLogger(__name__)
@@ -64,14 +64,14 @@ class Container:
     container_name: str = None  # defaults to flatten value of provided cgroup_path
 
     def __post_init__(self):
-        self.cgroup = Cgroup(
+        self.cgroup = cgroups.Cgroup(
             self.cgroup_path,
             platform_cpus=self.platform_cpus,
             allocation_configuration=self.allocation_configuration,
         )
         self.container_name = (self.container_name or
                                _sanitize_cgroup_path(self.cgroup_path))
-        self._perf_counters = PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
+        self._perf_counters = perf.PerfCounters(self.cgroup_path, event_names=DEFAULT_EVENTS)
 
     def sync(self):
         """Called every iteration to keep pids of cgroup and resctrl in sync."""
@@ -126,7 +126,7 @@ class ContainerManager:
         self._platform_cpus = platform_cpus
         self._allocation_configuration = allocation_configuration
 
-    @profile_duration
+    @profiler.profile_duration('sync_containers_state')
     def sync_containers_state(self, tasks) -> Dict[Task, Container]:
         """Syncs state of ContainerManager with a system by removing orphaned containers,
         and creating containers for newly arrived tasks, and synchronizing containers' state.

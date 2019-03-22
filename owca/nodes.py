@@ -14,7 +14,7 @@
 
 
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, Union
 
 from dataclasses import dataclass
 
@@ -36,7 +36,7 @@ class Task:
     labels: Dict[str, str]
 
     # Initial resources assigned at orchestration level.
-    resources: Dict[str, str]
+    resources: Dict[str, Union[float, int, str]]
 
     def __hash__(self):
         """Every instance of task is uniquely identified by cgroup_path."""

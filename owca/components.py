@@ -14,14 +14,15 @@
 
 
 from typing import List
+
 try:
     import pkg_resources
 except ImportError:
     # When running from pex use vendored library from pex.
     from pex.vendor._vendored.setuptools import pkg_resources
 
-import owca.runners.allocation
-import owca.runners.detection
+from owca.runners import detection
+from owca.runners import allocation
 from owca import config
 from owca import detectors
 from owca import allocators
@@ -30,8 +31,8 @@ from owca import storage
 
 
 def register_components(extra_components: List[str]):
-    config.register(owca.runners.detection.DetectionRunner)
-    config.register(owca.runners.allocation.AllocationRunner)
+    config.register(detection.DetectionRunner)
+    config.register(allocation.AllocationRunner)
     config.register(mesos.MesosNode)
     config.register(storage.LogStorage)
     config.register(storage.KafkaStorage)

@@ -14,10 +14,10 @@
 
 
 """Module for independent simple helper functions."""
-
+import functools
 import os
 from typing import List, Dict, Union, Optional
-from unittest.mock import mock_open, Mock, patch, MagicMock
+from unittest.mock import mock_open, Mock, patch
 
 from owca import platforms
 from owca.allocators import AllocationConfiguration
@@ -128,7 +128,7 @@ def task(cgroup_path, labels=None, resources=None):
 
 def container(cgroup_path, resgroup_name=None, with_config=False):
     """Helper method to create container with patched subsystems."""
-    with patch('owca.containers.ResGroup'), patch('owca.containers.PerfCounters'):
+    with patch('owca.resctrl.ResGroup'), patch('owca.perf.PerfCounters'):
         return Container(
             cgroup_path,
             rdt_enabled=False, platform_cpus=1,
@@ -194,31 +194,44 @@ TASK_CPU_USAGE = 23
 OWCA_MEMORY_USAGE = 100
 
 
-def prepare_runner_patches(fun):
-    def _decorated_function():
+def prepare_runner_patches(func):
+    """Decorator to be used from runner tests.
+
+    The idea behind this is to use proper classes and objects for Cgroup, Resctrl and others
+    because they carry necessary information (in properties), but to cut off OS touching calls.
+
+    Decorator is responsible for mocking all objects used by runner from perspective of:
+    - resources: Cgroup, PerfCounters, ResGroup,
+    - resctrl filesystem: check_resctrl, read_mon_groups_relation,
+    - platform: collect_platform_information, collect_platform_topology,
+    - other OS related calls: getrusage, are_privileges_sufficient
+
+    It is not mocking runners internals like ContainerManager or Container classes
+    to make sure that there is proper interaction between those classes.
+    """
+
+    @functools.wraps(func)
+    def _decorated_function(*args, **kwargs):
         with patch('owca.cgroups.Cgroup.get_pids', return_value=['123']), \
              patch('owca.cgroups.Cgroup.set_quota'), \
              patch('owca.cgroups.Cgroup.set_shares'), \
-             patch('owca.containers.Cgroup.get_measurements',
+             patch('owca.cgroups.Cgroup.get_measurements',
                    return_value=dict(cpu_usage=TASK_CPU_USAGE)), \
-             patch('owca.containers.PerfCounters'), \
-             patch('owca.platforms.collect_platform_information',
-                   return_value=(platform_mock, [metric('platform-cpu-usage')], {})), \
-             patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1)), \
-             patch('owca.profiling._durations',
-                   new=MagicMock(items=Mock(return_value=[('profiled_function', 1.)]))), \
              patch('owca.resctrl.ResGroup.add_pids'), \
              patch('owca.resctrl.ResGroup.get_measurements'), \
              patch('owca.resctrl.ResGroup.get_mon_groups'), \
              patch('owca.resctrl.ResGroup.remove'), \
              patch('owca.resctrl.ResGroup.write_schemata'), \
-             patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
-             patch('resource.getrusage', return_value=Mock(ru_maxrss=OWCA_MEMORY_USAGE)), \
              patch('owca.resctrl.read_mon_groups_relation', return_value={'': []}), \
-             patch('owca.runners.measurement.check_resctrl', return_value=True), \
-             patch('owca.runners.measurement.are_privileges_sufficient', return_value=True), \
-             patch('owca.runners.allocation.cleanup_resctrl'):
-            fun()
+             patch('owca.resctrl.check_resctrl', return_value=True), \
+             patch('owca.resctrl.cleanup_resctrl'), \
+             patch('owca.perf.PerfCounters'), \
+             patch('owca.platforms.collect_platform_information',
+                   return_value=(platform_mock, [metric('platform-cpu-usage')], {})), \
+             patch('owca.platforms.collect_topology_information', return_value=(1, 1, 1)), \
+             patch('owca.security.are_privileges_sufficient', return_value=True), \
+             patch('resource.getrusage', return_value=Mock(ru_maxrss=OWCA_MEMORY_USAGE)):
+            func(*args, **kwargs)
 
     return _decorated_function
 

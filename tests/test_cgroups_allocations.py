@@ -20,8 +20,8 @@ from owca.containers import Container
 from owca.testing import allocation_metric
 
 
-@patch('owca.containers.PerfCounters')
-@patch('owca.containers.Cgroup')
+@patch('owca.perf.PerfCounters')
+@patch('owca.cgroups.Cgroup')
 def test_cgroup_allocations(Cgroup_mock, PerfCounters_mock):
     foo_container = Container('/somepath', platform_cpus=1)
     foo_container.cgroup.allocation_configuration = AllocationConfiguration()

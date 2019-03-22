@@ -19,7 +19,7 @@ import time
 from typing import List, Dict, Set, Tuple, Optional
 
 from owca.metrics import Metric, MetricName
-from owca.profiling import profile_duration
+from owca.profiling import profiler
 
 from dataclasses import dataclass
 
@@ -267,7 +267,7 @@ def _collect_rdt_information() -> RDTInformation:
                           mb_bandwidth_gran, mb_min_bandwidth)
 
 
-@profile_duration
+@profiler.profile_duration(name='collect_platform_information')
 def collect_platform_information(rdt_enabled: bool = True) -> (
         Platform, List[Metric], Dict[str, str]):
     """Returns Platform information, metrics and common labels.

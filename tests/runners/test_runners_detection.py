@@ -74,7 +74,7 @@ def test_detection_runner():
     # Check that detector was called with proper arguments.
     (platform, tasks_measurements,
      tasks_resources, tasks_labels) = detector_mock.detect.mock_calls[0][1]
-    # Make sure that proper values are propage to detect method for t1.
+    # Make sure that proper values are propagate to detect method for t1.
     assert platform == platform_mock
     # Measurements have to mach get_measurements mock from measurements_patch decorator.
     assert_subdict(tasks_measurements, {t1.task_id: {'cpu_usage': TASK_CPU_USAGE}})
@@ -84,3 +84,6 @@ def test_detection_runner():
     assert_subdict(tasks_labels, {t1.task_id: {'load_generator': 'rpc-perf-t1'}})
     # Resources should match resources from redis_task_with_default_labels
     assert_subdict(tasks_resources, {t1.task_id: t1.resources})
+
+    # Check any metrics for t2
+    assert_subdict(tasks_measurements, {t2.task_id: {'cpu_usage': TASK_CPU_USAGE}})

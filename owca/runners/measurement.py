@@ -17,6 +17,8 @@ import time
 from typing import Dict, List, Tuple, Optional
 
 from owca import nodes, storage, platforms, profiling
+from owca import resctrl
+from owca import security
 from owca.allocators import AllocationConfiguration
 from owca.containers import ContainerManager, Container
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels
@@ -24,10 +26,8 @@ from owca.logger import trace
 from owca.mesos import create_metrics, sanitize_mesos_label
 from owca.metrics import Metric, MetricType
 from owca.nodes import Task
-from owca.profiling import profile_duration
-from owca.resctrl import check_resctrl
+from owca.profiling import profiler
 from owca.runners import Runner
-from owca.security import are_privileges_sufficient
 from owca.storage import MetricPackage
 
 log = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class MeasurementRunner(Runner):
         self._finish = False  # Guard to stop iterations.
         self._last_iteration = time.time()  # Used internally by wait function.
 
-    @profile_duration(name='sleep')
+    @profiler.profile_duration(name='sleep')
     def _wait(self):
         """Decides how long one iteration should take.
         Additionally calculate residual time, based on time already taken by iteration.
@@ -76,19 +76,19 @@ class MeasurementRunner(Runner):
         residual_time = max(0., self._action_delay - iteration_duration)
         time.sleep(residual_time)
 
-    @profile_duration(name='iteration')
+    @profiler.profile_duration(name='iteration')
     def run(self) -> int:
         # Initialization.
-        if self._rdt_enabled and not check_resctrl():
+        if self._rdt_enabled and not resctrl.check_resctrl():
             return 1
         elif not self._rdt_enabled:
             log.warning('Rdt disabled. Skipping collecting measurements '
                         'and resctrl synchronization')
         else:
-            # Resctrl is enabled and available, call a placholder to allow further initialization.
-            self._rdt_initialization()
+            # Resctrl is enabled and available, call a placeholder to allow further initialization.
+            self._initialize_rdt()
 
-        if not self._ignore_privileges_check and not are_privileges_sufficient():
+        if not self._ignore_privileges_check and not security.are_privileges_sufficient():
             log.critical("Impossible to use perf_event_open. You need to: adjust "
                          "/proc/sys/kernel/perf_event_paranoid; or has CAP_DAC_OVERRIDE capability"
                          " set. You can run process as root too. See man 2 perf_event_open for "
@@ -138,17 +138,16 @@ class MeasurementRunner(Runner):
                   tasks_labels, common_labels):
         """No-op implementation of inner loop body"""
 
-    def _rdt_initialization(self):
-        """Nothing to do in RDT during detection."""
+    def _initialize_rdt(self):
+        """Nothing to configure in RDT to measure resource usage."""
 
 
-@profile_duration(name='prepare_task_data')
+@profiler.profile_duration('prepare_tasks_data')
 @trace(log, verbose=False)
 def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
         Tuple[TasksMeasurements, TasksResources, TasksLabels]:
-    """ Based on containers, prepare all necessary data for allocation and detection logic,
-    including, measurements, resources, labels and derived metrics.
-    In runner to fulfil common data requirements for Allocator and Detector class.
+    """Prepare all resource usage and resource allocation information and
+    creates container-specific labels for all the generated metrics.
     """
     # Prepare empty structures for return all the information.
     tasks_measurements: TasksMeasurements = {}
@@ -179,17 +178,15 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
     return tasks_measurements, tasks_resources, tasks_labels
 
 
-def _build_tasks_metrics(tasks_labels, tasks_measurements: TasksMeasurements) -> List[Metric]:
+def _build_tasks_metrics(tasks_labels: TasksLabels,
+                         tasks_measurements: TasksMeasurements) -> List[Metric]:
     tasks_metrics: List[Metric] = []
 
-    for task_id, task_labels in tasks_labels.items():
-        if task_id not in tasks_measurements:
-            continue
-        task_measurements = tasks_measurements[task_id]
+    for task_id, task_measurements in tasks_measurements.items():
         task_metrics = create_metrics(task_measurements)
         # Decorate metrics with task specific labels.
         for task_metric in task_metrics:
-            task_metric.labels.update(task_labels)
+            task_metric.labels.update(tasks_labels[task_id])
         tasks_metrics += task_metrics
     return tasks_metrics
 
@@ -210,6 +207,6 @@ def _get_internal_metrics(tasks: List[Task]) -> List[Metric]:
     ]
 
     # Profiling metrics.
-    metrics.extend(profiling.get_profiling_metrics())
+    metrics.extend(profiling.profiler.get_metrics())
 
     return metrics
