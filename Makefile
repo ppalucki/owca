@@ -1,5 +1,5 @@
 # Do not really on artifacts created by make for all targets.
-.PHONY: all venv flake8 unit owca_package wrapper_package clean
+.PHONY: all venv flake8 unit owca_package wrapper_package clean tests
 
 all: venv flake8 unit owca_package wrapper_package
 
@@ -15,6 +15,8 @@ flake8:
 unit: 
 	@echo Running unit tests.
 	pipenv run env PYTHONPATH=. pytest --cov-report term-missing --cov=owca tests
+
+check: flake8 unit
 
 owca_package: 
 	@echo Building owca pex file.

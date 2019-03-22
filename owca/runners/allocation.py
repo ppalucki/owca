@@ -227,7 +227,7 @@ class AllocationRunner(MeasurementRunner):
 
         # Create context allocations objects for current allocations.
         current_allocations = TasksAllocationsValues.create(
-            current_tasks_allocations, self.containers_manager.containers, platform)
+            current_tasks_allocations, self._containers_manager.containers, platform)
 
         allocations_changeset = None
         target_allocations = current_allocations
@@ -236,7 +236,7 @@ class AllocationRunner(MeasurementRunner):
             # Create and validate context allocations objects for new allocations.
             log.debug('New allocations: %s', new_tasks_allocations)
             new_allocations = TasksAllocationsValues.create(
-                new_tasks_allocations, self.containers_manager.containers, platform)
+                new_tasks_allocations, self._containers_manager.containers, platform)
             new_allocations.validate()
 
             # Update changeset and target_allocations, using information about new allocations.
@@ -249,7 +249,7 @@ class AllocationRunner(MeasurementRunner):
             log.error('Invalid allocations: %s', str(e))
             errors = [str(e)]
             target_allocations = TasksAllocationsValues.create(
-                current_tasks_allocations, self.containers_manager.containers, platform)
+                current_tasks_allocations, self._containers_manager.containers, platform)
 
         if allocations_changeset:
             log.debug('Allocations changeset: %s', allocations_changeset)
