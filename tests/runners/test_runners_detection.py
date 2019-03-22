@@ -62,6 +62,7 @@ def test_detection_runner():
 
     # Check that anomaly based metrics,
     assert_metric(got_anomalies_metrics, 'anomaly', expected_metric_some_labels={
+        LABEL_WORKLOAD_INSTANCE: t1.labels[LABEL_WORKLOAD_INSTANCE],
         LABEL_CONTENDED_TASK_ID: t1.task_id,
         LABEL_CONTENDING_WORKLOAD_INSTANCE: t2.labels[LABEL_WORKLOAD_INSTANCE]
     })
