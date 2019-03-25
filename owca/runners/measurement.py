@@ -76,8 +76,10 @@ class MeasurementRunner(Runner):
         residual_time = max(0., self._action_delay - iteration_duration)
         time.sleep(residual_time)
 
-    @profiler.profile_duration(name='iteration')
     def run(self) -> int:
+        """Loop that gathers platform and tasks metrics and calls _run_body.
+        _run_body is a method to be subclassed.
+        """
         # Initialization.
         if self._rdt_enabled and not resctrl.check_resctrl():
             return 1
@@ -95,6 +97,7 @@ class MeasurementRunner(Runner):
                          "details.")
             return 1
 
+        iteration_start = time.time()
         while True:
             # Get information about tasks.
             tasks = self._node.get_tasks()
@@ -111,21 +114,23 @@ class MeasurementRunner(Runner):
 
             # Tasks data
             tasks_measurements, tasks_resources, tasks_labels = _prepare_tasks_data(containers)
-
             tasks_metrics = _build_tasks_metrics(tasks_labels, tasks_measurements)
-
-            internal_metrics = _get_internal_metrics(tasks)
-
-            metrics_package = MetricPackage(self._metrics_storage)
-            metrics_package.add_metrics(internal_metrics)
-            metrics_package.add_metrics(platform_metrics)
-            metrics_package.add_metrics(tasks_metrics)
-            metrics_package.send(common_labels)
 
             self._run_body(containers, platform, tasks_measurements, tasks_resources,
                            tasks_labels, common_labels)
 
             self._wait()
+
+            iteration_duration = time.time() - iteration_start
+            profiling.profiler.register_duration('iteration', iteration_duration)
+
+            # Generic metrics.
+            metrics_package = MetricPackage(self._metrics_storage)
+            metrics_package.add_metrics(_get_internal_metrics(tasks))
+            metrics_package.add_metrics(platform_metrics)
+            metrics_package.add_metrics(tasks_metrics)
+            metrics_package.add_metrics(profiling.profiler.get_metrics())
+            metrics_package.send(common_labels)
 
             if self._finish:
                 break
@@ -205,8 +210,5 @@ def _get_internal_metrics(tasks: List[Task]) -> List[Metric]:
         Metric(name='owca_memory_usage_bytes', type=MetricType.GAUGE,
                value=int(memory_usage_rss * 1024)),
     ]
-
-    # Profiling metrics.
-    metrics.extend(profiling.profiler.get_metrics())
 
     return metrics
