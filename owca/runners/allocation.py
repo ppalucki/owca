@@ -33,6 +33,10 @@ from owca.storage import MetricPackage
 
 log = logging.getLogger(__name__)
 
+
+# Helper type to have a mapping from type to callable that creates proper AllocationValue.
+# Used by Allocation to AllocationValue converters. First argument is a raw (simple value)
+# and third (dict) is an common_labels.
 RegistryType = Dict[AllocationType, Callable[[Any, Container, dict], AllocationValue]]
 
 
@@ -58,12 +62,15 @@ class TasksAllocationsValues(AllocationsDict):
     @staticmethod
     def create(tasks_allocations: TasksAllocations, containers, platform):
         """Convert plain raw object TasksAllocations to boxed intelligent AllocationsDict
-        that can be serialized to metrics, validated and perform contained allocations.
+        that can be serialized to metrics, validated and can perform contained allocations.
 
-        Simple tasks allocations objects are augmented using runner and container manager
-        context to implement their responsibilities.
+        Beneath simple tasks allocations objects are augmented using data
+        from runner: containers and platform to provide context
+        to implement their responsibilities.
+
+        Additionally local object rdt_groups is created to limit number of created RDTGroups
+        and optimize writes for schemata file.
         """
-
         # Shared object to optimize schemata write and detect CLOSids exhaustion.
         rdt_groups = RDTGroups(closids_limit=platform.rdt_information.num_closids)
 
@@ -225,38 +232,41 @@ class AllocationRunner(MeasurementRunner):
         log.debug('Anomalies detected: %d', len(anomalies))
         log.debug('Current allocations: %s', current_tasks_allocations)
 
-        # Create context allocations objects for current allocations.
+        # Create context aware allocations objects for current allocations.
         current_allocations = TasksAllocationsValues.create(
             current_tasks_allocations, self._containers_manager.containers, platform)
 
+        # Handle allocations: calculate changeset and target allocations.
         allocations_changeset = None
         target_allocations = current_allocations
         errors = []
         try:
-            # Create and validate context allocations objects for new allocations.
+            # Create and validate context aware allocations objects for new allocations.
             log.debug('New allocations: %s', new_tasks_allocations)
             new_allocations = TasksAllocationsValues.create(
                 new_tasks_allocations, self._containers_manager.containers, platform)
             new_allocations.validate()
 
-            # Update changeset and target_allocations, using information about new allocations.
+            # Calculate changeset and target_allocations.
             if new_allocations is not None:
                 target_allocations, allocations_changeset = new_allocations.calculate_changeset(
                     current_allocations)
                 target_allocations.validate()
 
         except InvalidAllocations as e:
+            # Handle any allocation validation error.
+            # Log errors and restore current to generate proper metrics.
             log.error('Invalid allocations: %s', str(e))
             errors = [str(e)]
-            target_allocations = TasksAllocationsValues.create(
-                current_tasks_allocations, self._containers_manager.containers, platform)
+            target_allocations = current_allocations
 
+        # Handle allocations: perform allocations based on changeset.
         if allocations_changeset:
             log.debug('Allocations changeset: %s', allocations_changeset)
             log.info('Performing allocations on %d tasks.', len(allocations_changeset))
             allocations_changeset.perform_allocations()
 
-        # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
+        # Prepare anomaly metrics.
         anomaly_metrics = convert_anomalies_to_metrics(anomalies, tasks_labels)
         update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_labels)
 
@@ -269,12 +279,13 @@ class AllocationRunner(MeasurementRunner):
         )
         anomalies_package.send(common_labels)
 
-        # Store allocations information
+        # Prepare allocations metrics.
         allocations_metrics = target_allocations.generate_metrics()
-        allocations_package = MetricPackage(self._allocations_storage)
-
         allocations_statistic_metrics = self.get_allocations_statistics_metrics(
             new_tasks_allocations, allocate_duration, errors)
+
+        # Store allocations metrics.
+        allocations_package = MetricPackage(self._allocations_storage)
         allocations_package.add_metrics(
             allocations_metrics,
             extra_metrics,
