@@ -97,8 +97,9 @@ class MeasurementRunner(Runner):
                          "details.")
             return 1
 
-        iteration_start = time.time()
         while True:
+            iteration_start = time.time()
+
             # Get information about tasks.
             tasks = self._node.get_tasks()
 
