@@ -28,41 +28,42 @@ from owca.testing import allocation_metric, task, container
 from owca.testing import platform_mock
 
 
-@pytest.mark.parametrize('tasks_allocations,expected_metrics', (
-        ({}, []),
-        ({'t1_task_id': {AllocationType.SHARES: 0.5}}, [
-            allocation_metric('cpu_shares', value=0.5,
-                              container_name='t1', task='t1_task_id')
-        ]),
-        ({'t1_task_id': {AllocationType.RDT: RDTAllocation(mb='MB:0=20')}}, [
-            allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
-                              task='t1_task_id')
-        ]),
-        ({'t1_task_id': {AllocationType.SHARES: 0.5,
-                         AllocationType.RDT: RDTAllocation(mb='MB:0=20')}}, [
-             allocation_metric('cpu_shares', value=0.5, container_name='t1', task='t1_task_id'),
-             allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
-                               task='t1_task_id')
-         ]),
-        ({'t1_task_id': {
-            AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='MB:0=30')
-        },
-             't2_task_id': {
-                 AllocationType.QUOTA: 0.6,
-                 AllocationType.RDT: RDTAllocation(name='b', l3='L3:0=f'),
-             }
-         }, [
-             allocation_metric('cpu_shares', value=0.5, container_name='t1', task='t1_task_id'),
-             allocation_metric('rdt_mb', 30, group_name='t1', domain_id='0', container_name='t1',
-                               task='t1_task_id'),
-             allocation_metric('cpu_quota', value=0.6, container_name='t2', task='t2_task_id'),
-             allocation_metric('rdt_l3_cache_ways', 4, group_name='b',
-                               domain_id='0', container_name='t2', task='t2_task_id'),
-             allocation_metric('rdt_l3_mask', 15, group_name='b',
-                               domain_id='0', container_name='t2', task='t2_task_id'),
-         ]),
+@pytest.mark.parametrize('tasks_allocations, expected_metrics', (
+    ({}, []),
+    ({'t1_task_id': {AllocationType.SHARES: 0.5}}, [
+        allocation_metric('cpu_shares', value=0.5,
+                          container_name='t1', task='t1_task_id')
+    ]),
+    ({'t1_task_id': {AllocationType.RDT: RDTAllocation(mb='MB:0=20')}}, [
+        allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
+                          task='t1_task_id')
+    ]),
+    ({'t1_task_id': {AllocationType.SHARES: 0.5,
+                     AllocationType.RDT: RDTAllocation(mb='MB:0=20')}}, [
+         allocation_metric('cpu_shares', value=0.5, container_name='t1', task='t1_task_id'),
+         allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
+                           task='t1_task_id')
+     ]),
+    ({'t1_task_id': {
+        AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='MB:0=30')
+    },
+         't2_task_id': {
+             AllocationType.QUOTA: 0.6,
+             AllocationType.RDT: RDTAllocation(name='b', l3='L3:0=f'),
+         }
+     }, [
+         allocation_metric('cpu_shares', value=0.5, container_name='t1', task='t1_task_id'),
+         allocation_metric('rdt_mb', 30, group_name='t1', domain_id='0', container_name='t1',
+                           task='t1_task_id'),
+         allocation_metric('cpu_quota', value=0.6, container_name='t2', task='t2_task_id'),
+         allocation_metric('rdt_l3_cache_ways', 4, group_name='b',
+                           domain_id='0', container_name='t2', task='t2_task_id'),
+         allocation_metric('rdt_l3_mask', 15, group_name='b',
+                           domain_id='0', container_name='t2', task='t2_task_id'),
+     ]),
 ))
-def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics):
+def test_allocations_generate_metrics(tasks_allocations, expected_metrics):
+    """Check that proper allocations metrics are generated. """
     containers = {task('/t1'): container('/t1'),
                   task('/t2'): container('/t2'),
                   }
@@ -89,11 +90,15 @@ def test_convert_task_allocations_to_metrics(tasks_allocations, expected_metrics
     ]
 )
 def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_changeset):
-    # Extra mapping
+    """Check that changeset is properly calculated."""
 
+    # We need have to convert simple objects to wrapped using mocks, so
+    # prepare class mocks (constructors).
     CgroupMock = Mock(spec=Cgroup)
     ResGroupMock = Mock(spec=ResGroup)
     ContainerMock = Mock(spec=Container)
+
+    # Limiter for rdtgroups - 20 is enough to be not limited by number of rdtgroups.
     rdt_groups = RDTGroups(20)
 
     def rdt_allocation_value_constructor(allocation_value, container, common_labels):
@@ -114,14 +119,15 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
         else:
             return None
 
-    # Conversion
+    # Convert both current and new value.
     current_dict = convert_dict(current)
     new_dict = convert_dict(new)
+    expected_changeset_dict = convert_dict(expected_changeset)
 
-    # Merge
+    # Calculate the difference to get changeset.
     got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
 
-    assert got_changeset_dict == convert_dict(expected_changeset)
+    assert got_changeset_dict == expected_changeset_dict
 
 
 @pytest.mark.parametrize('tasks_allocations,expected_error', [
@@ -133,6 +139,8 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
      'too many resource groups for available CLOSids'),
 ])
 def test_convert_invalid_task_allocations(tasks_allocations, expected_error):
+    """After allocations are converted, check that for improper input values
+    proper validation exception with appropriate message is raised."""
     containers = {task('/t1'): container('/t1'),
                   task('/t2'): container('/t2'),
                   task('/t3'): container('/t3'),
@@ -232,7 +240,6 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
     ]
 )
 @patch('owca.runners.allocation.cleanup_resctrl')
-# @patch('owca.resctrl.get_max_rdt_values', Mock(retrun_value=('L3MAX', 'MBMAX')))
 @patch('owca.platforms.collect_platform_information', return_value=(platform_mock, [], {}))
 def test_rdt_initializtion(rdt_max_values_mock, cleanup_resctrl_mock,
                            default_rdt_l3, default_rdt_mb,
