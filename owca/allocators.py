@@ -19,8 +19,8 @@ from typing import List, Dict, Union, Optional
 from dataclasses import dataclass
 
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
-from owca.nodes import TaskId
 from owca.metrics import Metric
+from owca.nodes import TaskId
 from owca.platforms import Platform
 
 log = logging.getLogger(__name__)

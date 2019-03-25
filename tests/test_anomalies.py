@@ -19,22 +19,22 @@ from owca.testing import anomaly, anomaly_metrics
 
 
 @pytest.mark.parametrize('anomalies,tasks_labels,expected_metrics', (
-        ([], {}, []),
-        (
-                [anomaly('t1', ['t2'])],
-                {'t1': {'workload_instance': 't1_workload_instance'},
-                 't2': {'workload_instance': 't2_workload_instance'}},
-                anomaly_metrics('t1', ['t2'],
-                                {'t1': 't1_workload_instance', 't2': 't2_workload_instance'})),
-        (
-                [anomaly('t2', ['t1', 't3'])],
-                {'t1': {'workload_instance': 't1_workload_instance'},
-                 't2': {'workload_instance': 't2_workload_instance'},
-                 't3': {'workload_instance': 't3_workload_instance'}},
-                anomaly_metrics('t2', ['t1', 't3'],
-                                {'t1': 't1_workload_instance', 't2': 't2_workload_instance',
-                                 't3': 't3_workload_instance'})
-        ),
+    ([], {}, []),
+    (
+        [anomaly('t1', ['t2'])],
+        {'t1': {'workload_instance': 't1_workload_instance'},
+         't2': {'workload_instance': 't2_workload_instance'}},
+        anomaly_metrics('t1', ['t2'],
+                        {'t1': 't1_workload_instance', 't2': 't2_workload_instance'})),
+    (
+        [anomaly('t2', ['t1', 't3'])],
+        {'t1': {'workload_instance': 't1_workload_instance'},
+         't2': {'workload_instance': 't2_workload_instance'},
+         't3': {'workload_instance': 't3_workload_instance'}},
+        anomaly_metrics('t2', ['t1', 't3'],
+                        {'t1': 't1_workload_instance', 't2': 't2_workload_instance',
+                         't3': 't3_workload_instance'})
+    ),
 ))
 def test_convert_anomalies_to_metrics(anomalies, tasks_labels, expected_metrics):
     metrics_got = convert_anomalies_to_metrics(anomalies, tasks_labels)
