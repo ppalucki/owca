@@ -23,6 +23,7 @@ from owca.nodes import Node, Task
 
 log = logging.getLogger(__name__)
 
+
 @dataclass
 class StaticNode(Node):
     """Dummy implementation of tasks for testing."""
