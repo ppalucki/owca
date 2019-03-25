@@ -35,6 +35,9 @@ SCALING_RATE_WARNING_THRESHOLD = 1.50
 
 
 def _get_cpu_model() -> pc.CPUModel:
+    if not os.path.exists('/dev/cpu/0/cpuid'):
+        log.warning('cannot detect cpu model - returning unknown')
+        return pc.CPUModel.UNKNOWN
     with SetEffectiveRootUid():
         with open("/dev/cpu/0/cpuid", "rb") as f:
             b = f.read(32)
