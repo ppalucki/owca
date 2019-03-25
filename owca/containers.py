@@ -19,13 +19,14 @@ from typing import List, Optional, Dict
 
 from dataclasses import dataclass
 
+from owca import cgroups
 from owca import logger
+from owca import perf
 from owca import resctrl
 from owca.allocators import AllocationConfiguration, TaskAllocations
-from owca import cgroups
 from owca.metrics import Measurements, MetricName
 from owca.nodes import Task
-from owca import perf
+from owca.profiling import profiler
 from owca.resctrl import ResGroup
 
 log = logging.getLogger(__name__)
@@ -57,10 +58,10 @@ class Container:
     cgroup_path: str
     platform_cpus: int
     resgroup: ResGroup = None
-    allocation_configuration: Optional[AllocationConfiguration] = None
+    allocation_configuration: Optional[AllocationConfiguration] = None  # Only used for allocations.
     rdt_enabled: bool = True
     rdt_mb_control_enabled: bool = False
-    container_name: str = None  # defaults to faltten value of provided cgroup_path
+    container_name: str = None  # defaults to flatten value of provided cgroup_path
 
     def __post_init__(self):
         self.cgroup = cgroups.Cgroup(
@@ -125,6 +126,7 @@ class ContainerManager:
         self._platform_cpus = platform_cpus
         self._allocation_configuration = allocation_configuration
 
+    @profiler.profile_duration('sync_containers_state')
     def sync_containers_state(self, tasks) -> Dict[Task, Container]:
         """Syncs state of ContainerManager with a system by removing orphaned containers,
         and creating containers for newly arrived tasks, and synchronizing containers' state.
@@ -162,6 +164,7 @@ class ContainerManager:
 
         # Prepare state of currently assigned resgroups
         # and remove some orphaned resgroups
+        container_name_to_ctrl_group = {}
         if self._rdt_enabled:
             mon_groups_relation = resctrl.read_mon_groups_relation()
             log.debug('mon_groups_relation (before cleanup): %s',
@@ -174,7 +177,6 @@ class ContainerManager:
 
             # Calculate inverse relation of container_name
             # to res_group name based on mon_groups_relations
-            container_name_to_ctrl_group = {}
             for ctrl_group, container_names in mon_groups_relation.items():
                 for container_name in container_names:
                     container_name_to_ctrl_group[container_name] = ctrl_group

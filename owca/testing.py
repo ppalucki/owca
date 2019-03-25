@@ -224,6 +224,7 @@ def prepare_runner_patches(func):
              patch('owca.resctrl.ResGroup.write_schemata'), \
              patch('owca.resctrl.read_mon_groups_relation', return_value={'': []}), \
              patch('owca.resctrl.check_resctrl', return_value=True), \
+             patch('owca.resctrl.cleanup_resctrl'), \
              patch('owca.perf.PerfCounters'), \
              patch('owca.platforms.collect_platform_information',
                    return_value=(platform_mock, [metric('platform-cpu-usage')], {})), \

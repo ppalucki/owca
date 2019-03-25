@@ -14,6 +14,7 @@
 
 
 from typing import List
+
 try:
     import pkg_resources
 except ImportError:
@@ -21,6 +22,7 @@ except ImportError:
     from pex.vendor._vendored.setuptools import pkg_resources
 
 from owca.runners import detection
+from owca.runners import allocation
 from owca import config
 from owca import detectors
 from owca import allocators
@@ -30,6 +32,7 @@ from owca import storage
 
 def register_components(extra_components: List[str]):
     config.register(detection.DetectionRunner)
+    config.register(allocation.AllocationRunner)
     config.register(mesos.MesosNode)
     config.register(storage.LogStorage)
     config.register(storage.KafkaStorage)
