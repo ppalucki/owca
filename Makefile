@@ -1,7 +1,7 @@
 # Do not really on artifacts created by make for all targets.
 .PHONY: all venv flake8 unit owca_package wrapper_package clean tests check dist
 
-all: venv flake8 unit owca_package wrapper_package
+all: venv check dist
 
 venv:
 	@echo Preparing virtual enviornment using pipenv.

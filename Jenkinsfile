@@ -21,7 +21,7 @@ pipeline {
         stage("Build pex files") {
             steps {
                 sh '''
-                  make venv owca_package wrapper_package
+                  make venv dist
                 '''
                 stash(name: "wrappers", includes: "dist/**")
                 archiveArtifacts(artifacts: "dist/**")
