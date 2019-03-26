@@ -24,12 +24,20 @@ from owca import logger
 from owca.metrics import Measurements, MetricName
 from owca.security import SetEffectiveRootUid
 
-LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
+try:
+    LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
+except OSError:
+    LIBC = None
 
 log = logging.getLogger(__name__)
 
+SCALING_RATE_WARNING_THRESHOLD = 1.50
+
 
 def _get_cpu_model() -> pc.CPUModel:
+    if not os.path.exists('/dev/cpu/0/cpuid'):
+        log.warning('cannot detect cpu model - returning unknown')
+        return pc.CPUModel.UNKNOWN
     with SetEffectiveRootUid():
         with open("/dev/cpu/0/cpuid", "rb") as f:
             b = f.read(32)
@@ -146,7 +154,8 @@ def _scale_counter_value(raw_value, time_enabled, time_running) -> float:
         return 0.0
     if time_running != time_enabled:
         scaling_rate = float(time_enabled) / float(time_running)
-        log.warning(f'Measurement scaling rate: {scaling_rate}')
+        if scaling_rate > SCALING_RATE_WARNING_THRESHOLD:
+            log.warning(f'Measurement scaling rate: {scaling_rate}')
         return round(float(raw_value) * scaling_rate)
     else:
         return float(raw_value)
