@@ -1,7 +1,7 @@
 # Do not really on artifacts created by make for all targets.
-.PHONY: all venv flake8 unit owca_package wrapper_package clean tests
+.PHONY: all venv flake8 unit owca_package wrapper_package clean tests check dist
 
-all: venv flake8 unit owca_package wrapper_package
+all: venv check dist
 
 venv:
 	@echo Preparing virtual enviornment using pipenv.
@@ -15,8 +15,6 @@ flake8:
 unit: 
 	@echo Running unit tests.
 	pipenv run env PYTHONPATH=. pytest --cov-report term-missing --cov=owca tests
-
-check: flake8 unit
 
 owca_package: 
 	@echo Building owca pex file.
@@ -41,6 +39,9 @@ wrapper_package:
 	pipenv run pex . -v -R component-licenses --cache-dir=.pex-build $(PEX_OPTIONS) -o dist/stress_ng_wrapper.pex -m owca.wrapper.parser_stress_ng
 	./dist/wrapper.pex --help >/dev/null
 
+check: flake8 unit
+
+dist: owca_package wrapper_package
 
 clean:
 	@echo Cleaning.
@@ -48,4 +49,3 @@ clean:
 	rm -rf owca.egg-info
 	rm -rf dist
 	pipenv --rm
-
