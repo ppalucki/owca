@@ -1,6 +1,8 @@
 import argparse
 import yaml
 import os
+import subprocess
+import signal
 
 
 def _get_arguments():
@@ -23,6 +25,13 @@ def _parse_config(path):
         return yaml.load(f)
 
 
+def _create_dumb_process():
+    command = ['sleep', 'inf']
+    p = subprocess.Popen(command)
+    os.system('echo {0}')
+    return p.pid
+
+
 def _get_cgroup_path(task):
     cpu_path = '/sys/fs/cgroup/cpu/{}/tasks'.format(task)
     perf_path = '/sys/fs/cgroup/perf_event/{}/tasks/'.format(task)
@@ -32,20 +41,22 @@ def _get_cgroup_path(task):
 
 def _create_cgroup(task):
     cpu_path, perf_path = _get_cgroup_path(task)
-
-    os.makedirs(cpu_path.format(task))
-    os.makedirs(perf_path.format(task))
+    try:
+        os.makedirs(cpu_path.format(task))
+        os.makedirs(perf_path.format(task))
+    except FileExistsError:
+        print('{} already in cgroup'.format(task))
 
 
 def _delete_cgroup(task):
     cpu_path, perf_path = _get_cgroup_path(task)
-    command = 'find {0} -depth -type d -print -exec rmdir {{}} \\;'
+    command = 'sudo find {0} -depth -type d -print -exec rmdir {{}} \\;'
 
     os.system(command.format(cpu_path))
     os.system(command.format(perf_path))
 
 
-def _handle_test_case(case, prev_tasks, tasks_file_path, allocations_file_path):
+def _handle_test_case(case, prev_tasks, tasks_file_path, allocations_file_path, check_sleep, test_sleep):
     pids = []
     tasks = []
 
@@ -55,6 +66,10 @@ def _handle_test_case(case, prev_tasks, tasks_file_path, allocations_file_path):
         for task in case['tasks']:
             _create_cgroup(task)
             _delete_cgroup(task)
+            pid = _create_dumb_process(task)
+            pids.append(pid)
+            os.kill(pid, signal.SIGKILL)
+            import IPython; IPython.embed()
             prev_tasks.add(task)
             tasks.append(
                     {'name': '{}_name'.format(task),
@@ -63,6 +78,8 @@ def _handle_test_case(case, prev_tasks, tasks_file_path, allocations_file_path):
                         })
         with open(tasks_file_path, 'w') as f:
             f.write(yaml.dump(tasks))
+        time.sleep(test_sleep)
+        time.sleep(check_sleep)
 
 
 def main():
@@ -77,7 +94,7 @@ def main():
     prev_tasks = set()
 
     for case in config['tests']:
-        _handle_test_case(config['tests'][case], prev_tasks, tasks_file_path, allocations_file_path)
+        _handle_test_case(config['tests'][case], prev_tasks, tasks_file_path, allocations_file_path, check_sleep, test_sleep)
 
 
 if __name__ == '__main__':
