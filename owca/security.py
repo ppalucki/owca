@@ -94,12 +94,14 @@ def _read_paranoid() -> int:
 class SetEffectiveRootUid:
     def __enter__(self):
         self.uid = os.geteuid()
-        os.seteuid(0)
-        log.log(logger.TRACE, "Effective user id from {} to 0".format(self.uid))
+        if self.uid != 0:
+            os.seteuid(0)
+            log.log(logger.TRACE, "Effective user id from {} to 0".format(self.uid))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
             log.warning("Exception {} with message {} thrown".format(exc_type, exc_val))
-        os.seteuid(self.uid)
-        log.log(logger.TRACE, "Effective user id from 0 to {}".format(self.uid))
-        self.uid = 0
+        if self.uid != 0:
+            os.seteuid(self.uid)
+            log.log(logger.TRACE, "Effective user id from 0 to {}".format(self.uid))
+            self.uid = 0

@@ -32,7 +32,6 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class MesosTask(Task):
-
     # Fields only used debugging purposes.
     executor_pid: int
     container_id: str  # Mesos containerizer identifier "ID used to uniquely identify a container"
@@ -65,6 +64,7 @@ def find_cgroup(pid):
 class MesosNode(Node):
     mesos_agent_endpoint: str = 'https://127.0.0.1:5051'
     ssl_verify: Union[bool, str] = True  # requests: Can be used to pass cert CA bundle.
+    timeout: float = 5.  # request timeout in seconds
 
     METHOD = 'GET_STATE'
     api_path = '/api/v1'
@@ -81,7 +81,8 @@ class MesosNode(Node):
         r = requests.post(
             full_url,
             json=dict(type=self.METHOD),
-            verify=self.ssl_verify
+            verify=self.ssl_verify,
+            timeout=self.timeout,
         )
         r.raise_for_status()
         state = r.json()
