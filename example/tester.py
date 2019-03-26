@@ -3,6 +3,11 @@ import yaml
 import os
 import subprocess
 import signal
+import time
+
+
+CPU_PATH = '/sys/fs/cgroup/cpu/{}/tasks'
+PERF_PATH = '/sys/fs/cgroup/perf_event/{}/tasks'
 
 
 def _get_arguments():
@@ -25,61 +30,66 @@ def _parse_config(path):
         return yaml.load(f)
 
 
-def _create_dumb_process():
+def _create_dumb_process(task):
     command = ['sleep', 'inf']
     p = subprocess.Popen(command)
-    os.system('echo {0}')
+    cpu_path, perf_path = _get_cgroup_path(task)
+    with open(cpu_path, 'a') as f:
+        f.write(str(p.pid))
+    with open(perf_path, 'a') as f:
+        f.write(str(p.pid))
+
     return p.pid
 
 
-def _get_cgroup_path(task):
-    cpu_path = '/sys/fs/cgroup/cpu/{}/tasks'.format(task)
-    perf_path = '/sys/fs/cgroup/perf_event/{}/tasks/'.format(task)
+def _kill_dumb_process(pid):
+    os.kill(pid, signal.SIGKILL)
 
-    return cpu_path, perf_path
+
+def _get_cgroup_path(task):
+    return CPU_PATH.format(task), PERF_PATH.format(task)
 
 
 def _create_cgroup(task):
     cpu_path, perf_path = _get_cgroup_path(task)
     try:
         os.makedirs(cpu_path.format(task))
+    except FileExistsError:
+        print('{} already in cpu cgroup'.format(task))
+
+    try:
         os.makedirs(perf_path.format(task))
     except FileExistsError:
-        print('{} already in cgroup'.format(task))
+        print('{} already in perf_event cpgroup'.format(task))
 
 
 def _delete_cgroup(task):
     cpu_path, perf_path = _get_cgroup_path(task)
     command = 'sudo find {0} -depth -type d -print -exec rmdir {{}} \\;'
+    import IPython; IPython.embed()
+    try:
+        os.system(command.format(cpu_path))
+    except FileNotFoundError:
+        print('{} not found in cpu cgroup'.format(task))
 
-    os.system(command.format(cpu_path))
-    os.system(command.format(perf_path))
+    try:
+        os.system(command.format(perf_path))
+    except FileNotFoundError:
+        print('{} not found in perf_event cgroup'.format(task))
 
 
 def _handle_test_case(case, prev_tasks, tasks_file_path, allocations_file_path, check_sleep, test_sleep):
-    pids = []
-    tasks = []
+    pids = set()
 
-    if len(prev_tasks):
-        pass
-    else:
-        for task in case['tasks']:
-            _create_cgroup(task)
-            _delete_cgroup(task)
-            pid = _create_dumb_process(task)
-            pids.append(pid)
-            os.kill(pid, signal.SIGKILL)
-            import IPython; IPython.embed()
-            prev_tasks.add(task)
-            tasks.append(
-                    {'name': '{}_name'.format(task),
-                        'task_id': task,
-                        'cgroup_path': '/{}'.format(task)
-                        })
-        with open(tasks_file_path, 'w') as f:
-            f.write(yaml.dump(tasks))
-        time.sleep(test_sleep)
-        time.sleep(check_sleep)
+    for task in case['tasks']:
+        _create_cgroup(task)
+        pid = _create_dumb_process(task)
+        pids.add(pid)
+        prev_tasks.add(task)
+        time.sleep(int(test_sleep))
+        _kill_dumb_process(pid)
+        pids.remove(pid)
+        _delete_cgroup(task)
 
 
 def main():
