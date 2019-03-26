@@ -30,14 +30,11 @@ class Tester(Node, Allocator, Storage):
     config: str
 
     def __post_init__(self):
-        #self.config
         self.config_data = load_config(self.config)
 
-        #
         self.metrics = []
 
     def get_tasks(self) -> List[Task]:
-
         # jesli to jest second run:
 
 
@@ -60,73 +57,48 @@ class Tester(Node, Allocator, Storage):
     def store(self, metrics: List[Metric]) -> None:
         self.metrics.extend(metrics)
 
+    def _create_dumb_process(self, task):
+        command = ['sleep', 'inf']
+        p = subprocess.Popen(command)
+        cpu_path, perf_path = self._get_cgroup_path(task)
+        with open(cpu_path, 'a') as f:
+            f.write(str(p.pid))
+        with open(perf_path, 'a') as f:
+            f.write(str(p.pid))
 
-def _get_arguments():
-    parser = argparse.ArgumentParser()
+        return p.pid
 
-    parser.add_argument(
-        '-c', '--config',
-        help="Configuration file path for tester.",
-        required=False,
-        default='example/tester.yml'
-    )
+    def _kill_dumb_process(self, pid):
+        os.kill(pid, signal.SIGKILL)
 
-    args = parser.parse_args()
+    def _get_cgroup_path(self, task):
+        return CPU_PATH.format(task), PERF_PATH.format(task)
 
-    return args.config
+    def _create_cgroup(self, task):
+        cpu_path, perf_path = self._get_cgroup_path(task)
+        try:
+            os.makedirs(cpu_path.format(task))
+        except FileExistsError:
+            print('{} already in cpu cgroup'.format(task))
 
+        try:
+            os.makedirs(perf_path.format(task))
+        except FileExistsError:
+            print('{} already in perf_event cpgroup'.format(task))
 
-def _parse_config(path):
-    with open(path, 'r') as f:
-        return yaml.load(f)
+    def _delete_cgroup(self, task):
+        cpu_path, perf_path = self._get_cgroup_path(task)
+        command = 'sudo find {0} -depth -type d -print -exec rmdir {{}} \\;'
+        import IPython; IPython.embed()
+        try:
+            os.system(command.format(cpu_path))
+        except FileNotFoundError:
+            print('{} not found in cpu cgroup'.format(task))
 
-
-def _create_dumb_process(task):
-    command = ['sleep', 'inf']
-    p = subprocess.Popen(command)
-    cpu_path, perf_path = _get_cgroup_path(task)
-    with open(cpu_path, 'a') as f:
-        f.write(str(p.pid))
-    with open(perf_path, 'a') as f:
-        f.write(str(p.pid))
-
-    return p.pid
-
-
-def _kill_dumb_process(pid):
-    os.kill(pid, signal.SIGKILL)
-
-
-def _get_cgroup_path(task):
-    return CPU_PATH.format(task), PERF_PATH.format(task)
-
-
-def _create_cgroup(task):
-    cpu_path, perf_path = _get_cgroup_path(task)
-    try:
-        os.makedirs(cpu_path.format(task))
-    except FileExistsError:
-        print('{} already in cpu cgroup'.format(task))
-
-    try:
-        os.makedirs(perf_path.format(task))
-    except FileExistsError:
-        print('{} already in perf_event cpgroup'.format(task))
-
-
-def _delete_cgroup(task):
-    cpu_path, perf_path = _get_cgroup_path(task)
-    command = 'sudo find {0} -depth -type d -print -exec rmdir {{}} \\;'
-    import IPython; IPython.embed()
-    try:
-        os.system(command.format(cpu_path))
-    except FileNotFoundError:
-        print('{} not found in cpu cgroup'.format(task))
-
-    try:
-        os.system(command.format(perf_path))
-    except FileNotFoundError:
-        print('{} not found in perf_event cgroup'.format(task))
+        try:
+            os.system(command.format(perf_path))
+        except FileNotFoundError:
+            print('{} not found in perf_event cgroup'.format(task))
 
 
 def _handle_test_case(case, prev_tasks, tasks_file_path, allocations_file_path, check_sleep, test_sleep):
