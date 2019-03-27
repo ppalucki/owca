@@ -1,4 +1,5 @@
 import logging
+import sys
 import os
 import signal
 import subprocess
@@ -25,19 +26,29 @@ class Tester(Node, Allocator, Storage):
 
     def __post_init__(self):
         self.config_data = load_config(self.config)
-        self.test_number = 0
+        self.test_current = 1
+        self.test_number = len(self.config_data['tests'])
         self.metrics = []
         self.pids = []
-        self.tasks = List[Task]
+        self.tasks = []
 
     def get_tasks(self) -> List[Task]:
-        test_case = self.config_data['tests'][self.test_number]
 
-        if self.test_number > 0:
+        # Check if all test cases.
+        if self.test_current > self.test_number:
+            log.info('All tests passed')
+            sys.exit(0)
+
+        # Save current test case.
+        test_case = self.config_data['tests'][self.test_number - 1]
+
+        log.info(self.test_number)
+
+        # Checks can be done after first test case.
+        if self.test_number > 1:
             # delete processes before
             # delete cgroups
             for check in test_case['checks']:
-                # do checks
                 pass
 
             for pid in self.pids:
@@ -46,11 +57,13 @@ class Tester(Node, Allocator, Storage):
             for task in self.tasks:
                 _delete_cgroup(task.cgroup_path)
 
-            pass
+        self.tasks = []
 
         for task_name in test_case['tasks']:
             name, task_id, cgroup_path = _parse_task_name(task_name)
-            task = Task(name=name, task_id=task_id, cgroup_path=cgroup_path)
+            labels = dict()
+            resources = dict()
+            task = Task(name, task_id, cgroup_path, labels, resources)
 
             _create_cgroup(cgroup_path)
 
@@ -59,13 +72,16 @@ class Tester(Node, Allocator, Storage):
 
             self.tasks.append(task)
 
+        self.test_current += 1
+
         return self.tasks
 
     def allocate(self, platform: Platform, tasks_measurements: TasksMeasurements,
                  tasks_resources: TasksResources, tasks_labels: TasksLabels,
                  tasks_allocations: TasksAllocations) -> (
+
             TasksAllocations, List[Anomaly], List[Metric]):
-        pass
+        return {}, list(), list()
         # tu kod ze static_allocatora parsujacy rule
         # z yamka z allocation_rules
 
@@ -74,8 +90,13 @@ class Tester(Node, Allocator, Storage):
 
 
 def _parse_task_name(task):
-    name = task.split('/')[-1]
-    return name, name, task
+    splitted = task.split('/')
+    name = splitted[-1]
+
+    if len(splitted) > 1:
+        return name, name, task
+
+    return name, name, '/{}'.format(task)
 
 
 def _create_dumb_process(task):
