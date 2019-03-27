@@ -290,6 +290,7 @@ def test_read_broadwell_cpu_model(*args):
 
 
 @patch('owca.perf.SetEffectiveRootUid')
+@patch('os.path.exists', Mock(return_value=True))
 @patch('builtins.open', new=create_open_mock({
     "/dev/cpu/0/cpuid": b"\x0b\x00\x00\x00\x47\x65\x6e\x75\x6e\x74\x65\x6c\x69\x6e\x65\x49"
                         b"\xe5\x06\x01\x00\x00\x08\x10\x00\xfd\xe3\x98\x00\xff\xfb\xeb\xbf"
