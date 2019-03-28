@@ -18,7 +18,7 @@ import pytest
 
 from owca.resctrl import check_resctrl, get_max_rdt_values, read_mon_groups_relation, \
     clean_taskless_groups
-from owca.resctrl_allocations import check_cbm_bits
+from owca.resctrl_allocations import check_cbm_mask
 from owca.testing import create_open_mock
 
 
@@ -102,8 +102,8 @@ def test_get_max_rdt_values(cbm_mask, platform_sockets, expected_max_rdt_l3, exp
     assert got_max_rdt_mb == expected_max_rdt_mb
 
 
-def test_check_cbm_bits_valid():
-    check_cbm_bits('ff00', 'ffff', '1')
+def test_check_cbm_mask_valid():
+    check_cbm_mask('ff00', 'ffff', '1')
 
 
 @patch('os.path.isdir', side_effect=lambda path: path in {
