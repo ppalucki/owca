@@ -1,11 +1,13 @@
+import abc
+import time
 import logging
 import sys
 import os
-import signal
 import subprocess
 
 from dataclasses import dataclass
 from typing import List
+
 from owca.allocators import Allocator, TasksAllocations
 from owca.config import load_config
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
@@ -16,8 +18,8 @@ from owca.storage import Storage
 
 log = logging.getLogger(__name__)
 
-CPU_PATH = '/sys/fs/cgroup/cpu/{}/tasks'
-PERF_PATH = '/sys/fs/cgroup/perf_event/{}/tasks'
+CPU_PATH = '/sys/fs/cgroup/cpu{}'
+PERF_PATH = '/sys/fs/cgroup/perf_event{}'
 
 
 @dataclass
@@ -29,33 +31,30 @@ class Tester(Node, Allocator, Storage):
         self.test_current = 1
         self.test_number = len(self.config_data['tests'])
         self.metrics = []
-        self.pids = []
+        self.processes: List[subprocess.Popen] = []
         self.tasks = []
 
     def get_tasks(self) -> List[Task]:
 
         # Check if all test cases.
         if self.test_current > self.test_number:
+            self._clean_processes()
+            time.sleep(0.1)
+            self._clean_cgroups()
             log.info('All tests passed')
             sys.exit(0)
 
         # Save current test case.
-        test_case = self.config_data['tests'][self.test_number - 1]
-
-        log.info(self.test_number)
+        test_case = self.config_data['tests'][self.test_current - 1]
 
         # Checks can be done after first test case.
-        if self.test_number > 1:
-            # delete processes before
-            # delete cgroups
+        if self.test_current > 1:
             for check in test_case['checks']:
                 pass
 
-            for pid in self.pids:
-                _kill_dumb_process(pid)
-
-            for task in self.tasks:
-                _delete_cgroup(task.cgroup_path)
+            self._clean_processes()
+            time.sleep(0.1)
+            self._clean_cgroups()
 
         self.tasks = []
 
@@ -67,8 +66,8 @@ class Tester(Node, Allocator, Storage):
 
             _create_cgroup(cgroup_path)
 
-            pid = _create_dumb_process(cgroup_path)
-            self.pids.append(pid)
+            process = _create_dumb_process(cgroup_path)
+            self.processes.append(process)
 
             self.tasks.append(task)
 
@@ -88,6 +87,15 @@ class Tester(Node, Allocator, Storage):
     def store(self, metrics: List[Metric]) -> None:
         self.metrics.extend(metrics)
 
+    def _clean_processes(self):
+        for process in self.processes:
+            process.terminate()
+        self.processes.clear()
+
+    def _clean_cgroups(self):
+        for task in self.tasks:
+            _delete_cgroup(task.cgroup_path)
+
 
 def _parse_task_name(task):
     splitted = task.split('/')
@@ -99,20 +107,17 @@ def _parse_task_name(task):
     return name, name, '/{}'.format(task)
 
 
-def _create_dumb_process(task):
+def _create_dumb_process(cgroup_path):
     command = ['sleep', 'inf']
     p = subprocess.Popen(command)
-    cpu_path, perf_path = _get_cgroup_full_path(task)
-    with open(cpu_path, 'a') as f:
+    cpu_path, perf_path = _get_cgroup_full_path(cgroup_path)
+
+    with open('{}/tasks'.format(cpu_path), 'a') as f:
         f.write(str(p.pid))
-    with open(perf_path, 'a') as f:
+    with open('{}/tasks'.format(perf_path), 'a') as f:
         f.write(str(p.pid))
 
-    return p.pid
-
-
-def _kill_dumb_process(pid):
-    os.kill(pid, signal.SIGKILL)
+    return p
 
 
 def _get_cgroup_full_path(cgroup):
@@ -133,17 +138,21 @@ def _create_cgroup(cgroup_path):
         log.warning('perf_event cgroup "{}" already exists'.format(cgroup_path))
 
 
-# TODO: Refactor
 def _delete_cgroup(cgroup_path):
     cpu_path, perf_path = _get_cgroup_full_path(cgroup_path)
-    command = 'sudo find {0} -depth -type d -print -exec rmdir {{}} \\;'
 
     try:
-        os.system(command.format(cpu_path))
+        os.rmdir(cpu_path)
     except FileNotFoundError:
         log.warning('cpu cgroup "{}" not found'.format(cgroup_path))
 
     try:
-        os.system(command.format(perf_path))
+        os.rmdir(perf_path)
     except FileNotFoundError:
         log.warning('perf_event cgroup "{}" not found'.format(cgroup_path))
+
+
+class Check(abc.ABC):
+    @abc.abstractmethod
+    def check(self):
+        pass

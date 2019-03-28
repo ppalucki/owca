@@ -1,7 +1,7 @@
 tests:
   - test_case_name1:	
     tasks: 
-      - task1										# -> cgroup_path=/task1 
+      - /buu/buu/task1										# -> cgroup_path=/task1 
       - /be/ble/task2  							# -> cgroup_path=/be/ble/task2 name=task2 task_id=task2 -> Task
     allocations_rules: # Rules
       - name: wszycy maja jedna quaota
@@ -14,6 +14,8 @@ tests:
           rdt:
             cache: 1
     checks:
+      - some
+      - some2
 #      - !FileCheck
 #        path: 
 #          name: 
@@ -26,7 +28,7 @@ tests:
 
   - test_case_name2:	
     tasks: 
-      - task1										# -> cgroup_path=/task1 
+      - /buu/buu/task1										# -> cgroup_path=/task1 
       - /be/ble/task2  							# -> cgroup_path=/be/ble/task2 name=task2 task_id=task2 -> Task
     allocations_rules: # Rules
       - name: wszycy maja jedna quaota
@@ -39,6 +41,8 @@ tests:
           rdt:
             cache: 1
     checks:
+      - some
+      - some2
 #      - !FileCheck
 #        path: 
 #          name: 
