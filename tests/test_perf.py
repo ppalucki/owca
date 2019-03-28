@@ -272,6 +272,7 @@ def test_read_events_zero_values_one_cpu(_open_mock, _get_cgroup_fd_mock):
 
 
 @patch('owca.perf.SetEffectiveRootUid')
+@patch('os.path.exists', Mock(return_value=True))
 @patch('builtins.open', new=create_open_mock({
     "/dev/cpu/0/cpuid": b"\x16\x00\x00\x00\x47\x65\x6e\x75\x6e\x74\x65\x6c\x69\x6e\x65\x49"
                         b"\x54\x06\x05\x00\x00\x08\x40\x00\xff\xfb\xfe\x7f\xff\xfb\xeb\xbf"
@@ -281,6 +282,7 @@ def test_read_skylake_cpu_model(*args):
 
 
 @patch('owca.perf.SetEffectiveRootUid')
+@patch('os.path.exists', Mock(return_value=True))
 @patch('builtins.open', new=create_open_mock({
     "/dev/cpu/0/cpuid": b"\x14\x00\x00\x00\x47\x65\x6e\x75\x6e\x74\x65\x6c\x69\x6e\x65\x49"
                         b"\xf1\x06\x04\x00\x00\x08\x20\x00\xff\xfb\xfe\x7f\xff\xfb\xeb\xbf"
