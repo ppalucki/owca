@@ -21,9 +21,15 @@ from owca.runners.allocation import AllocationRunner
 from owca.testing import redis_task_with_default_labels, prepare_runner_patches, \
     assert_subdict, assert_metric
 
+# Patch Container get_allocations (simulate allocations read from OS filesystem)
+_os_tasks_allocations = {
+    AllocationType.QUOTA: 1.,
+    AllocationType.RDT: RDTAllocation(name='', l3='L3:0=fffff', mb='MB:0=50')
+}
 
+@patch('owca.containers.Container.get_allocations', return_value=_os_tasks_allocations)
 @prepare_runner_patches
-def test_allocation_runner():
+def test_allocation_runner(_get_allocations_mock):
     """ Low level system calls are not mocked - but higher level objects and functions:
         Cgroup, Resgroup, Platform, etc. Thus the test do not cover the full usage scenario
         (such tests would be much harder to write).
@@ -32,13 +38,6 @@ def test_allocation_runner():
     t1 = redis_task_with_default_labels('t1')
     t2 = redis_task_with_default_labels('t2')
 
-    # Patch Container get_allocations (simulate allocations read from OS filesystem)
-    os_tasks_allocations = {
-        AllocationType.QUOTA: 1.,
-        AllocationType.RDT: RDTAllocation(name='', l3='L3:0=fffff', mb='MB:0=50')
-    }
-    patch('owca.containers.Container.get_allocations',
-          return_value=os_tasks_allocations).__enter__()
 
     # Allocator mock (lower the quota and number of cache ways in dedicated group).
     # Patch some of the functions of AllocationRunner.
@@ -67,7 +66,7 @@ def test_allocation_runner():
 
     # Check that allocator.allocate was called with proper arguments.
     (_, _, _, _, tasks_allocations) = runner._allocator.allocate.mock_calls[0][1]
-    assert_subdict(tasks_allocations, {t1.task_id: os_tasks_allocations})
+    assert_subdict(tasks_allocations, {t1.task_id: _os_tasks_allocations})
 
     # Check allocation metrics ...
     got_allocations_metrics = runner._allocations_storage.store.call_args[0][0]
@@ -104,8 +103,8 @@ def test_allocation_runner():
     # Check allocate call.
     (_, _, _, _, tasks_allocations) = runner._allocator.allocate.mock_calls[1][1]
     # (note: tasks_allocations are always read from filesystem)
-    assert_subdict(tasks_allocations, {t1.task_id: os_tasks_allocations,
-                                       t2.task_id: os_tasks_allocations})
+    assert_subdict(tasks_allocations, {t1.task_id: _os_tasks_allocations,
+                                       t2.task_id: _os_tasks_allocations})
 
     ############
     # Third run (two tasks, two allocations) - modify L3 cache and put in the same group

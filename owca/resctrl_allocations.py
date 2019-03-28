@@ -234,13 +234,13 @@ class RDTAllocationValue(AllocationValue):
     def validate(self):
         """Check L3 mask according platform.rdt_ features."""
         if self.rdt_allocation.l3:
-            _validate_l3_string(self.rdt_allocation.l3,
-                                self.platform_sockets,
-                                self.rdt_cbm_mask,
-                                self.rdt_min_cbm_bits)
+            validate_l3_string(self.rdt_allocation.l3,
+                               self.platform_sockets,
+                               self.rdt_cbm_mask,
+                               self.rdt_min_cbm_bits)
         if self.rdt_allocation.mb:
-            _validate_mb_string(self.rdt_allocation.mb,
-                                self.platform_sockets)
+            validate_mb_string(self.rdt_allocation.mb,
+                               self.platform_sockets)
 
         self.rdt_groups.validate(self)
 
@@ -321,7 +321,7 @@ def _parse_schemata_file_row(line: str) -> Dict[str, str]:
     return domains
 
 
-def _validate_l3_string(l3, platform_sockets, rdt_cbm_mask, rdt_min_cbm_bits):
+def validate_l3_string(l3, platform_sockets, rdt_cbm_mask, rdt_min_cbm_bits):
     if not l3.startswith('L3:'):
         raise InvalidAllocations(
             'l3 resources setting should start with "L3:" prefix (got %r)' % l3)
@@ -332,12 +332,12 @@ def _validate_l3_string(l3, platform_sockets, rdt_cbm_mask, rdt_min_cbm_bits):
                                      platform_sockets, len(domains)))
 
     for mask_value in domains.values():
-        check_cbm_bits(mask_value,
+        check_cbm_mask(mask_value,
                        rdt_cbm_mask,
                        rdt_min_cbm_bits)
 
 
-def _validate_mb_string(mb, platform_sockets):
+def validate_mb_string(mb, platform_sockets):
     if not mb.startswith('MB:'):
         raise InvalidAllocations(
             'mb resources setting should start with "MB:" prefix (got %r)' % mb)
@@ -357,7 +357,7 @@ def _count_enabled_bits(hexstr: str) -> int:
     return enabled_bits_count
 
 
-def check_cbm_bits(mask: str, cbm_mask: str, min_cbm_bits: str):
+def check_cbm_mask(mask: str, cbm_mask: str, min_cbm_bits: str):
     mask = int(mask, 16)
     cbm_mask = int(cbm_mask, 16)
     if mask > cbm_mask:

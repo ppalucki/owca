@@ -29,38 +29,38 @@ from owca.testing import platform_mock
 
 
 @pytest.mark.parametrize('tasks_allocations, expected_metrics', (
-    ({}, []),
-    ({'t1_task_id': {AllocationType.SHARES: 0.5}}, [
-        allocation_metric('cpu_shares', value=0.5,
-                          container_name='t1', task='t1_task_id')
-    ]),
-    ({'t1_task_id': {AllocationType.RDT: RDTAllocation(mb='MB:0=20')}}, [
-        allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
-                          task='t1_task_id')
-    ]),
-    ({'t1_task_id': {AllocationType.SHARES: 0.5,
-                     AllocationType.RDT: RDTAllocation(mb='MB:0=20')}}, [
-         allocation_metric('cpu_shares', value=0.5, container_name='t1', task='t1_task_id'),
-         allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
-                           task='t1_task_id')
-     ]),
-    ({'t1_task_id': {
-        AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='MB:0=30')
-    },
-         't2_task_id': {
-             AllocationType.QUOTA: 0.6,
-             AllocationType.RDT: RDTAllocation(name='b', l3='L3:0=f'),
-         }
-     }, [
-         allocation_metric('cpu_shares', value=0.5, container_name='t1', task='t1_task_id'),
-         allocation_metric('rdt_mb', 30, group_name='t1', domain_id='0', container_name='t1',
-                           task='t1_task_id'),
-         allocation_metric('cpu_quota', value=0.6, container_name='t2', task='t2_task_id'),
-         allocation_metric('rdt_l3_cache_ways', 4, group_name='b',
-                           domain_id='0', container_name='t2', task='t2_task_id'),
-         allocation_metric('rdt_l3_mask', 15, group_name='b',
-                           domain_id='0', container_name='t2', task='t2_task_id'),
-     ]),
+        ({}, []),
+        ({'t1_task_id': {AllocationType.SHARES: 0.5}}, [
+            allocation_metric('cpu_shares', value=0.5,
+                              container_name='t1', task='t1_task_id')
+        ]),
+        ({'t1_task_id': {AllocationType.RDT: RDTAllocation(mb='MB:0=20')}}, [
+            allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
+                              task='t1_task_id')
+        ]),
+        ({'t1_task_id': {AllocationType.SHARES: 0.5,
+                         AllocationType.RDT: RDTAllocation(mb='MB:0=20')}}, [
+             allocation_metric('cpu_shares', value=0.5, container_name='t1', task='t1_task_id'),
+             allocation_metric('rdt_mb', 20, group_name='t1', domain_id='0', container_name='t1',
+                               task='t1_task_id')
+         ]),
+        ({'t1_task_id': {
+            AllocationType.SHARES: 0.5, AllocationType.RDT: RDTAllocation(mb='MB:0=30')
+        },
+             't2_task_id': {
+                 AllocationType.QUOTA: 0.6,
+                 AllocationType.RDT: RDTAllocation(name='b', l3='L3:0=f'),
+             }
+         }, [
+             allocation_metric('cpu_shares', value=0.5, container_name='t1', task='t1_task_id'),
+             allocation_metric('rdt_mb', 30, group_name='t1', domain_id='0', container_name='t1',
+                               task='t1_task_id'),
+             allocation_metric('cpu_quota', value=0.6, container_name='t2', task='t2_task_id'),
+             allocation_metric('rdt_l3_cache_ways', 4, group_name='b',
+                               domain_id='0', container_name='t2', task='t2_task_id'),
+             allocation_metric('rdt_l3_mask', 15, group_name='b',
+                               domain_id='0', container_name='t2', task='t2_task_id'),
+         ]),
 ))
 def test_allocations_generate_metrics(tasks_allocations, expected_metrics):
     """Check that proper allocations metrics are generated. """
@@ -123,11 +123,13 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
     current_dict = convert_dict(current)
     new_dict = convert_dict(new)
     expected_changeset_dict = convert_dict(expected_changeset)
+    expected_target_dict = convert_dict(expected_target)
 
     # Calculate the difference to get changeset.
     got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
 
     assert got_changeset_dict == expected_changeset_dict
+    assert got_target_dict == expected_target_dict
 
 
 @pytest.mark.parametrize('tasks_allocations,expected_error', [
@@ -239,17 +241,16 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
         ('L3:0=00f', 'wrong mb', True, True, 'mb resources setting should start with', True, None),
     ]
 )
-@patch('owca.runners.allocation.cleanup_resctrl')
+@patch('owca.resctrl.cleanup_resctrl')
 @patch('owca.platforms.collect_platform_information', return_value=(platform_mock, [], {}))
-def test_rdt_initialization(rdt_max_values_mock, cleanup_resctrl_mock,
-                           default_rdt_l3, default_rdt_mb,
-                           config_rdt_mb_control_enabled,
-                           platform_rdt_mb_control_enabled,
-                           expected_exception,
-                           expected_final_rdt_mb_control_enabled_with_value,
-                           expected_cleanup_arguments,
-                           ):
-
+def test_rdt_initialize(rdt_max_values_mock, cleanup_resctrl_mock,
+                            default_rdt_l3, default_rdt_mb,
+                            config_rdt_mb_control_enabled,
+                            platform_rdt_mb_control_enabled,
+                            expected_exception,
+                            expected_final_rdt_mb_control_enabled_with_value,
+                            expected_cleanup_arguments,
+                            ):
     allocation_configuration = AllocationConfiguration(
         default_rdt_mb=default_rdt_mb,
         default_rdt_l3=default_rdt_l3
@@ -272,9 +273,9 @@ def test_rdt_initialization(rdt_max_values_mock, cleanup_resctrl_mock,
             rdt_mb_control_enabled=platform_rdt_mb_control_enabled)):
         if expected_exception:
             with pytest.raises(Exception, match=expected_exception):
-                runner._rdt_initialization()
+                runner._initialize_rdt()
         else:
-            runner._rdt_initialization()
+            runner._initialize_rdt()
 
     if expected_final_rdt_mb_control_enabled_with_value:
         assert runner._rdt_mb_control_enabled == expected_final_rdt_mb_control_enabled_with_value
