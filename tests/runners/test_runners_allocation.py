@@ -27,6 +27,7 @@ _os_tasks_allocations = {
     AllocationType.RDT: RDTAllocation(name='', l3='L3:0=fffff', mb='MB:0=50')
 }
 
+
 @patch('owca.containers.Container.get_allocations', return_value=_os_tasks_allocations)
 @prepare_runner_patches
 def test_allocation_runner(_get_allocations_mock):
@@ -37,7 +38,6 @@ def test_allocation_runner(_get_allocations_mock):
     # Tasks mock
     t1 = redis_task_with_default_labels('t1')
     t2 = redis_task_with_default_labels('t2')
-
 
     # Allocator mock (lower the quota and number of cache ways in dedicated group).
     # Patch some of the functions of AllocationRunner.

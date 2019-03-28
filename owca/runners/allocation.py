@@ -263,7 +263,6 @@ class AllocationRunner(MeasurementRunner):
         # Handle allocations: calculate changeset and target allocations.
         allocations_changeset = None
         target_allocations = current_allocations
-        errors = []
         try:
             # Create and validate context aware allocations objects for new allocations.
             log.debug('New allocations: %s', new_tasks_allocations)

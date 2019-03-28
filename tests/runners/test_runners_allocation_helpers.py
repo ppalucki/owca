@@ -244,13 +244,13 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
 @patch('owca.resctrl.cleanup_resctrl')
 @patch('owca.platforms.collect_platform_information', return_value=(platform_mock, [], {}))
 def test_rdt_initialize(rdt_max_values_mock, cleanup_resctrl_mock,
-                            default_rdt_l3, default_rdt_mb,
-                            config_rdt_mb_control_enabled,
-                            platform_rdt_mb_control_enabled,
-                            expected_exception,
-                            expected_final_rdt_mb_control_enabled_with_value,
-                            expected_cleanup_arguments,
-                            ):
+                        default_rdt_l3, default_rdt_mb,
+                        config_rdt_mb_control_enabled,
+                        platform_rdt_mb_control_enabled,
+                        expected_exception,
+                        expected_final_rdt_mb_control_enabled_with_value,
+                        expected_cleanup_arguments,
+                        ):
     allocation_configuration = AllocationConfiguration(
         default_rdt_mb=default_rdt_mb,
         default_rdt_l3=default_rdt_l3
