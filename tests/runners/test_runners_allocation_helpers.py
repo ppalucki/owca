@@ -1,4 +1,4 @@
-# Copyright (c) 2018 Intel Corporation
+# Copyright (c) 2019 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -241,7 +241,7 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
 )
 @patch('owca.runners.allocation.cleanup_resctrl')
 @patch('owca.platforms.collect_platform_information', return_value=(platform_mock, [], {}))
-def test_rdt_initializtion(rdt_max_values_mock, cleanup_resctrl_mock,
+def test_rdt_initialization(rdt_max_values_mock, cleanup_resctrl_mock,
                            default_rdt_l3, default_rdt_mb,
                            config_rdt_mb_control_enabled,
                            platform_rdt_mb_control_enabled,
