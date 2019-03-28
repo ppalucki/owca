@@ -22,6 +22,8 @@ include('../common.aurora')
 
 # Port that Cassnadra will bind to.
 cassandra_port = os.environ.get('communication_port', '9042')
+storage_port = os.environ.get('storage_port', '7000')
+jmx_port = os.environ.get('jmx_port', '7199')
 #----------------------------------------------------------------------------------------------------
 
 jobs = [
@@ -35,10 +37,9 @@ jobs = [
           cmdline="""
             set -x \
             && sed -i 's/native_transport_port: 9042/native_transport_port: {cassandra_port}/' /etc/cassandra/cassandra.yaml \
-            && sed -i 's/storage_port: 7000/storage_port: {{{{thermos.ports[storage_port]}}}}/' /etc/cassandra/cassandra.yaml \
-            && sed -i 's/JMX_PORT=\"7199\"/JMX_PORT=\"{{{{thermos.ports[jmx_port]}}}}\"/' /etc/cassandra/cassandra-env.sh \
-            && cat /etc/cassandra/cassandra.yaml
-            """.format(cassandra_port=cassandra_port)
+            && sed -i 's/storage_port: 7000/storage_port: {storage_port}/' /etc/cassandra/cassandra.yaml \
+            && sed -i 's/JMX_PORT=\"7199\"/JMX_PORT=\"{jmx_port}\"/' /etc/cassandra/cassandra-env.sh \
+            """.format(cassandra_port=cassandra_port, storage_port=storage_port, jmx_port=jmx_port)
         ),
         Process(
           name='cassandra',
