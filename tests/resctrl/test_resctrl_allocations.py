@@ -21,7 +21,7 @@ from owca.allocations import InvalidAllocations
 from owca.allocators import RDTAllocation
 from owca.resctrl import ResGroup
 from owca.resctrl_allocations import RDTAllocationValue, RDTGroups, _parse_schemata_file_row, \
-    _count_enabled_bits, check_cbm_bits
+    _count_enabled_bits, check_cbm_mask
 from owca.testing import create_open_mock, allocation_metric
 
 
@@ -220,4 +220,4 @@ def test_count_enabled_bits(hexstr, expected_bits_count):
 def test_check_cbm_bits_gap(mask: str, cbm_mask: str, min_cbm_bits: str,
                             expected_error_message: str):
     with pytest.raises(InvalidAllocations, match=expected_error_message):
-        check_cbm_bits(mask, cbm_mask, min_cbm_bits)
+        check_cbm_mask(mask, cbm_mask, min_cbm_bits)

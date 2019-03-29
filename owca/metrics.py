@@ -93,7 +93,7 @@ class Metric:
     name: Union[str, MetricName]
     value: MetricValue
     labels: Dict[str, str] = field(default_factory=dict)
-    type: Union[MetricType, str] = None
+    type: MetricType = None
     help: str = None
 
     @staticmethod

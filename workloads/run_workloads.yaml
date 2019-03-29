@@ -122,6 +122,7 @@
           own_ip: "{{application_host_ip}}"
         environment:
           jmx_port: "{{workload_version.jmx_port + item.workload_instance_index}}"
+          storage_port: "{{workload_version.storage_port + item.workload_instance_index}}"
         command: "{{create_job_command}}"
         loop: "{{instances_version_iterator}}"
         tags: cassandra_ycsb--cassandra
@@ -150,6 +151,7 @@
           own_ip: "{{application_host_ip}}"
         environment:
           jmx_port: "{{workload_version.jmx_port + item.workload_instance_index}}"
+          storage_port: "{{workload_version.storage_port + item.workload_instance_index}}"
         command: "{{create_job_command}}"
         loop: "{{instances_version_iterator}}"
         tags: cassandra_stress--cassandra
