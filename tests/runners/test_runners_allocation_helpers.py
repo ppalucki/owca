@@ -67,10 +67,10 @@ def test_allocations_generate_metrics(tasks_allocations, expected_metrics):
     containers = {task('/t1'): container('/t1'),
                   task('/t2'): container('/t2'),
                   }
-    allocations = TasksAllocationsValues.create(
+    allocations_values = TasksAllocationsValues.create(
         tasks_allocations, containers, platform_mock)
-    allocations.validate()
-    metrics_got = allocations.generate_metrics()
+    allocations_values.validate()
+    metrics_got = allocations_values.generate_metrics()
     assert metrics_got == expected_metrics
 
 
@@ -120,16 +120,16 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
             return None
 
     # Convert both current and new value.
-    current_dict = convert_dict(current)
-    new_dict = convert_dict(new)
-    expected_changeset_dict = convert_dict(expected_changeset)
-    expected_target_dict = convert_dict(expected_target)
+    current_values = convert_dict(current)
+    new_values = convert_dict(new)
+    expected_changeset_values = convert_dict(expected_changeset)
+    expected_target_values = convert_dict(expected_target)
 
     # Calculate the difference to get changeset.
-    got_target_dict, got_changeset_dict = new_dict.calculate_changeset(current_dict)
+    got_target_values, got_changeset_values = new_values.calculate_changeset(current_values)
 
-    assert got_changeset_dict == expected_changeset_dict
-    assert got_target_dict == expected_target_dict
+    assert got_changeset_values == expected_changeset_values
+    assert got_target_values == expected_target_values
 
 
 @pytest.mark.parametrize('tasks_allocations,expected_error', [
@@ -206,12 +206,12 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
        Container.write_schemata is called with allocate_rdt=True."""
     containers = {task('/t1'): container('/t1', resgroup_name='', with_config=True),
                   task('/t2'): container('/t2', resgroup_name='', with_config=True)}
-    allocations = TasksAllocationsValues.create(
+    allocations_values = TasksAllocationsValues.create(
         tasks_allocations, containers, platform_mock)
-    allocations.validate()
+    allocations_values.validate()
     with patch('owca.resctrl.ResGroup.write_schemata') as mock, \
             patch('owca.cgroups.Cgroup._write'), patch('owca.cgroups.Cgroup._read'):
-        allocations.perform_allocations()
+        allocations_values.perform_allocations()
         assert mock.call_count == expected_resgroup_reallocation_count
 
 
