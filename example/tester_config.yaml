@@ -14,13 +14,11 @@ tests:
           rdt:
             cache: 1
     checks:
-      - some
-      - some2
-#      - !FileCheck
+      - !FileCheck
 #        path: 
 #          name: 
 #            /sys/fs/cgroup/cpu/1: "250"
-#      - !MetricCheck:
+      - !MetricCheck
 #        name: cpu_usage
 #        labels:
 #          task_id: task1
@@ -41,13 +39,11 @@ tests:
           rdt:
             cache: 1
     checks:
-      - some
-      - some2
-#      - !FileCheck
+      - !FileCheck
 #        path: 
 #          name: 
 #            /sys/fs/cgroup/cpu/1: "250"
-#      - !MetricCheck:
+      - !MetricCheck
 #        name: cpu_usage
 #        labels:
 #          task_id: task1
