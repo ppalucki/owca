@@ -49,8 +49,9 @@ class Tester(Node, Allocator, Storage):
 
         # Checks can be done after first test case.
         if self.test_current > 1:
-            for check in test_case['checks']:
-                pass
+            for check_case in test_case['checks']:
+                check_case: Check
+                check_case.check()
 
             self._clean_processes()
             time.sleep(0.1)
@@ -154,5 +155,20 @@ def _delete_cgroup(cgroup_path):
 
 class Check(abc.ABC):
     @abc.abstractmethod
+    def check(self):
+        pass
+
+
+@dataclass
+class FileCheck(Check):
+    path: dict()
+
+    def check(self):
+        pass
+
+
+@dataclass
+class MetricCheck(Check):
+
     def check(self):
         pass
