@@ -130,7 +130,7 @@ class AllocationRunner(MeasurementRunner):
     and storing all allocation related metrics in allocations_storage.
 
     Because Allocator interface is also detector, we store serialized detected anomalies
-    in anomalies_storage and all other measurments in metrics_storage.
+    in anomalies_storage and all other measurements in metrics_storage.
 
     Switching rdt_enabled to False disables both monitoring and allocation of Intel RDT resources.
     rdt_mb_control_enabled allows to force enabling or disabling MBA control (default to auto
@@ -218,26 +218,6 @@ class AllocationRunner(MeasurementRunner):
 
         resctrl.cleanup_resctrl(root_rdt_l3, root_rdt_mb)
 
-    def _get_allocations_statistics_metrics(self, tasks_allocations, allocation_duration):
-        """Extra external plugin allocations statistics."""
-        if len(tasks_allocations):
-            self._allocations_counter += len(tasks_allocations)
-
-        metrics = [
-            Metric(name='allocations_count', type=MetricType.COUNTER,
-                   value=self._allocations_counter),
-            Metric(name='allocations_errors', type=MetricType.COUNTER,
-                   value=self._allocations_errors),
-        ]
-
-        if allocation_duration is not None:
-            metrics.extend([
-                Metric(name='allocation_duration', type=MetricType.GAUGE,
-                       value=allocation_duration)
-            ])
-
-        return metrics
-
     def _run_body(self,
                   containers, platform,
                   tasks_measurements, tasks_resources,
@@ -257,37 +237,40 @@ class AllocationRunner(MeasurementRunner):
         log.debug('Current allocations: %s', current_tasks_allocations)
 
         # Create context aware allocations objects for current allocations.
-        current_allocations = TasksAllocationsValues.create(
+        current_allocations_values = TasksAllocationsValues.create(
             current_tasks_allocations, self._containers_manager.containers, platform)
 
         # Handle allocations: calculate changeset and target allocations.
-        allocations_changeset = None
-        target_allocations = current_allocations
+        allocations_changeset_values = None
+        target_allocations_values = current_allocations_values
         try:
             # Create and validate context aware allocations objects for new allocations.
             log.debug('New allocations: %s', new_tasks_allocations)
-            new_allocations = TasksAllocationsValues.create(
+            new_allocations_values = TasksAllocationsValues.create(
                 new_tasks_allocations, self._containers_manager.containers, platform)
-            new_allocations.validate()
+            new_allocations_values.validate()
 
             # Calculate changeset and target_allocations.
-            if new_allocations is not None:
-                target_allocations, allocations_changeset = new_allocations.calculate_changeset(
-                    current_allocations)
-                target_allocations.validate()
+            if new_allocations_values is not None:
+                target_allocations_values, allocations_changeset_values = \
+                    new_allocations_values.calculate_changeset(current_allocations_values)
+                target_allocations_values.validate()
+
+            self._allocations_counter += len(new_tasks_allocations)
 
         except InvalidAllocations as e:
             # Handle any allocation validation error.
             # Log errors and restore current to generate proper metrics.
             log.error('Invalid allocations: %s', str(e))
+            log.warning('Ignoring all allocations in this iteration due to validation error!')
             self._allocations_errors += 1
-            target_allocations = current_allocations
+            target_allocations_values = current_allocations_values
 
         # Handle allocations: perform allocations based on changeset.
-        if allocations_changeset:
-            log.debug('Allocations changeset: %s', allocations_changeset)
-            log.info('Performing allocations on %d tasks.', len(allocations_changeset))
-            allocations_changeset.perform_allocations()
+        if allocations_changeset_values:
+            log.debug('Allocations changeset: %s', allocations_changeset_values)
+            log.info('Performing allocations on %d tasks.', len(allocations_changeset_values))
+            allocations_changeset_values.perform_allocations()
 
         # Prepare anomaly metrics.
         anomaly_metrics = convert_anomalies_to_metrics(anomalies, tasks_labels)
@@ -303,9 +286,9 @@ class AllocationRunner(MeasurementRunner):
         anomalies_package.send(common_labels)
 
         # Prepare allocations metrics.
-        allocations_metrics = target_allocations.generate_metrics()
-        allocations_statistic_metrics = self._get_allocations_statistics_metrics(
-            new_tasks_allocations, allocate_duration)
+        allocations_metrics = target_allocations_values.generate_metrics()
+        allocations_statistic_metrics = _get_allocations_statistics_metrics(
+            self._allocations_counter, self._allocations_errors, allocate_duration)
 
         # Store allocations metrics.
         allocations_package = MetricPackage(self._allocations_storage)
@@ -323,3 +306,22 @@ def _get_tasks_allocations(containers) -> TasksAllocations:
         task_allocations = container.get_allocations()
         tasks_allocations[task.task_id] = task_allocations
     return tasks_allocations
+
+
+def _get_allocations_statistics_metrics(allocations_count, allocations_errors, allocation_duration):
+    """Extra external plugin allocations statistics."""
+
+    metrics = [
+        Metric(name='allocations_count', type=MetricType.COUNTER,
+               value=allocations_count),
+        Metric(name='allocations_errors', type=MetricType.COUNTER,
+               value=allocations_errors),
+    ]
+
+    if allocation_duration is not None:
+        metrics.extend([
+            Metric(name='allocation_duration', type=MetricType.GAUGE,
+                   value=allocation_duration)
+        ])
+
+    return metrics
