@@ -116,12 +116,14 @@ OWCA main control loop is based on ``Runner`` base class that implements
 single ``run`` blocking method. Depending on ``Runner`` class used, the OWCA is run in different execution mode (e.g. detection,
 allocation).
 
+Refer to full of list of `Components`_ for futher reference.
+
 Available runners:
 
 - ``MeasurementRunner`` simple runner that only collects data without calling detection/allocation API.
 - ``DetectionRunner`` implements the loop calling ``detect`` function in
   regular and configurable intervals. See `detection API <docs/detection.rst>`_ for details.
-- ``AllocationRunner`` (Work in progress) implements the loop calling ``allocate`` function in
+- ``AllocationRunner`` implements the loop calling ``allocate`` function in
   regular and configurable intervals. See `allocation API <docs/allocation.rst>`_ for details.
 
 Conceptually ``Runner`` reads a state of the system (both metrics and workloads),
@@ -151,7 +153,10 @@ Configuration mechanism allows to:
 
 .. _`YAML tags`: http://yaml.org/spec/1.2/spec.html#id2764295
 
-See `external detector example <docs/extrenal_detector_example.rst>`_ for more details.
+See `external detector example <docs/external_detector_example.rst>`_ for more details.
+
+Components
+----------
 
 Following built-in components are available (stable API):
 
