@@ -33,7 +33,6 @@ log = logging.getLogger('owca.main')
 
 
 def main():
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-c', '--config',
@@ -112,7 +111,6 @@ def main():
         import logging_tree
         logging_tree.printout()
         print('------------------------------------ Logging tree END------------------')
-
 
     # Extract main loop component.
     runner = configuration['runner']

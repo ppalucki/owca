@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from owca import nodes, storage, detectors
 from owca.detectors import convert_anomalies_to_metrics, \
