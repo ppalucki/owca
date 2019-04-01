@@ -155,11 +155,11 @@ See `external detector example <docs/extrenal_detector_example.rst>`_ for more d
 
 Following built-in components are available (stable API):
 
-- `MesosNode <owca/mesos.py>`_ provides workload discovery on Mesos cluster node where `mesos containerizer <http://mesos.apache.org/documentation/latest/mesos-containerizer/>`_ is used.
-- `MeasurementRunner <owca/runners/measurement.py>`_ implements simple loop that reads state of the system, encodes this information as metrics and stores in external location.
-- `DetectionRunner <owca/runners/detection.py>`_ implements anomaly detection loop and encodes anomalies as metrics to enable alerting and analysis. See `Detection API <docs/detection.rst>`_ for more details.
-- `AllocationRunner <owca/runners/allocation.py>`_ implements resource allocation loop.See `Allocation API <docs/allocation.rst>`_ for more details (Work in progress).
-- `NOPAnomalyDetector <owca/detectors.py>`_ dummy "no operation" detector that returns no metrics, nor anomalies. See `Detection API <docs/detection.rst>`_ for more details.
+- `MesosNode <owca/mesos.py#L64>`_ provides workload discovery on Mesos cluster node where `mesos containerizer <http://mesos.apache.org/documentation/latest/mesos-containerizer/>`_ is used.
+- `MeasurementRunner <owca/runners/measurement.py#L36>`_ implements simple loop that reads state of the system, encodes this information as metrics and stores in external location.
+- `DetectionRunner <owca/runners/detection.py#L52>`_ implements anomaly detection loop and encodes anomalies as metrics to enable alerting and analysis. See `Detection API <docs/detection.rst>`_ for more details.
+- `AllocationRunner <owca/runners/allocation.py#L127>`_ implements resource allocation loop.See `Allocation API <docs/allocation.rst>`_ for more details (Work in progress).
+- `NOPAnomalyDetector <owca/detectors.py#L164>`_ dummy "no operation" detector that returns no metrics, nor anomalies. See `Detection API <docs/detection.rst>`_ for more details.
 - `NOPAllocator <owca/detectors.py>`_ dummy "no operation" detector that returns no metrics, nor anomalies. See `Detection API <docs/detection.rst>`_ for more details.
 - `KafkaStorage <owca/storage.py>`_ logs metrics to  `Kafka streaming platform <https://kafka.apache.org/>`_ using configurable topics 
 - `LogStorage <owca/storage.py>`_ logs metrics to standard error or to a file at configurable location.
