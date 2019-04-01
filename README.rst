@@ -57,15 +57,56 @@ OWCA is targeted at and tested on Centos 7.5.
     # Clone the repository & build.
     git clone https://github.com/intel/owca
     cd owca
-    pipenv install --dev
-    make
+    make venv
 
     # Prepare tasks manually (only cgroups are required)
     sudo mkdir /sys/fs/cgroups/{cpu,cpuacct,perf_event}/task1
 
-    # Run manually
-    sudo dist/owca.pex --config configs/static_measurements.yaml --root
+    # Example of running agent in measurments-only mode with predefined static list of tasks
+    sudo dist/owca.pex --config configs/extra/static_measurements.yaml --root
 
+    # Example of static allocation with predefined rules on predefined list of tasks.
+    sudo dist/owca.pex --config configs/extra/static_allocator.yaml --root
+
+
+Running those commands outputs metrics in Promethus format to standard error like this:
+
+.. code-block:: ini
+
+    # HELP cache_misses Linux Perf counter for cache-misses per container.
+    # TYPE cache_misses counter
+    cache_misses{cores="4",cpus="8",host="gklab-126-081",owca_version="0.1.dev655+g586f259.d20190401",sockets="1",task_id="task1"} 0.0 1554139418146
+
+    # HELP cpu_usage_per_cpu [1/USER_HZ] Logical CPU usage in 1/USER_HZ (usually 10ms).Calculated using values based on /proc/stat
+    # TYPE cpu_usage_per_cpu counter
+    cpu_usage_per_cpu{cores="4",cpu="0",cpus="8",host="gklab-126-081",owca_version="0.1.dev655+g586f259.d20190401",sockets="1"} 5103734 1554139418146
+    cpu_usage_per_cpu{cores="4",cpu="1",cpus="8",host="gklab-126-081",owca_version="0.1.dev655+g586f259.d20190401",sockets="1"} 6860714 1554139418146
+
+    # HELP cpu_usage_per_task [ns] cpuacct.usage (total kernel and user space)
+    # TYPE cpu_usage_per_task counter
+    cpu_usage_per_task{cores="4",cpus="8",host="gklab-126-081",owca_version="0.1.dev655+g586f259.d20190401",sockets="1",task_id="task1"} 0 1554139418146
+
+    # HELP instructions Linux Perf counter for instructions per container.
+    # TYPE instructions counter
+    instructions{cores="4",cpus="8",host="gklab-126-081",owca_version="0.1.dev655+g586f259.d20190401",sockets="1",task_id="task1"} 0.0 1554139418146
+
+    # HELP memory_usage [bytes] Total memory used by platform in bytes based on /proc/meminfo and uses heuristic based on linux free tool (total - free - buffers - cache).
+    # TYPE memory_usage gauge
+    memory_usage{cores="4",cpus="8",host="gklab-126-081",owca_version="0.1.dev655+g586f259.d20190401",sockets="1"} 6407118848 1554139418146
+
+    # TYPE owca_tasks gauge
+    owca_tasks{cores="4",cpus="8",host="gklab-126-081",owca_version="0.1.dev655+g586f259.d20190401",sockets="1"} 1 1554139418146
+
+    # TYPE owca_up counter
+    owca_up{cores="4",cpus="8",host="gklab-126-081",owca_version="0.1.dev655+g586f259.d20190401",sockets="1"} 1554139418.146581 1554139418146
+
+
+When reconfigured to use additional components you can easily:
+
+- store those metrics in Kafka, 
+- auto discover tasks running on Mesos or Kubernetes, 
+- enable anomaly detection 
+- or enable anomaly prevention (allocation) to mittigate interference between workloads.
 
 Configuration
 =============
