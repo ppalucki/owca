@@ -1,0 +1,25 @@
+tasks_filename: /home/creatone/Repositories/forked/owca/example/tasks.yaml
+allocations_filename: /home/creatone/Repositories/forked/owca/example/allocations.yaml
+check_sleep: 5
+test_sleep: 15
+
+tests:
+        test_case_name1:
+                tasks:
+                        - dev_task1
+                        - some/subpath/dev_task2
+                allocations:
+                        - some
+
+                checks:
+                        /sys/fs/cgroup/cpu/1: "250"
+
+        test_case_name2:
+                tasks:
+                        - dev_task3
+                        - another/subpath/dev_task4
+                allocations:
+                        - some
+
+                checks:
+                        /sys/fs/cgroup/cpu/1: "250"
