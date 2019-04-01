@@ -160,9 +160,9 @@ Following built-in components are available (stable API):
 - `DetectionRunner <owca/runners/detection.py#L52>`_ implements anomaly detection loop and encodes anomalies as metrics to enable alerting and analysis. See `Detection API <docs/detection.rst>`_ for more details.
 - `AllocationRunner <owca/runners/allocation.py#L127>`_ implements resource allocation loop.See `Allocation API <docs/allocation.rst>`_ for more details (Work in progress).
 - `NOPAnomalyDetector <owca/detectors.py#L164>`_ dummy "no operation" detector that returns no metrics, nor anomalies. See `Detection API <docs/detection.rst>`_ for more details.
-- `NOPAllocator <owca/detectors.py>`_ dummy "no operation" detector that returns no metrics, nor anomalies. See `Detection API <docs/detection.rst>`_ for more details.
-- `KafkaStorage <owca/storage.py>`_ logs metrics to  `Kafka streaming platform <https://kafka.apache.org/>`_ using configurable topics 
-- `LogStorage <owca/storage.py>`_ logs metrics to standard error or to a file at configurable location.
+- `NOPAllocator <owca/allocators.py#L95>`_ dummy "no operation" detector that returns no metrics, nor anomalies. See `Detection API <docs/detection.rst>`_ for more details.
+- `KafkaStorage <owca/storage.py#L213>`_ logs metrics to  `Kafka streaming platform <https://kafka.apache.org/>`_ using configurable topics 
+- `LogStorage <owca/storage.py#L46>`_ logs metrics to standard error or to a file at configurable location.
 
 Following built-in components are available as provisional API:
 
@@ -172,7 +172,7 @@ Following built-in components are available as provisional API:
 
 Third-party components:
 
-- `PlatformResourceManager <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ - machine learning based component for both anomaly detection and allocation,
+- `Intel "Platform Resource Manager" plugin <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ - machine learning based component for both anomaly detection and allocation,
 
 
 Workloads
