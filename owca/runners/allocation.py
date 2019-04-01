@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import time
-from typing import Dict, Callable, Any, Optional
+from typing import Dict, Callable, Any
 
 from owca import nodes, storage, platforms
 from owca import resctrl
