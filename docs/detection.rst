@@ -61,6 +61,7 @@ Example implementation:
         def detect(self, platform: Platform,
                          tasks_measurements: TasksMeasurements,
                          tasks_resources: TasksResources,
+                         tasks_labels: TasksLabels,
                          ) -> (List[Anomaly], List[Metric]):
             return [], []
 
