@@ -160,7 +160,7 @@ class AllocationRunner(MeasurementRunner):
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
             allocations_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: Optional[float] = 1.,  # [s]
+            action_delay: float = 1.,  # [s]
             rdt_enabled: bool = None,  # Defaults(None) - auto configuration.
             rdt_mb_control_enabled: bool = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,
