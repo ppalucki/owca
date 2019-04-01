@@ -27,6 +27,7 @@ from owca import components
 from owca import config
 from owca import logger
 from owca import platforms
+from owca.runners import Runner
 
 log = logging.getLogger('owca.main')
 
@@ -89,6 +90,10 @@ def main():
             log.exception('Detailed exception:')
         exit(1)
 
+    # TODO: replace with proper validation base on config._assure_type
+    assert isinstance(configuration, dict), 'Improper config! - expected dict'
+    assert 'runner' in configuration, 'Improper config - missing runner instance!'
+
     # Configure loggers using configuration file.
     if 'loggers' in configuration:
         log_levels_config = configuration['loggers']
@@ -108,8 +113,10 @@ def main():
         logging_tree.printout()
         print('------------------------------------ Logging tree END------------------')
 
+
     # Extract main loop component.
     runner = configuration['runner']
+    assert isinstance(runner, Runner), 'Improper config - expected runner type!'
 
     # Prepare and run the "main loop".
     exit_code = runner.run()

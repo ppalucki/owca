@@ -1,10 +1,7 @@
 - name: default rule for all
   allocations:
-    cpu_shares: 10
     cpu_quota: 1.0
-    rdt:
-        name: 'be'
-        l3: 'L3:0=00fff;1=0ffff'
+    cpu_shares: 10
 
 # - name: first task with label0
 #   labels:

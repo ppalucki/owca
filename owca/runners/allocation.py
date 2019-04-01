@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import time
-from typing import Dict, Callable, Any
+from typing import Dict, Callable, Any, Optional
 
 from owca import nodes, storage, platforms
 from owca import resctrl
@@ -141,7 +141,7 @@ class AllocationRunner(MeasurementRunner):
             (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
         allocations_storage: storage to store serialized resource allocations
             (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-        action_delay: iteration duration in seconds
+        action_delay: iteration duration in seconds (None disables wait and iterations)
             (defaults to 1 second)
         rdt_enabled: enables or disabled support for RDT monitoring and allocation
             (defaults to None(auto) based on platform capabilities)
@@ -160,7 +160,7 @@ class AllocationRunner(MeasurementRunner):
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
             allocations_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: float = 1.,  # [s]
+            action_delay: Optional[float] = 1.,  # [s]
             rdt_enabled: bool = None,  # Defaults(None) - auto configuration.
             rdt_mb_control_enabled: bool = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,

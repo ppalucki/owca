@@ -25,6 +25,7 @@ def test_static_node():
         labels={}, resources={},
     )]
 
+
 @patch('os.path.exists', Mock(return_value=False))
 def test_static_node_without_cgroups():
     static_node = StaticNode(tasks=['task1'])

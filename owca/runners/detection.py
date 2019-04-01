@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from owca import nodes, storage, detectors
 from owca.detectors import convert_anomalies_to_metrics, \
@@ -59,7 +59,7 @@ class DetectionRunner(MeasurementRunner):
             (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
         anomalies_storage: storage to store serialized anomalies and extra metrics
             (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-        action_delay: iteration duration in seconds
+        action_delay: iteration duration in seconds (None disables wait and iterations)
             (defaults to 1 second)
         rdt_enabled: enables or disabled support for RDT monitoring and allocation
             (defaults to None(auto) based on platform capabilities)
@@ -73,7 +73,7 @@ class DetectionRunner(MeasurementRunner):
             detector: detectors.AnomalyDetector,
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: float = 1.,
+            action_delay: Optional[float] = 1.,
             rdt_enabled: bool = None,
             extra_labels: Dict[str, str] = None,
     ):

@@ -41,7 +41,7 @@ class MeasurementRunner(Runner):
         node: component used for tasks discovery
         metrics_storage: storage to store platform, internal, resource and task metrics
             (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-        action_delay: iteration duration in seconds
+        action_delay: iteration duration in seconds (None disables wait and iterations)
             (defaults to 1 second)
         rdt_enabled: enables or disabled support for RDT monitoring
             (defaults to None(auto) based on platform capabilities)
@@ -53,7 +53,7 @@ class MeasurementRunner(Runner):
             self,
             node: nodes.Node,
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: float = 1.,  # [s]
+            action_delay: Optional[float] = 1.,  # [s]
             rdt_enabled: bool = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,
             _allocation_configuration: Optional[AllocationConfiguration] = None,
@@ -73,12 +73,15 @@ class MeasurementRunner(Runner):
         """Decides how long one iteration should take.
         Additionally calculate residual time, based on time already taken by iteration.
         """
-        now = time.time()
-        iteration_duration = now - self._last_iteration
-        self._last_iteration = now
+        if self._action_delay is not None:
+            now = time.time()
+            iteration_duration = now - self._last_iteration
+            self._last_iteration = now
 
-        residual_time = max(0., self._action_delay - iteration_duration)
-        time.sleep(residual_time)
+            residual_time = max(0., self._action_delay - iteration_duration)
+            time.sleep(residual_time)
+        else:
+            self._finish = True
 
     def run(self) -> int:
         """Loop that gathers platform and tasks metrics and calls _run_body.
