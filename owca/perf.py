@@ -24,10 +24,7 @@ from owca import logger
 from owca.metrics import Measurements, MetricName
 from owca.security import SetEffectiveRootUid
 
-try:
-    LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
-except OSError:
-    LIBC = None
+LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
 
 log = logging.getLogger(__name__)
 
