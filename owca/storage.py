@@ -44,6 +44,9 @@ class Storage(abc.ABC):
 
 @dataclass
 class LogStorage(Storage):
+    """Outputs metrics encoded in Prometheus exposition format,
+    to standard output (default) or provided file (output_filename).
+    """
 
     output_filename: str = None  # Defaults to stderr.
 

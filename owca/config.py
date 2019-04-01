@@ -82,8 +82,8 @@ def _assure_list_type(value: list, expected_type):
 def _assure_dict_type(value: dict, expected_type):
     """Validate that value is type of dict and recursively matches expected Dict type."""
     if not isinstance(value, dict):
-        raise ValidationError('expected dict-like type %r, but got %r', expected_type,
-                              type(value))
+        raise ValidationError('expected dict-like type %r, but got %r' % (expected_type,
+                              type(value)))
     else:
         expected_key_type, expected_value_type = expected_type.__args__
         for key, item_value in value.items():

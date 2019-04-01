@@ -54,11 +54,16 @@ class AllocationConfiguration:
     # Default value for cpu.cpu_period [ms] (used as denominator).
     cpu_quota_period: int = 1000
 
+    # Multiplier of AllocationType.CPU_SHARES allocation value. E.g. setting
+    # 'CPU_SHARES' to 2.0 will set 2000 (with default values) effectively
+    # in cgroup cpu controller.
     # Number of shares to set, when ``cpu_shares`` allocation is set to 1.0.
     cpu_shares_unit: int = 1000
 
-    # Default Allocation for default root group during initialization.
-    # It will be used as default for all tasks (None will set to maximum available value).
+    # Default resource allocation for LLC (L3) or memory bandwidth
+    # for default (root) RDT group.
+    # It will be used as default group for all tasks, unless explicitly reconfigured by
+    # allocator. `None` (default value) means no limit (effectively maximum available value).
     default_rdt_l3: str = None
     default_rdt_mb: str = None
 
@@ -74,11 +79,21 @@ class Allocator(ABC):
             tasks_labels: TasksLabels,
             tasks_allocations: TasksAllocations,
     ) -> (TasksAllocations, List[Anomaly], List[Metric]):
-        ...
+        """Resource allocation callback method, responsible for returning information
+        how resources should be allocated.
+        To make optimal decisions allocate method can use all provided information about
+        platform, platform metrics and tasks' initially assigned resources, tasks'
+        current resource usage (measurements), tasks metadata (labels) and current configured
+        allocations.
+
+        For debugging purposes and accountability method can return:
+        - detected anomalies (that were used as input for allocation logic),
+        - any helpful metrics (e.g. derived metrics)
+        """
 
 
 class NOPAllocator(Allocator):
 
     def allocate(self, platform, tasks_measurements, tasks_resources,
                  tasks_labels, tasks_allocations):
-        return [], [], []
+        return {}, [], []

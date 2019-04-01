@@ -4,41 +4,41 @@ Allocation algorithm interface
 
 **This software is pre-production and should not be deployed to production servers.**
 
-Note: **This API is not considered stable, but work in progress** - please see https://github.com/intel/owca/pull/10 for status of implementation.
-
 .. contents:: Table of Contents
 
 Introduction
 ------------
 
-Resource allocation interface allows to provide control logic based on gathered platform and resources metrics and enforce isolation
-on compute resources (cpu, cache and memory).
+Resource allocation interface allows to provide plugin with resource control logic. Such component
+can enforce isolation based on platform and resources usage metrics.
+
+To enable allocation feature, agent has to be configured to use ``AllocationRunner`` component.
+This runner requires ``Allocator`` component, to be provided. Allocation decisions are based
+on results from ``allocate`` method from ``Allocator`` class.
 
 Configuration 
 -------------
 
-Example of minimal configuration to use as ``AllocationRuner`` structure in
+Example of minimal configuration that uses ``AllocationRunner`` structure in
 configuration file  ``config.yaml``:
 
 .. code:: yaml
 
     # Basic minimal configuration to dump metrics on stderr with NOPAnomaly detector
     runner: !AllocationRunner
-      ignore_privileges_check: true
       node: !MesosNode
         mesos_agent_endpoint: 'http://127.0.0.1:5051'
-      action_delay: 4.
+      allocator: !NOPAllocator
       metrics_storage: !LogStorage
-        output_filename: metrics.logs
       anomalies_storage: !LogStorage
-        output_filename: anomalies.logs
       allocations_storage: !LogStorage
-        output_filename: allocations.logs
-      allocator: !StaticAllocator
-        config: /home/ppalucki/owca/example/static_alloc_config.yaml
-      rdt_enabled: true
 
-Provided  ``AllocationRunner`` class has the following required and optional attributes.
+Runner is responsible for discovering tasks running on ``node``, provide this information to
+``allocator`` and then reconfiguring resources like cpu shares/quota, cache or memory bandwidth.
+All information about existing allocations, detected anomalies or other metrics are stored in
+corresponding storage classes.
+
+``AllocationRunner`` class has the following required and optional attributes:
 
 .. code:: python
 
@@ -48,37 +48,41 @@ Provided  ``AllocationRunner`` class has the following required and optional att
         # Required
         node: nodes.Node
         allocator: Allocator
-        metrics_storage: storage.Storage                # stores internal and input metrics for allocation algorithm
-        anomalies_storage: storage.Storage              # stores any detected anomalies during allocation iteration
-        allocations_storage: storage.Storage            # stores any allocations issued on tasks
+        metrics_storage: storage.Storage                # stores platform and resources metrics
+        anomalies_storage: storage.Storage              # stores detected anomalies
+        allocations_storage: storage.Storage            # stores allocations (resource isolation)
 
         # Optional
         action_delay: float = 1.                        # callback function call interval [s]
         rdt_enabled: bool = True
-        rdt_mb_control_enabled: bool = None  # None means will be automatically set during configure_rdt
+        rdt_mb_control_enabled: bool = None
+        # None means will be automatically set during configure_rdt
         extra_labels: Dict[str, str] = field(default_factory=dict)
         ignore_privileges_check: bool = False
         allocation_configuration: AllocationConfiguration = \
             field(default_factory=AllocationConfiguration)
 
 
-``AllocationConfigurations`` structure contains static configuration to perform normalization of specific resource allocations.
+``AllocationConfiguration`` structure contains static configuration to perform normalization of specific resource allocations.
 
 .. code-block:: python
 
     @dataclass
     class AllocationConfiguration:
 
-        # Default value for cpu.cpu_period [ms]
+        # Default value for cpu.cpu_period [ms] (used as denominator).
         cpu_quota_period: int = 1000
 
-        # Multipler of AllocationType.CPU_SHARES allocation value. E.g. setting
+        # Multiplier of AllocationType.CPU_SHARES allocation value. E.g. setting
         # 'CPU_SHARES' to 2.0 will set 2000 (with default values) effectively
-        # in cgroup cpu controlller.
+        # in cgroup cpu controller.
+        # Number of shares to set, when ``cpu_shares`` allocation is set to 1.0.
         cpu_shares_unit: int = 1000
 
-        # Default Allocation for default root group during initilization.
-        # It will be used as default for all tasks (None will set to maximum available value).
+        # Default resource allocation for LLC (L3) or memory bandwidth
+        # for default (root) RDT group.
+        # It will be used as default group for all tasks, unless explicitly reconfigured by
+        # allocator. `None` (default value) means no limit (effectively maximum available value).
         default_rdt_l3: str = None
         default_rdt_mb: str = None
 
@@ -102,16 +106,19 @@ Provided  ``AllocationRunner`` class has the following required and optional att
         ) -> (TasksAllocations, List[Anomaly], List[Metric]):
             ...
 
-Allocation interface reuses existing ``Detector`` input and metric structures. Please refer to `detection document <detection.rst>`_ 
+Allocation interface reuses existing ``Detector`` input and metric structures. Please refer to `detection document <detection.rst>`_
 for further reference on ``Platform``, ``TaskResources``, ``TasksMeasurements``, ``Anomaly`` and ``TaskLabels`` structures.
 
-``TasksAllocations`` structure is a mapping from task identifier to allocations and defined as follows:
+
+``TasksAllocations`` structure is used as input (current state) and output (desired state).
+``TasksAllocations`` structure is a mapping from task identifier to single task allocations.
+Both ``TaskAllocations`` and ``TasksAllocations`` structures are simple python dict types defined as follows:
 
 .. code:: python
 
     TaskId = str
+    TaskAllocations = Dict[AllocationType, Union[float, int, RDTAllocation]]
     TasksAllocations = Dict[TaskId, TaskAllocations]
-    TaskAllocations = Dict[AllocationType, Union[float, RDTAllocation]]
 
     # example
     tasks_allocations = {
@@ -154,7 +161,7 @@ Following built-in allocations types are supported:
 
 - ``cpu_quota`` - CPU Bandwidth Control called quota (normalized)
 - ``cpu_shares`` - CPU shares for Linux CFS (normalized)
-- ``rdt`` - Intel RDT (raw access)
+- ``rdt`` - Intel RDT resources
 
 The built-in allocation types are defined using following ``AllocationType`` enumeration:
 
