@@ -224,30 +224,30 @@ class AllocationRunner(MeasurementRunner):
                   tasks_labels, common_labels):
         """Allocator callback body."""
 
-        current_tasks_allocations = _get_tasks_allocations(containers)
+        current_allocations = _get_tasks_allocations(containers)
 
         # Allocator callback
         allocate_start = time.time()
-        new_tasks_allocations, anomalies, extra_metrics = self._allocator.allocate(
+        new_allocations, anomalies, extra_metrics = self._allocator.allocate(
             platform, tasks_measurements, tasks_resources, tasks_labels,
-            current_tasks_allocations)
+            current_allocations)
         allocate_duration = time.time() - allocate_start
 
         log.debug('Anomalies detected: %d', len(anomalies))
-        log.debug('Current allocations: %s', current_tasks_allocations)
+        log.debug('Current allocations: %s', current_allocations)
 
         # Create context aware allocations objects for current allocations.
         current_allocations_values = TasksAllocationsValues.create(
-            current_tasks_allocations, self._containers_manager.containers, platform)
+            current_allocations, self._containers_manager.containers, platform)
 
         # Handle allocations: calculate changeset and target allocations.
         allocations_changeset_values = None
         target_allocations_values = current_allocations_values
         try:
             # Create and validate context aware allocations objects for new allocations.
-            log.debug('New allocations: %s', new_tasks_allocations)
+            log.debug('New allocations: %s', new_allocations)
             new_allocations_values = TasksAllocationsValues.create(
-                new_tasks_allocations, self._containers_manager.containers, platform)
+                new_allocations, self._containers_manager.containers, platform)
             new_allocations_values.validate()
 
             # Calculate changeset and target_allocations.
@@ -256,7 +256,7 @@ class AllocationRunner(MeasurementRunner):
                     new_allocations_values.calculate_changeset(current_allocations_values)
                 target_allocations_values.validate()
 
-            self._allocations_counter += len(new_tasks_allocations)
+            self._allocations_counter += len(new_allocations)
 
         except InvalidAllocations as e:
             # Handle any allocation validation error.
