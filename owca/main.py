@@ -97,7 +97,7 @@ def main():
                       'log level got "%r" instead!' % log_levels_config)
             exit(1)
         # Merge config from cmd line and config file.
-        # Overide config file values with values provided from command line.
+        # Override config file values with values provided from command line.
         log_levels = dict(log_levels, **log_levels_config)
         logger.configure_loggers_from_dict(log_levels)
 

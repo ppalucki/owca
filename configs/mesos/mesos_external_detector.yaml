@@ -1,0 +1,21 @@
+# Full example for Mesos with anomalies stored in Kafka.
+
+runner: !DetectionRunner
+  node: !MesosNode
+    mesos_agent_endpoint: 'http://127.0.0.1:5051'
+  action_delay: 1.
+
+  metrics_storage: !LogStorage
+    output_filename: '/tmp/output_anomalies.log'
+
+  anomalies_storage: !KafkaStorage
+    topic: owca_anomalies
+    max_timeout_in_seconds: 5.
+
+  # Example use of external component.
+  # Requires registration with -r example.external_package:ExternalDetector
+  detector: !ExampleDetector
+
+  # Decorate every metric with extra labels.
+  extra_labels:
+    env_id: "host"

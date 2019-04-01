@@ -11,14 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-runner: !AllocationRunner
-  node: !StaticNode
-    config: example/static_node_config.yaml
-  action_delay: 5.
-  metrics_storage: !LogStorage
-  anomalies_storage: !LogStorage
-  allocations_storage: !LogStorage
-  allocator: !NOPAllocator
-  ignore_privileges_check: true
-  rdt_enabled: false

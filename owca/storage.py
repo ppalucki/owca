@@ -44,8 +44,8 @@ class Storage(abc.ABC):
 
 @dataclass
 class LogStorage(Storage):
-    """Outputs metrics encoded in Prometheus exposition format,
-    to standard output (default) or provided file (output_filename).
+    """Outputs metrics encoded in Prometheus exposition format
+    to standard error (default) or provided file (output_filename).
     """
 
     output_filename: str = None  # Defaults to stderr.
@@ -72,6 +72,9 @@ class LogStorage(Storage):
             msg = convert_to_prometheus_exposition_format(metrics, timestamp)
             log.log(logger.TRACE, 'Dump of metrics (text format): %r', msg)
             print(msg, file=self.output, flush=True)
+
+
+DEFAULT_STORAGE = LogStorage()
 
 
 class FailedDeliveryException(Exception):

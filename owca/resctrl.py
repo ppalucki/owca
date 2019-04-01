@@ -312,16 +312,14 @@ def check_resctrl():
     :return: True if resctrl is mounted and has required file
              False if resctrl is not mounted or required file is missing
     """
-    run_anyway_text = 'If you wish to run script anyway,' \
-                      'please set rdt_enabled to False in configuration file.'
 
     resctrl_tasks = os.path.join(BASE_RESCTRL_PATH, TASKS_FILENAME)
     try:
         with open(resctrl_tasks):
             pass
     except IOError as e:
-        log.debug('Error: Failed to open %s: %s', resctrl_tasks, e)
-        log.critical('Resctrl not mounted. ' + run_anyway_text)
+        log.debug(TRACE, 'Error: Failed to open %s: %s', resctrl_tasks, e)
+        log.debug('Resctrl not mounted. ')
         return False
 
     mon_data = os.path.join(BASE_RESCTRL_PATH, MON_DATA, MON_L3_00, MBM_TOTAL)
@@ -329,9 +327,8 @@ def check_resctrl():
         with open(mon_data):
             pass
     except IOError as e:
-        log.debug('Error: Failed to open %s: %s', mon_data, e)
-        log.critical('Resctrl does not support Memory Bandwidth Monitoring.' +
-                     run_anyway_text)
+        log.log(TRACE, 'Error: Failed to open %s: %s', mon_data, e)
+        log.debug('Resctrl does not support Memory Bandwidth Monitoring.')
         return False
 
     return True

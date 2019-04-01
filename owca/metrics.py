@@ -14,8 +14,9 @@
 
 
 from enum import Enum
-from dataclasses import dataclass, field
 from typing import Dict, Union
+
+from dataclasses import dataclass, field
 
 
 class MetricName(str, Enum):
@@ -31,7 +32,7 @@ class MetricName(str, Enum):
 
 
 class MetricType(str, Enum):
-    GAUGE = 'gauge'      # arbitrary value (can go up and down)
+    GAUGE = 'gauge'  # arbitrary value (can go up and down)
     COUNTER = 'counter'  # monotonically increasing counter
 
     def __repr__(self):
@@ -84,6 +85,11 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             '[bytes] Total memory used by platform in bytes based on /proc/meminfo '
             'and uses heuristic based on linux free tool (total - free - buffers - cache).'
+        ),
+    MetricName.MEMSTALL:
+        MetricMetadata(
+            MetricType.COUNTER,
+            'Mem stalled loads'
         ),
 }
 

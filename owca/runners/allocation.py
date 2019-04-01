@@ -29,7 +29,7 @@ from owca.resctrl_allocations import (RDTAllocationValue, RDTGroups, validate_mb
                                       validate_l3_string)
 from owca.runners.detection import AnomalyStatistics
 from owca.runners.measurement import MeasurementRunner
-from owca.storage import MetricPackage
+from owca.storage import MetricPackage, DEFAULT_STORAGE
 
 log = logging.getLogger(__name__)
 
@@ -125,44 +125,52 @@ class TasksAllocationsValues(AllocationsDict):
 
 
 class AllocationRunner(MeasurementRunner):
-    """Runner responsible for getting information about tasks from node,
+    """Runner is responsible for getting information about tasks from node,
     calling allocate() callback on allocator, performing returning allocations
     and storing all allocation related metrics in allocations_storage.
 
     Because Allocator interface is also detector, we store serialized detected anomalies
     in anomalies_storage and all other measurements in metrics_storage.
 
-    Switching rdt_enabled to False disables both monitoring and allocation of Intel RDT resources.
-    rdt_mb_control_enabled allows to force enabling or disabling MBA control (default to auto
-    detection based on platform capabilities).
-
-    extra_labels are labels that are attached to every metric  and ignore_privileges_checks
-    disabled checking precondition of having access to cgroups/resctrl.
-
-    allocation_configuration - allow to specify parameters dedicated for allocation control.
+    Arguments:
+        node: component used for tasks discovery
+        allocator: component that provides allocation logic
+        metrics_storage: storage to store platform, internal, resource and task metrics
+            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+        anomalies_storage: storage to store serialized anomalies and extra metrics
+            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+        allocations_storage: storage to store serialized resource allocations
+            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+        action_delay: iteration duration in seconds
+            (defaults to 1 second)
+        rdt_enabled: enables or disabled support for RDT monitoring and allocation
+            (defaults to None(auto) based on platform capabilities)
+        rdt_mb_control_enabled: enables or disables support for RDT memory bandwidth
+            (defaults to None(auto) based on platform capabilities) allocation
+        extra_labels: additional labels attached to every metrics
+            (defaults to empty dict)
+        allocation_configuration: allows fine grained control over allocations
+            (defaults to AllocationConfiguration() instance)
     """
 
     def __init__(
             self,
             node: nodes.Node,
             allocator: Allocator,
-            metrics_storage: storage.Storage,
-            anomalies_storage: storage.Storage,
-            allocations_storage: storage.Storage,
+            metrics_storage: storage.Storage = DEFAULT_STORAGE,
+            anomalies_storage: storage.Storage = DEFAULT_STORAGE,
+            allocations_storage: storage.Storage = DEFAULT_STORAGE,
             action_delay: float = 1.,  # [s]
-            rdt_enabled: bool = True,
-            rdt_mb_control_enabled: bool = None,  # None means it will be based on availability
-            # in platform (autodetect).
+            rdt_enabled: bool = None,  # Defaults(None) - auto configuration.
+            rdt_mb_control_enabled: bool = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,
-            ignore_privileges_check: bool = False,
             allocation_configuration: AllocationConfiguration = None,
     ):
 
         self._allocation_configuration = allocation_configuration or AllocationConfiguration()
 
         super().__init__(node, metrics_storage, action_delay, rdt_enabled,
-                         extra_labels, ignore_privileges_check,
-                         allocation_configuration=self._allocation_configuration)
+                         extra_labels, _allocation_configuration=self._allocation_configuration)
 
         # Allocation specific.
         self._allocator = allocator

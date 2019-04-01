@@ -13,8 +13,8 @@ Resource allocation interface allows to provide plugin with resource control log
 can enforce isolation based on platform and resources usage metrics.
 
 To enable allocation feature, agent has to be configured to use ``AllocationRunner`` component.
-This runner requires ``Allocator`` component, to be provided. Allocation decisions are based
-on results from ``allocate`` method from ``Allocator`` class.
+This runner requires `Allocator`_ component, to be provided. Allocation decisions are based
+on results from ``allocate`` method from `Allocator`_ class.
 
 Configuration 
 -------------
@@ -29,9 +29,6 @@ configuration file  ``config.yaml``:
       node: !MesosNode
         mesos_agent_endpoint: 'http://127.0.0.1:5051'
       allocator: !NOPAllocator
-      metrics_storage: !LogStorage
-      anomalies_storage: !LogStorage
-      allocations_storage: !LogStorage
 
 Runner is responsible for discovering tasks running on ``node``, provide this information to
 ``allocator`` and then reconfiguring resources like cpu shares/quota, cache or memory bandwidth.
@@ -40,7 +37,7 @@ corresponding storage classes.
 
 ``AllocationRunner`` class has the following required and optional attributes:
 
-.. code:: python
+.. code-block:: python
 
     @dataclass
     class AllocationRunner:
@@ -86,10 +83,10 @@ corresponding storage classes.
         default_rdt_l3: str = None
         default_rdt_mb: str = None
 
-``Allocator`` structure and ``allocate`` resource callback function
+``Allocator``
 --------------------------------------------------------------------
-        
-``Allocator`` class must implement one function with following signature:
+
+``Allocator`` class must implement one ``allocate`` function with following signature:
 
 .. code:: python
 
@@ -143,13 +140,16 @@ Both ``TaskAllocations`` and ``TasksAllocations`` structures are simple python d
     }
 
 
-Please refer to `rdt`_ for definition of ``RDTAllocation``.
+Please refer to `rdt`_ allocation type for definition of ``RDTAllocation`` structure.
 
-This structure is used as an input representing currently enforced configuration and as an output representing desired allocations that will be applied in the current ``AllocationRunner`` iteration.
+This structure is used as:
+- an input representing currently enforced configuration ;
+- an output representing desired allocations that will be applied in the current ``AllocationRunner`` iteration.
 
-``allocate`` function  may return ``TaskAllocations`` for some tasks only. Resources allocated to tasks that no returned ``TaskAllocations`` describes will not be affected.
+``allocate`` function may return ``TaskAllocations`` only for some tasks.
+Resources allocated to tasks that are not returned in ``TaskAllocations`` will not be affected.
 
-The ``AllocationRunner`` is stateful and relies on operating system to store the state. 
+The ``AllocationRunner`` is stateful and relies on operating system to store the state.
 
 Note that, if ``OWCA`` service is restarted, then already applied allocations will not be reset 
 (current state of allocation on system will be read and provided as input).

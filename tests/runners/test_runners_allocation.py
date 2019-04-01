@@ -47,7 +47,6 @@ def test_allocation_runner(_get_allocations_mock):
         anomalies_storage=Mock(spec=storage.Storage, store=Mock()),
         allocations_storage=Mock(spec=storage.Storage, store=Mock()),
         rdt_enabled=True,
-        ignore_privileges_check=True,
         allocator=Mock(spec=Allocator, allocate=Mock(return_value=({}, [], []))),
         extra_labels=dict(extra_labels='extra_value'),
     )

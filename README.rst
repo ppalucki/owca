@@ -60,8 +60,11 @@ OWCA is targeted at and tested on Centos 7.5.
     pipenv install --dev
     make
 
-    # Run manually (alongside Mesos agent):
-    sudo dist/owca.pex --config configs/mesos_example.yaml --root
+    # Prepare tasks manually (only cgroups are required)
+    sudo mkdir /sys/fs/cgroups/{cpu,cpuacct,perf_event}/task1
+
+    # Run manually
+    sudo dist/owca.pex --config configs/static_measurements.yaml --root
 
 
 Configuration

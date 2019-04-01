@@ -28,22 +28,35 @@ from owca.metrics import Metric, MetricType
 from owca.nodes import Task
 from owca.profiling import profiler
 from owca.runners import Runner
-from owca.storage import MetricPackage
+from owca.storage import MetricPackage, DEFAULT_STORAGE
 
 log = logging.getLogger(__name__)
 
 
 class MeasurementRunner(Runner):
+    """MeasurementRunner run iterations to collect platform, resource, task measurements
+    and store them in metrics_storage component.
+
+    Arguments:
+        node: component used for tasks discovery
+        metrics_storage: storage to store platform, internal, resource and task metrics
+            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+        action_delay: iteration duration in seconds
+            (defaults to 1 second)
+        rdt_enabled: enables or disabled support for RDT monitoring
+            (defaults to None(auto) based on platform capabilities)
+        extra_labels: additional labels attached to every metrics
+            (defaults to empty dict)
+    """
 
     def __init__(
             self,
             node: nodes.Node,
-            metrics_storage: storage.Storage,
-            action_delay: float = 0.,  # [s]
-            rdt_enabled: bool = True,
+            metrics_storage: storage.Storage = DEFAULT_STORAGE,
+            action_delay: float = 1.,  # [s]
+            rdt_enabled: bool = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,
-            ignore_privileges_check: bool = False,
-            allocation_configuration: Optional[AllocationConfiguration] = None,
+            _allocation_configuration: Optional[AllocationConfiguration] = None,
     ):
 
         self._node = node
@@ -51,18 +64,9 @@ class MeasurementRunner(Runner):
         self._action_delay = action_delay
         self._rdt_enabled = rdt_enabled
         self._extra_labels = extra_labels or dict()
-        self._ignore_privileges_check = ignore_privileges_check
-
-        platform_cpus, _, platform_sockets = platforms.collect_topology_information()
-        self._containers_manager = ContainerManager(
-            self._rdt_enabled,
-            rdt_mb_control_enabled=False,
-            platform_cpus=platform_cpus,
-            allocation_configuration=allocation_configuration,
-        )
-
         self._finish = False  # Guard to stop iterations.
         self._last_iteration = time.time()  # Used internally by wait function.
+        self._allocation_configuration = _allocation_configuration
 
     @profiler.profile_duration(name='sleep')
     def _wait(self):
@@ -80,28 +84,41 @@ class MeasurementRunner(Runner):
         """Loop that gathers platform and tasks metrics and calls _run_body.
         _run_body is a method to be subclassed.
         """
-        # Initialization.
-        if self._rdt_enabled and not resctrl.check_resctrl():
+        if not security.are_privileges_sufficient():
+            log.error("Impossible to use perf_event_open/resctrl subsystems. "
+                      "You need to: adjust /proc/sys/kernel/perf_event_paranoid (set to -1); "
+                      "or has CAP_DAC_OVERRIDE and CAP_SETUID capabilities set."
+                      "You can run process as root too.")
             return 1
-        elif not self._rdt_enabled:
-            log.warning('Rdt disabled. Skipping collecting measurements '
-                        'and resctrl synchronization')
-        else:
+
+        # Initialization (auto discovery Intel RDT features).
+        rdt_available = resctrl.check_resctrl()
+        if self._rdt_enabled is None:
+            self._rdt_enabled = rdt_available
+            log.info('RDT enabled (auto configuration): %s', self._rdt_enabled)
+        elif self._rdt_enabled is True and not rdt_available:
+            log.error('RDT explicitly enabled but not available - exiting!')
+            return 1
+
+        if self._rdt_enabled:
             # Resctrl is enabled and available, call a placeholder to allow further initialization.
             self._initialize_rdt()
 
-        if not self._ignore_privileges_check and not security.are_privileges_sufficient():
-            log.critical("Impossible to use perf_event_open. You need to: adjust "
-                         "/proc/sys/kernel/perf_event_paranoid; or has CAP_DAC_OVERRIDE capability"
-                         " set. You can run process as root too. See man 2 perf_event_open for "
-                         "details.")
-            return 1
+        # Post pone the container manager initialization after rdt checks were performed.
+        platform_cpus, _, platform_sockets = platforms.collect_topology_information()
+        self._containers_manager = ContainerManager(
+            self._rdt_enabled,
+            rdt_mb_control_enabled=False,
+            platform_cpus=platform_cpus,
+            allocation_configuration=self._allocation_configuration,
+        )
 
         while True:
             iteration_start = time.time()
 
             # Get information about tasks.
             tasks = self._node.get_tasks()
+            log.debug('Tasks detected: %d', len(tasks))
 
             # Keep sync of found tasks and internally managed containers.
             containers = self._containers_manager.sync_containers_state(tasks)

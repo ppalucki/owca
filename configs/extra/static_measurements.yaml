@@ -1,0 +1,4 @@
+runner: !MeasurementRunner
+  node: !StaticNode
+    tasks:
+      - task1

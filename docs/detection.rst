@@ -24,20 +24,19 @@ Detector callback API
 
 You can configure system to detect and report anomalies in following way in ``config.yaml``:
 
-.. code:: yaml
+.. code-block:: yaml
 
     runner: !DetectionRunner
       node: !MesosNode
-      storage: !KafkaStorage                    # used for storing all inputs and outputs
       delay: 1.                                 # [s]
-      detector: !ContentionAnomalyDetector      # implementation of abstract AnomalyDetector class
+      detector: !ExampleAnomalyDetector      # implementation of abstract AnomalyDetector class
         example_config_int: 1
         example_config_list: [1, 4]
 
 
-``ContentionAnomalyDetector`` class must implement following interface:
+where ``ExampleAnomalyDetector`` class must implement following interface:
 
-.. code:: python
+.. code-block:: python
 
     class AnomalyDetector(ABC):
 
@@ -51,9 +50,9 @@ You can configure system to detect and report anomalies in following way in ``co
 
 Example implementation:
 
-.. code:: python
+.. code-block:: python
 
-    class ContentionAnomalyDetector:
+    class ExampleAnomalyDetector:
 
         def __init__(self, example_config_int, example_config_list):
             self.example_config_list = example_config_list
@@ -65,7 +64,7 @@ Example implementation:
                          ) -> (List[Anomaly], List[Metric]):
             return [], []
 
-All config values provided under `detector` key in configuration are treated as simple types (including lists and dict),
+All config values provided under ``detector`` key in configuration are treated as simple types (including lists and dict),
 and are passed to constructor as keywords parameters.
 
 To be able to use externally provided implementation it is necessary to register external component
