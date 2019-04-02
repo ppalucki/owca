@@ -41,8 +41,8 @@ def merge_rules(existing_tasks_allocations: TasksAllocations,
     return merged_tasks_allocations
 
 
-def _allocate_according_rules(all_tasks_ids: Set[TaskId],
-                              tasks_labels: Dict[TaskId, Dict[str, str]], rules):
+def _build_allocations_from_rules(all_tasks_ids: Set[TaskId],
+                                  tasks_labels: Dict[TaskId, Dict[str, str]], rules):
     tasks_allocations = {}
 
     # Iterate over rules and apply one by one.
@@ -105,7 +105,7 @@ def _allocate_according_rules(all_tasks_ids: Set[TaskId],
 @dataclass
 class StaticAllocator(Allocator):
     """
-    Simple allocator based on rules defining relation between task labels 
+    Simple allocator based on rules defining relation between task labels
     and allocation definition (set of concrete values).
 
     The allocator reads allocation rules from a yaml file.
@@ -124,7 +124,7 @@ class StaticAllocator(Allocator):
     The third field is a dictionary of allocations which should be applied to
     matching tasks.
 
-    If there are multiple matching rules then all allocations are merged and applied.
+    If there are multiple matching rules then the rules' allocations are merged and applied.
     """
 
     # File location of yaml config file with rules.
@@ -143,7 +143,7 @@ class StaticAllocator(Allocator):
             return {}, [], []
         else:
             # Merge all tasks ids.
-            all_tasks_ids = (set(tasks_labels.keys()) | set(tasks_resources.keys()) | 
+            all_tasks_ids = (set(tasks_labels.keys()) | set(tasks_resources.keys()) |
                              set(tasks_allocations.keys()))
             log.info('StaticAllocator: handling allocations for %i tasks. ', len(all_tasks_ids))
             for task_id, labels in tasks_labels.items():
@@ -157,7 +157,7 @@ class StaticAllocator(Allocator):
                 log.warning('StaticAllocator: improper format of config (expected list of rules)')
                 return {}, [], []
 
-            tasks_allocations = _allocate_according_rules(all_tasks_ids, tasks_labels, rules)
+            tasks_allocations = _build_allocations_from_rules(all_tasks_ids, tasks_labels, rules)
 
             log.info('StaticAllocator: final tasks allocations: \n %s',
                      pprint.pformat(tasks_allocations))
