@@ -13,51 +13,49 @@ Resource allocation interface allows to provide plugin with resource control log
 can enforce isolation based on platform and tasks resources usage metrics.
 
 To enable allocation feature, the agent has to be configured to use the ``AllocationRunner`` component.
-The runner requires the `Allocator`_ component, to be provided. Allocation decisions are based
-on results from ``allocate`` method from the `Allocator`_ component.
+The runner requires `Allocator`_, to be provided. Allocation decisions are based
+on results from ``allocate`` method from `Allocator`_.
 
 Configuration 
 -------------
 
-Example of minimal configuration that uses ``AllocationRunner`` structure in
-configuration file  ``config.yaml``:
+Example of minimal configuration that uses ``AllocationRunner``:
 
 .. code:: yaml
 
-    # Basic minimal configuration to dump metrics on stderr with NOPAnomaly detector
+    # Basic configuration to dump metrics on stderr with NOPAnomaly detector
     runner: !AllocationRunner
       node: !MesosNode
-        mesos_agent_endpoint: 'http://127.0.0.1:5051'
       allocator: !NOPAllocator
 
-Runner is responsible for discovering tasks running on ``node``, provide this information to
-``allocator`` and then reconfiguring resources like cpu shares/quota, cache or memory bandwidth.
+``runner`` is responsible for discovering tasks running on ``node``, provides this information to
+``allocator`` and then reconfigures resources like cpu shares/quota, cache or memory bandwidth.
 All information about existing allocations, detected anomalies or other metrics are stored in
 corresponding storage classes.
 
 ``AllocationRunner`` class has the following required and optional attributes:
 
-.. code-block:: python
+.. code-block:: ini
 
-    @dataclass
-    class AllocationRunner:
-
-        # Required
-        node: nodes.Node
-        allocator: Allocator
-        metrics_storage: storage.Storage                # stores platform and resources metrics
-        anomalies_storage: storage.Storage              # stores detected anomalies
-        allocations_storage: storage.Storage            # stores allocations (resource isolation)
-
-        # Optional
-        action_delay: float = 1.                        # callback function call interval [s]
-        rdt_enabled: bool = True
-        rdt_mb_control_enabled: bool = None
-        # None means will be automatically set during configure_rdt
-        extra_labels: Dict[str, str] = field(default_factory=dict)
-        ignore_privileges_check: bool = False
-        allocation_configuration: AllocationConfiguration = \
-            field(default_factory=AllocationConfiguration)
+    Arguments:
+        node: component used for tasks discovery
+        allocator: component that provides allocation logic
+        metrics_storage: storage to store platform, internal, resource and task metrics
+            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+        anomalies_storage: storage to store serialized anomalies and extra metrics
+            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+        allocations_storage: storage to store serialized resource allocations
+            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+        action_delay: iteration duration in seconds (None disables wait and iterations)
+            (defaults to 1 second)
+        rdt_enabled: enables or disabled support for RDT monitoring and allocation
+            (defaults to None(auto) based on platform capabilities)
+        rdt_mb_control_enabled: enables or disables support for RDT memory bandwidth
+            (defaults to None(auto) based on platform capabilities) allocation
+        extra_labels: additional labels attached to every metrics
+            (defaults to empty dict)
+        allocation_configuration: allows fine grained control over allocations
+            (defaults to AllocationConfiguration() instance)
 
 
 ``AllocationConfiguration`` structure contains static configuration to perform normalization of specific resource allocations.
