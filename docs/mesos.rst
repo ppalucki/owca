@@ -32,7 +32,7 @@ Following exact setup was verified to work with provided `workloads </workloads>
 - Docker registry V2
 - Aurora framework version == 0.18.0
 
-Mesos agent non-default configuration:
+Mesos agent was configured with those non-default options:
 
 - ``perf_events=cycles``
 - ``perf_interval=360days``
