@@ -124,7 +124,7 @@ class StaticAllocator(Allocator):
     The third field is a dictionary of allocations which should be applied to
     matching tasks.
 
-    If there are multiple matching rules then all allocations are merged and applied.
+    If there are multiple matching rules then the rules' allocations are merged and applied.
     """
 
     # File location of yaml config file with rules.
