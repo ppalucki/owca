@@ -19,7 +19,7 @@ Mesos restrictions
 - `Mesos containerizer <http://mesos.apache.org/documentation/latest/containerizers/#Mesos>`_ ,
 - `Tasks groups <http://mesos.apache.org/documentation/latest/nested-container-and-task-group/>`_ are currently not supported.
 
-Minimal required agent options
+Required agent options
 ------------------------------
 
 - ``containerizers=mesos`` - to enable PID based cgroup discovery,
