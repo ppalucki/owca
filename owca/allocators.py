@@ -81,12 +81,13 @@ class Allocator(ABC):
     ) -> (TasksAllocations, List[Anomaly], List[Metric]):
         """Resource allocation callback method, responsible for returning information
         how resources should be allocated.
+
         To make optimal decisions allocate method can use all provided information about
         platform, platform metrics and tasks' initially assigned resources, tasks'
-        current resource usage (measurements), tasks metadata (labels) and current configured
+        current resource usage (measurements), tasks' metadata (labels) and current configured
         allocations.
 
-        For debugging purposes and accountability method can return:
+        For debugging purposes and accountability method can additionally return:
         - detected anomalies (that were used as input for allocation logic),
         - any helpful metrics (e.g. derived metrics)
         """
