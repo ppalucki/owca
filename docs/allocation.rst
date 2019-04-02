@@ -92,23 +92,23 @@ corresponding storage classes.
         # Default value for cpu.cpu_period [ms] (used as denominator).
         cpu_quota_period: int = 1000
 
-        # Multiplier of AllocationType.CPU_SHARES allocation value. E.g. setting
-        # 'CPU_SHARES' to 2.0 will set 2000 (with default values) effectively
+        # Multiplier of AllocationType.CPU_SHARES allocation value. 
+        # E.g. setting 'CPU_SHARES' to 2.0 will set 2000 shares effectively
         # in cgroup cpu controller.
-        # Number of shares to set, when ``cpu_shares`` allocation is set to 1.0.
         cpu_shares_unit: int = 1000
 
-        # Default resource allocation for LLC (L3) or memory bandwidth
-        # for default (root) RDT group.
-        # It will be used as default group for all tasks, unless explicitly reconfigured by
-        # allocator. `None` (default value) means no limit (effectively maximum available value).
+        # Default resource allocation for last level cache (L3) and memory bandwidth
+        # for root RDT group.
+        # Root RDT group is used as default group for all tasks, unless explicitly reconfigured by
+        # allocator. 
+        # `None` (the default value) means no limit (effectively set to maximum available value).
         default_rdt_l3: str = None
         default_rdt_mb: str = None
 
 ``Allocator``
 --------------------------------------------------------------------
 
-``Allocator`` class must implement one ``allocate`` function with following signature:
+``Allocator`` subclass must implement an ``allocate`` function with following signature:
 
 .. code:: python
 
@@ -125,15 +125,16 @@ corresponding storage classes.
         ) -> (TasksAllocations, List[Anomaly], List[Metric]):
             ...
 
-Allocation interface reuses existing ``Detector`` input and metric structures. Please refer to `detection document <detection.rst>`_
-for further reference on ``Platform``, ``TaskResources``, ``TasksMeasurements``, ``Anomaly`` and ``TaskLabels`` structures.
+All but ``TasksAllocations`` input arguments types are documented in `detection document <detection.rst>`_.
 
-
-``TasksAllocations`` structure is used as input (current state) and output (desired state).
-``TasksAllocations`` structure is a mapping from task identifier to single task allocations.
 Both ``TaskAllocations`` and ``TasksAllocations`` structures are simple python dict types defined as follows:
 
 .. code:: python
+
+    class AllocationType(Enum, str):
+        QUOTA = 'cpu_quota'
+        SHARES = 'cpu_shares'
+        RDT = 'rdt'
 
     TaskId = str
     TaskAllocations = Dict[AllocationType, Union[float, int, RDTAllocation]]
@@ -164,16 +165,17 @@ Both ``TaskAllocations`` and ``TasksAllocations`` structures are simple python d
 
 Please refer to `rdt`_ allocation type for definition of ``RDTAllocation`` structure.
 
-This structure is used as:
-- an input representing currently enforced configuration ;
+``TasksAllocations`` is used as:
+
+- an input representing currently enforced configuration,
 - an output representing desired allocations that will be applied in the current ``AllocationRunner`` iteration.
 
-``allocate`` function may return ``TaskAllocations`` only for some tasks.
-Resources allocated to tasks that are not returned in ``TaskAllocations`` will not be affected.
+``allocate`` function does not need to return ``TaskAllocations`` for all tasks.
+For omitted tasks, allocations will not be affected.
 
-The ``AllocationRunner`` is stateful and relies on operating system to store the state.
+``AllocationRunner`` is stateless and relies on operating system to store the state.
 
-Note that, if ``OWCA`` service is restarted, then already applied allocations will not be reset 
+Note that, if the agent is restarted, then already applied allocations will not be reset 
 (current state of allocation on system will be read and provided as input).
 
 Supported allocations types
@@ -181,19 +183,9 @@ Supported allocations types
 
 Following built-in allocations types are supported:
 
-- ``cpu_quota`` - CPU Bandwidth Control called quota (normalized)
-- ``cpu_shares`` - CPU shares for Linux CFS (normalized)
-- ``rdt`` - Intel RDT resources
-
-The built-in allocation types are defined using following ``AllocationType`` enumeration:
-
-.. code-block:: python
-
-    class AllocationType(Enum, str):
-
-        QUOTA = 'cpu_quota'
-        SHARES = 'cpu_shares'
-        RDT = 'rdt'
+- ``cpu_quota`` - CPU Bandwidth Control called quota (normalized),
+- ``cpu_shares`` - CPU shares for Linux CFS (normalized),
+- ``rdt`` - Intel RDT resources.
 
 cpu_quota
 ^^^^^^^^^
@@ -201,19 +193,21 @@ cpu_quota
 ``cpu_quota`` is normalized in respect to whole system capacity (all logical processor) and will be applied using cgroups cpu subsystem
 using CFS bandwidth control.
 
-For example, with default ``cpu_period`` set to **100ms** on machine with **16** logical processor, setting ``cpu_quota`` to **0.25**, means that
-hard limit on quarter on the available CPU resources, will effectively translated into **400ms** quota.
-
-Setting it to or above 1.0, means disabling the hard limit at all (effectivelty set to it to -1 in tego cgroup filesystem).
-Setting to to 0.0 or close to zero, limit the allowed time to mimimum (1ms).
-
-Base ``cpu_period`` value is configured in ``AllocationConfiguration`` structure during ``AllocationRunner`` initialization.
-
-Formula for calculating quota for cgroup subsystem:
+Formula for calculating quota normalized to platform capacity:
 
 .. code-block:: python
 
-    effective_cpu_quota = cpu_quota_normalized * allocation_configuration.cpu_quota_period * platform_cpus
+    effective_cpu_quota = cpu_quota * allocation_configuration.cpu_quota_period * platform.cpus
+
+For example, with default ``cpu_period`` set to **100ms** on machine with **16** logical processor, setting ``cpu_quota`` to **0.25**, means that
+hard limit on quarter on the available CPU resources, will effectively translated into **400ms** quota.
+
+Note that, setting ``cpu_quota``:  
+
+- to or above **1.0**, means disabling the hard limit at all (effectively set to it to -1 in cpu.cfs_quota_us),
+- to **0.0**, limits the allowed time to the minimum allowed value (1ms).
+
+CFS "period" is configured statically in ``AllocationConfiguration``.
 
 Refer to `Kernel sched-bwc.txt <https://www.kernel.org/doc/Documentation/scheduler/sched-bwc.txt>`_ document for further reference.
 
@@ -222,15 +216,16 @@ cpu_shares
 
 ``cpu_shares`` value is normalized against configured ``AllocationConfiguration.cpu_shares_unit``.
 
-- **1.0** will be translated into ``AllocationConfiguration.cpu_shares_unit``
-- **0.0** will be translated into mimimum numper of shares allowed by system (effectively "2").
-
 .. code-block:: python
 
-    effective_cpu_shares = cpu_shares_normalized * AllocationConfiguration.cpu_shares_unit
+    effective_cpu_shares = cpu_shares * allocation_configuration.cpu_shares_unit
+
+Note that, setting ``cpu_shares``:  
+
+- to **1.0** will be translated into ``AllocationConfiguration.cpu_shares_unit``
+- to **0.0** will be translated into minimum number of shares allowed by system (effectively "2").
 
 Refer to `Kernel sched-design <https://www.kernel.org/doc/Documentation/scheduler/sched-design-CFS.txt>`_ document for further reference.
-
 
 rdt
 ^^^
@@ -239,16 +234,16 @@ rdt
 
     @dataclass
     class RDTAllocation:
-        name: str = None  # defaults to TaskId from TasksAllocations
-        mb: str = None  # optional - when no provided doesn't change the existing allocation
-        l3: str = None  # optional - when no provided doesn't change the existing allocation
+        name: str = None    # defaults to TaskId from TasksAllocations
+        mb: str = None      # optional - when not provided does not change the existing allocation
+        l3: str = None      # optional - when not provided does not change the existing allocation
 
-You can use ``RDTAllocation`` structure to configure Intel RDT available resources.
+You can use ``RDTAllocation`` class to configure Intel RDT resources.
 
-``RDTAllocation`` wraps resctrl ``schemata`` file. Using ``name`` property allows one to specify name for control group to be used
-for given task to save limited CLOSids and isolate RDT resources for multiple containers at once.
+``RDTAllocation`` wraps resctrl ``schemata`` file. Using ``name`` property allows to specify name for control group. 
+Sharing control groups among tasks allows to save limited CLOSids resources.
 
-``name`` field is optional and if not provided, the ``TaskID`` from parent structure will be used.
+``name`` field is optional and if not provided, the ``TaskID`` from parent ``TasksAllocations`` class will be used.
 
 Allocation of available bandwidth for ``mb`` field is given format:
 
@@ -256,7 +251,7 @@ Allocation of available bandwidth for ``mb`` field is given format:
 
     MB:<cache_id0>=bandwidth0;<cache_id1>=bandwidth1
 
-expressed in percentage points as described in `Kernel x86/intel_rdt_ui.txt <https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt>`_.
+expressed in percentage as described in `Kernel x86/intel_rdt_ui.txt <https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt>`_.
 
 For example:
 
