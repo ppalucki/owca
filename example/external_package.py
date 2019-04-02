@@ -27,8 +27,7 @@ log = logging.getLogger(__name__)
 
 
 class ExampleDetector(AnomalyDetector):
-    """Simulation for anomaly detection based on deterministic
-       schema based on phases in cycle"""
+    """Cyclic deterministic dummy anomaly detector."""
 
     def __init__(self, cycle_length: int = 90, skew: bool = False):
         self.cycle_length = cycle_length
@@ -69,25 +68,25 @@ class ExampleDetector(AnomalyDetector):
                 metrics_count = 1
             elif second_of_cycle < 20:
                 # Single contention on two resources with single contender task
-                # (with two additional metrics)
+                # (with two additional metrics).
                 tasks_count = 1
                 resources_count = 2
                 metrics_count = 2
             elif second_of_cycle < 30:
                 # Single contention on three resources with two contender tasks
-                # (with two additional metrics each)
+                # (with two additional metrics each).
                 tasks_count = 1
                 resources_count = 3
                 metrics_count = 2
             elif second_of_cycle < 40:
                 # Two contentions each on two resources with two contender tasks
-                # (with two additional metrics each)
+                # (with two additional metrics each).
                 tasks_count = 2
                 resources_count = 2
                 metrics_count = 3
             elif second_of_cycle < 50:
                 # Multiple (three) contentions each on single resource with single contender task
-                # (with two additional metrics each)
+                # (with two additional metrics each).
                 tasks_count = 3
                 resources_count = 1
                 metrics_count = 1
