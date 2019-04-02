@@ -303,21 +303,21 @@ based on ``/sys/fs/resctrl/info/`` and ``procfs``
         rdt_information: RDTInformation
         ...
 
-   class RDTInformation:
-        ...
-        rdt_min_cbm_bits: str  # /sys/fs/resctrl/info/L3/min_cbm_bits
-        rdt_cbm_mask: str  #  /sys/fs/resctrl/info/L3/cbm_mask
-        rdt_min_bandwidth: str  # /sys/fs/resctrl/info/MB/min_bandwidth
-        ...
+    @dataclass
+    class RDTInformation:
+        cbm_mask: Optional[str]  # based on /sys/fs/resctrl/info/L3/cbm_mask
+        min_cbm_bits: Optional[str]  # based on /sys/fs/resctrl/info/L3/min_cbm_bits
+        rdt_mb_control_enabled: bool  # based on 'MB:' in /sys/fs/resctrl/info/L3/cbm_mask
+        num_closids: Optional[int]  # based on /sys/fs/resctrl/info/L3/num_closids
+        mb_bandwidth_gran: Optional[int]  # based on /sys/fs/resctrl/info/MB/bandwidth_gran
+        mb_min_bandwidth: Optional[int]  # based on /sys/fs/resctrl/info/MB/bandwidth_gran
 
 Refer to `Kernel x86/intel_rdt_ui.txt <https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt>`_ document for further reference.
 
 ``TaskAllocations`` metrics
 ----------------------------
 
-Returned ``TaskAllocations`` will be encoded as metrics and logged using ``Storage``.
-
-When stored using ``KafkaStorage`` returned ``TaskAllocations`` will be encoded in ``Prometheus`` exposition format:
+Returned ``TasksAllocations`` will be encoded in Prometheus exposition format:
 
 .. code-block:: ini
 
