@@ -25,13 +25,15 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class StaticNode(Node):
-    """Simple implementation of tasks that returns tasks based on provided list on tasks names.
+    """Simple implementation of Node that returns tasks based on 
+    provided list on tasks names.
+
     Tasks are returned only if corresponding cgroups exists:
     - /sys/fs/cgroup/cpu/(task_name)
     - /sys/fs/cgroup/cpuacct/(task_name)
     - /sys/fs/cgroup/perf_event/(task_name)
 
-    If corresponding cgroup does not exists tasks is ignored.
+    Otherwise, the item is ignored.
     """
 
     # List of task names.
