@@ -35,29 +35,54 @@ corresponding storage classes.
 
 ``AllocationRunner`` class has the following required and optional attributes:
 
-.. code-block:: ini
+.. code-block:: python
 
-    node: component used for tasks discovery
-    allocator: component that provides allocation logic
-    metrics_storage: storage to store platform, internal, resource and task metrics
-        (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-    anomalies_storage: storage to store serialized anomalies and extra metrics
-        (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-    allocations_storage: storage to store serialized resource allocations
-        (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-    action_delay: iteration duration in seconds (None disables wait and iterations)
-        (defaults to 1 second)
-    rdt_enabled: enables or disabled support for RDT monitoring and allocation
-        (defaults to None(auto) based on platform capabilities)
-    rdt_mb_control_enabled: enables or disables support for RDT memory bandwidth
-        (defaults to None(auto) based on platform capabilities) allocation
-    extra_labels: additional labels attached to every metrics
-        (defaults to empty dict)
-    allocation_configuration: allows fine grained control over allocations
-        (defaults to AllocationConfiguration() instance)
+    class AllocationRunner(MeasurementRunner):
+        """Runner is responsible for getting information about tasks from node,
+        calling allocate() callback on allocator, performing returning allocations
+        and storing all allocation related metrics in allocations_storage.
+
+        Because Allocator interface is also detector, we store serialized detected anomalies
+        in anomalies_storage and all other measurements in metrics_storage.
+
+        Arguments:
+            node: component used for tasks discovery
+            allocator: component that provides allocation logic
+            metrics_storage: storage to store platform, internal, resource and task metrics
+                (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+            anomalies_storage: storage to store serialized anomalies and extra metrics
+                (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+            allocations_storage: storage to store serialized resource allocations
+                (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+            action_delay: iteration duration in seconds (None disables wait and iterations)
+                (defaults to 1 second)
+            rdt_enabled: enables or disabled support for RDT monitoring and allocation
+                (defaults to None(auto) based on platform capabilities)
+            rdt_mb_control_enabled: enables or disables support for RDT memory bandwidth
+                (defaults to None(auto) based on platform capabilities) allocation
+            extra_labels: additional labels attached to every metrics
+                (defaults to empty dict)
+            allocation_configuration: allows fine grained control over allocations
+                (defaults to AllocationConfiguration() instance)
+        """
+
+        def __init__(
+                self,
+                node: nodes.Node,
+                allocator: Allocator,
+                metrics_storage: storage.Storage = DEFAULT_STORAGE,
+                anomalies_storage: storage.Storage = DEFAULT_STORAGE,
+                allocations_storage: storage.Storage = DEFAULT_STORAGE,
+                action_delay: float = 1.,  # [s]
+                rdt_enabled: bool = None,  # Defaults(None) - auto configuration.
+                rdt_mb_control_enabled: bool = None,  # Defaults(None) - auto configuration.
+                extra_labels: Dict[str, str] = None,
+                allocation_configuration: AllocationConfiguration = None,
+        ):
+        ...
 
 
-``AllocationConfiguration`` structure contains static configuration to perform normalization of specific resource allocations.
+``AllocationConfiguration`` contains static configuration to perform normalization of specific resource allocations.
 
 .. code-block:: python
 
