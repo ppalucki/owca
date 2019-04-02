@@ -10,7 +10,7 @@ Introduction
 ------------
 
 Resource allocation interface allows to provide plugin with resource control logic. Such component
-can enforce isolation based on platform and resources usage metrics.
+can enforce isolation based on platform and tasks resources usage metrics.
 
 To enable allocation feature, agent has to be configured to use ``AllocationRunner`` component.
 This runner requires `Allocator`_ component, to be provided. Allocation decisions are based

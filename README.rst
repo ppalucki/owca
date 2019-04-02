@@ -161,9 +161,9 @@ Components
 Following built-in components are available (stable API):
 
 - `MesosNode <owca/mesos.py#L64>`_ provides workload discovery on Mesos cluster node where `mesos containerizer <http://mesos.apache.org/documentation/latest/mesos-containerizer/>`_ is used (see the docs `here <docs/mesos.rst>`_)
-- `MeasurementRunner <owca/runners/measurement.py#L36>`_ implements simple loop that reads state of the system, encodes this information as metrics and stores in external location.
-- `DetectionRunner <owca/runners/detection.py#L52>`_ implements anomaly detection loop and encodes anomalies as metrics to enable alerting and analysis. See `Detection API <docs/detection.rst>`_ for more details.
-- `AllocationRunner <owca/runners/allocation.py#L127>`_ implements resource allocation loop. See `Allocation API <docs/allocation.rst>`_ for more details (Work in progress).
+- `MeasurementRunner <owca/runners/measurement.py#L36>`_ implements simple loop that reads state of the system, encodes this information as metrics and stores them,
+- `DetectionRunner <owca/runners/detection.py#L52>`_ extends ``MeasurementRunner`` and additionally implements anomaly detection callback and encodes anomalies as metrics to enable alerting and analysis. See `Detection API <docs/detection.rst>`_ for more details.
+- `AllocationRunner <owca/runners/allocation.py#L127>`_ extends ``MeasurementRunner`` and additionally implements resource allocation callback. See `Allocation API <docs/allocation.rst>`_ for more details .
 - `NOPAnomalyDetector <owca/detectors.py#L164>`_ dummy "no operation" detector that returns no metrics, nor anomalies. See `Detection API <docs/detection.rst>`_ for more details.
 - `NOPAllocator <owca/allocators.py#L95>`_ dummy "no operation" detector that returns no metrics, nor anomalies. See `Detection API <docs/detection.rst>`_ for more details.
 - `KafkaStorage <owca/storage.py#L213>`_ logs metrics to  `Kafka streaming platform <https://kafka.apache.org/>`_ using configurable topics 
@@ -171,13 +171,12 @@ Following built-in components are available (stable API):
 
 Following built-in components are available as provisional API:
 
-- `StaticNode <owca/extra/static_node.py>`_ to support static list of tasks (does not require full orchestration stack)
-- `StaticAllocator <owca/extra/static_allocator.py>`_ to support simple rules based logic for resource allocation,
-
+- `StaticNode <owca/extra/static_node.py>`_ to support static list of tasks (does not require full orchestration software stack),
+- `StaticAllocator <owca/extra/static_allocator.py>`_ to support simple rules based logic for resource allocation.
 
 Third-party components:
 
-- `Intel "Platform Resource Manager" plugin <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ - machine learning based component for both anomaly detection and allocation,
+- `Intel "Platform Resource Manager" plugin <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ - machine learning based component for both anomaly detection and allocation.
 
 
 Workloads
@@ -202,6 +201,7 @@ Further reading
 - `Development guide <docs/development.rst>`_
 - `External detector example <docs/external_detector_example.rst>`_
 - `Wrappers guide <docs/wrappers.rst>`_
+- `Mesos integration <docs/mesos.rst>`_
 - `Logging configuration <docs/logging.rst>`_
 - `Supported workloads and definitions </workloads>`_
 - `OWCA Architecture 1.5.pdf`_
