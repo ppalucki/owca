@@ -80,7 +80,6 @@ class MeasurementRunner(Runner):
         residual_time = max(0., self._action_delay - iteration_duration)
         time.sleep(residual_time)
 
-
     def run(self) -> int:
         """Loop that gathers platform and tasks metrics and calls _run_body.
         _run_body is a method to be subclassed.

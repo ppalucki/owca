@@ -54,7 +54,7 @@ class AllocationConfiguration:
     # Default value for cpu.cpu_period [ms] (used as denominator).
     cpu_quota_period: int = 1000
 
-    # Multiplier of AllocationType.CPU_SHARES allocation value. 
+    # Multiplier of AllocationType.CPU_SHARES allocation value.
     # E.g. setting 'CPU_SHARES' to 2.0 will set 2000 shares effectively
     # in cgroup cpu controller.
     cpu_shares_unit: int = 1000
@@ -62,7 +62,7 @@ class AllocationConfiguration:
     # Default resource allocation for last level cache (L3) and memory bandwidth
     # for root RDT group.
     # Root RDT group is used as default group for all tasks, unless explicitly reconfigured by
-    # allocator. 
+    # allocator.
     # `None` (the default value) means no limit (effectively set to maximum available value).
     default_rdt_l3: str = None
     default_rdt_mb: str = None
