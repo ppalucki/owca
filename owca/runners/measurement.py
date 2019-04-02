@@ -73,15 +73,13 @@ class MeasurementRunner(Runner):
         """Decides how long one iteration should take.
         Additionally calculate residual time, based on time already taken by iteration.
         """
-        if self._action_delay is not None:
-            now = time.time()
-            iteration_duration = now - self._last_iteration
-            self._last_iteration = now
+        now = time.time()
+        iteration_duration = now - self._last_iteration
+        self._last_iteration = now
 
-            residual_time = max(0., self._action_delay - iteration_duration)
-            time.sleep(residual_time)
-        else:
-            self._finish = True
+        residual_time = max(0., self._action_delay - iteration_duration)
+        time.sleep(residual_time)
+
 
     def run(self) -> int:
         """Loop that gathers platform and tasks metrics and calls _run_body.
