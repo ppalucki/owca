@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from owca import nodes, storage, detectors
 from owca.detectors import convert_anomalies_to_metrics, \
@@ -63,7 +63,7 @@ class DetectionRunner(MeasurementRunner):
             (defaults to 1 second)
         rdt_enabled: enables or disabled support for RDT monitoring and allocation
             (defaults to None(auto) based on platform capabilities)
-        extra_labels: additional labels attached to every metrics
+        extra_labels: additional labels attached to every metric
             (defaults to empty dict)
     """
 
@@ -74,7 +74,7 @@ class DetectionRunner(MeasurementRunner):
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
             action_delay: float = 1.,
-            rdt_enabled: bool = None,
+            rdt_enabled: Optional[bool] = None,
             extra_labels: Dict[str, str] = None,
     ):
         super().__init__(node, metrics_storage,

@@ -16,12 +16,12 @@ from unittest.mock import Mock, patch
 import pytest
 
 from owca.allocators import RDTAllocation
-from owca.extra.static_allocator import StaticAllocator, _allocate_according_rules
+from owca.extra.static_allocator import StaticAllocator, _build_allocations_from_rules
 
 
 @patch('os.path.exists', Mock(return_value=True))
 @patch('owca.extra.static_allocator.load_config', return_value=[])
-@patch('owca.extra.static_allocator._allocate_according_rules', return_value={})
+@patch('owca.extra.static_allocator._build_allocations_from_rules', return_value={})
 def test_static_allocator(allocate_according_rules_mock, load_config_mock):
     static_allocator = StaticAllocator(config='somefile')
     platform_mock = Mock()
@@ -59,7 +59,7 @@ def test_static_allocator(allocate_according_rules_mock, load_config_mock):
     ([{'task_id': 'task1', 'allocations': {'rdt': {'name': 'foo', 'l3': 'somevalue'}}}],
      {'task1': {'rdt': RDTAllocation(name='foo', l3='somevalue')}}),
 ])
-def test_allocate_according_rules(rules, expected_tasks_allocations):
+def test_build_allocations_from_rules(rules, expected_tasks_allocations):
     all_tasks_ids = {'task1', 'task2'}
     labels = {'task1': {'foo': 'bar'}}
-    assert _allocate_according_rules(all_tasks_ids, labels, rules) == expected_tasks_allocations
+    assert _build_allocations_from_rules(all_tasks_ids, labels, rules) == expected_tasks_allocations

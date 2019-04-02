@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import time
-from typing import Dict, Callable, Any
+from typing import Dict, Callable, Any, Optional
 
 from owca import nodes, storage, platforms
 from owca import resctrl
@@ -147,7 +147,7 @@ class AllocationRunner(MeasurementRunner):
             (defaults to None(auto) based on platform capabilities)
         rdt_mb_control_enabled: enables or disables support for RDT memory bandwidth
             (defaults to None(auto) based on platform capabilities) allocation
-        extra_labels: additional labels attached to every metrics
+        extra_labels: additional labels attached to every metric
             (defaults to empty dict)
         allocation_configuration: allows fine grained control over allocations
             (defaults to AllocationConfiguration() instance)
@@ -161,10 +161,10 @@ class AllocationRunner(MeasurementRunner):
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
             allocations_storage: storage.Storage = DEFAULT_STORAGE,
             action_delay: float = 1.,  # [s]
-            rdt_enabled: bool = None,  # Defaults(None) - auto configuration.
-            rdt_mb_control_enabled: bool = None,  # Defaults(None) - auto configuration.
+            rdt_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
+            rdt_mb_control_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,
-            allocation_configuration: AllocationConfiguration = None,
+            allocation_configuration: Optional[AllocationConfiguration] = None,
     ):
 
         self._allocation_configuration = allocation_configuration or AllocationConfiguration()
