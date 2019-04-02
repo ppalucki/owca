@@ -37,25 +37,24 @@ corresponding storage classes.
 
 .. code-block:: ini
 
-    Arguments:
-        node: component used for tasks discovery
-        allocator: component that provides allocation logic
-        metrics_storage: storage to store platform, internal, resource and task metrics
-            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-        anomalies_storage: storage to store serialized anomalies and extra metrics
-            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-        allocations_storage: storage to store serialized resource allocations
-            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-        action_delay: iteration duration in seconds (None disables wait and iterations)
-            (defaults to 1 second)
-        rdt_enabled: enables or disabled support for RDT monitoring and allocation
-            (defaults to None(auto) based on platform capabilities)
-        rdt_mb_control_enabled: enables or disables support for RDT memory bandwidth
-            (defaults to None(auto) based on platform capabilities) allocation
-        extra_labels: additional labels attached to every metrics
-            (defaults to empty dict)
-        allocation_configuration: allows fine grained control over allocations
-            (defaults to AllocationConfiguration() instance)
+    node: component used for tasks discovery
+    allocator: component that provides allocation logic
+    metrics_storage: storage to store platform, internal, resource and task metrics
+        (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+    anomalies_storage: storage to store serialized anomalies and extra metrics
+        (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+    allocations_storage: storage to store serialized resource allocations
+        (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+    action_delay: iteration duration in seconds (None disables wait and iterations)
+        (defaults to 1 second)
+    rdt_enabled: enables or disabled support for RDT monitoring and allocation
+        (defaults to None(auto) based on platform capabilities)
+    rdt_mb_control_enabled: enables or disables support for RDT memory bandwidth
+        (defaults to None(auto) based on platform capabilities) allocation
+    extra_labels: additional labels attached to every metrics
+        (defaults to empty dict)
+    allocation_configuration: allows fine grained control over allocations
+        (defaults to AllocationConfiguration() instance)
 
 
 ``AllocationConfiguration`` structure contains static configuration to perform normalization of specific resource allocations.
