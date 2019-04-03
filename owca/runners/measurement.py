@@ -32,6 +32,8 @@ from owca.storage import MetricPackage, DEFAULT_STORAGE
 
 log = logging.getLogger(__name__)
 
+_INITIALIZE_FAILURE_ERROR_CODE = 1
+
 
 class MeasurementRunner(Runner):
     """MeasurementRunner run iterations to collect platform, resource, task measurements
@@ -63,6 +65,7 @@ class MeasurementRunner(Runner):
         self._metrics_storage = metrics_storage
         self._action_delay = action_delay
         self._rdt_enabled = rdt_enabled
+        self._rdt_mb_control_enabled = False  # Disabled by default, to be override by subclasses.
         self._extra_labels = extra_labels or dict()
         self._finish = False  # Guard to stop iterations.
         self._last_iteration = time.time()  # Used internally by wait function.
@@ -80,9 +83,9 @@ class MeasurementRunner(Runner):
         residual_time = max(0., self._action_delay - iteration_duration)
         time.sleep(residual_time)
 
-    def run(self) -> int:
-        """Loop that gathers platform and tasks metrics and calls _run_body.
-        _run_body is a method to be subclassed.
+    def _initialize(self) -> Optional[int]:
+        """Check privileges, RDT availability and prepare internal state.
+        Can return error code that should stop Runner.
         """
         if not security.are_privileges_sufficient():
             log.error("Impossible to use perf_event_open/resctrl subsystems. "
@@ -102,53 +105,67 @@ class MeasurementRunner(Runner):
 
         if self._rdt_enabled:
             # Resctrl is enabled and available, call a placeholder to allow further initialization.
-            self._initialize_rdt()
+            rat_initialization_ok = self._initialize_rdt()
+            if not rat_initialization_ok:
+                return 1
 
         # Post pone the container manager initialization after rdt checks were performed.
         platform_cpus, _, platform_sockets = platforms.collect_topology_information()
         self._containers_manager = ContainerManager(
             self._rdt_enabled,
-            rdt_mb_control_enabled=False,
+            rdt_mb_control_enabled=self._rdt_enabled and self._rdt_mb_control_enabled,
             platform_cpus=platform_cpus,
             allocation_configuration=self._allocation_configuration,
         )
+        return None
 
-        while True:
-            iteration_start = time.time()
+    def _iterate(self):
+        iteration_start = time.time()
 
-            # Get information about tasks.
-            tasks = self._node.get_tasks()
-            log.debug('Tasks detected: %d', len(tasks))
+        # Get information about tasks.
+        tasks = self._node.get_tasks()
+        log.debug('Tasks detected: %d', len(tasks))
 
-            # Keep sync of found tasks and internally managed containers.
-            containers = self._containers_manager.sync_containers_state(tasks)
+        # Keep sync of found tasks and internally managed containers.
+        containers = self._containers_manager.sync_containers_state(tasks)
 
-            # Platform information
-            platform, platform_metrics, platform_labels = platforms.collect_platform_information(
-                self._rdt_enabled)
+        # Platform information
+        platform, platform_metrics, platform_labels = platforms.collect_platform_information(
+            self._rdt_enabled)
 
-            # Common labels
-            common_labels = dict(platform_labels, **self._extra_labels)
+        # Common labels
+        common_labels = dict(platform_labels, **self._extra_labels)
 
-            # Tasks data
-            tasks_measurements, tasks_resources, tasks_labels = _prepare_tasks_data(containers)
-            tasks_metrics = _build_tasks_metrics(tasks_labels, tasks_measurements)
+        # Tasks data
+        tasks_measurements, tasks_resources, tasks_labels = _prepare_tasks_data(containers)
+        tasks_metrics = _build_tasks_metrics(tasks_labels, tasks_measurements)
 
-            self._run_body(containers, platform, tasks_measurements, tasks_resources,
+        self._iterate_body(containers, platform, tasks_measurements, tasks_resources,
                            tasks_labels, common_labels)
 
-            self._wait()
+        self._wait()
 
-            iteration_duration = time.time() - iteration_start
-            profiling.profiler.register_duration('iteration', iteration_duration)
+        iteration_duration = time.time() - iteration_start
+        profiling.profiler.register_duration('iteration', iteration_duration)
 
-            # Generic metrics.
-            metrics_package = MetricPackage(self._metrics_storage)
-            metrics_package.add_metrics(_get_internal_metrics(tasks))
-            metrics_package.add_metrics(platform_metrics)
-            metrics_package.add_metrics(tasks_metrics)
-            metrics_package.add_metrics(profiling.profiler.get_metrics())
-            metrics_package.send(common_labels)
+        # Generic metrics.
+        metrics_package = MetricPackage(self._metrics_storage)
+        metrics_package.add_metrics(_get_internal_metrics(tasks))
+        metrics_package.add_metrics(platform_metrics)
+        metrics_package.add_metrics(tasks_metrics)
+        metrics_package.add_metrics(profiling.profiler.get_metrics())
+        metrics_package.send(common_labels)
+
+    def run(self) -> int:
+        """Loop that gathers platform and tasks metrics and calls _iterate_body.
+        _iterate_body is a method to be subclassed.
+        """
+        error_code = self._initialize()
+        if error_code is not None:
+            return error_code
+
+        while True:
+            self._iterate()
 
             if self._finish:
                 break
@@ -157,12 +174,15 @@ class MeasurementRunner(Runner):
         self._containers_manager.cleanup()
         return 0
 
-    def _run_body(self, containers, platform, tasks_measurements, tasks_resources,
-                  tasks_labels, common_labels):
-        """No-op implementation of inner loop body"""
+    def _iterate_body(self, containers, platform, tasks_measurements, tasks_resources,
+                      tasks_labels, common_labels):
+        """No-op implementation of inner loop body - called by iterate"""
 
-    def _initialize_rdt(self):
-        """Nothing to configure in RDT to measure resource usage."""
+    def _initialize_rdt(self) -> bool:
+        """Nothing to configure in RDT to measure resource usage.
+        Returns state of rdt initialization (True ok, False for error)
+        """
+        return True
 
 
 @profiler.profile_duration('prepare_tasks_data')
