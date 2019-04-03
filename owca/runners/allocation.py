@@ -58,7 +58,7 @@ class TaskAllocationsValues(AllocationsDict):
         simple_dict = {}
         for allocation_type, raw_value in task_allocations.items():
             if allocation_type not in registry:
-                raise InvalidAllocations('unknown allocation type')
+                raise InvalidAllocations('unsupported allocation type: %r' % allocation_type)
             constructor = registry[allocation_type]
             allocation_value = constructor(raw_value, container, common_labels)
             simple_dict[allocation_type] = allocation_value
@@ -72,7 +72,7 @@ class TasksAllocationsValues(AllocationsDict):
     """
 
     @staticmethod
-    def create(tasks_allocations: TasksAllocations, containers, platform) \
+    def create(rdt_enabled: bool, tasks_allocations: TasksAllocations, containers, platform) \
             -> 'TasksAllocationsValues':
         """Convert plain raw object TasksAllocations to boxed intelligent AllocationsDict
         that can be serialized to metrics, validated and can perform contained allocations.
@@ -85,28 +85,31 @@ class TasksAllocationsValues(AllocationsDict):
         and optimize writes for schemata file.
         """
         # Shared object to optimize schemata write and detect CLOSids exhaustion.
-        rdt_groups = RDTGroups(closids_limit=platform.rdt_information.num_closids)
-
-        def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation, container,
-                                             common_labels):
-            return RDTAllocationValue(
-                container.container_name,
-                rdt_allocation,
-                container.resgroup,
-                container.cgroup.get_pids,
-                platform.sockets,
-                platform.rdt_information.rdt_mb_control_enabled,
-                platform.rdt_information.cbm_mask,
-                platform.rdt_information.min_cbm_bits,
-                common_labels=common_labels,
-                rdt_groups=rdt_groups,
-            )
 
         registry = {
-            AllocationType.RDT: rdt_allocation_value_constructor,
             AllocationType.QUOTA: QuotaAllocationValue,
             AllocationType.SHARES: SharesAllocationValue,
         }
+
+        if rdt_enabled:
+            rdt_groups = RDTGroups(closids_limit=platform.rdt_information.num_closids)
+
+            def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation, container,
+                                                 common_labels):
+                return RDTAllocationValue(
+                    container.container_name,
+                    rdt_allocation,
+                    container.resgroup,
+                    container.cgroup.get_pids,
+                    platform.sockets,
+                    platform.rdt_information.rdt_mb_control_enabled,
+                    platform.rdt_information.cbm_mask,
+                    platform.rdt_information.min_cbm_bits,
+                    common_labels=common_labels,
+                    rdt_groups=rdt_groups,
+                )
+
+            registry[AllocationType.RDT] = rdt_allocation_value_constructor
 
         task_id_to_containers = {task.task_id: container for task, container in containers.items()}
         simple_dict = {}
@@ -115,6 +118,8 @@ class TasksAllocationsValues(AllocationsDict):
                 raise InvalidAllocations('invalid task id %r' % task_id)
             else:
                 container = task_id_to_containers[task_id]
+                # Check consistency of container with RDT state.
+                assert container.rdt_enabled == rdt_enabled
                 container_labels = dict(container_name=container.container_name, task=task_id)
                 allocation_value = TaskAllocationsValues.create(
                     task_allocations, container, registry, container_labels)
@@ -175,7 +180,7 @@ class AllocationRunner(MeasurementRunner):
         # Allocation specific.
         self._allocator = allocator
         self._allocations_storage = allocations_storage
-        self._rdt_mb_control_enabled = rdt_mb_control_enabled
+        self._rdt_mb_control_enabled = rdt_mb_control_enabled  # Override False from superclass.
 
         # Anomaly.
         self._anomalies_storage = anomalies_storage
@@ -218,13 +223,17 @@ class AllocationRunner(MeasurementRunner):
             if not self._rdt_mb_control_enabled:
                 root_rdt_mb = None
 
-        if root_rdt_l3 is not None:
-            validate_l3_string(root_rdt_l3, platform.sockets,
-                               platform.rdt_information.cbm_mask,
-                               platform.rdt_information.min_cbm_bits)
+        try:
+            if root_rdt_l3 is not None:
+                validate_l3_string(root_rdt_l3, platform.sockets,
+                                   platform.rdt_information.cbm_mask,
+                                   platform.rdt_information.min_cbm_bits)
 
-        if root_rdt_mb is not None:
-            validate_mb_string(root_rdt_mb, platform.sockets)
+            if root_rdt_mb is not None:
+                validate_mb_string(root_rdt_mb, platform.sockets)
+        except InvalidAllocations as e:
+            log.error('Cannot initialize RDT subsystem: %s', e)
+            return False
 
         resctrl.cleanup_resctrl(root_rdt_l3, root_rdt_mb)
 
@@ -250,7 +259,7 @@ class AllocationRunner(MeasurementRunner):
 
         # Create context aware allocations objects for current allocations.
         current_allocations_values = TasksAllocationsValues.create(
-            current_allocations, self._containers_manager.containers, platform)
+            self._rdt_enabled, current_allocations, self._containers_manager.containers, platform)
 
         # Handle allocations: calculate changeset and target allocations.
         allocations_changeset_values = None
@@ -259,7 +268,7 @@ class AllocationRunner(MeasurementRunner):
             # Create and validate context aware allocations objects for new allocations.
             log.debug('New allocations: %s', new_allocations)
             new_allocations_values = TasksAllocationsValues.create(
-                new_allocations, self._containers_manager.containers, platform)
+                self._rdt_enabled, new_allocations, self._containers_manager.containers, platform)
             new_allocations_values.validate()
 
             # Calculate changeset and target_allocations.

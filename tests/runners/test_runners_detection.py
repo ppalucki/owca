@@ -52,11 +52,11 @@ def test_detection_runner():
         rdt_enabled=False,
         extra_labels=dict(extra_label='extra_value')  # extra label with some extra value
     )
+    runner._wait = Mock()
+    runner._do_initialization()
 
     # Mock to finish after one iteration.
-    runner._wait = Mock()
-    runner._finish = True
-    runner.run()
+    runner._do_iteration()
 
     got_anomalies_metrics = runner._anomalies_storage.store.mock_calls[0][1][0]
 
