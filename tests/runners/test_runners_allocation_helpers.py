@@ -68,7 +68,7 @@ def test_allocations_generate_metrics(tasks_allocations, expected_metrics):
                   task('/t2'): container('/t2'),
                   }
     allocations_values = TasksAllocationsValues.create(
-        tasks_allocations, containers, platform_mock)
+        True, tasks_allocations, containers, platform_mock)
     allocations_values.validate()
     metrics_got = allocations_values.generate_metrics()
     assert metrics_got == expected_metrics
@@ -134,7 +134,7 @@ def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_
 
 @pytest.mark.parametrize('tasks_allocations,expected_error', [
     ({'tx': {'cpu_shares': 3}}, 'invalid task id'),
-    ({'t1_task_id': {'wrong_type': 5}}, 'unknown allocation type'),
+    ({'t1_task_id': {'wrong_type': 5}}, 'unsupported allocation type'),
     ({'t1_task_id': {'rdt': RDTAllocation()},
       't2_task_id': {'rdt': RDTAllocation()},
       't3_task_id': {'rdt': RDTAllocation()}},
@@ -149,7 +149,7 @@ def test_convert_invalid_task_allocations(tasks_allocations, expected_error):
                   }
     with pytest.raises(InvalidAllocations, match=expected_error):
         got_allocations_values = TasksAllocationsValues.create(
-            tasks_allocations, containers, platform_mock)
+            True, tasks_allocations, containers, platform_mock)
         got_allocations_values.validate()
 
 
@@ -207,7 +207,7 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
     containers = {task('/t1'): container('/t1', resgroup_name='', with_config=True),
                   task('/t2'): container('/t2', resgroup_name='', with_config=True)}
     allocations_values = TasksAllocationsValues.create(
-        tasks_allocations, containers, platform_mock)
+        True, tasks_allocations, containers, platform_mock)
     allocations_values.validate()
     with patch('owca.resctrl.ResGroup.write_schemata') as mock, \
             patch('owca.cgroups.Cgroup._write'), patch('owca.cgroups.Cgroup._read'):
@@ -218,27 +218,28 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
 @pytest.mark.parametrize(
     'default_rdt_l3, default_rdt_mb,'
     'config_rdt_mb_control_enabled, platform_rdt_mb_control_enabled,'
-    'expected_exception, expected_final_rdt_mb_control_enabled_with_value,'
+    'expected_error, expected_final_rdt_mb_control_enabled_with_value,'
     'expected_cleanup_arguments', [
         # rdt mb is not enabled and not detected on platform, there should be no call nor exception
-        (None, None, False, False, None, False, ('L3:0=fff', None)),
+        (None, None, False, False, False, False, ('L3:0=fff', None, False)),
         # rdt mb is not enabled but detected on platform - configure l3 to max, but not mb
-        (None, None, False, True, None, False, ('L3:0=fff', None)),  # mask based on cbm_mask below
+        (None, None, False, True, False, False, ('L3:0=fff', None, False)),
+        # mask based on cbm_mask below
         # rdt mb is enabled and not detected on platform, there should be exception
-        (None, None, True, False, 'RDT MB control is not supported', False, None),
+        (None, None, True, False, True, False, None),
         # rdt mb is enabled and available on platform, there should be no exception
-        (None, None, True, True, None, True, ('L3:0=fff', 'MB:0=100')),
+        (None, None, True, True, False, True, ('L3:0=fff', 'MB:0=100', False)),
         # rdt mb is enabled and available on platform, there should be no exception, but use MB=50
-        (None, 'MB:0=50', True, True, None, True, ('L3:0=fff', 'MB:0=50')),
+        (None, 'MB:0=50', True, True, False, True, ('L3:0=fff', 'MB:0=50', False)),
         # rdt mb is enabled and available on platform, there should be no exception, but use L3=f
-        ('L3:0=00f', None, True, True, None, True, ('L3:0=00f', 'MB:0=100')),
+        ('L3:0=00f', None, True, True, False, True, ('L3:0=00f', 'MB:0=100', False)),
         # rdt mb is enabled and available on platform, there should be no exception, but use both
-        ('L3:0=00f', 'MB:0=50', True, True, None, True, ('L3:0=00f', 'MB:0=50')),
+        ('L3:0=00f', 'MB:0=50', True, True, False, True, ('L3:0=00f', 'MB:0=50', False)),
         # rdt mb is not enabled and not available on platform, no exception, and just set L3
-        ('L3:0=00f', 'MB:0=50', False, False, None, False, ('L3:0=00f', None)),
+        ('L3:0=00f', 'MB:0=50', False, False, False, False, ('L3:0=00f', None, False)),
         # wrong values
-        ('wrongl3', 'MB:0=50', True, True, 'l3 resources setting should start with', True, None),
-        ('L3:0=00f', 'wrong mb', True, True, 'mb resources setting should start with', True, None),
+        ('wrongl3', 'MB:0=50', True, True, True, True, None),
+        ('L3:0=00f', 'wrong mb', True, True, True, True, None),
     ]
 )
 @patch('owca.resctrl.cleanup_resctrl')
@@ -247,7 +248,7 @@ def test_rdt_initialize(rdt_max_values_mock, cleanup_resctrl_mock,
                         default_rdt_l3, default_rdt_mb,
                         config_rdt_mb_control_enabled,
                         platform_rdt_mb_control_enabled,
-                        expected_exception,
+                        expected_error,
                         expected_final_rdt_mb_control_enabled_with_value,
                         expected_cleanup_arguments,
                         ):
@@ -271,11 +272,7 @@ def test_rdt_initialize(rdt_max_values_mock, cleanup_resctrl_mock,
             spec=RDTInformation,
             cbm_mask='fff', min_cbm_bits='2',
             rdt_mb_control_enabled=platform_rdt_mb_control_enabled)):
-        if expected_exception:
-            with pytest.raises(Exception, match=expected_exception):
-                runner._initialize_rdt()
-        else:
-            runner._initialize_rdt()
+        assert runner._initialize_rdt() is not expected_error
 
     if expected_final_rdt_mb_control_enabled_with_value:
         assert runner._rdt_mb_control_enabled == expected_final_rdt_mb_control_enabled_with_value

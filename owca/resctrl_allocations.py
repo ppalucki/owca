@@ -239,6 +239,9 @@ class RDTAllocationValue(AllocationValue):
                                self.rdt_cbm_mask,
                                self.rdt_min_cbm_bits)
         if self.rdt_allocation.mb:
+            if self.rdt_mb_control_enabled is False:
+                raise InvalidAllocations('Allocator requested RDT MB allocation but '
+                                         'RDT memory bandwidth is not enabled!')
             validate_mb_string(self.rdt_allocation.mb,
                                self.platform_sockets)
 
@@ -322,6 +325,8 @@ def _parse_schemata_file_row(line: str) -> Dict[str, str]:
 
 
 def validate_l3_string(l3, platform_sockets, rdt_cbm_mask, rdt_min_cbm_bits):
+    assert rdt_cbm_mask is not None
+    assert rdt_min_cbm_bits is not None
     if not l3.startswith('L3:'):
         raise InvalidAllocations(
             'l3 resources setting should start with "L3:" prefix (got %r)' % l3)

@@ -37,11 +37,10 @@ def test_measurements_runner():
         rdt_enabled=False,
         extra_labels=dict(extra_label='extra_value')  # extra label with some extra value
     )
-
-    # Mock to finish after one iteration.
     runner._wait = Mock()
-    runner._finish = True
-    runner.run()
+    # Mock to finish after one iteration.
+    runner._initialize()
+    runner._iterate()
 
     # Check output metrics.
     got_metrics = runner._metrics_storage.store.call_args[0][0]

@@ -21,6 +21,7 @@ from typing import Tuple, List, Dict, Optional
 
 from owca import logger
 from owca.allocators import AllocationType, TaskAllocations, RDTAllocation
+from owca.allocations import InvalidAllocations
 from owca.logger import TRACE
 from owca.metrics import Measurements, MetricName
 from owca.security import SetEffectiveRootUid
@@ -246,8 +247,11 @@ class ResGroup:
 def cleanup_resctrl(root_rdt_l3: Optional[str], root_rdt_mb: Optional[str], reset_resctrl=False):
     """Reinitialize resctrl filesystem: by removing subfolders (both CTRL and MON groups)
     and setting default values for cache allocation and memory bandwidth (in root CTRL group).
+    Can raise InvalidAllocations exception.
     """
     if reset_resctrl:
+        log.info('RDT: removing all resctrl groups')
+
         def _remove_folders(initialdir, subfolder):
             """Removed subfolders of subfolder of initialdir """
             for entry in os.listdir(os.path.join(initialdir, subfolder)):
@@ -273,22 +277,24 @@ def cleanup_resctrl(root_rdt_l3: Optional[str], root_rdt_mb: Optional[str], rese
 
     # Reinitialize default values for RDT.
     if root_rdt_l3 is not None:
+        log.info('RDT: reconfiguring root RDT group for L3 resource with: %r', root_rdt_l3)
         with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
             log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_l3)
             try:
                 schemata.write(bytes(root_rdt_l3 + '\n', encoding='utf-8'))
                 schemata.flush()
             except OSError as e:
-                log.error('Cannot set L3 cache allocation: {}'.format(e))
+                raise InvalidAllocations('Cannot set L3 allocation for default group: %s' % e)
 
     if root_rdt_mb is not None:
+        log.info('RDT: reconfiguring root RDT group for MB resource with: %r', root_rdt_mb)
         with open(os.path.join(BASE_RESCTRL_PATH, SCHEMATA), 'bw') as schemata:
             log.log(logger.TRACE, 'resctrl: write(%s): %r', schemata.name, root_rdt_mb)
             try:
                 schemata.write(bytes(root_rdt_mb + '\n', encoding='utf-8'))
                 schemata.flush()
             except OSError as e:
-                log.error('Cannot set rdt memory bandwidth allocation: {}'.format(e))
+                raise InvalidAllocations('Cannot set MB allocation for default group: %s' % e)
 
 
 def get_max_rdt_values(cbm_mask: str, platform_sockets: int) -> Tuple[str, str]:

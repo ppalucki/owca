@@ -86,8 +86,8 @@ class DetectionRunner(MeasurementRunner):
         self._anomalies_storage = anomalies_storage
         self._anomalies_statistics = AnomalyStatistics()
 
-    def _run_body(self, containers, platform, tasks_measurements,
-                  tasks_resources, tasks_labels, common_labels):
+    def _iterate_body(self, containers, platform, tasks_measurements,
+                      tasks_resources, tasks_labels, common_labels):
         """Detector callback body."""
 
         # Call Detector's detect function.

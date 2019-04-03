@@ -131,7 +131,8 @@ def container(cgroup_path, resgroup_name=None, with_config=False):
     with patch('owca.resctrl.ResGroup'), patch('owca.perf.PerfCounters'):
         return Container(
             cgroup_path,
-            rdt_enabled=False, platform_cpus=1,
+            rdt_enabled=True, platform_cpus=1,
+            rdt_mb_control_enabled=True,
             allocation_configuration=AllocationConfiguration() if with_config else None,
             resgroup=ResGroup(name=resgroup_name) if resgroup_name is not None else None
         )
@@ -173,7 +174,7 @@ platform_mock = Mock(
     rdt_information=RDTInformation(
         cbm_mask='fffff',
         min_cbm_bits='1',
-        rdt_mb_control_enabled=False,
+        rdt_mb_control_enabled=True,
         num_closids=2,
         mb_bandwidth_gran=None,
         mb_min_bandwidth=None,
