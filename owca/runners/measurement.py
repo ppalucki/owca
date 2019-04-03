@@ -140,8 +140,8 @@ class MeasurementRunner(Runner):
         tasks_measurements, tasks_resources, tasks_labels = _prepare_tasks_data(containers)
         tasks_metrics = _build_tasks_metrics(tasks_labels, tasks_measurements)
 
-        self._run_body(containers, platform, tasks_measurements, tasks_resources,
-                       tasks_labels, common_labels)
+        self._iterate_body(containers, platform, tasks_measurements, tasks_resources,
+                           tasks_labels, common_labels)
 
         self._wait()
 
@@ -157,8 +157,8 @@ class MeasurementRunner(Runner):
         metrics_package.send(common_labels)
 
     def run(self) -> int:
-        """Loop that gathers platform and tasks metrics and calls _run_body.
-        _run_body is a method to be subclassed.
+        """Loop that gathers platform and tasks metrics and calls _iterate_body.
+        _iterate_body is a method to be subclassed.
         """
         error_code = self._initialize()
         if error_code is not None:
@@ -174,8 +174,8 @@ class MeasurementRunner(Runner):
         self._containers_manager.cleanup()
         return 0
 
-    def _run_body(self, containers, platform, tasks_measurements, tasks_resources,
-                  tasks_labels, common_labels):
+    def _iterate_body(self, containers, platform, tasks_measurements, tasks_resources,
+                      tasks_labels, common_labels):
         """No-op implementation of inner loop body - called by iterate"""
 
     def _initialize_rdt(self) -> bool:

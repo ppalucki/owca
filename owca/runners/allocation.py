@@ -239,10 +239,10 @@ class AllocationRunner(MeasurementRunner):
 
         return True
 
-    def _run_body(self,
-                  containers, platform,
-                  tasks_measurements, tasks_resources,
-                  tasks_labels, common_labels):
+    def _iterate_body(self,
+                      containers, platform,
+                      tasks_measurements, tasks_resources,
+                      tasks_labels, common_labels):
         """Allocator callback body."""
 
         current_allocations = _get_tasks_allocations(containers)
