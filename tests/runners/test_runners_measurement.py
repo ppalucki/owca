@@ -39,8 +39,8 @@ def test_measurements_runner():
     )
     runner._wait = Mock()
     # Mock to finish after one iteration.
-    runner._do_initialization()
-    runner._do_iteration()
+    runner._initialize()
+    runner._iterate()
 
     # Check output metrics.
     got_metrics = runner._metrics_storage.store.call_args[0][0]

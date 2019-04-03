@@ -32,6 +32,8 @@ from owca.storage import MetricPackage, DEFAULT_STORAGE
 
 log = logging.getLogger(__name__)
 
+_INITIALIZE_FAILURE_ERROR_CODE = 1
+
 
 class MeasurementRunner(Runner):
     """MeasurementRunner run iterations to collect platform, resource, task measurements
@@ -81,8 +83,10 @@ class MeasurementRunner(Runner):
         residual_time = max(0., self._action_delay - iteration_duration)
         time.sleep(residual_time)
 
-    def _do_initialization(self) -> Optional[int]:
-        """Check privileges, RDT availability and prepare internal state."""
+    def _initialize(self) -> Optional[int]:
+        """Check privileges, RDT availability and prepare internal state.
+        Can return error code that should stop Runner.
+        """
         if not security.are_privileges_sufficient():
             log.error("Impossible to use perf_event_open/resctrl subsystems. "
                       "You need to: adjust /proc/sys/kernel/perf_event_paranoid (set to -1); "
@@ -115,7 +119,7 @@ class MeasurementRunner(Runner):
         )
         return None
 
-    def _do_iteration(self):
+    def _iterate(self):
         iteration_start = time.time()
 
         # Get information about tasks.
@@ -156,12 +160,12 @@ class MeasurementRunner(Runner):
         """Loop that gathers platform and tasks metrics and calls _run_body.
         _run_body is a method to be subclassed.
         """
-        error_code = self._do_initialization()
+        error_code = self._initialize()
         if error_code is not None:
             return error_code
 
         while True:
-            self._do_iteration()
+            self._iterate()
 
             if self._finish:
                 break
@@ -172,11 +176,11 @@ class MeasurementRunner(Runner):
 
     def _run_body(self, containers, platform, tasks_measurements, tasks_resources,
                   tasks_labels, common_labels):
-        """No-op implementation of inner loop body"""
+        """No-op implementation of inner loop body - called by iterate"""
 
     def _initialize_rdt(self) -> bool:
         """Nothing to configure in RDT to measure resource usage.
-        Returns state of rdt intialization (True ok, False for error)
+        Returns state of rdt initialization (True ok, False for error)
         """
         return True
 

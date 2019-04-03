@@ -53,10 +53,10 @@ def test_detection_runner():
         extra_labels=dict(extra_label='extra_value')  # extra label with some extra value
     )
     runner._wait = Mock()
-    runner._do_initialization()
+    runner._initialize()
 
     # Mock to finish after one iteration.
-    runner._do_iteration()
+    runner._iterate()
 
     got_anomalies_metrics = runner._anomalies_storage.store.mock_calls[0][1][0]
 
