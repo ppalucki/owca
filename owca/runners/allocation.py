@@ -156,6 +156,8 @@ class AllocationRunner(MeasurementRunner):
             (defaults to empty dict)
         allocation_configuration: allows fine grained control over allocations
             (defaults to AllocationConfiguration() instance)
+        remove_all_resctrl_groups (bool): remove all RDT controls groups upon starting
+            (defaults to False)
     """
 
     def __init__(
@@ -170,6 +172,7 @@ class AllocationRunner(MeasurementRunner):
             rdt_mb_control_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
+            remove_all_resctrl_groups: bool = False,
     ):
 
         self._allocation_configuration = allocation_configuration or AllocationConfiguration()
@@ -189,6 +192,8 @@ class AllocationRunner(MeasurementRunner):
         # Internal allocation statistics
         self._allocations_counter = 0
         self._allocations_errors = 0
+
+        self._remove_all_resctrl_groups = remove_all_resctrl_groups
 
     def _initialize_rdt(self) -> bool:
         platform, _, _ = platforms.collect_platform_information()
@@ -231,11 +236,11 @@ class AllocationRunner(MeasurementRunner):
 
             if root_rdt_mb is not None:
                 validate_mb_string(root_rdt_mb, platform.sockets)
+
+            resctrl.cleanup_resctrl(root_rdt_l3, root_rdt_mb, self._remove_all_resctrl_groups)
         except InvalidAllocations as e:
             log.error('Cannot initialize RDT subsystem: %s', e)
             return False
-
-        resctrl.cleanup_resctrl(root_rdt_l3, root_rdt_mb)
 
         return True
 

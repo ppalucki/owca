@@ -64,6 +64,8 @@ corresponding storage classes.
                 (defaults to empty dict)
             allocation_configuration: allows fine grained control over allocations
                 (defaults to AllocationConfiguration() instance)
+            remove_all_resctrl_groups (bool): remove all RDT controls groups upon starting
+                (defaults to False)
         """
 
         def __init__(
@@ -78,6 +80,7 @@ corresponding storage classes.
                 rdt_mb_control_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
                 extra_labels: Dict[str, str] = None,
                 allocation_configuration: Optional[AllocationConfiguration] = None,
+                remove_all_resctrl_groups: bool = False,
         ):
         ...
 
