@@ -185,12 +185,14 @@ class AllocationRunner(MeasurementRunner):
         self._allocations_counter = 0
         self._allocations_errors = 0
 
-    def _initialize_rdt(self):
+    def _initialize_rdt(self) -> bool:
         platform, _, _ = platforms.collect_platform_information()
 
         if self._rdt_mb_control_enabled and not platform.rdt_information.rdt_mb_control_enabled:
             # Some wanted unavailable feature - halt.
-            raise Exception("RDT MB control is not supported by platform!")
+            log.error('RDT memory bandwidth enabled but allocation is not supported by platform!')
+            return False
+
         elif self._rdt_mb_control_enabled is None:
             # Auto detection of rdt mb control.
             self._rdt_mb_control_enabled = platform.rdt_information.rdt_mb_control_enabled
@@ -207,10 +209,10 @@ class AllocationRunner(MeasurementRunner):
 
         # Do not set mb default value if feature is not available
         # (only for case that was auto detected)
-        if not platform.rdt_information.rdt_mb_control_enabled:
+        if platform.rdt_information.rdt_mb_control_enabled is False:
             root_rdt_mb = None
-            log.warning('RDT MB control enabled, but RDT memory'
-                        'bandwidth (MB) allocation does not work.')
+            log.warning('RDT enabled, but memory bandwidth control '
+                        'is not supported by platform - disabling.')
         else:
             # not enabled - so do not set it
             if not self._rdt_mb_control_enabled:
@@ -225,6 +227,8 @@ class AllocationRunner(MeasurementRunner):
             validate_mb_string(root_rdt_mb, platform.sockets)
 
         resctrl.cleanup_resctrl(root_rdt_l3, root_rdt_mb)
+
+        return True
 
     def _run_body(self,
                   containers, platform,

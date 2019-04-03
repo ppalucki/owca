@@ -102,7 +102,9 @@ class MeasurementRunner(Runner):
 
         if self._rdt_enabled:
             # Resctrl is enabled and available, call a placeholder to allow further initialization.
-            self._initialize_rdt()
+            rdt_intialization_ok = self._initialize_rdt()
+            if not rdt_intialization_ok:
+                return 1
 
         # Post pone the container manager initialization after rdt checks were performed.
         platform_cpus, _, platform_sockets = platforms.collect_topology_information()
@@ -161,8 +163,11 @@ class MeasurementRunner(Runner):
                   tasks_labels, common_labels):
         """No-op implementation of inner loop body"""
 
-    def _initialize_rdt(self):
-        """Nothing to configure in RDT to measure resource usage."""
+    def _initialize_rdt(self) -> bool:
+        """Nothing to configure in RDT to measure resource usage.
+        Returns state of rdt intialization (True ok, False for error)
+        """
+        return True
 
 
 @profiler.profile_duration('prepare_tasks_data')

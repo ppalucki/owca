@@ -168,5 +168,5 @@ class StaticAllocator(Allocator):
             tasks_allocations = _build_allocations_from_rules(all_tasks_ids, tasks_labels, rules)
 
             log.debug('StaticAllocator: final tasks allocations: \n %s',
-                     pprint.pformat(tasks_allocations))
+                      pprint.pformat(tasks_allocations))
             return tasks_allocations, [], []
