@@ -221,21 +221,22 @@ def test_unique_rdt_allocations(tasks_allocations, expected_resgroup_reallocatio
     'expected_error, expected_final_rdt_mb_control_enabled_with_value,'
     'expected_cleanup_arguments', [
         # rdt mb is not enabled and not detected on platform, there should be no call nor exception
-        (None, None, False, False, False, False, ('L3:0=fff', None)),
+        (None, None, False, False, False, False, ('L3:0=fff', None, False)),
         # rdt mb is not enabled but detected on platform - configure l3 to max, but not mb
-        (None, None, False, True, False, False, ('L3:0=fff', None)),  # mask based on cbm_mask below
+        (None, None, False, True, False, False, ('L3:0=fff', None, False)),
+        # mask based on cbm_mask below
         # rdt mb is enabled and not detected on platform, there should be exception
         (None, None, True, False, True, False, None),
         # rdt mb is enabled and available on platform, there should be no exception
-        (None, None, True, True, False, True, ('L3:0=fff', 'MB:0=100')),
+        (None, None, True, True, False, True, ('L3:0=fff', 'MB:0=100', False)),
         # rdt mb is enabled and available on platform, there should be no exception, but use MB=50
-        (None, 'MB:0=50', True, True, False, True, ('L3:0=fff', 'MB:0=50')),
+        (None, 'MB:0=50', True, True, False, True, ('L3:0=fff', 'MB:0=50', False)),
         # rdt mb is enabled and available on platform, there should be no exception, but use L3=f
-        ('L3:0=00f', None, True, True, False, True, ('L3:0=00f', 'MB:0=100')),
+        ('L3:0=00f', None, True, True, False, True, ('L3:0=00f', 'MB:0=100', False)),
         # rdt mb is enabled and available on platform, there should be no exception, but use both
-        ('L3:0=00f', 'MB:0=50', True, True, False, True, ('L3:0=00f', 'MB:0=50')),
+        ('L3:0=00f', 'MB:0=50', True, True, False, True, ('L3:0=00f', 'MB:0=50', False)),
         # rdt mb is not enabled and not available on platform, no exception, and just set L3
-        ('L3:0=00f', 'MB:0=50', False, False, False, False, ('L3:0=00f', None)),
+        ('L3:0=00f', 'MB:0=50', False, False, False, False, ('L3:0=00f', None, False)),
         # wrong values
         ('wrongl3', 'MB:0=50', True, True, True, True, None),
         ('L3:0=00f', 'wrong mb', True, True, True, True, None),
