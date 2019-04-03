@@ -38,9 +38,7 @@ class Tester(Node, Allocator, Storage):
 
         # Check if all test cases.
         if self.test_current > self.test_number:
-            self._clean_processes()
-            time.sleep(0.1)
-            self._clean_cgroups()
+            self._clean()
             log.info('All tests passed')
             sys.exit(0)
 
@@ -51,11 +49,14 @@ class Tester(Node, Allocator, Storage):
         if self.test_current > 1:
             for check_case in test_case['checks']:
                 check_case: Check
-                check_case.check()
+                try:
+                    check_case.check()
+                except CheckFailed as fail:
+                    # Clean tests processes and cgroups after failure.
+                    self._clean()
+                    raise CheckFailed(fail.args[0])
 
-            self._clean_processes()
-            time.sleep(0.1)
-            self._clean_cgroups()
+            self._clean()
 
         self.tasks = []
 
@@ -76,17 +77,23 @@ class Tester(Node, Allocator, Storage):
 
         return self.tasks
 
-    def allocate(self, platform: Platform, tasks_measurements: TasksMeasurements,
-                 tasks_resources: TasksResources, tasks_labels: TasksLabels,
-                 tasks_allocations: TasksAllocations) -> (
-
-            TasksAllocations, List[Anomaly], List[Metric]):
-        return {}, list(), list()
-        # tu kod ze static_allocatora parsujacy rule
-        # z yamka z allocation_rules
+    def allocate(
+            self,
+            platform: Platform,
+            tasks_measurements: TasksMeasurements,
+            tasks_resources: TasksResources,
+            tasks_labels: TasksLabels,
+            tasks_allocations: TasksAllocations,
+    ) -> (TasksAllocations, List[Anomaly], List[Metric]):
+        return tasks_allocations, [], []
 
     def store(self, metrics: List[Metric]) -> None:
         self.metrics.extend(metrics)
+
+    def _clean(self):
+        self._clean_processes()
+        time.sleep(0.1)
+        self._clean_cgroups()
 
     def _clean_processes(self):
         for process in self.processes:
@@ -153,6 +160,11 @@ def _delete_cgroup(cgroup_path):
         log.warning('perf_event cgroup "{}" not found'.format(cgroup_path))
 
 
+class CheckFailed(Exception):
+    """Used when check fails. """
+    pass
+
+
 class Check(abc.ABC):
     @abc.abstractmethod
     def check(self):
@@ -161,12 +173,26 @@ class Check(abc.ABC):
 
 @dataclass
 class FileCheck(Check):
-    path: dict()
+    path: str
+    value: str = None
+    subvalue: str = None
 
     def check(self):
-        pass
+
+        if not os.path.isfile(self.path):
+            raise CheckFailed('File {} does not exist!'.format(self.path))
+
+        with open(self.path) as f:
+            real_value = f.read()
+
+        if self.value:
+            assert real_value == self.value
+
+        if self.subvalue:
+            assert self.subvalue in real_value
 
 
+# TODO: Implementation
 @dataclass
 class MetricCheck(Check):
 
