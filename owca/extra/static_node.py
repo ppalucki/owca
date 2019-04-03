@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class StaticNode(Node):
-    """Simple implementation of Node that returns tasks based on 
+    """Simple implementation of Node that returns tasks based on
     provided list on tasks names.
 
     Tasks are returned only if corresponding cgroups exists:
