@@ -63,6 +63,34 @@ class WeakValidationError(ValidationError):
     """
 
 
+class SematiceType:
+
+    def __init__(self, base_types):
+        self.base_types = base_types
+
+    def assure(self, value):
+        if not isinstance(value, self.base_types):
+            raise ValidationError()
+
+class Url(SematiceType):
+
+    def __init__(self):
+        super().__init__([str])
+
+    def assure(value):
+        raise ValidationError()
+
+class Numeric(SematiceType):
+
+    def __init__(self, min_value, max_value):
+        self.min_value = min_value
+        self.max_value = max_value
+
+    def assure(self, value):
+        print(repr(value), type(value))
+        if value < self.min_value:
+            raise ValidationError()
+
 def _assure_list_type(value: list, expected_type):
     """Validate that value is type of list and recursively matches expected List type."""
     if not isinstance(value, list):
@@ -158,6 +186,11 @@ def _assure_type(value, expected_type):
     # Handle union type.
     if isinstance(expected_type, enum.Enum.__class__):
         _assure_enum_type(value, expected_type)
+        return
+
+    # Handle union type.
+    if isinstance(expected_type, SematiceType):
+        expected_type.assure(value)
         return
 
     # Handle simple types.

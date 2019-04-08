@@ -29,7 +29,7 @@ class FooEnum(Enum):
 @config.register
 @dataclass
 class DCExample:
-    x: int
+    x: config.Numeric(min_value=5, max_value=3)
     y: Optional[str] = 'abc'
     d: Union[int, str] = 'notset'
     z: List[int] = field(default_factory=lambda: [1, 2, 3])

@@ -20,6 +20,7 @@ from typing import List, Union
 
 import requests
 from dataclasses import dataclass
+from owca.config import Url, Numeric
 
 from owca.metrics import Measurements, Metric
 from owca.nodes import Node, Task
@@ -62,9 +63,9 @@ def find_cgroup(pid):
 
 @dataclass
 class MesosNode(Node):
-    mesos_agent_endpoint: str = 'https://127.0.0.1:5051'
-    ssl_verify: Union[bool, str] = True  # requests: Can be used to pass cert CA bundle.
-    timeout: float = 5.  # request timeout in seconds
+    mesos_agent_endpoint: 'Url()' = 'https://127.0.0.1:5051'
+    ssl_verify: Union[bool, Path()] = True  # requests: Can be used to pass cert CA bundle.
+    timeout: Numeric(min_value=5) = 5.  # request timeout in seconds
 
     METHOD = 'GET_STATE'
     api_path = '/api/v1'
