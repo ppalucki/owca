@@ -89,6 +89,13 @@ def main():
             log.exception('Detailed exception:')
         exit(1)
 
+    for key in configuration:
+        if key != 'loggers' and key != 'runner':
+            log.error('Error: Unknown field in configuration '
+                      'file: {}. Possible fields are: \'loggers\', '
+                      '\'runner\''.format(key))
+            exit(1)
+
     # TODO: replace with proper validation base on config._assure_type
     assert isinstance(configuration, dict), 'Improper config! - expected dict'
     assert 'runner' in configuration, 'Improper config - missing runner instance!'

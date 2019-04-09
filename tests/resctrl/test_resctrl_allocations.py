@@ -21,7 +21,7 @@ from owca.allocations import InvalidAllocations
 from owca.allocators import RDTAllocation
 from owca.resctrl import ResGroup
 from owca.resctrl_allocations import RDTAllocationValue, RDTGroups, _parse_schemata_file_row, \
-    _count_enabled_bits, check_cbm_mask
+    _count_enabled_bits, check_cbm_mask, _is_rdt_suballocation_changed
 from owca.testing import create_open_mock, allocation_metric
 
 
@@ -55,17 +55,17 @@ def test_resgroup_write_schemata(resgroup_name, write_schemata_lines,
     'expected_target,expected_changeset', (
             # --- Test cases withing the same group.
             # Set l3 within the same auto group.
-            (RDTAllocation(), RDTAllocation(l3='x'),
-             RDTAllocation(l3='x'), RDTAllocation(l3='x')),
+            (RDTAllocation(l3='L3:0=0ff'), RDTAllocation(l3='L3:0=0f'),
+             RDTAllocation(l3='L3:0=0f'), RDTAllocation(l3='L3:0=0f')),
             # Set mb within the same auto group to existing l3.
-            (RDTAllocation(l3='x'), RDTAllocation(mb='y'),
-             RDTAllocation(l3='x', mb='y'), RDTAllocation(mb='y')),
+            (RDTAllocation(l3='L3:0=0f', mb='MB:0=x'), RDTAllocation(mb='MB:0=y'),
+             RDTAllocation(l3='L3:0=0f', mb='MB:0=y'), RDTAllocation(mb='MB:0=y')),
             # Set l3 within the same auto group to existing l3 and mb.
-            (RDTAllocation(l3='x'), RDTAllocation(l3='x', mb='y'),
-             RDTAllocation(l3='x', mb='y'), RDTAllocation(mb='y')),
+            (RDTAllocation(l3='L3:0=0f', mb='MB:0=x'), RDTAllocation(l3='L3:0=0f', mb='MB:0=y'),
+             RDTAllocation(l3='L3:0=0f', mb='MB:0=y'), RDTAllocation(mb='MB:0=y')),
             # Set l3 within the same auto group to existing l3 and mb.
-            (RDTAllocation(l3='x'), RDTAllocation(name='', l3='x'),
-             RDTAllocation(name='', l3='x'), RDTAllocation(name='', l3='x')),
+            (RDTAllocation(l3='L3:0=0f'), RDTAllocation(name='', l3='L3:0=0f'),
+             RDTAllocation(name='', l3='L3:0=0f'), RDTAllocation(name='', l3='L3:0=0f')),
             # --- Move moving between groups.
             # Initial put into auto-group.
             (None, RDTAllocation(),
@@ -77,14 +77,16 @@ def test_resgroup_write_schemata(resgroup_name, write_schemata_lines,
             (RDTAllocation(), RDTAllocation(name='be'),
              RDTAllocation(name='be'), RDTAllocation(name='be')),
             # Move to named group values are ignored.
-            (RDTAllocation(l3='x'), RDTAllocation(name='be'),
+            (RDTAllocation(l3='L3:0=0f'), RDTAllocation(name='be'),
              RDTAllocation(name='be'), RDTAllocation(name='be')),
             # Move to root group values are ignored.
-            (RDTAllocation(l3='x'), RDTAllocation(name=''),
+            (RDTAllocation(l3='L3:0=0f'), RDTAllocation(name=''),
              RDTAllocation(name=''), RDTAllocation(name='')),
             # Move to 'new' group with new values.
-            (RDTAllocation(l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y'),
-             RDTAllocation(name='new', l3='x', mb='y'), RDTAllocation(name='new', l3='x', mb='y')),
+            (RDTAllocation(l3='L3:0=0f', mb='MB:0=y'),
+             RDTAllocation(name='new', l3='L3:0=0f', mb='MB:0=y'),
+             RDTAllocation(name='new', l3='L3:0=0f', mb='MB:0=y'),
+             RDTAllocation(name='new', l3='L3:0=0f', mb='MB:0=y')),
     )
 )
 def test_rdt_allocations_changeset(
@@ -174,10 +176,29 @@ def test_rdt_allocation_generate_metrics(rdt_allocation: RDTAllocation, extra_la
         ('mb:1=20;2=50', {'1': '20', '2': '50'}),
         ('mb:xxx=20mbs;2=50b', {'xxx': '20mbs', '2': '50b'}),
         ('l3:0=20;1=30', {'1': '30', '0': '20'}),
+        ('l3:0=20', {'0': '20'}),
 ))
 def test_parse_schemata_file_row(line, expected_domains):
     got_domains = _parse_schemata_file_row(line)
     assert got_domains == expected_domains
+
+
+@pytest.mark.parametrize('inputs,expected_result', (
+        # Trivial.
+        (('L3:0=00f;1=00f', 'L3:0=00f;1=00f'), False),
+        # Differing with leading 0.
+        (('L3:0=00f;1=00f', 'L3:0=0000f;1=0000f'), False),
+        # Differing that second does not contain second socket allocation,
+        #   but still expected_result is False.
+        (('L3:0=00f;1=00f', 'L3:0=00f'), False),
+        (('L3:0=00f;1=00ff', 'L3:0=0000f'), False),
+        # Differening with ending 0, should return True.
+        (('L3:0=00f;1=00f', 'L3:0=00f0;1=00f0'), True),
+        # The new allocation is not provided (None).
+        (('L3:0=00f0;1=00f0', None), False),
+))
+def test_compare_rdt_allocation_l3(inputs, expected_result):
+    assert _is_rdt_suballocation_changed(inputs[0], inputs[1]) == expected_result
 
 
 @pytest.mark.parametrize('invalid_line,expected_message', (

@@ -206,15 +206,15 @@ class RDTAllocationValue(AllocationValue):
             target = current._copy(target_rdt_allocation)
 
             # Prepare changeset
-            # Logic: if new value exists and is different from old one the use new.
-            if new.rdt_allocation.l3 is not None \
-                    and current.rdt_allocation.l3 != new.rdt_allocation.l3:
+            # Logic: if new value exists and is different from old one use the new.
+            if _is_rdt_suballocation_changed(current.rdt_allocation.l3,
+                                             new.rdt_allocation.l3):
                 new_l3 = new.rdt_allocation.l3
             else:
                 new_l3 = None
 
-            if new.rdt_allocation.mb is not None \
-                    and current.rdt_allocation.mb != new.rdt_allocation.mb:
+            if _is_rdt_suballocation_changed(current.rdt_allocation.mb,
+                                             new.rdt_allocation.mb):
                 new_mb = new.rdt_allocation.mb
             else:
                 new_mb = None
@@ -322,6 +322,32 @@ def _parse_schemata_file_row(line: str) -> Dict[str, str]:
         domains[domain_id] = value
 
     return domains
+
+
+def _is_rdt_suballocation_changed(current: Optional[str], new: Optional[str]):
+    """Checks whether the rdt allocation needs to be performed based on comparison
+    between current and new allocations.
+    The comparison is not trivial. Firstly, if new allocation is set to None no matter
+    what value is assigned to current the function returns False."""
+    if current is None or new is None:
+        assert (current is None and new is None) or (new is None)
+        return False
+
+    def _is_equal(first, second):
+        return first.lstrip('0') == second.lstrip('0')
+
+    current_domains: Dict[str, str] = _parse_schemata_file_row(current)
+    new_domains: Dict[str, str] = _parse_schemata_file_row(new)
+
+    common_domains_names: List[str] = set(new_domains.keys()) & set(current_domains.keys())
+
+    assert common_domains_names == set(new_domains.keys()), \
+        "Assume that new allocations domain is subset of current allocations domain."
+
+    for domain in common_domains_names:
+        if not _is_equal(current_domains[domain], new_domains[domain]):
+            return True
+    return False
 
 
 def validate_l3_string(l3, platform_sockets, rdt_cbm_mask, rdt_min_cbm_bits):

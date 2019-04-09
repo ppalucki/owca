@@ -111,6 +111,9 @@ class Cgroup:
 
         shares = int(normalized_shares * self.allocation_configuration.cpu_shares_unit)
         if shares < MIN_SHARES:
+            log.warning('cpu.shares smaller than allowed minimum. '
+                        'Setting cpu.shares to allowed minimum: '
+                        '{}'.format(MIN_SHARES))
             shares = MIN_SHARES
 
         self._write(CPU_SHARES, shares)
@@ -125,6 +128,7 @@ class Cgroup:
             self._write(CPU_PERIOD, self.allocation_configuration.cpu_quota_period)
 
         if normalized_quota >= QUOTA_NORMALIZED_MAX:
+            log.warning('Quota greater than allowed. Not setting quota.')
             quota = QUOTA_NOT_SET
         else:
             # synchronize period if necessary
@@ -132,6 +136,9 @@ class Cgroup:
                         self.platform_cpus)
             # Minimum quota detected
             if quota < QUOTA_MINIMUM_VALUE:
+                log.warning('Quota is smaller than allowed minimum. '
+                            'Setting quota value to allowed minimum: '
+                            '{}'.format(QUOTA_MINIMUM_VALUE))
                 quota = QUOTA_MINIMUM_VALUE
 
         self._write(CPU_QUOTA, quota)

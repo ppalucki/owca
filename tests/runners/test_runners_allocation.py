@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+import pytest
 
 from owca import storage
 from owca.allocators import AllocationType, RDTAllocation, Allocator
@@ -28,16 +28,18 @@ _os_tasks_allocations = {
 }
 
 
-@patch('owca.containers.Container.get_allocations', return_value=_os_tasks_allocations)
 @prepare_runner_patches
-def test_allocation_runner(_get_allocations_mock):
+@patch('owca.containers.Container.get_allocations',    return_value=_os_tasks_allocations)
+@patch('owca.containers.ContainerSet.get_allocations', return_value=_os_tasks_allocations)
+@pytest.mark.parametrize('subcgroups', ([], ['/T/c1'], ['/T/c1', '/T/c2']))
+def test_allocation_runner(_get_allocations_mock, _get_allocations_mock_, subcgroups):
     """ Low level system calls are not mocked - but higher level objects and functions:
         Cgroup, Resgroup, Platform, etc. Thus the test do not cover the full usage scenario
         (such tests would be much harder to write).
     """
     # Tasks mock
-    t1 = redis_task_with_default_labels('t1')
-    t2 = redis_task_with_default_labels('t2')
+    t1 = redis_task_with_default_labels('t1', subcgroups)
+    t2 = redis_task_with_default_labels('t2', subcgroups)
 
     # Allocator mock (lower the quota and number of cache ways in dedicated group).
     # Patch some of the functions of AllocationRunner.

@@ -22,7 +22,7 @@ def test_static_node():
     static_node = StaticNode(tasks=['task1'])
     assert static_node.get_tasks() == [Task(
         name='task1', task_id='task1', cgroup_path='/task1',
-        labels={}, resources={},
+        labels={}, resources={}, subcgroups_paths=[]
     )]
 
 

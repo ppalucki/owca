@@ -1,0 +1,31 @@
+# Full example for Kubernetes with allocations metrics stored in Kafka.
+#
+# To use DetectionRunner, please replace AllocationRunner with DetectionRunner,
+#   allocator with detector and remove allocations_storage.
+
+runner: !AllocationRunner
+  node: !KubernetesNode
+    # We support two options: cgroupfs, systemd.
+    cgroup_driver: cgroupfs
+
+    # Fill needed PATH to key and certificate to access kubelet.
+    client_private_key: "$PATH/apiserver-kubelet-client.key"
+    client_cert: "$PATH/apiserver-kubelet-client.crt"
+
+    # If the kubelete agent does not listen on localhost, 
+    #   the endpoint must be provided.
+    kubelet_endpoint: "https://$IP:10250"
+
+    # List of namespaces to monitor pods in.
+    monitored_namespaces: ["default"]
+
+  metrics_storage: !LogStorage
+    output_filename: metrics.logs
+  anomalies_storage: !LogStorage
+    output_filename: anomalies.logs
+
+  allocator: !StaticAllocator
+    config: "$PATH/static_alloc_config.yaml"
+  allocations_storage: !KafkaStorage
+    topic: owca_allocations
+    max_timeout_in_seconds: 5.

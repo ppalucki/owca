@@ -24,7 +24,7 @@ from owca.testing import allocation_metric
 @patch('owca.cgroups.Cgroup')
 def test_cgroup_allocations(Cgroup_mock, PerfCounters_mock):
     foo_container = Container('/somepath', platform_cpus=1)
-    foo_container.cgroup.allocation_configuration = AllocationConfiguration()
+    foo_container._cgroup.allocation_configuration = AllocationConfiguration()
 
     quota_allocation_value = QuotaAllocationValue(0.2, foo_container, dict(foo='bar'))
     quota_allocation_value.perform_allocations()

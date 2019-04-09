@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import time
-from typing import Dict, Callable, Any, Optional
+from typing import Dict, Callable, Any, List, Optional
 
 from owca import nodes, storage, platforms
 from owca import resctrl
@@ -21,9 +21,11 @@ from owca.allocations import AllocationsDict, InvalidAllocations, AllocationValu
 from owca.allocators import TasksAllocations, AllocationConfiguration, AllocationType, Allocator, \
     TaskAllocations, RDTAllocation
 from owca.cgroups_allocations import QuotaAllocationValue, SharesAllocationValue
-from owca.containers import Container
+from owca.containers import ContainerInterface, Container
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information
+from owca.kubernetes import have_tasks_qos_label, are_all_tasks_of_single_qos
+from owca.nodes import Task
 from owca.metrics import Metric, MetricType
 from owca.resctrl_allocations import (RDTAllocationValue, RDTGroups, validate_mb_string,
                                       validate_l3_string)
@@ -94,13 +96,14 @@ class TasksAllocationsValues(AllocationsDict):
         if rdt_enabled:
             rdt_groups = RDTGroups(closids_limit=platform.rdt_information.num_closids)
 
-            def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation, container,
-                                                 common_labels):
+            def rdt_allocation_value_constructor(rdt_allocation: RDTAllocation,
+                                                 container: ContainerInterface,
+                                                 common_labels: Dict[str, str]):
                 return RDTAllocationValue(
-                    container.container_name,
+                    container.get_name(),
                     rdt_allocation,
-                    container.resgroup,
-                    container.cgroup.get_pids,
+                    container.get_resgroup(),
+                    container.get_pids,
                     platform.sockets,
                     platform.rdt_information.rdt_mb_control_enabled,
                     platform.rdt_information.cbm_mask,
@@ -119,14 +122,29 @@ class TasksAllocationsValues(AllocationsDict):
             else:
                 container = task_id_to_containers[task_id]
                 # Check consistency of container with RDT state.
-                assert container.rdt_enabled == rdt_enabled
-                container_labels = dict(container_name=container.container_name, task=task_id)
+                assert container._rdt_enabled == rdt_enabled
+                container_labels = dict(container_name=container.get_name(), task=task_id)
                 allocation_value = TaskAllocationsValues.create(
                     task_allocations, container, registry, container_labels)
                 allocation_value.validate()
                 simple_dict[task_id] = allocation_value
 
         return TasksAllocationsValues(simple_dict)
+
+
+def validate_shares_allocation_for_kubernetes(tasks: List[Task], allocations: TasksAllocations):
+    """Additional allocations validation step needed only for Kubernetes."""
+    # Ignore if not KubernetesNode.
+    if not have_tasks_qos_label(tasks):
+        return
+
+    if not are_all_tasks_of_single_qos(tasks):
+        for task_id, allocation in allocations.items():
+            if AllocationType.SHARES in allocation:
+                raise InvalidAllocations('not all tasks are of the same Kubernetes QOS class '
+                                         'and at least one of the allocation contains '
+                                         'cpu share. Mixing QoS classes and shares allocation '
+                                         'is not supported.')
 
 
 class AllocationRunner(MeasurementRunner):
@@ -270,6 +288,10 @@ class AllocationRunner(MeasurementRunner):
         allocations_changeset_values = None
         target_allocations_values = current_allocations_values
         try:
+            # Special validation step needed for Kubernetes.
+            validate_shares_allocation_for_kubernetes(tasks=containers.keys(),
+                                                      allocations=new_allocations)
+
             # Create and validate context aware allocations objects for new allocations.
             log.debug('New allocations: %s', new_allocations)
             new_allocations_values = TasksAllocationsValues.create(

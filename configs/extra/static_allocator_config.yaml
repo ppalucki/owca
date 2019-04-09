@@ -1,24 +1,28 @@
+# As `labels` fields is not defined, this rule applies to all tasks.
 - name: default rule for all
   allocations:
     cpu_quota: 1.0
     cpu_shares: 10
 
-# - name: first task with label0
-#   labels:
-#     job_uniq_id: '[01]'
-#   allocations:
-#     # cpu_shares: 0.5
-#     cpu_quota: 0.3
-#     rdt:
-#         name: 'be'
-#         l3: 'L3:0=0ffff;1=0ffff'
-# #
-# - name: 1-9 tasks
-#   labels:
-#     job_uniq_id: '[23456789]'
-#   allocations:
-#     # cpu_shares: 0.1
-#     cpu_quota: 1.
-#     rdt:
-#         name: 'onetoten'
-#         l3: 'L3:0=00001;1=00001'
+# Below other sample rules:
+#
+#- name: tasks with label foo set to bar.
+#  labels:
+#    foo: bar
+#  allocations:
+#    cpu_shares: 0.5
+#    cpu_quota: 0.3
+#    rdt:
+#      name: ''
+#      l3: 'L3:0=0000f;1=0000f'
+#
+#- name: tasks with label job_uniq_id value matching regex'[0`]'
+#  labels:
+#    job_uniq_id: '[01]'
+#  allocations:
+#    cpu_shares: 0.5
+#    cpu_quota: 0.3
+#    rdt:
+#      name: 'be'
+#      l3: 'L3:0=0ffff;1=0ffff'
+

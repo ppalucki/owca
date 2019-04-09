@@ -60,6 +60,7 @@ class StaticNode(Node):
                         cgroup_path='/%s' % task_name,
                         labels={},
                         resources={},
+                        subcgroups_paths=[]
                     )
                 )
         return tasks

@@ -23,7 +23,9 @@ from owca.containers import Container
 from owca.platforms import RDTInformation
 from owca.resctrl import ResGroup
 from owca.resctrl_allocations import RDTGroups, RDTAllocationValue
-from owca.runners.allocation import TasksAllocationsValues, TaskAllocationsValues, AllocationRunner
+from owca.runners.allocation import (TasksAllocationsValues, TaskAllocationsValues,
+                                     AllocationRunner,
+                                     validate_shares_allocation_for_kubernetes)
 from owca.testing import allocation_metric, task, container
 from owca.testing import platform_mock
 
@@ -74,19 +76,21 @@ def test_allocations_generate_metrics(tasks_allocations, expected_metrics):
     assert metrics_got == expected_metrics
 
 
+rdta = RDTAllocation
+
+
 @pytest.mark.parametrize(
     'current, new, expected_target, expected_changeset', [
-        ({}, {"rdt": RDTAllocation(name='', l3='ff')},
-         {"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='', l3='ff')}),
-        ({"rdt": RDTAllocation(name='', l3='ff')}, {},
-         {"rdt": RDTAllocation(name='', l3='ff')}, None),
-        ({"rdt": RDTAllocation(name='', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')},
-         {"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='ff')}),
-        ({"rdt": RDTAllocation(name='x', l3='ff')}, {"rdt": RDTAllocation(name='x', l3='dd')},
-         {"rdt": RDTAllocation(name='x', l3='dd')}, {"rdt": RDTAllocation(name='x', l3='dd')}),
-        ({"rdt": RDTAllocation(name='x', l3='dd', mb='ff')},
-         {"rdt": RDTAllocation(name='x', mb='ff')},
-         {"rdt": RDTAllocation(name='x', l3='dd', mb='ff')}, None),
+        ({}, {"rdt": rdta(name='', l3='L3:0=ff')},
+         {"rdt": rdta(name='', l3='L3:0=ff')}, {"rdt": rdta(name='', l3='L3:0=ff')}),
+        ({"rdt": rdta(name='', l3='L3:0=ff')}, {},
+         {"rdt": rdta(name='', l3='L3:0=ff')}, None),
+        ({"rdt": rdta(name='', l3='L3:0=ff')},  {"rdt": rdta(name='x', l3='L3:0=ff')},
+         {"rdt": rdta(name='x', l3='L3:0=ff')}, {"rdt": rdta(name='x', l3='L3:0=ff')}),
+        ({"rdt": rdta(name='x', l3='L3:0=ff')}, {"rdt": rdta(name='x', l3='L3:0=dd')},
+         {"rdt": rdta(name='x', l3='L3:0=dd')}, {"rdt": rdta(name='x', l3='L3:0=dd')}),
+        ({"rdt": rdta(name='x', l3='L3:0=dd', mb='MB:0=ff')}, {"rdt": rdta(name='x', mb='MB:0=ff')},
+         {"rdt": rdta(name='x', l3='L3:0=dd', mb='MB:0=ff')}, None),
     ]
 )
 def test_rdt_allocations_dict_changeset(current, new, expected_target, expected_changeset):
@@ -281,3 +285,20 @@ def test_rdt_initialize(rdt_max_values_mock, cleanup_resctrl_mock,
         cleanup_resctrl_mock.assert_called_with(*expected_cleanup_arguments)
     else:
         assert cleanup_resctrl_mock.call_count == 0
+
+
+@patch('owca.runners.allocation.have_tasks_qos_label', return_value=True)
+@patch('owca.runners.allocation.are_all_tasks_of_single_qos', return_value=False)
+@pytest.mark.parametrize(
+    'allocations, should_raise_exception',
+    (
+        ({'t1': {AllocationType.SHARES: 10}}, True),
+        ({'t1': {AllocationType.QUOTA: 100}}, False),
+        ({'t1': {AllocationType.QUOTA: 100}, 't2': {AllocationType.SHARES: 10}}, True),
+    )
+)
+def test_validate_shares_allocation_for_kubernetes(mock_1, mock_2, allocations,
+                                                   should_raise_exception):
+    if should_raise_exception:
+        with pytest.raises(InvalidAllocations):
+            validate_shares_allocation_for_kubernetes(tasks=[], allocations=allocations)

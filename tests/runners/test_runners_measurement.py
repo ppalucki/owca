@@ -25,10 +25,11 @@ from owca.testing import assert_metric, redis_task_with_default_labels, prepare_
 
 
 @prepare_runner_patches
-def test_measurements_runner():
+@pytest.mark.parametrize('subcgroups', ([], ['/T/c1'], ['/T/c1', '/T/c2']))
+def test_measurements_runner(subcgroups):
     # Node mock
-    t1 = redis_task_with_default_labels('t1')
-    t2 = redis_task_with_default_labels('t2')
+    t1 = redis_task_with_default_labels('t1', subcgroups)
+    t2 = redis_task_with_default_labels('t2', subcgroups)
 
     runner = MeasurementRunner(
         node=Mock(spec=MesosNode,
@@ -54,10 +55,11 @@ def test_measurements_runner():
                   expected_metric_value=OWCA_MEMORY_USAGE * 2 * 1024)
 
     # Measurements metrics about tasks, based on get_measurements mocks.
+    cpu_usage = TASK_CPU_USAGE * (len(subcgroups) if subcgroups else 1)
     assert_metric(got_metrics, 'cpu_usage', dict(task_id=t1.task_id),
-                  expected_metric_value=TASK_CPU_USAGE)
+                  expected_metric_value=cpu_usage)
     assert_metric(got_metrics, 'cpu_usage', dict(task_id=t2.task_id),
-                  expected_metric_value=TASK_CPU_USAGE)
+                  expected_metric_value=cpu_usage)
 
 
 @pytest.mark.parametrize('tasks_labels, tasks_measurements, expected_metrics', [

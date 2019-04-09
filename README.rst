@@ -202,6 +202,7 @@ Further reading
 - `External detector example <docs/external_detector_example.rst>`_
 - `Wrappers guide <docs/wrappers.rst>`_
 - `Mesos integration <docs/mesos.rst>`_
+- `Kubernetes integration <docs/kubernetes.rst>`_
 - `Logging configuration <docs/logging.rst>`_
 - `Supported workloads and definitions </workloads>`_
 - `OWCA Architecture 1.5.pdf`_

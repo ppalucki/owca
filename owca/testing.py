@@ -14,6 +14,7 @@
 
 
 """Module for independent simple helper functions."""
+
 import functools
 import os
 from typing import List, Dict, Union, Optional
@@ -21,7 +22,7 @@ from unittest.mock import mock_open, Mock, patch
 
 from owca import platforms
 from owca.allocators import AllocationConfiguration
-from owca.containers import Container
+from owca.containers import Container, ContainerSet, ContainerInterface
 from owca.detectors import ContendedResource, ContentionAnomaly, LABEL_WORKLOAD_INSTANCE, \
     _create_uuid_from_tasks_ids
 from owca.metrics import Metric, MetricType
@@ -114,7 +115,7 @@ def anomaly(contended_task_id: TaskId, contending_task_ids: List[TaskId],
     )
 
 
-def task(cgroup_path, labels=None, resources=None):
+def task(cgroup_path, labels=None, resources=None, subcgroups_paths=None):
     """Helper method to create task with default values."""
     prefix = cgroup_path.replace('/', '')
     return Task(
@@ -122,20 +123,42 @@ def task(cgroup_path, labels=None, resources=None):
         name=prefix + '_tasks_name',
         task_id=prefix + '_task_id',
         labels=labels or dict(),
-        resources=resources or dict()
+        resources=resources or dict(),
+        subcgroups_paths=subcgroups_paths or []
     )
 
 
-def container(cgroup_path, resgroup_name=None, with_config=False):
-    """Helper method to create container with patched subsystems."""
-    with patch('owca.resctrl.ResGroup'), patch('owca.perf.PerfCounters'):
-        return Container(
-            cgroup_path,
-            rdt_enabled=True, platform_cpus=1,
-            rdt_mb_control_enabled=True,
-            allocation_configuration=AllocationConfiguration() if with_config else None,
-            resgroup=ResGroup(name=resgroup_name) if resgroup_name is not None else None
-        )
+def container(cgroup_path, subcgroups_paths=None, with_config=False, should_patch=True,
+              resgroup_name='', rdt_enabled=True, rdt_mb_control_enabled=True) \
+              -> ContainerInterface:
+    """Helper method to create Container or ContainerSet
+        (depends if subcgroups_paths is empty or not),
+        optionally with patched subsystems."""
+    if subcgroups_paths is None:
+        subcgroups_paths = []
+
+    def unpatched():
+        if len(subcgroups_paths):
+            return ContainerSet(
+                cgroup_path=cgroup_path,
+                cgroup_paths=subcgroups_paths,
+                platform_cpus=1,
+                allocation_configuration=AllocationConfiguration() if with_config else None,
+                resgroup=ResGroup(name=resgroup_name) if rdt_enabled else None,
+                rdt_enabled=rdt_enabled, rdt_mb_control_enabled=rdt_mb_control_enabled)
+        else:
+            return Container(
+                cgroup_path=cgroup_path,
+                rdt_enabled=rdt_enabled, platform_cpus=1,
+                rdt_mb_control_enabled=True,
+                allocation_configuration=AllocationConfiguration() if with_config else None,
+                resgroup=ResGroup(name=resgroup_name) if rdt_enabled else None)
+
+    if should_patch:
+        with patch('owca.resctrl.ResGroup'), patch('owca.perf.PerfCounters'):
+            return unpatched()
+    else:
+        return unpatched()
 
 
 DEFAULT_METRIC_VALUE = 1234
@@ -181,14 +204,19 @@ platform_mock = Mock(
     ))
 
 
-def redis_task_with_default_labels(task_id):
+def redis_task_with_default_labels(task_id, subcgroups_paths=None):
     """Returns task instance and its labels."""
+    if subcgroups_paths is None:
+        subcgroups_paths = []
     task_labels = {
         'org.apache.aurora.metadata.load_generator': 'rpc-perf-%s' % task_id,
         'org.apache.aurora.metadata.name': 'redis-6792-%s' % task_id,
         LABEL_WORKLOAD_INSTANCE: 'redis_6792_%s' % task_id
     }
-    return task('/%s' % task_id, resources=dict(cpus=8.), labels=task_labels)
+    return task('/%s' % task_id,
+                resources=dict(cpus=8.),
+                labels=task_labels,
+                subcgroups_paths=subcgroups_paths)
 
 
 TASK_CPU_USAGE = 23
