@@ -32,8 +32,10 @@ import io
 import logging
 import typing
 from os.path import exists  # direct target import for mocking purposes in test_main
+from pathlib import PurePath
 from ruamel import yaml
 from typing import Any
+from urllib.parse import urlparse
 
 from owca import logger
 
@@ -63,33 +65,68 @@ class WeakValidationError(ValidationError):
     """
 
 
-class SematiceType:
+class SemanticType:
 
     def __init__(self, base_types):
         self.base_types = base_types
 
     def assure(self, value):
-        if not isinstance(value, self.base_types):
-            raise ValidationError()
+        is_base_type = False
+        for base_type in self.base_types:
+            if isinstance(value, base_type):
+                is_base_type = True
+                break
 
-class Url(SematiceType):
+        if not is_base_type:
+            raise ValidationError('Invalid type. Type must be one of '
+                                  'the following: {}'.format(self.base_types))
+
+
+class Url(SemanticType):
 
     def __init__(self):
         super().__init__([str])
 
-    def assure(value):
-        raise ValidationError()
+    def assure(self, value):
+        super().assure(value)
+        if not urlparse(value):
+            raise ValidationError('\'{}\' is not a valid url.'.format(value))
 
-class Numeric(SematiceType):
+
+class Numeric(SemanticType):
 
     def __init__(self, min_value, max_value):
+        super().__init__([int, float])
         self.min_value = min_value
         self.max_value = max_value
 
     def assure(self, value):
-        print(repr(value), type(value))
+        super().assure(value)
         if value < self.min_value:
-            raise ValidationError()
+            raise ValidationError(
+                'Minimum value is {}. Got {}.'.format(self.min_value, value))
+        elif value > self.max_value:
+            raise ValidationError(
+                'Maximum value is {}. Got {}.'.format(self.max_value, value))
+
+
+class Path(SemanticType):
+
+    def __init__(self):
+        super().__init__([str])
+
+    def assure(self, value):
+        super().assure(value)
+        max_path_length = 500
+        path_length = len(value)
+        if not PurePath(value):
+            raise ValidationError('\'{}\' is not a valid path.'.format(value))
+
+        if path_length > max_path_length:
+            raise ValidationError('Given path is too long. '
+                                  'Max allowed path length is {}. '
+                                  'Got {}'.format(max_path_length, path_length))
+
 
 def _assure_list_type(value: list, expected_type):
     """Validate that value is type of list and recursively matches expected List type."""
@@ -189,7 +226,7 @@ def _assure_type(value, expected_type):
         return
 
     # Handle union type.
-    if isinstance(expected_type, SematiceType):
+    if isinstance(expected_type, SemanticType):
         expected_type.assure(value)
         return
 
