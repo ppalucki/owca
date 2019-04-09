@@ -45,8 +45,8 @@ _VALID_FILENAME_CHARACTERS = "-_.%s%s" % (string.ascii_letters, string.digits)
 
 
 def _validate_key(key):
-    for s in key:
-        if s in _VALID_FILENAME_CHARACTERS:
+    for character in key:
+        if character in _VALID_FILENAME_CHARACTERS:
             raise InvalidKey()
 
 
