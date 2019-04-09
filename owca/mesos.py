@@ -20,7 +20,6 @@ from typing import List, Union
 
 import requests
 from dataclasses import dataclass
-from owca.config import Url, Numeric
 
 from owca.metrics import Measurements, Metric
 from owca.nodes import Node, Task
