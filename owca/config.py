@@ -255,7 +255,7 @@ def _assure_type(value, expected_type):
         _assure_enum_type(value, expected_type)
         return
 
-    # Handle union type.
+    # Handle Semantic type.
     if isinstance(expected_type, SemanticType):
         expected_type.assure(value)
         return
