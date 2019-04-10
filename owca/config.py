@@ -84,13 +84,29 @@ class SemanticType:
 
 class Url(SemanticType):
 
-    def __init__(self):
+    def __init__(self, is_path_obligatory=False):
         super().__init__([str])
+        self.is_path_obligatory = is_path_obligatory
 
     def assure(self, value):
         super().assure(value)
-        if not urlparse(value):
-            raise ValidationError('\'{}\' is not a valid url.'.format(value))
+
+        supported_schemes = ['http', 'https']
+        url = urlparse(value)
+
+        if not url.scheme:
+            raise ValidationError('Invalid url. Scheme can\'t be empty.')
+
+        if not url.netloc:
+            raise ValidationError('Invalid url. Netloc can\'t be empty.')
+
+        if self.is_path_obligatory and not url.path:
+            raise ValidationError('Invalid url. Path can\'t be empty when '
+                                  '`is_path_obligatory` is set to True.')
+
+        if url.scheme not in supported_schemes:
+            raise ValidationError('Invalid url. Use one of supported schemes:'
+                                  ' {}'.format(supported_schemes))
 
 
 class Numeric(SemanticType):
@@ -123,7 +139,7 @@ class Path(SemanticType):
 
         if self.absolute and not isabs(value):
             raise ValidationError('`absolute` option is set to True meaning '
-                                  'absolute path is compulsory. Use absolute '
+                                  'absolute path is obligatory. Use absolute '
                                   'path or turn off `absolute` option by '
                                   'setting it to False.')
 
@@ -134,7 +150,7 @@ class Path(SemanticType):
 
         split_value = split(value)
         while split_value[0] != '' and split_value[1] != '':
-            if split_value[0] == '..' or split_value[1] == '..':
+            if '..' in split_value:
                 raise ValidationError('You are trying to access parent '
                                       'directory by using \'..\' expression'
                                       ' which is not allowed. Try using '

@@ -53,7 +53,9 @@ class FooEnum(Enum):
     (1, FooEnum),
     ('https://127.0.0.1', Url()),
     ('some/path', Path()),
-    ('/some/absolute/path', Path(absolute=True))
+    ('/some/absolute/path', Path(absolute=True)),
+    ('https://127.0.0.1:1234', Url()),
+    ('https://127.0.0.1/some/path', Url(is_path_obligatory=True))
 ])
 def test_assure_type_good(value, expected_type):
     _assure_type(value, expected_type)
@@ -73,7 +75,10 @@ def test_assure_type_good(value, expected_type):
     (3, FooEnum, 'enum'),
     (127, Url(), 'int'),
     ('../some/path', Path(), 'using \'..\''),
-    ('some/path', Path(absolute=True), 'absolute path is compulsory')
+    ('some/path', Path(absolute=True), 'absolute path'),
+    ('127.0.0.1/some/path', Url(), 'Scheme'),
+    ('https://', Url(), 'Netloc'),
+    ('https://something:1234', Url(is_path_obligatory=True), 'Path')
 ])
 def test_assure_type_invalid(value, expected_type, expected_exception_msg):
     with pytest.raises(ValidationError, match=expected_exception_msg):
