@@ -31,8 +31,7 @@ import inspect
 import io
 import logging
 import typing
-from os.path import exists  # direct target import for mocking purposes in test_main
-from pathlib import PurePath
+from os.path import exists, isabs, split  # direct target import for mocking purposes in test_main
 from ruamel import yaml
 from typing import Any
 from urllib.parse import urlparse
@@ -78,8 +77,9 @@ class SemanticType:
                 break
 
         if not is_base_type:
-            raise ValidationError('Invalid type. Type must be one of '
-                                  'the following: {}'.format(self.base_types))
+            raise ValidationError('Invalid type: {}. Type must be one of '
+                                  'the following: {}'.format(type(value),
+                                                             self.base_types))
 
 
 class Url(SemanticType):
@@ -112,20 +112,34 @@ class Numeric(SemanticType):
 
 class Path(SemanticType):
 
-    def __init__(self):
+    def __init__(self, absolute=False):
         super().__init__([str])
+        self.absolute = absolute
 
     def assure(self, value):
         super().assure(value)
         max_path_length = 500
         path_length = len(value)
-        if not PurePath(value):
-            raise ValidationError('\'{}\' is not a valid path.'.format(value))
+
+        if self.absolute and not isabs(value):
+            raise ValidationError('`absolute` option is set to True meaning '
+                                  'absolute path is compulsory. Use absolute '
+                                  'path or turn off `absolute` option by '
+                                  'setting it to False.')
 
         if path_length > max_path_length:
             raise ValidationError('Given path is too long. '
                                   'Max allowed path length is {}. '
                                   'Got {}'.format(max_path_length, path_length))
+
+        split_value = split(value)
+        while split_value[0] != '' and split_value[1] != '':
+            if split_value[0] == '..' or split_value[1] == '..':
+                raise ValidationError('You are trying to access parent '
+                                      'directory by using \'..\' expression'
+                                      ' which is not allowed. Try using '
+                                      'absolute path instead.')
+            split_value = split(split_value[0])
 
 
 def _assure_list_type(value: list, expected_type):

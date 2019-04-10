@@ -17,7 +17,8 @@ import inspect
 
 import pytest
 
-from owca.config import _assure_type, ValidationError, WeakValidationError
+from owca.config import _assure_type, ValidationError, WeakValidationError, \
+    Url, Path, Numeric
 
 
 class Foo:
@@ -31,6 +32,8 @@ class FooEnum(Enum):
 
 @pytest.mark.parametrize('value, expected_type', [
     (1, int),
+    (1, Numeric(0, 3)),
+    (3.5, Numeric(2., 5.)),
     (1.2, float),
     (True, bool),
     (True, Optional[bool]),
@@ -48,6 +51,9 @@ class FooEnum(Enum):
     ({2: {'x': 2.5}}, Dict[int, Dict[str, Union[int, float]]]),
     (FooEnum.BAR, FooEnum),
     (1, FooEnum),
+    ('https://127.0.0.1', Url()),
+    ('some/path', Path()),
+    ('/some/absolute/path', Path(absolute=True))
 ])
 def test_assure_type_good(value, expected_type):
     _assure_type(value, expected_type)
@@ -55,6 +61,7 @@ def test_assure_type_good(value, expected_type):
 
 @pytest.mark.parametrize('value, expected_type, expected_exception_msg', [
     (1, float, 'int'),
+    ('1', Numeric(0, 1), 'str'),
     (1.2, int, 'float'),
     (True, float, 'bool'),
     (2.5, Optional[bool], 'Union'),  # Optional[x] is just Union[x, NoneType]
@@ -64,6 +71,9 @@ def test_assure_type_good(value, expected_type):
     ({2: {'x': 2.5}}, Dict[int, Dict[str, Union[str]]], 'invalid value'),
     ('foo', FooEnum, 'enum'),
     (3, FooEnum, 'enum'),
+    (127, Url(), 'int'),
+    ('../some/path', Path(), 'using \'..\''),
+    ('some/path', Path(absolute=True), 'absolute path is compulsory')
 ])
 def test_assure_type_invalid(value, expected_type, expected_exception_msg):
     with pytest.raises(ValidationError, match=expected_exception_msg):
