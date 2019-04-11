@@ -65,6 +65,8 @@ class DetectionRunner(MeasurementRunner):
             (defaults to None(auto) based on platform capabilities)
         extra_labels: additional labels attached to every metric
             (defaults to empty dict)
+        event_names: perf counters to monitor
+            (defaults to instructions, cycles, cache-misses, memstalls)
     """
 
     def __init__(
@@ -76,10 +78,11 @@ class DetectionRunner(MeasurementRunner):
             action_delay: float = 1.,
             rdt_enabled: Optional[bool] = None,
             extra_labels: Dict[str, str] = None,
+            event_names: Optional[List[str]] = None,
     ):
         super().__init__(node, metrics_storage,
                          action_delay, rdt_enabled,
-                         extra_labels)
+                         extra_labels, event_names)
         self._detector = detector
 
         # Anomaly.

@@ -176,6 +176,8 @@ class AllocationRunner(MeasurementRunner):
             (defaults to AllocationConfiguration() instance)
         remove_all_resctrl_groups (bool): remove all RDT controls groups upon starting
             (defaults to False)
+        event_names: perf counters to monitor
+            (defaults to instructions, cycles, cache-misses, memstalls)
     """
 
     def __init__(
@@ -191,12 +193,14 @@ class AllocationRunner(MeasurementRunner):
             extra_labels: Dict[str, str] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
             remove_all_resctrl_groups: bool = False,
+            event_names: Optional[List[str]] = None,
     ):
 
         self._allocation_configuration = allocation_configuration or AllocationConfiguration()
 
         super().__init__(node, metrics_storage, action_delay, rdt_enabled,
-                         extra_labels, _allocation_configuration=self._allocation_configuration)
+                         extra_labels, _allocation_configuration=self._allocation_configuration,
+                         event_names=event_names)
 
         # Allocation specific.
         self._allocator = allocator

@@ -24,7 +24,7 @@ from owca.containers import ContainerManager, Container
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels
 from owca.logger import trace
 from owca.mesos import create_metrics, sanitize_mesos_label
-from owca.metrics import Metric, MetricType
+from owca.metrics import Metric, MetricType, MetricName
 from owca.nodes import Task
 from owca.profiling import profiler
 from owca.runners import Runner
@@ -33,6 +33,9 @@ from owca.storage import MetricPackage, DEFAULT_STORAGE
 log = logging.getLogger(__name__)
 
 _INITIALIZE_FAILURE_ERROR_CODE = 1
+
+DEFAULT_EVENTS = (MetricName.INSTRUCTIONS, MetricName.CYCLES,
+                  MetricName.CACHE_MISSES, MetricName.MEMSTALL)
 
 
 class MeasurementRunner(Runner):
@@ -49,6 +52,8 @@ class MeasurementRunner(Runner):
             (defaults to None(auto) based on platform capabilities)
         extra_labels: additional labels attached to every metrics
             (defaults to empty dict)
+        event_names: perf counters to monitor
+            (defaults to instructions, cycles, cache-misses, memstalls)
     """
 
     def __init__(
@@ -58,6 +63,7 @@ class MeasurementRunner(Runner):
             action_delay: float = 1.,  # [s]
             rdt_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,
+            event_names: List[str] = None,
             _allocation_configuration: Optional[AllocationConfiguration] = None,
     ):
 
@@ -70,6 +76,7 @@ class MeasurementRunner(Runner):
         self._finish = False  # Guard to stop iterations.
         self._last_iteration = time.time()  # Used internally by wait function.
         self._allocation_configuration = _allocation_configuration
+        self._event_names = event_names or DEFAULT_EVENTS
 
     @profiler.profile_duration(name='sleep')
     def _wait(self):
@@ -116,6 +123,7 @@ class MeasurementRunner(Runner):
             rdt_mb_control_enabled=self._rdt_enabled and self._rdt_mb_control_enabled,
             platform_cpus=platform_cpus,
             allocation_configuration=self._allocation_configuration,
+            event_names=self._event_names,
         )
         return None
 

@@ -23,15 +23,13 @@ from owca import logger
 from owca import perf
 from owca import resctrl
 from owca.allocators import AllocationConfiguration, TaskAllocations
-from owca.metrics import Measurements, MetricName, sum_measurements
+from owca.metrics import Measurements, sum_measurements
 from owca.nodes import Task
 from owca.profiling import profiler
 from owca.resctrl import ResGroup
 
 log = logging.getLogger(__name__)
 
-DEFAULT_EVENTS = (MetricName.INSTRUCTIONS, MetricName.CYCLES,
-                  MetricName.CACHE_MISSES, MetricName.MEMSTALL)
 CPU_USAGE = 'cpuacct.usage'
 
 
@@ -104,7 +102,8 @@ class ContainerSet(ContainerInterface):
                  cgroup_path: str, cgroup_paths: List[str], platform_cpus: int,
                  allocation_configuration: Optional[AllocationConfiguration] = None,
                  resgroup: ResGroup = None, rdt_enabled: bool = True,
-                 rdt_mb_control_enabled: bool = False):
+                 rdt_mb_control_enabled: bool = False,
+                 event_names: List[str] = None):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
         self._allocation_configuration = allocation_configuration
@@ -127,7 +126,8 @@ class ContainerSet(ContainerInterface):
                 rdt_enabled=False,
                 rdt_mb_control_enabled=False,
                 platform_cpus=platform_cpus,
-                allocation_configuration=allocation_configuration)
+                allocation_configuration=allocation_configuration,
+                event_names=event_names)
 
     def get_subcgroups(self) -> List[cgroups.Cgroup]:
         return [container.get_cgroup() for container in self._subcontainers.values()]
@@ -203,19 +203,23 @@ class ContainerSet(ContainerInterface):
 class Container(ContainerInterface):
     def __init__(self, cgroup_path: str, platform_cpus: int, resgroup: ResGroup = None,
                  allocation_configuration: Optional[AllocationConfiguration] = None,
-                 rdt_enabled: bool = True, rdt_mb_control_enabled: bool = False):
+                 rdt_enabled: bool = True, rdt_mb_control_enabled: bool = False,
+                 event_names: List[str] = None):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
         self._allocation_configuration = allocation_configuration
         self._rdt_enabled = rdt_enabled
         self._rdt_mb_control_enabled = rdt_mb_control_enabled
         self._resgroup = resgroup
+        self._event_names = event_names
 
         self._cgroup = cgroups.Cgroup(
             cgroup_path=self._cgroup_path,
             platform_cpus=platform_cpus,
             allocation_configuration=allocation_configuration)
-        self._perf_counters = perf.PerfCounters(self._cgroup_path, event_names=DEFAULT_EVENTS)
+        if self._event_names:
+            self._perf_counters = perf.PerfCounters(self._cgroup_path,
+                                                    event_names=event_names)
 
     def get_subcgroups(self) -> List[cgroups.Cgroup]:
         """Returns empty list as Container class cannot have subcontainers -
@@ -259,11 +263,12 @@ class Container(ContainerInterface):
         return flatten_measurements([
             cgroup_measurements,
             self._resgroup.get_measurements(self._name) if self._rdt_enabled else {},
-            self._perf_counters.get_measurements(),
+            self._perf_counters.get_measurements() if self._event_names else {},
         ])
 
     def cleanup(self):
-        self._perf_counters.cleanup()
+        if self._event_names:
+            self._perf_counters.cleanup()
         if self._rdt_enabled:
             self._resgroup.remove(self._name)
 
@@ -284,12 +289,14 @@ class ContainerManager:
     their containers and resctrl system. """
 
     def __init__(self, rdt_enabled: bool, rdt_mb_control_enabled: bool, platform_cpus: int,
-                 allocation_configuration: Optional[AllocationConfiguration]):
+                 allocation_configuration: Optional[AllocationConfiguration],
+                 event_names: List[str]):
         self.containers: Dict[Task, ContainerInterface] = {}
         self._rdt_enabled = rdt_enabled
         self._rdt_mb_control_enabled = rdt_mb_control_enabled
         self._platform_cpus = platform_cpus
         self._allocation_configuration = allocation_configuration
+        self._event_names = event_names
 
     def _create_container(self, task: Task) -> ContainerInterface:
         """Check whether the task groups multiple containers,
@@ -302,14 +309,18 @@ class ContainerManager:
                 rdt_enabled=self._rdt_enabled,
                 rdt_mb_control_enabled=self._rdt_mb_control_enabled,
                 platform_cpus=self._platform_cpus,
-                allocation_configuration=self._allocation_configuration)
+                allocation_configuration=self._allocation_configuration,
+                event_names=self._event_names
+            )
         else:
             container = Container(
                 cgroup_path=task.cgroup_path,
                 rdt_enabled=self._rdt_enabled,
                 rdt_mb_control_enabled=self._rdt_mb_control_enabled,
                 platform_cpus=self._platform_cpus,
-                allocation_configuration=self._allocation_configuration)
+                allocation_configuration=self._allocation_configuration,
+                event_names=self._event_names
+            )
         return container
 
     @profiler.profile_duration('sync_containers_state')
