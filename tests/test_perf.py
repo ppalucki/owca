@@ -206,7 +206,7 @@ def test_cleanup(_open_mock, _get_cgroup_fd_mock, os_close_mock):
 def test_open_for_cpu_wrong_arg(_open_mock, _get_cgroup_fd_mock):
     prf = perf.PerfCounters('/mycgroup', [])
     # let's check non-existent type of measurement
-    with pytest.raises(KeyError):
+    with pytest.raises(Exception, match='unknown event name'):
         prf._open_for_cpu(0, 'invalid_event_name')
 
 

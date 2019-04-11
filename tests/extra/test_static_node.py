@@ -34,8 +34,9 @@ def test_static_node_without_cgroups():
     static_node = StaticNode(tasks=['task1'])
     assert static_node.get_tasks() == []
 
+
 @patch('os.path.exists', Mock(return_value=True))
 @patch('builtins.open', mock_open(read_data=''))
-def test_static_node_without_cgroups():
+def test_static_node_with_cgroups_but_require_pids():
     static_node = StaticNode(tasks=['task1'], require_pids=True)
     assert static_node.get_tasks() == []

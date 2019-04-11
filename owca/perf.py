@@ -171,12 +171,12 @@ def _create_event_attributes(event_name, disabled):
     elif event_name in pc.HardwareEventNameMap:
         attr.type = pc.PerfType.PERF_TYPE_HARDWARE
         attr.config = pc.HardwareEventNameMap[event_name]
-    else:
-        # raw event  with the format: name_rEEUUCC,
+    elif '__r' in event_name:
+        # raw event  with the format: name__rEEUUCC,
         # where UU == umask, and EE == event number and optionally CMASK
         # parsed as hex
-        assert '_r' in event_name
-        _, hexs = event_name.split('_r')
+        # TODO: better validation
+        _, hexs = event_name.split('__r')
         event = int(hexs[0:2], 16)
         umask = int(hexs[2:4], 16)
         if len(hexs) == 6:
@@ -186,6 +186,8 @@ def _create_event_attributes(event_name, disabled):
 
         attr.type = pc.PerfType.PERF_TYPE_RAW
         attr.config = event | (umask << 8) | (cmask << 24)
+    else:
+        raise Exception('unknown event name %r' % event_name)
 
     log.log(logger.TRACE,
             'perf: event_attribute: name=%r type=%r config=%r',
