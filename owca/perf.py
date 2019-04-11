@@ -168,9 +168,29 @@ def _create_event_attributes(event_name, disabled):
     if event_name == MetricName.MEMSTALL:
         attr.type = pc.PerfType.PERF_TYPE_RAW
         attr.config = _get_memstall_config()
-    else:
+    elif event_name in pc.HardwareEventNameMap:
         attr.type = pc.PerfType.PERF_TYPE_HARDWARE
         attr.config = pc.HardwareEventNameMap[event_name]
+    else:
+        # raw event  with the format: name_rEEUUCC,
+        # where UU == umask, and EE == event number and optionally CMASK
+        # parsed as hex
+        assert '_r' in event_name
+        _, hexs = event_name.split('_r')
+        event = int(hexs[0:2], 16)
+        umask = int(hexs[2:4], 16)
+        if len(hexs) == 6:
+            cmask = int(hexs[4:6], 16)
+        else:
+            cmask = 0
+
+        attr.type = pc.PerfType.PERF_TYPE_RAW
+        attr.config = event | (umask << 8) | (cmask << 24)
+
+    log.log(logger.TRACE,
+            'perf: event_attribute: name=%r type=%r config=%r',
+            event_name, attr.type, attr.config)
+
     attr.sample_type = pc.PERF_SAMPLE_IDENTIFIER
     attr.read_format = (pc.PERF_FORMAT_GROUP |
                         pc.PERF_FORMAT_TOTAL_TIME_ENABLED |
