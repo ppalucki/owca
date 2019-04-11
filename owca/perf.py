@@ -214,11 +214,13 @@ class DerivedMetricsGenerator:
             if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
                 inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS,
                                                  MetricName.CYCLES)
-                measurements['ipc'] = float(inst_delta) / cycles_delta
+                if cycles_delta > 0:
+                    measurements['ipc'] = float(inst_delta) / cycles_delta
             if metrics_available(MetricName.CACHE_REFERENCES, MetricName.CACHE_MISSES):
                 cache_ref_delta, cache_misses_delta = delta(MetricName.CACHE_REFERENCES,
                                                             MetricName.CACHE_MISSES)
-                measurements['cache_misses_ratio'] = float(cache_ref_delta) / cache_misses_delta
+                if cache_ref_delta > 0:
+                    measurements['cache_misses_ratio'] = float(cache_misses_delta) / cache_ref_delta
 
         self._prev_measurements = measurements
 
