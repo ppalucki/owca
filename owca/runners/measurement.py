@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 _INITIALIZE_FAILURE_ERROR_CODE = 1
 
 DEFAULT_EVENTS = (MetricName.INSTRUCTIONS, MetricName.CYCLES,
-                  MetricName.CACHE_MISSES, MetricName.MEMSTALL)
+                  MetricName.CACHE_MISSES, MetricName.CACHE_REFERENCES, MetricName.MEMSTALL)
 
 
 class MeasurementRunner(Runner):
