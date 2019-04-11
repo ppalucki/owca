@@ -214,8 +214,33 @@ class PerfCounters:
         # DO the magic and enabled everything + start counting
         self._open()
 
+        self._prev_measurements = None
+
     def get_measurements(self) -> Measurements:
-        return self._read_events()
+        measurements = self._read_events()
+
+        def metrics_available(names):
+            return all(name in self._event_names and name in measurements 
+                    and name in self._prev_measurements for name in names)
+
+        def delta(names):
+            return [measurements[MetricName.INSTRUCTIONS] - 
+                    self._prev_measurements[MetricName.INSTRUCTIONS]
+                    for name in names]
+
+
+
+        # if specific pairs are available calculate derived metrics
+        if self._prev_measurements is not None:
+            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
+                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
+                measurements['ipc'] = float(inst_delta) / cycles_delta
+            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
+                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
+                measurements['cache_misses_ratio'] = float(inst_delta) / cycles_delta
+
+        self._prev_measurements = measurements
+        return measurements
 
     def cleanup(self):
         """Closes all opened file descriptors"""

@@ -23,6 +23,7 @@ class MetricName(str, Enum):
     INSTRUCTIONS = 'instructions'
     CYCLES = 'cycles'
     CACHE_MISSES = 'cache_misses'
+    CACHE_REFERENCES = 'cache_references'
     CPU_USAGE_PER_CPU = 'cpu_usage_per_cpu'
     CPU_USAGE_PER_TASK = 'cpu_usage_per_task'
     MEM_BW = 'memory_bandwidth'
