@@ -76,7 +76,7 @@ def test_assure_type_good(value, expected_type):
     (127, Url(), 'int'),
     ('../some/path', Path(), 'using \'..\''),
     ('some/path', Path(absolute=True), 'absolute path'),
-    ('127.0.0.1/some/path', Url(), 'Scheme'),
+    ('127.0.0.1/some/path', Url(), 'Use one of supported schemes'),
     ('https://', Url(), 'Netloc'),
     ('https://something:1234', Url(is_path_obligatory=True), 'Path')
 ])

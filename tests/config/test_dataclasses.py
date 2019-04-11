@@ -93,7 +93,7 @@ def test_dataclass_too_long_path():
     test_config_path = testing.relative_module_path(
         __file__, 'test_dataclasses_too_long_path.yaml')
     with pytest.raises(config.ConfigLoadError,
-                       match="field 'e'.*Given path is "
-                             "too long. Max allowed path"
-                             " length is 500. Got 531"):
+                       match="field 'e'.*Given str is "
+                             "too long. Max allowed"
+                             " length is 400. Got 531"):
         config.load_config(test_config_path)

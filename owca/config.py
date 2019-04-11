@@ -65,37 +65,58 @@ class WeakValidationError(ValidationError):
 
 
 class SemanticType:
-
+    """Represents user input in different types."""
     def __init__(self, base_types):
         self.base_types = base_types
 
     def assure(self, value):
-        is_base_type = False
         for base_type in self.base_types:
             if isinstance(value, base_type):
-                is_base_type = True
                 break
-
-        if not is_base_type:
+        else:
             raise ValidationError('Invalid type: {}. Type must be one of '
                                   'the following: {}'.format(type(value),
                                                              self.base_types))
 
 
-class Url(SemanticType):
-
-    def __init__(self, is_path_obligatory=False):
+class Str(SemanticType):
+    """Represents str user input"""
+    def __init__(self, max_size=400):
         super().__init__([str])
-        self.is_path_obligatory = is_path_obligatory
+        self.max_size = max_size
 
     def assure(self, value):
+        """Validates str input"""
         super().assure(value)
 
-        supported_schemes = ['http', 'https']
-        url = urlparse(value)
+        length = len(value)
+        if length > self.max_size:
+            raise ValidationError('Given str is too long. '
+                                  'Max allowed length is {}. '
+                                  'Got {}'.format(self.max_size, length))
 
-        if not url.scheme:
-            raise ValidationError('Invalid url. Scheme can\'t be empty.')
+
+class Url(Str):
+    """Represents url user input"""
+    def __init__(self, is_path_obligatory=False,
+                 supported_schemes=('http', 'https')):
+        """
+        :param is_path_obligatory: when `True` url must contain a path
+        :param supported_schemes: schemes supported in url
+        """
+        super().__init__()
+        self.is_path_obligatory = is_path_obligatory
+        self.supported_schemes = supported_schemes
+
+    def assure(self, value):
+        """Validates url input"""
+        super().assure(value)
+
+        url = urlparse(value)
+        if url.scheme not in self.supported_schemes:
+            raise ValidationError('Invalid url. Got: {}. '
+                                  'Use one of supported schemes: '
+                                  '{}'.format(url.scheme, self.supported_schemes))
 
         if not url.netloc:
             raise ValidationError('Invalid url. Netloc can\'t be empty.')
@@ -104,19 +125,16 @@ class Url(SemanticType):
             raise ValidationError('Invalid url. Path can\'t be empty when '
                                   '`is_path_obligatory` is set to True.')
 
-        if url.scheme not in supported_schemes:
-            raise ValidationError('Invalid url. Use one of supported schemes:'
-                                  ' {}'.format(supported_schemes))
-
 
 class Numeric(SemanticType):
-
+    """Represents numeric user input"""
     def __init__(self, min_value, max_value):
         super().__init__([int, float])
         self.min_value = min_value
         self.max_value = max_value
 
     def assure(self, value):
+        """Validates numeric input"""
         super().assure(value)
         if value < self.min_value:
             raise ValidationError(
@@ -126,27 +144,21 @@ class Numeric(SemanticType):
                 'Maximum value is {}. Got {}.'.format(self.max_value, value))
 
 
-class Path(SemanticType):
-
+class Path(Str):
+    """Represents path user input"""
     def __init__(self, absolute=False):
-        super().__init__([str])
+        super().__init__()
         self.absolute = absolute
 
     def assure(self, value):
+        """Validates path input"""
         super().assure(value)
-        max_path_length = 500
-        path_length = len(value)
 
         if self.absolute and not isabs(value):
             raise ValidationError('`absolute` option is set to True meaning '
                                   'absolute path is obligatory. Use absolute '
                                   'path or turn off `absolute` option by '
                                   'setting it to False.')
-
-        if path_length > max_path_length:
-            raise ValidationError('Given path is too long. '
-                                  'Max allowed path length is {}. '
-                                  'Got {}'.format(max_path_length, path_length))
 
         split_value = split(value)
         while split_value[0] != '' and split_value[1] != '':
