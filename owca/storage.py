@@ -28,6 +28,7 @@ from typing import List, Tuple, Dict
 import confluent_kafka
 from dataclasses import dataclass, field
 
+from owca.config import Numeric, Path, Str
 from owca import logger
 from owca.metrics import Metric, MetricType
 
@@ -48,7 +49,7 @@ class LogStorage(Storage):
     to standard error (default) or provided file (output_filename).
     """
 
-    output_filename: str = None  # Defaults to stderr.
+    output_filename: Path() = None  # Defaults to stderr.
 
     def __post_init__(self):
         if self.output_filename is not None:
@@ -222,10 +223,10 @@ class KafkaStorage(Storage):
             https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
             e.g. {'debug':'broker,topic,msg'} to enable logging for kafka producer threads
     """
-    topic: str
-    brokers_ips: List[str] = field(default=("127.0.0.1:9092",))
-    max_timeout_in_seconds: float = 0.5  # defaults half of a second
-    extra_config: Dict[str, str] = None
+    topic: Str()
+    brokers_ips: List[Str] = field(default=("127.0.0.1:9092",))
+    max_timeout_in_seconds: Numeric(0, 5) = 0.5  # defaults half of a second
+    extra_config: Dict[Str, Str] = None
 
     def __post_init__(self) -> None:
         try:

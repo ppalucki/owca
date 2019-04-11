@@ -18,6 +18,7 @@ from typing import List
 
 from dataclasses import dataclass
 
+from owca.config import Str
 from owca.nodes import Node, Task
 
 log = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ class StaticNode(Node):
     """
 
     # List of task names.
-    tasks: List[str]
+    tasks: List[Str]
 
     _BASE_CGROUP_PATH = '/sys/fs/cgroup'
     _REQUIRED_CONTROLLERS = ('cpu', 'cpuacct', 'perf_event')
