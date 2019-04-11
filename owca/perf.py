@@ -194,6 +194,35 @@ def _create_file_from_fd(pfd):
     return os.fdopen(pfd, 'rb')
 
 
+class DerivedMetricsGenerator:
+
+    def __init__(self, event_names):
+        self._prev_measurements = None
+        self._event_names: List[MetricName] = event_names
+
+    def get_measurements_with_derived_metrics(self, measurements):
+
+        def metrics_available(*names):
+            return all(name in self._event_names and name in measurements
+                       and name in self._prev_measurements for name in names)
+
+        def delta(*names):
+            return [measurements[name] - self._prev_measurements[name] for name in names]
+
+        # if specific pairs are available calculate derived metrics
+        if self._prev_measurements is not None:
+            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
+                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
+                measurements['ipc'] = float(inst_delta) / cycles_delta
+            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
+                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
+                measurements['cache_misses_ratio'] = float(inst_delta) / cycles_delta
+
+        self._prev_measurements = measurements
+
+        return measurements
+
+
 class PerfCounters:
     """Perf facade on perf_event_open system call"""
 
@@ -214,33 +243,11 @@ class PerfCounters:
         # DO the magic and enabled everything + start counting
         self._open()
 
-        self._prev_measurements = None
+        self._derived_metrics_generator = DerivedMetricsGenerator(event_names)
 
     def get_measurements(self) -> Measurements:
         measurements = self._read_events()
-
-        def metrics_available(names):
-            return all(name in self._event_names and name in measurements 
-                    and name in self._prev_measurements for name in names)
-
-        def delta(names):
-            return [measurements[MetricName.INSTRUCTIONS] - 
-                    self._prev_measurements[MetricName.INSTRUCTIONS]
-                    for name in names]
-
-
-
-        # if specific pairs are available calculate derived metrics
-        if self._prev_measurements is not None:
-            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
-                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
-                measurements['ipc'] = float(inst_delta) / cycles_delta
-            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
-                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
-                measurements['cache_misses_ratio'] = float(inst_delta) / cycles_delta
-
-        self._prev_measurements = measurements
-        return measurements
+        return self._derived_metrics_generator.get_measurements_with_derived_metrics(measurements)
 
     def cleanup(self):
         """Closes all opened file descriptors"""
