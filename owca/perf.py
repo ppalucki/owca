@@ -212,11 +212,13 @@ class DerivedMetricsGenerator:
         # if specific pairs are available calculate derived metrics
         if self._prev_measurements is not None:
             if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
-                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
+                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS,
+                                                 MetricName.CYCLES)
                 measurements['ipc'] = float(inst_delta) / cycles_delta
-            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
-                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
-                measurements['cache_misses_ratio'] = float(inst_delta) / cycles_delta
+            if metrics_available(MetricName.CACHE_REFERENCES, MetricName.CACHE_MISSES):
+                cache_ref_delta, cache_misses_delta = delta(MetricName.CACHE_REFERENCES,
+                                                            MetricName.CACHE_MISSES)
+                measurements['cache_misses_ratio'] = float(cache_ref_delta) / cache_misses_delta
 
         self._prev_measurements = measurements
 
