@@ -16,6 +16,7 @@
 import ctypes
 import logging
 import os
+import time
 import struct
 from typing import List, Dict, BinaryIO, Iterable
 
@@ -199,8 +200,11 @@ class DerivedMetricsGenerator:
     def __init__(self, event_names):
         self._prev_measurements = None
         self._event_names: List[MetricName] = event_names
+        self._prev_ts = None
 
     def get_measurements_with_derived_metrics(self, measurements):
+
+        now = time.time()
 
         def metrics_available(*names):
             return all(name in self._event_names and name in measurements
@@ -211,11 +215,17 @@ class DerivedMetricsGenerator:
 
         # if specific pairs are available calculate derived metrics
         if self._prev_measurements is not None:
+            time_delta = now - self._prev_ts
+
             if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
                 inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS,
                                                  MetricName.CYCLES)
                 if cycles_delta > 0:
                     measurements['ipc'] = float(inst_delta) / cycles_delta
+
+                if time_delta > 0:
+                    measurements['ips'] = float(inst_delta) / time_delta
+
             if metrics_available(MetricName.CACHE_REFERENCES, MetricName.CACHE_MISSES):
                 cache_ref_delta, cache_misses_delta = delta(MetricName.CACHE_REFERENCES,
                                                             MetricName.CACHE_MISSES)
@@ -223,6 +233,7 @@ class DerivedMetricsGenerator:
                     measurements['cache_misses_ratio'] = float(cache_misses_delta) / cache_ref_delta
 
         self._prev_measurements = measurements
+        self._prev_ts = now
 
         return measurements
 
