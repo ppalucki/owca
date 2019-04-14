@@ -14,6 +14,9 @@
 import logging
 import os
 import string
+import requests
+import json
+
 from abc import ABC
 from typing import Optional, List, Union
 
@@ -107,13 +110,49 @@ class EtcdDatabase(Database):
 
     hosts: List[str]
     ssl_verify: Union[bool, str] = True  # requests: Can be used to pass cert CA bundle.
-    timeout: float = 5.  # request timeout in seconds (tries another host)
+    timeout: float = 5.0  # request timeout in seconds (tries another host)
     api_path = '/v3alpha'
     client_cert_path: str = None
     client_key_path: str = None
 
-    def set(self, key, value):
-        raise NotImplementedError
+    def __post_init__(self):
+        pass
 
-    def get(self, key, data):
-        raise NotImplementedError
+    def set(self, key, value):
+        data = {'key': key, 'value': value}
+
+        for host in self.hosts:
+            url = '{}{}/kv/put'.format(host, self.api_path)
+
+            try:
+                r = requests.post(url, data=json.dumps(data), timeout=self.timeout)
+                r.raise_for_status()
+                return
+            except requests.exceptions.Timeout:
+                log.warn('EtcdDatabase: Cannot put key "{}": Timeout on host {}'.format(key, host))
+
+        raise Exception('EtcdDatabase: Cannot put key "{}": Timeout on all hosts!'.format(key))
+
+    def get(self, key):
+        data = {'key': key}
+        response_data = None
+
+        for host in self.hosts:
+            url = '{}{}/kv/range'.format(host, self.api_path)
+
+            try:
+                r = requests.post(url, data=json.dumps(data), timeout=self.timeout)
+                r.raise_for_status()
+                response_data = r.json()
+                break
+            except requests.exceptions.Timeout:
+                log.warn('EtcdDatabase: Timeout on host {}'.format(host))
+                continue
+
+        if response_data:
+            if int(response_data['count']) > 0:
+                return response_data['kvs'][0]['value']
+            else:
+                return None
+
+        raise Exception('EtcdDatabase: Cannot get key "{}": Timeout on all hosts!'.format(key))
