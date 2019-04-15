@@ -72,7 +72,7 @@ class KubernetesNode(Node):
         default_factory=lambda: CgroupDriverType(CgroupDriverType.CGROUPFS))
 
     # By default use localhost, however kubelet may not listen on it.
-    kubelet_endpoint: Url() = 'https://127.0.0.1:10250'
+    kubelet_endpoint: Url = 'https://127.0.0.1:10250'
 
     # Key and certificate to access kubelet API, if needed.
     client_private_key: Optional[Path] = None
