@@ -129,7 +129,7 @@ class StaticAllocator(Allocator):
     """
 
     # File location of yaml config file with rules.
-    config: Path()
+    config: Path
 
     def __post_init__(self):
         if not os.path.exists(self.config):

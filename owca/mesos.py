@@ -63,7 +63,7 @@ def find_cgroup(pid):
 
 @dataclass
 class MesosNode(Node):
-    mesos_agent_endpoint: Url() = 'https://127.0.0.1:5051'
+    mesos_agent_endpoint: Url = 'https://127.0.0.1:5051'
 
     # A flag of python requests library to enable ssl_verify or pass CA bundle:
     # https://github.com/kennethreitz/requests/blob/5c1f72e80a7d7ac129631ea5b0c34c7876bc6ed7/requests/api.py#L41

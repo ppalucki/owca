@@ -41,9 +41,9 @@ class RDTAllocation:
     # defaults to TaskId from TasksAllocations
     name: Optional[str] = None
     # CAT: optional - when no provided doesn't change the existing allocation
-    l3: Str() = None
+    l3: Str = None
     # MBM: optional - when no provided doesn't change the existing allocation
-    mb: Str() = None
+    mb: Str = None
 
 
 TaskAllocations = Dict[AllocationType, Union[float, int, RDTAllocation]]
@@ -65,8 +65,8 @@ class AllocationConfiguration:
     # Root RDT group is used as default group for all tasks, unless explicitly reconfigured by
     # allocator.
     # `None` (the default value) means no limit (effectively set to maximum available value).
-    default_rdt_l3: Str() = None
-    default_rdt_mb: Str() = None
+    default_rdt_l3: Str = None
+    default_rdt_mb: Str = None
 
 
 class Allocator(ABC):
