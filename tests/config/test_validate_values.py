@@ -18,7 +18,7 @@ import inspect
 import pytest
 
 from owca.config import _assure_type, ValidationError, WeakValidationError, \
-    Url, Path, Numeric, Str
+    Url, Path, Numeric, Str, IpPort
 
 
 class Foo:
@@ -65,7 +65,10 @@ class FooEnum(Enum):
     ('some/path', Path),
     ('/some/absolute/path', Path(absolute=True)),
     ('https://127.0.0.1:1234', Url()),
-    ('https://127.0.0.1/some/path', Url(is_path_obligatory=True))
+    ('https://127.0.0.1/some/path', Url(is_path_obligatory=True)),
+    ('127.0.0.1:9876', IpPort()),
+    ('127.0.0.1:9876', IpPort(max_size=30)),
+    ('127.0.0.1:9876', IpPort)
 ])
 def test_assure_type_good(value, expected_type):
     _assure_type(value, expected_type)
@@ -93,7 +96,10 @@ def test_assure_type_good(value, expected_type):
     ('1', Numeric(0, 1), 'str'),
     ('small_string', Str(max_size=2), 'length'),
     ('small_string', Optional[Str(max_size=2)], 'length'),
-
+    ('127.1:9876', IpPort(), 'valid ip'),
+    ('127.1:9876', IpPort, 'valid ip'),
+    ('127.0.0.1:abc', IpPort(), 'valid port'),
+    ('127.0.0.1:9876', IpPort(max_size=3), 'too long'),
 ])
 def test_assure_type_invalid(value, expected_type, expected_exception_msg):
     with pytest.raises(ValidationError, match=expected_exception_msg):

@@ -29,6 +29,7 @@ import enum
 import functools
 import inspect
 import io
+import ipaddress
 import logging
 import types
 import typing
@@ -132,6 +133,22 @@ def assure_path_in_url(url):
                               '`is_path_obligatory` is set to True.')
 
 
+def assure_ip_format(ip):
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        raise ValidationError('Given str: \'{}\' '
+                              'is not valid ip address'.format(ip))
+
+
+def assure_port_format(port):
+    try:
+        int(port)
+    except ValueError:
+        raise ValidationError('Given str: \'{}\' '
+                              'is not valid port value'.format(port))
+
+
 class SemanticType:
     """Represents user input in different types."""
 
@@ -202,6 +219,26 @@ class _PathType(type):
 def Path(absolute=False, max_size=400):
     return _PathType('Path', (_PathType, SemanticType),
                      dict(absolute=absolute, max_size=max_size))
+
+
+class _IpPort(type):
+
+    @classmethod
+    def assure(cls, value):
+        """Validates input in format ip:port; for example 127.0.0.1:1234"""
+        assure_base_types(value, [str])
+        assure_max_str_length(value, cls.max_size)
+
+        value = value.rsplit(':')
+        ip = value[0]
+        port = value[1]
+        assure_ip_format(ip)
+        assure_port_format(port)
+
+
+def IpPort(max_size=400):
+    return _IpPort('IpPort', (_IpPort, SemanticType),
+                   dict(max_size=max_size))
 
 
 def _assure_list_type(value: list, expected_type):

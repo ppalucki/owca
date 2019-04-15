@@ -28,7 +28,7 @@ from typing import List, Tuple, Dict
 import confluent_kafka
 from dataclasses import dataclass, field
 
-from owca.config import Numeric, Path, Str
+from owca.config import Numeric, Path, Str, IpPort
 from owca import logger
 from owca.metrics import Metric, MetricType
 
@@ -224,7 +224,7 @@ class KafkaStorage(Storage):
             e.g. {'debug':'broker,topic,msg'} to enable logging for kafka producer threads
     """
     topic: Str
-    brokers_ips: List[Str] = field(default=("127.0.0.1:9092",))
+    brokers_ips: List[IpPort] = field(default=("127.0.0.1:9092",))
     max_timeout_in_seconds: Numeric(0, 5) = 0.5  # defaults half of a second
     extra_config: Dict[Str, Str] = None
 
