@@ -56,7 +56,7 @@ class MeasurementRunner(Runner):
             self,
             node: nodes.Node,
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: Numeric(0, 5) = 1.,  # [s]
+            action_delay: Numeric(0, 60) = 1.,  # [s]
             rdt_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[Str, Str] = None,
             _allocation_configuration: Optional[AllocationConfiguration] = None,

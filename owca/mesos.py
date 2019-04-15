@@ -70,7 +70,7 @@ class MesosNode(Node):
     ssl_verify: Union[bool, Path] = True
 
     # Timeout to access mesos agent.
-    timeout: Numeric(1, 10) = 5.
+    timeout: Numeric(1, 60) = 5.  # [s]
 
     METHOD = 'GET_STATE'
     api_path = '/api/v1'

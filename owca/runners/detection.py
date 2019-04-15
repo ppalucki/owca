@@ -74,7 +74,7 @@ class DetectionRunner(MeasurementRunner):
             detector: detectors.AnomalyDetector,
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: Numeric(0, 5) = 1.,
+            action_delay: Numeric(0, 60) = 1.,
             rdt_enabled: Optional[bool] = None,
             extra_labels: Dict[Str, Str] = None,
     ):
