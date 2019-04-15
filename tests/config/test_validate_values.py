@@ -32,6 +32,8 @@ class FooEnum(Enum):
 
 @pytest.mark.parametrize('value, expected_type', [
     (1, int),
+    (1, Numeric(0, 3)),
+    (3.5, Numeric(2., 5.)),
     (1.2, float),
     (True, bool),
     (True, Optional[bool]),
@@ -71,6 +73,7 @@ def test_assure_type_good(value, expected_type):
 
 @pytest.mark.parametrize('value, expected_type, expected_exception_msg', [
     (1, float, 'int'),
+    ('1', Numeric(0, 1), 'str'),
     (1.2, int, 'float'),
     (True, float, 'bool'),
     (2.5, Optional[bool], 'Union'),  # Optional[x] is just Union[x, NoneType]
