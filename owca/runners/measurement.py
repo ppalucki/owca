@@ -87,7 +87,7 @@ class MeasurementRunner(Runner):
         """Check privileges, RDT availability and prepare internal state.
         Can return error code that should stop Runner.
         """
-        if not security.are_privileges_sufficient():
+        if not security.are_privileges_sufficient(self._rdt_enabled):
             log.error("Impossible to use perf_event_open/resctrl subsystems. "
                       "You need to: adjust /proc/sys/kernel/perf_event_paranoid (set to -1); "
                       "or has CAP_DAC_OVERRIDE and CAP_SETUID capabilities set."
