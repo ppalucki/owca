@@ -175,15 +175,17 @@ def _parse_raw_event_name(event_name: str) -> int:
         raise Exception('raw events name is expected to contain "__r" characters.')
     try:
         _, bits = event_name.split('__r')
-        event = int(bits[0:2], 16)
-        umask = int(bits[2:4], 16)
         if len(bits) == 6:
             cmask = int(bits[4:6], 16)
-        else:
+        elif len(bits) == 4:
             cmask = 0
+        else:
+            raise Exception('improper raw event_name specification (length should be 4 or 6)')
+        event = int(bits[0:2], 16)
+        umask = int(bits[2:4], 16)
         return event | (umask << 8) | (cmask << 24)
     except ValueError as e:
-        raise Exception('Cannot parse raw event definition: %r' % bits) from e
+        raise Exception('Cannot parse raw event definition: %r: error %s' % (bits, e)) from e
 
 
 def _create_event_attributes(event_name, disabled):

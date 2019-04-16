@@ -309,13 +309,23 @@ def test_read_unknown_cpu_model(*args):
     ('some__r0000ff', 0xff000000),
     ('some__r0302', 0x00000203),
     ('some__r0302ff', 0xff000203),
-    ('some__rc000', 0xff000203), # example of Instruction Retired
+    ('some__rc000', 0x000000c0),  # example of Instruction Retired
 
 ])
 def test_parse_raw_event_name(event_name, expected_attr_config):
     got_attr_config = _parse_raw_event_name(event_name)
-    print(hex(got_attr_config))
     assert got_attr_config == expected_attr_config
+
+@pytest.mark.parametrize('event_name, expected_match', [
+    ('som', 'contain'),
+    ('some__r00000100', 'length'),
+    ('some__r0000xx', 'invalid literal'),
+    ('some__rxx02', 'invalid literal'),
+
+])
+def test_parse_raw_event_name_invalid(event_name, expected_match):
+    with pytest.raises(Exception, match=expected_match):
+        _parse_raw_event_name(event_name)
 
 
 def test_derived_metrics():
