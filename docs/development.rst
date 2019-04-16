@@ -121,10 +121,10 @@ When rebuilding you can use existing PEX build cache, to speedup building proces
 
     PEX_OPTIONS='--no-index --cache-ttl=604800' make owca_package
 
-Running PEX with in debug mode
-------------------------------
+Running PEX in debug mode
+-------------------------
 
-It will try to find an ipdb or use internal built-in pdb module before running main() function.
+It will try to find an ipdb or use internal built-in pdb module before running main() function to enter debug mode.
 
 .. code-block:: shell
 
