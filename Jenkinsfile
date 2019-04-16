@@ -17,6 +17,11 @@ pipeline {
                   make venv junit
                 '''
             }
+            post {
+                always {
+                    junit 'unit_results.xml'
+                }
+            }
         }
         stage("Build pex files") {
             steps {
@@ -174,11 +179,6 @@ pipeline {
                     '''
                 }
             }
-        }
-    }
-    post {
-        always {
-            junit 'unit_results.xml'
         }
     }
 }
