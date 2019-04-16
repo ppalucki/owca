@@ -350,6 +350,7 @@ def test_derived_metrics():
     assert DerivedMetricName.IPC not in measurements
     assert DerivedMetricName.IPS not in measurements
     assert DerivedMetricName.CACHE_HIT_RATIO not in measurements
+    assert DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS not in measurements
 
     # 5 seconds later
     def gm_func_2():
@@ -366,6 +367,7 @@ def test_derived_metrics():
     assert DerivedMetricName.IPC in measurements
     assert DerivedMetricName.IPS in measurements
     assert DerivedMetricName.CACHE_HIT_RATIO in measurements
+    assert DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS in measurements
 
     assert measurements[DerivedMetricName.IPC] == (10000 / 10)
     assert measurements[DerivedMetricName.IPS] == (10000 / 5)
@@ -373,3 +375,6 @@ def test_derived_metrics():
     # Assuming cache misses increase is 10k over all 50k cache references
     # Cache hit ratio should be 40k / 50k = 80%
     assert measurements[DerivedMetricName.CACHE_HIT_RATIO] == 0.8
+
+    # 10k misses per 10k instructions / 1000 = 10k / 10
+    assert measurements[DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS] == 1000

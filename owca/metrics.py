@@ -38,6 +38,8 @@ class DerivedMetricName(str, Enum):
     IPC = 'ipc'
     # (cache-references - cache_misses) / cache_references
     CACHE_HIT_RATIO = 'cache_hit_ratio'
+    # (cache-references - cache_misses) / cache_references
+    CACHE_MISSES_PER_KILO_INSTRUCTIONS = 'cache_misses_per_kilo_instructions'
 
 
 class MetricType(str, Enum):
@@ -120,6 +122,11 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             'Cache hit ratio, based on cache-misses and cache-references',
         ),
+    DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS:
+        MetricMetadata(
+            MetricType.GAUGE,
+            'Cache misses per kilo instructions',
+        ),
 }
 
 
@@ -178,6 +185,7 @@ class DerivedMetricsGenerator:
     ipc = instructions / cycles
     ips = instructions / seconds
     cache_hit_ratio = cache-reference - cache-misses / cache-references
+    cache_misses_per_kilo_instructions = cache_misses / (instructions/1000)
     """
 
     def __init__(self, event_names, get_measurements_func: Callable[[], Measurements]):
@@ -216,6 +224,13 @@ class DerivedMetricsGenerator:
 
                 if time_delta > 0:
                     measurements[DerivedMetricName.IPS] = float(inst_delta) / time_delta
+
+            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CACHE_MISSES):
+                inst_delta, cache_misses_delta = delta(MetricName.INSTRUCTIONS,
+                                                       MetricName.CACHE_MISSES)
+                if inst_delta > 0:
+                    measurements[DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS] = \
+                        float(cache_misses_delta) * 1000 / inst_delta
 
             if metrics_available(MetricName.CACHE_REFERENCES, MetricName.CACHE_MISSES):
                 cache_ref_delta, cache_misses_delta = delta(MetricName.CACHE_REFERENCES,
