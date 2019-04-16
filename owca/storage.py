@@ -48,12 +48,12 @@ class Storage(abc.ABC):
 class LogStorage(Storage):
     """Outputs metrics encoded in Prometheus exposition format
     to standard error (default) or provided file (output_filename).
-    With overwrite mode the output_filename is set to real file, contains only
-    last stored metrics.
     """
+    
+    # Defaults to stderr.
+    output_filename: str = None
 
-    output_filename: str = None  # Defaults to stderr.
-    # With overwrite mode the output_filename contains only last stored metrics.
+    # When set to True the output_filename will always contain only last stored metrics.
     overwrite: bool = False
 
     def __post_init__(self):
