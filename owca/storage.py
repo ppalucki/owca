@@ -57,8 +57,6 @@ class LogStorage(Storage):
     overwrite: bool = False
 
     def __post_init__(self):
-        # Use to store temporary filename.
-
         if self.output_filename is not None:
             self._dir = os.path.dirname(self.output_filename)
             log.info('configuring log storage to dump metrics to: %r', self.output_filename)
