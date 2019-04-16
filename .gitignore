@@ -24,3 +24,4 @@ config-*.sh
 /workloads/specjbb/specjbb
 run_workloads.retry
 .pex-build
+unit_results.xml

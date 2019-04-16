@@ -14,7 +14,7 @@ pipeline {
         stage("Run unit tests suite") {
             steps {
                 sh '''
-                  make venv unit
+                  make venv junit
                 '''
             }
         }
@@ -174,6 +174,11 @@ pipeline {
                     '''
                 }
             }
+        }
+    }
+    post {
+        always {
+            junit 'unit_results.xml'
         }
     }
 }
