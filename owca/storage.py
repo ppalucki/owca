@@ -49,7 +49,7 @@ class LogStorage(Storage):
     """Outputs metrics encoded in Prometheus exposition format
     to standard error (default) or provided file (output_filename).
     """
-    
+
     # Defaults to stderr.
     output_filename: str = None
 
