@@ -316,6 +316,7 @@ def test_parse_raw_event_name(event_name, expected_attr_config):
     got_attr_config = _parse_raw_event_name(event_name)
     assert got_attr_config == expected_attr_config
 
+
 @pytest.mark.parametrize('event_name, expected_match', [
     ('som', 'contain'),
     ('some__r00000100', 'length'),
