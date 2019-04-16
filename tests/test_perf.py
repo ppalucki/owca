@@ -24,6 +24,7 @@ from owca import metrics
 from owca import perf
 from owca import perf_const as pc
 from owca.metrics import MetricName, DerivedMetricName, DerivedMetricsGenerator
+from owca.perf import _parse_raw_event_name
 from owca.testing import create_open_mock
 
 
@@ -300,6 +301,21 @@ def test_read_broadwell_cpu_model(*args):
 }))
 def test_read_unknown_cpu_model(*args):
     assert pc.CPUModel.UNKNOWN == perf._get_cpu_model()
+
+
+@pytest.mark.parametrize('event_name, expected_attr_config', [
+    ('some__r000000', 0),
+    ('some__r000001', 0x01000000),
+    ('some__r0000ff', 0xff000000),
+    ('some__r0302', 0x00000203),
+    ('some__r0302ff', 0xff000203),
+    ('some__rc000', 0xff000203), # example of Instruction Retired
+
+])
+def test_parse_raw_event_name(event_name, expected_attr_config):
+    got_attr_config = _parse_raw_event_name(event_name)
+    print(hex(got_attr_config))
+    assert got_attr_config == expected_attr_config
 
 
 def test_derived_metrics():

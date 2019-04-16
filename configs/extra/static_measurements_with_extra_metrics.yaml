@@ -4,6 +4,7 @@ runner: !MeasurementRunner
     - cycles
     - cache_references
     - cache_misses
+    - instructionraw_rC000
   enable_derived_metrics: true
   node: !StaticNode
     tasks:

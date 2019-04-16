@@ -160,6 +160,32 @@ def _scale_counter_value(raw_value, time_enabled, time_running) -> float:
         return float(raw_value)
 
 
+def _parse_raw_event_name(event_name: str) -> int:
+    """Parses raw event name with the format: name__rEEUUCC,
+        where UU == umask (Unit Mask),
+          and EE == event number (Event select field),
+          and optionally CMASK (Counter Mask)
+        EE,UU and CC are parsed as hex.
+
+    Intel Software Developer Manual Volume 2, Chapter 18.2.1
+
+    :returns value encoded for perf_event attr.config structure
+    """
+    if '__r' not in event_name:
+        raise Exception('raw events name is expected to contain "__r" characters.')
+    try:
+        _, bits = event_name.split('__r')
+        event = int(bits[0:2], 16)
+        umask = int(bits[2:4], 16)
+        if len(bits) == 6:
+            cmask = int(bits[4:6], 16)
+        else:
+            cmask = 0
+        return event | (umask << 8) | (cmask << 24)
+    except ValueError as e:
+        raise Exception('Cannot parse raw event definition: %r' % bits) from e
+
+
 def _create_event_attributes(event_name, disabled):
     """Creates perf_event_attr structure for perf_event_open syscall"""
     attr = pc.PerfEventAttr()
@@ -171,20 +197,8 @@ def _create_event_attributes(event_name, disabled):
         attr.type = pc.PerfType.PERF_TYPE_HARDWARE
         attr.config = pc.HardwareEventNameMap[event_name]
     elif '__r' in event_name:
-        # raw event  with the format: name__rEEUUCC,
-        # where UU == umask, and EE == event number and optionally CMASK
-        # parsed as hex
-        # TODO: better validation
-        _, hexs = event_name.split('__r')
-        event = int(hexs[0:2], 16)
-        umask = int(hexs[2:4], 16)
-        if len(hexs) == 6:
-            cmask = int(hexs[4:6], 16)
-        else:
-            cmask = 0
-
         attr.type = pc.PerfType.PERF_TYPE_RAW
-        attr.config = event | (umask << 8) | (cmask << 24)
+        attr.config = _parse_raw_event_name(event_name)
     else:
         raise Exception('unknown event name %r' % event_name)
 
