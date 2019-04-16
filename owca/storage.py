@@ -61,14 +61,14 @@ class LogStorage(Storage):
             self._dir = os.path.dirname(self.output_filename)
             log.info('configuring log storage to dump metrics to: %r', self.output_filename)
             if self.overwrite:
-                self.output = None
+                self._output = None
             else:
-                self.output = open(self.output_filename, 'a')
+                self._output = open(self.output_filename, 'a')
         else:
             self._dir = None
             if self.overwrite:
-                raise Exception('cannot use overwrite mode without output_filename set!')
-            self.output = sys.stderr
+                raise Exception('cannot use overwrite mode without output_filename being set!')
+            self._output = sys.stderr
 
     def store(self, metrics):
         log.debug('storing: %d', len(metrics))
@@ -89,7 +89,7 @@ class LogStorage(Storage):
                     fp.write(msg.encode('utf-8'))
                 os.rename(fp.name, self.output_filename)
             else:
-                print(msg, file=self.output, flush=True)
+                print(msg, file=self._output, flush=True)
 
 
 DEFAULT_STORAGE = LogStorage()
