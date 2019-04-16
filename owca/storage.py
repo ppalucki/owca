@@ -20,12 +20,12 @@ in durable external storage.
 import abc
 import itertools
 import logging
-import re
 import os
+import re
 import sys
 import tempfile
 import time
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 import confluent_kafka
 from dataclasses import dataclass, field
@@ -56,7 +56,15 @@ class LogStorage(Storage):
     # When set to True the output_filename will always contain only last stored metrics.
     overwrite: bool = False
 
+    # Optionally to include timestamp (defaults to opposite of overwrite)
+    # With overwrite, do not add timestamps (to enabled collection be e.g. node_exporter)
+    # Without overwrite, add timestamps (to keep information about metrics)
+    include_timestamp: bool = None
+
     def __post_init__(self):
+        # Auto configure timestamp including, based on overwrite flag.
+        if self.include_timestamp is None:
+            self.include_timestamp = not self.overwrite
         if self.output_filename is not None:
             self._dir = os.path.dirname(self.output_filename)
             log.info('configuring log storage to dump metrics to: %r', self.output_filename)
@@ -81,7 +89,10 @@ class LogStorage(Storage):
                 'prometheus exposition format; error: "{}" - skipping '.format(error_message)
             )
         else:
-            timestamp = get_current_time()
+            if self.include_timestamp:
+                timestamp = get_current_time()
+            else:
+                timestamp = None
             msg = convert_to_prometheus_exposition_format(metrics, timestamp)
             log.log(logger.TRACE, 'Dump of metrics (text format): %r', msg)
             if self.overwrite:
@@ -184,7 +195,8 @@ def group_metrics_by_name(metrics: List[Metric]) -> \
     return grouped
 
 
-def convert_to_prometheus_exposition_format(metrics: List[Metric], timestamp) -> str:
+def convert_to_prometheus_exposition_format(metrics: List[Metric],
+                                            timestamp: Optional[str] = None) -> str:
     """Convert metrics to the prometheus format."""
     output = []
 
@@ -220,8 +232,12 @@ def convert_to_prometheus_exposition_format(metrics: List[Metric], timestamp) ->
             else:
                 value_str = str(metric.value)
 
-            output.append('{0}{1} {2} {3}\n'.format(metric.name, label_str,
-                                                    value_str, timestamp))
+            if timestamp is not None:
+                output.append('{0}{1} {2} {3}\n'.format(metric.name, label_str,
+                                                        value_str, timestamp))
+            else:
+                output.append('{0}{1} {2}\n'.format(metric.name, label_str, value_str))
+
         output.append('\n')
 
     return ''.join(output)
@@ -297,6 +313,7 @@ class KafkaStorage(Storage):
             raise UnconvertableToPrometheusExpositionFormat(error_message)
 
         timestamp = get_current_time()
+
         msg = convert_to_prometheus_exposition_format(metrics, timestamp)
         self.producer.produce(self.topic, msg.encode('utf-8'),
                               callback=self.callback_on_delivery)
