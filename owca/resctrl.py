@@ -324,7 +324,7 @@ def check_resctrl():
         with open(resctrl_tasks):
             pass
     except IOError as e:
-        log.debug(TRACE, 'Error: Failed to open %s: %s', resctrl_tasks, e)
+        log.log(TRACE, 'Error: Failed to open %s: %s', resctrl_tasks, e)
         log.debug('Resctrl not mounted. ')
         return False
 
