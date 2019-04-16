@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+import time
 from enum import Enum
-from typing import Dict, Union, List, Tuple
+from typing import Dict, Union, List, Tuple, Callable
 
 from dataclasses import dataclass, field
 
@@ -30,6 +29,15 @@ class MetricName(str, Enum):
     LLC_OCCUPANCY = 'llc_occupancy'
     MEM_USAGE = 'memory_usage'
     MEMSTALL = 'stalls_mem_load'
+
+
+class DerivedMetricName(str, Enum):
+    # instructions/cycles
+    IPS = 'ips'
+    # instructions/seconds
+    IPC = 'ipc'
+    # (cache-references - cache_misses) / cache_references
+    CACHE_HIT_RATIO = 'cache_hit_ratio'
 
 
 class MetricType(str, Enum):
@@ -92,6 +100,26 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             'Mem stalled loads'
         ),
+    MetricName.CACHE_REFERENCES:
+        MetricMetadata(
+            MetricType.COUNTER,
+            'Cache references'
+        ),
+    DerivedMetricName.IPC:
+        MetricMetadata(
+            MetricType.GAUGE,
+            'Instructions per cycles'
+        ),
+    DerivedMetricName.IPS:
+        MetricMetadata(
+            MetricType.GAUGE,
+            'Instructions per seconds'
+        ),
+    DerivedMetricName.CACHE_HIT_RATIO:
+        MetricMetadata(
+            MetricType.GAUGE,
+            'Cache hit ratio, based on cache-misses and cache-references',
+        ),
 }
 
 
@@ -142,3 +170,62 @@ def sum_measurements(measurements_list: List[Measurements]) -> \
                                            for measurements in measurements_list])
 
     return summed_metrics, ignored_metrics_names
+
+
+class DerivedMetricsGenerator:
+    """ Calculate derived metrics based on predefined rules:
+
+    ipc = instructions / cycles
+    ips = instructions / seconds
+    cache_hit_ratio = cache-reference - cache-misses / cache-references
+    """
+
+    def __init__(self, event_names, get_measurements_func: Callable[[], Measurements]):
+        self._prev_measurements = None
+        self._event_names: List[MetricName] = event_names
+        self._prev_ts = None
+        self.get_measurements_func = get_measurements_func
+
+    def get_measurements(self) -> Measurements:
+        measurements = self.get_measurements_func()
+        return self._get_measurements_with_derived_metrics(measurements)
+
+    def _get_measurements_with_derived_metrics(self, measurements):
+        """Extend given measurements with some derived metrics like IPC, IPS, cache_hit_ratio.
+        Extends only if those metrics are enabled in "event_names".
+        """
+
+        now = time.time()
+
+        def metrics_available(*names):
+            return all(name in self._event_names and name in measurements
+                       and name in self._prev_measurements for name in names)
+
+        def delta(*names):
+            return [measurements[name] - self._prev_measurements[name] for name in names]
+
+        # if specific pairs are available calculate derived metrics
+        if self._prev_measurements is not None:
+            time_delta = now - self._prev_ts
+
+            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
+                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS,
+                                                 MetricName.CYCLES)
+                if cycles_delta > 0:
+                    measurements[DerivedMetricName.IPC] = float(inst_delta) / cycles_delta
+
+                if time_delta > 0:
+                    measurements[DerivedMetricName.IPS] = float(inst_delta) / time_delta
+
+            if metrics_available(MetricName.CACHE_REFERENCES, MetricName.CACHE_MISSES):
+                cache_ref_delta, cache_misses_delta = delta(MetricName.CACHE_REFERENCES,
+                                                            MetricName.CACHE_MISSES)
+                if cache_ref_delta > 0:
+                    cache_hits_count = cache_ref_delta - cache_misses_delta
+                    measurements[DerivedMetricName.CACHE_HIT_RATIO] = (
+                            float(cache_hits_count) / cache_ref_delta)
+
+        self._prev_measurements = measurements
+        self._prev_ts = now
+
+        return measurements

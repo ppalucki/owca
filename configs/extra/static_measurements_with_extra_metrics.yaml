@@ -1,0 +1,10 @@
+runner: !MeasurementRunner
+  event_names:
+    - instructions
+    - cycles
+    - cache_references
+    - cache_misses
+  enable_derived_metrics: true
+  node: !StaticNode
+    tasks:
+      - task1

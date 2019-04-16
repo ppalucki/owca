@@ -13,9 +13,9 @@
 # limitations under the License.
 
 
-from abc import ABC, abstractmethod
 import logging
 import pprint
+from abc import ABC, abstractmethod
 from typing import List, Optional, Dict
 
 from owca import cgroups
@@ -23,7 +23,7 @@ from owca import logger
 from owca import perf
 from owca import resctrl
 from owca.allocators import AllocationConfiguration, TaskAllocations
-from owca.metrics import Measurements, sum_measurements
+from owca.metrics import Measurements, sum_measurements, DerivedMetricsGenerator
 from owca.nodes import Task
 from owca.profiling import profiler
 from owca.resctrl import ResGroup
@@ -103,7 +103,9 @@ class ContainerSet(ContainerInterface):
                  allocation_configuration: Optional[AllocationConfiguration] = None,
                  resgroup: ResGroup = None, rdt_enabled: bool = True,
                  rdt_mb_control_enabled: bool = False,
-                 event_names: List[str] = None):
+                 event_names: List[str] = None,
+                 enable_derived_metrics: bool = False,
+                 ):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
         self._allocation_configuration = allocation_configuration
@@ -127,7 +129,9 @@ class ContainerSet(ContainerInterface):
                 rdt_mb_control_enabled=False,
                 platform_cpus=platform_cpus,
                 allocation_configuration=allocation_configuration,
-                event_names=event_names)
+                event_names=event_names,
+                enable_derived_metrics=enable_derived_metrics,
+            )
 
     def get_subcgroups(self) -> List[cgroups.Cgroup]:
         return [container.get_cgroup() for container in self._subcontainers.values()]
@@ -204,7 +208,7 @@ class Container(ContainerInterface):
     def __init__(self, cgroup_path: str, platform_cpus: int, resgroup: ResGroup = None,
                  allocation_configuration: Optional[AllocationConfiguration] = None,
                  rdt_enabled: bool = True, rdt_mb_control_enabled: bool = False,
-                 event_names: List[str] = None):
+                 event_names: List[str] = None, enable_derived_metrics: bool = False):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
         self._allocation_configuration = allocation_configuration
@@ -217,9 +221,13 @@ class Container(ContainerInterface):
             cgroup_path=self._cgroup_path,
             platform_cpus=platform_cpus,
             allocation_configuration=allocation_configuration)
+
+        self._derived_metrics_generator = None
         if self._event_names:
-            self._perf_counters = perf.PerfCounters(self._cgroup_path,
-                                                    event_names=event_names)
+            self._perf_counters = perf.PerfCounters(self._cgroup_path, event_names=event_names)
+            if enable_derived_metrics:
+                self._derived_metrics_generator = DerivedMetricsGenerator(
+                    event_names, self._perf_counters.get_measurements)
 
     def get_subcgroups(self) -> List[cgroups.Cgroup]:
         """Returns empty list as Container class cannot have subcontainers -
@@ -250,6 +258,7 @@ class Container(ContainerInterface):
             self._resgroup.add_pids(self._cgroup.get_pids(), mongroup_name=self._name)
 
     def get_measurements(self) -> Measurements:
+        # Cgroup measurements
         try:
             cgroup_measurements = self._cgroup.get_measurements()
         except FileNotFoundError:
@@ -258,12 +267,29 @@ class Container(ContainerInterface):
                         'the current runner iteration.',
                         self._cgroup_path)
             # Returning empty measurements.
-            return {}
+            cgroup_measurements = {}
+
+        # Perf events measurements
+        if self._event_names:
+            if self._derived_metrics_generator:
+                # derived metrics
+                perf_measurements = self._derived_metrics_generator.get_measurements()
+            else:
+                # raw counters only
+                perf_measurements = self._perf_counters.get_measurements()
+        else:
+            perf_measurements = {}
+
+        # RDT/resctrl measurements
+        if self._rdt_enabled:
+            rdt_measurements = self._resgroup.get_measurements(self._name)
+        else:
+            rdt_measurements = {}
 
         return flatten_measurements([
             cgroup_measurements,
-            self._resgroup.get_measurements(self._name) if self._rdt_enabled else {},
-            self._perf_counters.get_measurements() if self._event_names else {},
+            rdt_measurements,
+            perf_measurements,
         ])
 
     def cleanup(self):
@@ -290,13 +316,14 @@ class ContainerManager:
 
     def __init__(self, rdt_enabled: bool, rdt_mb_control_enabled: bool, platform_cpus: int,
                  allocation_configuration: Optional[AllocationConfiguration],
-                 event_names: List[str]):
+                 event_names: List[str], enable_derived_metrics: bool = False):
         self.containers: Dict[Task, ContainerInterface] = {}
         self._rdt_enabled = rdt_enabled
         self._rdt_mb_control_enabled = rdt_mb_control_enabled
         self._platform_cpus = platform_cpus
         self._allocation_configuration = allocation_configuration
         self._event_names = event_names
+        self._enable_derived_metrics = enable_derived_metrics
 
     def _create_container(self, task: Task) -> ContainerInterface:
         """Check whether the task groups multiple containers,
@@ -310,7 +337,8 @@ class ContainerManager:
                 rdt_mb_control_enabled=self._rdt_mb_control_enabled,
                 platform_cpus=self._platform_cpus,
                 allocation_configuration=self._allocation_configuration,
-                event_names=self._event_names
+                event_names=self._event_names,
+                enable_derived_metrics=self._enable_derived_metrics,
             )
         else:
             container = Container(
@@ -319,7 +347,8 @@ class ContainerManager:
                 rdt_mb_control_enabled=self._rdt_mb_control_enabled,
                 platform_cpus=self._platform_cpus,
                 allocation_configuration=self._allocation_configuration,
-                event_names=self._event_names
+                event_names=self._event_names,
+                enable_derived_metrics=self._enable_derived_metrics,
             )
         return container
 

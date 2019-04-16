@@ -54,6 +54,8 @@ class MeasurementRunner(Runner):
             (defaults to empty dict)
         event_names: perf counters to monitor
             (defaults to instructions, cycles, cache-misses, memstalls)
+        enable_derived_metrics: enable derived metrics ips, ipc and cache_hit_ratio
+            (based on enabled_event names), default to False
     """
 
     def __init__(
@@ -64,6 +66,7 @@ class MeasurementRunner(Runner):
             rdt_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
             extra_labels: Dict[str, str] = None,
             event_names: List[str] = None,
+            enable_derived_metrics: bool = False,
             _allocation_configuration: Optional[AllocationConfiguration] = None,
     ):
 
@@ -77,6 +80,7 @@ class MeasurementRunner(Runner):
         self._last_iteration = time.time()  # Used internally by wait function.
         self._allocation_configuration = _allocation_configuration
         self._event_names = event_names or DEFAULT_EVENTS
+        self._enable_derived_metrics = enable_derived_metrics
 
     @profiler.profile_duration(name='sleep')
     def _wait(self):
@@ -124,6 +128,7 @@ class MeasurementRunner(Runner):
             platform_cpus=platform_cpus,
             allocation_configuration=self._allocation_configuration,
             event_names=self._event_names,
+            enable_derived_metrics=self._enable_derived_metrics,
         )
         return None
 

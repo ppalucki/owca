@@ -13,16 +13,17 @@
 # limitations under the License.
 
 
+import os
+from io import BytesIO
 from unittest import mock
+from unittest.mock import Mock, patch
 
 import pytest
-import os
-from unittest.mock import Mock, patch
-from io import BytesIO
 
+from owca import metrics
 from owca import perf
 from owca import perf_const as pc
-from owca import metrics
+from owca.metrics import MetricName, DerivedMetricName, DerivedMetricsGenerator
 from owca.testing import create_open_mock
 
 
@@ -299,3 +300,49 @@ def test_read_broadwell_cpu_model(*args):
 }))
 def test_read_unknown_cpu_model(*args):
     assert pc.CPUModel.UNKNOWN == perf._get_cpu_model()
+
+
+def test_derived_metrics():
+    def gm_func():
+        return {
+            MetricName.INSTRUCTIONS: 1000,
+            MetricName.CYCLES: 5,
+            MetricName.CACHE_MISSES: 10000,
+            MetricName.CACHE_REFERENCES: 50000,
+        }
+
+    derived_metrics_generator = DerivedMetricsGenerator(
+        event_names=[MetricName.INSTRUCTIONS, MetricName.CYCLES,
+                     MetricName.CACHE_MISSES, MetricName.CACHE_REFERENCES],
+        get_measurements_func=gm_func)
+
+    # First run, does not have enough information to generate those metrics.
+
+    with patch('time.time', return_value=1):
+        measurements = derived_metrics_generator.get_measurements()
+    assert DerivedMetricName.IPC not in measurements
+    assert DerivedMetricName.IPS not in measurements
+    assert DerivedMetricName.CACHE_HIT_RATIO not in measurements
+
+    # 5 seconds later
+    def gm_func_2():
+        return {
+            MetricName.INSTRUCTIONS: 11000,  # 10k more
+            MetricName.CYCLES: 15,  # 10 more
+            MetricName.CACHE_MISSES: 20000,  # 10k more
+            MetricName.CACHE_REFERENCES: 100000,  # 50k more
+        }
+
+    derived_metrics_generator.get_measurements_func = gm_func_2
+    with patch('time.time', return_value=6):
+        measurements = derived_metrics_generator.get_measurements()
+    assert DerivedMetricName.IPC in measurements
+    assert DerivedMetricName.IPS in measurements
+    assert DerivedMetricName.CACHE_HIT_RATIO in measurements
+
+    assert measurements[DerivedMetricName.IPC] == (10000 / 10)
+    assert measurements[DerivedMetricName.IPS] == (10000 / 5)
+
+    # Assuming cache misses increase is 10k over all 50k cache references
+    # Cache hit ratio should be 40k / 50k = 80%
+    assert measurements[DerivedMetricName.CACHE_HIT_RATIO] == 0.8

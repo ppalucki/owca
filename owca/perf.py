@@ -16,7 +16,6 @@
 import ctypes
 import logging
 import os
-import time
 import struct
 from typing import List, Dict, BinaryIO, Iterable
 
@@ -217,49 +216,6 @@ def _create_file_from_fd(pfd):
     return os.fdopen(pfd, 'rb')
 
 
-class DerivedMetricsGenerator:
-
-    def __init__(self, event_names):
-        self._prev_measurements = None
-        self._event_names: List[MetricName] = event_names
-        self._prev_ts = None
-
-    def get_measurements_with_derived_metrics(self, measurements):
-
-        now = time.time()
-
-        def metrics_available(*names):
-            return all(name in self._event_names and name in measurements
-                       and name in self._prev_measurements for name in names)
-
-        def delta(*names):
-            return [measurements[name] - self._prev_measurements[name] for name in names]
-
-        # if specific pairs are available calculate derived metrics
-        if self._prev_measurements is not None:
-            time_delta = now - self._prev_ts
-
-            if metrics_available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
-                inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS,
-                                                 MetricName.CYCLES)
-                if cycles_delta > 0:
-                    measurements['ipc'] = float(inst_delta) / cycles_delta
-
-                if time_delta > 0:
-                    measurements['ips'] = float(inst_delta) / time_delta
-
-            if metrics_available(MetricName.CACHE_REFERENCES, MetricName.CACHE_MISSES):
-                cache_ref_delta, cache_misses_delta = delta(MetricName.CACHE_REFERENCES,
-                                                            MetricName.CACHE_MISSES)
-                if cache_ref_delta > 0:
-                    measurements['cache_misses_ratio'] = float(cache_misses_delta) / cache_ref_delta
-
-        self._prev_measurements = measurements
-        self._prev_ts = now
-
-        return measurements
-
-
 class PerfCounters:
     """Perf facade on perf_event_open system call"""
 
@@ -280,11 +236,8 @@ class PerfCounters:
         # DO the magic and enabled everything + start counting
         self._open()
 
-        self._derived_metrics_generator = DerivedMetricsGenerator(event_names)
-
     def get_measurements(self) -> Measurements:
-        measurements = self._read_events()
-        return self._derived_metrics_generator.get_measurements_with_derived_metrics(measurements)
+        return self._read_events()
 
     def cleanup(self):
         """Closes all opened file descriptors"""
