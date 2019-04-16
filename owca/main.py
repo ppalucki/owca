@@ -136,7 +136,7 @@ def debug():
     try:
         import ipdb as pdb
     except ImportError:
-        warnings.warn('ipdb not available, ending pdb')
+        warnings.warn('ipdb not available, using pdb')
         import pdb
     pdb.set_trace()
     main()
