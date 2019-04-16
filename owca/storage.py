@@ -59,10 +59,10 @@ class LogStorage(Storage):
     # Optionally to include timestamp (defaults to opposite of overwrite)
     # With overwrite, do not add timestamps (to enabled collection be e.g. node_exporter)
     # Without overwrite, add timestamps (to keep information about metrics)
-    include_timestamp: bool = None
+    include_timestamp: Optional[bool] = None
 
     def __post_init__(self):
-        # Auto configure timestamp including, based on overwrite flag.
+        # Auto configure timestamp, based on "overwrite" flag.
         if self.include_timestamp is None:
             self.include_timestamp = not self.overwrite
         if self.output_filename is not None:
