@@ -21,7 +21,9 @@ import abc
 import itertools
 import logging
 import re
+import os
 import sys
+import tempfile
 import time
 from typing import List, Tuple, Dict
 
@@ -46,15 +48,28 @@ class Storage(abc.ABC):
 class LogStorage(Storage):
     """Outputs metrics encoded in Prometheus exposition format
     to standard error (default) or provided file (output_filename).
+    With overwrite mode the output_filename is set to real file, contains only
+    last stored metrics.
     """
 
     output_filename: str = None  # Defaults to stderr.
+    # With overwrite mode the output_filename contains only last stored metrics.
+    overwrite: bool = False
 
     def __post_init__(self):
+        # Use to store temporary filename.
+
         if self.output_filename is not None:
-            self.output = open(self.output_filename, 'a')
+            self._dir = os.path.dirname(self.output_filename)
             log.info('configuring log storage to dump metrics to: %r', self.output_filename)
+            if self.overwrite:
+                self.output = None
+            else:
+                self.output = open(self.output_filename, 'a')
         else:
+            self._dir = None
+            if self.overwrite:
+                raise Exception('cannot use overwrite mode without output_filename set!')
             self.output = sys.stderr
 
     def store(self, metrics):
@@ -71,7 +86,12 @@ class LogStorage(Storage):
             timestamp = get_current_time()
             msg = convert_to_prometheus_exposition_format(metrics, timestamp)
             log.log(logger.TRACE, 'Dump of metrics (text format): %r', msg)
-            print(msg, file=self.output, flush=True)
+            if self.overwrite:
+                with tempfile.NamedTemporaryFile(dir=self._dir, delete=False) as fp:
+                    fp.write(msg.encode('utf-8'))
+                os.rename(fp.name, self.output_filename)
+            else:
+                print(msg, file=self.output, flush=True)
 
 
 DEFAULT_STORAGE = LogStorage()
