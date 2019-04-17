@@ -87,13 +87,3 @@ def test_dataclass_exceed_maximum():
     with pytest.raises(config.ConfigLoadError,
                        match="field 'x'.*Maximum value is 5. Got 123."):
         config.load_config(test_config_path)
-
-
-def test_dataclass_too_long_path():
-    test_config_path = testing.relative_module_path(
-        __file__, 'test_dataclasses_too_long_path.yaml')
-    with pytest.raises(config.ConfigLoadError,
-                       match="field 'e'.*Given str is "
-                             "too long. Max allowed"
-                             " length is 400. Got 531"):
-        config.load_config(test_config_path)

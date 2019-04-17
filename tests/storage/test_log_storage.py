@@ -38,5 +38,5 @@ def test_log_storage_overwrite_mode(tempfile_mock, rename_mock, get_current_time
     log_storage = LogStorage(output_filename='mocked_file_name.log', overwrite=True)
     log_storage.store([metric])
 
-    tempfile_mock.assert_has_calls([call().__enter__().write(b'foo 8 1\n\n')])
+    tempfile_mock.assert_has_calls([call().__enter__().write(b'foo 8\n\n')])
     rename_mock.assert_called_once()

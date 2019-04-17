@@ -15,6 +15,7 @@ import logging
 import time
 from typing import Dict, List, Optional
 
+from owca.config import Numeric, Str
 from owca import nodes, storage, detectors
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information, Anomaly
@@ -77,9 +78,9 @@ class DetectionRunner(MeasurementRunner):
             detector: detectors.AnomalyDetector,
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: float = 1.,
+            action_delay: Numeric(0, 60) = 1.,
             rdt_enabled: Optional[bool] = None,
-            extra_labels: Dict[str, str] = None,
+            extra_labels: Dict[Str, Str] = None,
             event_names: Optional[List[str]] = None,
             enable_derived_metrics: bool = False,
     ):

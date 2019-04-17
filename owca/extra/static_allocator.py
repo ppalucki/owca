@@ -20,7 +20,7 @@ from typing import List, Set, Dict
 from dataclasses import dataclass
 
 from owca.allocators import Allocator, TasksAllocations, AllocationType, RDTAllocation
-from owca.config import load_config
+from owca.config import load_config, Path
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
 from owca.nodes import TaskId
@@ -129,7 +129,7 @@ class StaticAllocator(Allocator):
     """
 
     # File location of yaml config file with rules.
-    config: str
+    config: Path
 
     def __post_init__(self):
         if not os.path.exists(self.config):

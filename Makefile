@@ -16,6 +16,10 @@ unit:
 	@echo Running unit tests.
 	pipenv run env PYTHONPATH=. pytest --cov-report term-missing --cov=owca tests
 
+junit: 
+	@echo Running unit tests.
+	pipenv run env PYTHONPATH=. pytest --cov-report term-missing --cov=owca tests --junitxml=unit_results.xml -vvv -s
+
 owca_package: 
 	@echo Building owca pex file.
 	-rm .pex-build/owca*

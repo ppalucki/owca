@@ -14,8 +14,13 @@ pipeline {
         stage("Run unit tests suite") {
             steps {
                 sh '''
-                  make venv unit
+                  make venv junit
                 '''
+            }
+            post {
+                always {
+                    junit 'unit_results.xml'
+                }
             }
         }
         stage("Build pex files") {

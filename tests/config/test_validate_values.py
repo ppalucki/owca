@@ -18,7 +18,7 @@ import inspect
 import pytest
 
 from owca.config import _assure_type, ValidationError, WeakValidationError, \
-    Url, Path, Numeric
+    Url, Path, Numeric, Str, IpPort
 
 
 class Foo:
@@ -51,11 +51,24 @@ class FooEnum(Enum):
     ({2: {'x': 2.5}}, Dict[int, Dict[str, Union[int, float]]]),
     (FooEnum.BAR, FooEnum),
     (1, FooEnum),
+    (1, Numeric(0, 3)),
+    (3.5, Numeric(2., 5.)),
+    ('small_string', Str),
+    ('small_string', Str()),
+    ('small_string', Optional[Str]),
+    ('small_string', Optional[Str()]),
     ('https://127.0.0.1', Url()),
+    ('https://127.0.0.1', Url),
+    ('https://127.0.0.1', Optional[Url()]),
+    ('https://127.0.0.1', Optional[Url]),
     ('some/path', Path()),
+    ('some/path', Path),
     ('/some/absolute/path', Path(absolute=True)),
     ('https://127.0.0.1:1234', Url()),
-    ('https://127.0.0.1/some/path', Url(is_path_obligatory=True))
+    ('https://127.0.0.1/some/path', Url(is_path_obligatory=True)),
+    ('127.0.0.1:9876', IpPort()),
+    ('127.0.0.1:9876', IpPort(max_size=30)),
+    ('127.0.0.1:9876', IpPort)
 ])
 def test_assure_type_good(value, expected_type):
     _assure_type(value, expected_type)
@@ -76,9 +89,17 @@ def test_assure_type_good(value, expected_type):
     (127, Url(), 'int'),
     ('../some/path', Path(), 'using \'..\''),
     ('some/path', Path(absolute=True), 'absolute path'),
+    ('/some/path', Path(absolute=True, max_size=3), 'length'),
     ('127.0.0.1/some/path', Url(), 'Use one of supported schemes'),
     ('https://', Url(), 'Netloc'),
-    ('https://something:1234', Url(is_path_obligatory=True), 'Path')
+    ('https://something:1234', Url(is_path_obligatory=True), 'Path'),
+    ('1', Numeric(0, 1), 'str'),
+    ('small_string', Str(max_size=2), 'length'),
+    ('small_string', Optional[Str(max_size=2)], 'length'),
+    ('127.1:9876', IpPort(), 'valid ip'),
+    ('127.1:9876', IpPort, 'valid ip'),
+    ('127.0.0.1:abc', IpPort(), 'valid port'),
+    ('127.0.0.1:9876', IpPort(max_size=3), 'too long'),
 ])
 def test_assure_type_invalid(value, expected_type, expected_exception_msg):
     with pytest.raises(ValidationError, match=expected_exception_msg):

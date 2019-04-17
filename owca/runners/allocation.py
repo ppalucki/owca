@@ -21,6 +21,7 @@ from owca.allocations import AllocationsDict, InvalidAllocations, AllocationValu
 from owca.allocators import TasksAllocations, AllocationConfiguration, AllocationType, Allocator, \
     TaskAllocations, RDTAllocation
 from owca.cgroups_allocations import QuotaAllocationValue, SharesAllocationValue
+from owca.config import Numeric, Str
 from owca.containers import ContainerInterface, Container
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information
@@ -189,10 +190,10 @@ class AllocationRunner(MeasurementRunner):
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
             allocations_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: float = 1.,  # [s]
+            action_delay: Numeric(0, 60) = 1.,  # [s]
             rdt_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
             rdt_mb_control_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
-            extra_labels: Dict[str, str] = None,
+            extra_labels: Dict[Str, Str] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
             remove_all_resctrl_groups: bool = False,
             event_names: Optional[List[str]] = None,

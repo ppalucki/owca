@@ -29,7 +29,9 @@ import enum
 import functools
 import inspect
 import io
+import ipaddress
 import logging
+import types
 import typing
 from os.path import exists, isabs, split  # direct target import for mocking purposes in test_main
 from ruamel import yaml
@@ -64,110 +66,179 @@ class WeakValidationError(ValidationError):
     """
 
 
+def assure_base_types(value, base_types):
+    for base_type in base_types:
+        if isinstance(value, base_type):
+            break
+    else:
+        raise ValidationError('Invalid type: {}. Type must be one of '
+                              'the following: {}'.format(type(value),
+                                                         base_types))
+
+
+def assure_max_str_length(value, max_size):
+    length = len(value)
+    if length > max_size:
+        raise ValidationError('Given str is too long. '
+                              'Max allowed length is {}. '
+                              'Got {}'.format(max_size, length))
+
+
+def assure_max_numeric_value(value, max_value):
+    if value > max_value:
+        raise ValidationError(
+            'Maximum value is {}. Got {}.'.format(max_value, value))
+
+
+def assure_min_numeric_value(value, min_value):
+    if value < min_value:
+        raise ValidationError('Minimum value is {}. Got {}.'.format(
+            min_value, value))
+
+
+def assure_absolute_path(value):
+    if not isabs(value):
+        raise ValidationError('`absolute` option is set to True meaning '
+                              'absolute path is obligatory. Use absolute '
+                              'path or turn off `absolute` option by '
+                              'setting it to False.')
+
+
+def assure_no_parent_directory_access(value):
+    split_value = split(value)
+    while split_value[0] and split_value[1]:
+        if '..' in split_value:
+            raise ValidationError('You are trying to access parent '
+                                  'directory by using \'..\' expression'
+                                  ' which is not allowed. Try using '
+                                  'absolute path instead.')
+        split_value = split(split_value[0])
+
+
+def assure_scheme_in_url(url, supported_schemes=('http', 'https')):
+    if url.scheme not in supported_schemes:
+        raise ValidationError('Invalid url. Got: {}. '
+                              'Use one of supported schemes: '
+                              '{}'.format(url.scheme, supported_schemes))
+
+
+def assure_netloc_in_url(url):
+    if not url.netloc:
+        raise ValidationError('Invalid url. Netloc can\'t be empty.')
+
+
+def assure_path_in_url(url):
+    if not url.path:
+        raise ValidationError('Invalid url. Path can\'t be empty when '
+                              '`is_path_obligatory` is set to True.')
+
+
+def assure_ip_format(ip):
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        raise ValidationError('Given str: \'{}\' '
+                              'is not valid ip address'.format(ip))
+
+
+def assure_port_format(port):
+    try:
+        int(port)
+    except ValueError:
+        raise ValidationError('Given str: \'{}\' '
+                              'is not valid port value'.format(port))
+
+
 class SemanticType:
     """Represents user input in different types."""
-    def __init__(self, base_types):
-        self.base_types = base_types
-
-    def assure(self, value):
-        for base_type in self.base_types:
-            if isinstance(value, base_type):
-                break
-        else:
-            raise ValidationError('Invalid type: {}. Type must be one of '
-                                  'the following: {}'.format(type(value),
-                                                             self.base_types))
 
 
-class Str(SemanticType):
-    """Represents str user input"""
-    def __init__(self, max_size=400):
-        super().__init__([str])
-        self.max_size = max_size
+class _StrType(type):
 
-    def assure(self, value):
+    @classmethod
+    def assure(cls, value):
         """Validates str input"""
-        super().assure(value)
-
-        length = len(value)
-        if length > self.max_size:
-            raise ValidationError('Given str is too long. '
-                                  'Max allowed length is {}. '
-                                  'Got {}'.format(self.max_size, length))
+        assure_base_types(value, [str])
+        assure_max_str_length(value, cls.max_size)
 
 
-class Url(Str):
-    """Represents url user input"""
-    def __init__(self, is_path_obligatory=False,
-                 supported_schemes=('http', 'https')):
-        """
-        :param is_path_obligatory: when `True` url must contain a path
-        :param supported_schemes: schemes supported in url
-        """
-        super().__init__()
-        self.is_path_obligatory = is_path_obligatory
-        self.supported_schemes = supported_schemes
+def Str(max_size=400):
+    return _StrType('Str', (_StrType, SemanticType), dict(max_size=max_size))
 
-    def assure(self, value):
+
+class _NumericType(type):
+
+    @classmethod
+    def assure(cls, value):
+        """Validates numeric input"""
+        assure_base_types(value, [int, float])
+        assure_min_numeric_value(value, cls.min_value)
+        assure_max_numeric_value(value, cls.max_value)
+
+
+def Numeric(min_value, max_value):
+    return _NumericType('Numeric', (_NumericType, SemanticType),
+                        dict(min_value=min_value, max_value=max_value))
+
+
+class _UrlType(type):
+
+    @classmethod
+    def assure(cls, value):
         """Validates url input"""
-        super().assure(value)
+        assure_base_types(value, [str])
+        assure_max_str_length(value, cls.max_size)
 
         url = urlparse(value)
-        if url.scheme not in self.supported_schemes:
-            raise ValidationError('Invalid url. Got: {}. '
-                                  'Use one of supported schemes: '
-                                  '{}'.format(url.scheme, self.supported_schemes))
-
-        if not url.netloc:
-            raise ValidationError('Invalid url. Netloc can\'t be empty.')
-
-        if self.is_path_obligatory and not url.path:
-            raise ValidationError('Invalid url. Path can\'t be empty when '
-                                  '`is_path_obligatory` is set to True.')
+        assure_scheme_in_url(url, supported_schemes=cls.supported_schemes)
+        assure_netloc_in_url(url)
+        if cls.is_path_obligatory:
+            assure_path_in_url(url)
 
 
-class Numeric(SemanticType):
-    """Represents numeric user input"""
-    def __init__(self, min_value, max_value):
-        super().__init__([int, float])
-        self.min_value = min_value
-        self.max_value = max_value
-
-    def assure(self, value):
-        """Validates numeric input"""
-        super().assure(value)
-        if value < self.min_value:
-            raise ValidationError(
-                'Minimum value is {}. Got {}.'.format(self.min_value, value))
-        elif value > self.max_value:
-            raise ValidationError(
-                'Maximum value is {}. Got {}.'.format(self.max_value, value))
+def Url(max_size=400, supported_schemes=('http', 'https'),
+        is_path_obligatory=False):
+    return _UrlType('Url', (_UrlType, SemanticType),
+                    dict(max_size=max_size,
+                         supported_schemes=supported_schemes,
+                         is_path_obligatory=is_path_obligatory))
 
 
-class Path(Str):
-    """Represents path user input"""
-    def __init__(self, absolute=False):
-        super().__init__()
-        self.absolute = absolute
+class _PathType(type):
 
-    def assure(self, value):
+    @classmethod
+    def assure(cls, value):
         """Validates path input"""
-        super().assure(value)
+        assure_base_types(value, [str])
+        assure_max_str_length(value, cls.max_size)
+        assure_no_parent_directory_access(value)
+        if cls.absolute:
+            assure_absolute_path(value)
 
-        if self.absolute and not isabs(value):
-            raise ValidationError('`absolute` option is set to True meaning '
-                                  'absolute path is obligatory. Use absolute '
-                                  'path or turn off `absolute` option by '
-                                  'setting it to False.')
 
-        split_value = split(value)
-        while split_value[0] != '' and split_value[1] != '':
-            if '..' in split_value:
-                raise ValidationError('You are trying to access parent '
-                                      'directory by using \'..\' expression'
-                                      ' which is not allowed. Try using '
-                                      'absolute path instead.')
-            split_value = split(split_value[0])
+def Path(absolute=False, max_size=400):
+    return _PathType('Path', (_PathType, SemanticType),
+                     dict(absolute=absolute, max_size=max_size))
+
+
+class _IpPort(type):
+
+    @classmethod
+    def assure(cls, value):
+        """Validates input in format ip:port; for example 127.0.0.1:1234"""
+        assure_base_types(value, [str])
+        assure_max_str_length(value, cls.max_size)
+
+        value = value.rsplit(':')
+        ip = value[0]
+        port = value[1]
+        assure_ip_format(ip)
+        assure_port_format(port)
+
+
+def IpPort(max_size=400):
+    return _IpPort('IpPort', (_IpPort, SemanticType),
+                   dict(max_size=max_size))
 
 
 def _assure_list_type(value: list, expected_type):
@@ -208,13 +279,19 @@ def _assure_dict_type(value: dict, expected_type):
 
 def _assure_union_type(value, expected_type):
     """Validate that value is type of Union and recursively matches expected Union type."""
+    exceptions_raised = []
     for union_expected_type in expected_type.__args__:
-        if isinstance(value, union_expected_type):
-            break
+        try:
+            _assure_type(value, union_expected_type)
+        except ValidationError as e:
+            exceptions_raised.append(e)
+            continue
+        break
     else:
         # Value doesn't match any type from union.
         raise ValidationError(
-            'improper type from union (got=%r expected=%r)!' % (type(value), expected_type))
+            'improper type from union (got=%r expected=%r)! (suberrors=%s)' %
+            (type(value), expected_type, exceptions_raised))
 
 
 def _assure_enum_type(value, expected_type):
@@ -268,15 +345,17 @@ def _assure_type(value, expected_type):
         return
 
     # Handle Semantic type.
-    if isinstance(expected_type, SemanticType):
+    if isinstance(expected_type, types.FunctionType):
+        expected_type = expected_type()
+
+    if issubclass(expected_type, SemanticType):
         expected_type.assure(value)
         return
 
     # Handle simple types.
-    else:
-        if not isinstance(value, expected_type):
-            raise ValidationError(
-                'improper type (got=%r expected=%r)!' % (type(value), expected_type))
+    if not isinstance(value, expected_type):
+        raise ValidationError(
+            'improper type (got=%r expected=%r)!' % (type(value), expected_type))
 
 
 def _constructor(loader: yaml.loader.Loader, node: yaml.nodes.Node, cls: type, strict_mode: bool):
