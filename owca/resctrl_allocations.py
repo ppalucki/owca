@@ -41,6 +41,7 @@ class RDTGroups:
             self.already_executed_resgroup_names.add(resgroup_name)
             return True
         else:
+            log.debug('RDTGroups: ignore schemata write - already updated!')
             return False
 
     def validate(self, rdt_allocation_value):
@@ -211,12 +212,16 @@ class RDTAllocationValue(AllocationValue):
                                              new.rdt_allocation.l3):
                 new_l3 = new.rdt_allocation.l3
             else:
+                log.debug('changeset l3: no change between: %r and %r' % (
+                    current.rdt_allocation.l3, new.rdt_allocation.l3))
                 new_l3 = None
 
             if _is_rdt_suballocation_changed(current.rdt_allocation.mb,
                                              new.rdt_allocation.mb):
                 new_mb = new.rdt_allocation.mb
             else:
+                log.debug('changeset l3: no change between: %r and %r' % (
+                    current.rdt_allocation.mb, new.rdt_allocation.mb))
                 new_mb = None
 
             if new_l3 or new_mb:
@@ -334,7 +339,7 @@ def _is_rdt_suballocation_changed(current: Optional[str], new: Optional[str]):
         return False
 
     def _is_equal(first, second):
-        return first.lstrip('0') == second.lstrip('0')
+        return first.lstrip(' 0') == second.lstrip(' 0')
 
     current_domains: Dict[str, str] = _parse_schemata_file_row(current)
     new_domains: Dict[str, str] = _parse_schemata_file_row(new)
@@ -372,11 +377,7 @@ def validate_mb_string(mb, platform_sockets):
     if not mb.startswith('MB:'):
         raise InvalidAllocations(
             'mb resources setting should start with "MB:" prefix (got %r)' % mb)
-    domains = _parse_schemata_file_row(mb)
-    if len(domains) != platform_sockets:
-        raise InvalidAllocations('not enough domains in mb configuration '
-                                 '(expected=%i,got=%i)' % (
-                                     platform_sockets, len(domains)))
+    _parse_schemata_file_row(mb)
 
 
 def _count_enabled_bits(hexstr: str) -> int:
