@@ -240,13 +240,15 @@ class RDTAllocationValue(AllocationValue):
         """Check L3 mask according platform.rdt_ features."""
         if self.rdt_allocation.l3:
             validate_l3_string(self.rdt_allocation.l3,
+                               self.platform_sockets,
                                self.rdt_cbm_mask,
                                self.rdt_min_cbm_bits)
         if self.rdt_allocation.mb:
             if self.rdt_mb_control_enabled is False:
                 raise InvalidAllocations('Allocator requested RDT MB allocation but '
                                          'RDT memory bandwidth is not enabled!')
-            validate_mb_string(self.rdt_allocation.mb)
+            validate_mb_string(self.rdt_allocation.mb,
+                               self.platform_sockets)
 
         self.rdt_groups.validate(self)
 
@@ -353,24 +355,40 @@ def _is_rdt_suballocation_changed(current: Optional[str], new: Optional[str]):
     return False
 
 
-def validate_l3_string(l3, rdt_cbm_mask, rdt_min_cbm_bits):
+def _validate_domains(domains: List[str], platform_sockets):
+    for domain in domains:
+        try:
+            domain_int = int(domain)
+            if not (0 <= domain_int < platform_sockets):
+                raise InvalidAllocations('invalid domain id - out of range'
+                                         '(got=%r number_of_sockets=%i )' % (domain_int,
+                                                                             platform_sockets))
+        except ValueError as e:
+            raise InvalidAllocations('invalid domain id - non numeric'
+                                     '(got=%r error=%s)' % (domain, e))
+
+
+def validate_l3_string(l3, platform_sockets, rdt_cbm_mask, rdt_min_cbm_bits):
     assert rdt_cbm_mask is not None
     assert rdt_min_cbm_bits is not None
     if not l3.startswith('L3:'):
         raise InvalidAllocations(
             'l3 resources setting should start with "L3:" prefix (got %r)' % l3)
     domains = _parse_schemata_file_row(l3)
+    _validate_domains(domains, platform_sockets)
+
     for mask_value in domains.values():
         check_cbm_mask(mask_value,
                        rdt_cbm_mask,
                        rdt_min_cbm_bits)
 
 
-def validate_mb_string(mb):
+def validate_mb_string(mb, platform_sockets):
     if not mb.startswith('MB:'):
         raise InvalidAllocations(
             'mb resources setting should start with "MB:" prefix (got %r)' % mb)
-    _parse_schemata_file_row(mb)
+    domains = _parse_schemata_file_row(mb)
+    _validate_domains(domains, platform_sockets)
 
 
 def _count_enabled_bits(hexstr: str) -> int:

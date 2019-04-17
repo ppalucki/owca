@@ -256,12 +256,12 @@ class AllocationRunner(MeasurementRunner):
 
         try:
             if root_rdt_l3 is not None:
-                validate_l3_string(root_rdt_l3,
+                validate_l3_string(root_rdt_l3, platform.sockets,
                                    platform.rdt_information.cbm_mask,
                                    platform.rdt_information.min_cbm_bits)
 
             if root_rdt_mb is not None:
-                validate_mb_string(root_rdt_mb)
+                validate_mb_string(root_rdt_mb, platform.sockets)
 
             resctrl.cleanup_resctrl(root_rdt_l3, root_rdt_mb, self._remove_all_resctrl_groups)
         except InvalidAllocations as e:
