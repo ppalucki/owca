@@ -240,15 +240,13 @@ class RDTAllocationValue(AllocationValue):
         """Check L3 mask according platform.rdt_ features."""
         if self.rdt_allocation.l3:
             validate_l3_string(self.rdt_allocation.l3,
-                               self.platform_sockets,
                                self.rdt_cbm_mask,
                                self.rdt_min_cbm_bits)
         if self.rdt_allocation.mb:
             if self.rdt_mb_control_enabled is False:
                 raise InvalidAllocations('Allocator requested RDT MB allocation but '
                                          'RDT memory bandwidth is not enabled!')
-            validate_mb_string(self.rdt_allocation.mb,
-                               self.platform_sockets)
+            validate_mb_string(self.rdt_allocation.mb)
 
         self.rdt_groups.validate(self)
 
@@ -355,25 +353,20 @@ def _is_rdt_suballocation_changed(current: Optional[str], new: Optional[str]):
     return False
 
 
-def validate_l3_string(l3, platform_sockets, rdt_cbm_mask, rdt_min_cbm_bits):
+def validate_l3_string(l3, rdt_cbm_mask, rdt_min_cbm_bits):
     assert rdt_cbm_mask is not None
     assert rdt_min_cbm_bits is not None
     if not l3.startswith('L3:'):
         raise InvalidAllocations(
             'l3 resources setting should start with "L3:" prefix (got %r)' % l3)
     domains = _parse_schemata_file_row(l3)
-    if len(domains) != platform_sockets:
-        raise InvalidAllocations('not enough domains in l3 configuration '
-                                 '(expected=%i,got=%i)' % (
-                                     platform_sockets, len(domains)))
-
     for mask_value in domains.values():
         check_cbm_mask(mask_value,
                        rdt_cbm_mask,
                        rdt_min_cbm_bits)
 
 
-def validate_mb_string(mb, platform_sockets):
+def validate_mb_string(mb):
     if not mb.startswith('MB:'):
         raise InvalidAllocations(
             'mb resources setting should start with "MB:" prefix (got %r)' % mb)

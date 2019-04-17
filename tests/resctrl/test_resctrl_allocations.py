@@ -192,7 +192,9 @@ def test_parse_schemata_file_row(line, expected_domains):
         #   but still expected_result is False.
         (('L3:0=00f;1=00f', 'L3:0=00f'), False),
         (('L3:0=00f;1=00ff', 'L3:0=0000f'), False),
-        # Differening with ending 0, should return True.
+        # No change for left filled with spaces as well.
+        (('L3:0= 00f;1=00ff', 'L3:0=  0000f'), False),
+        # Differencing with ending 0, should return True.
         (('L3:0=00f;1=00f', 'L3:0=00f0;1=00f0'), True),
         # The new allocation is not provided (None).
         (('L3:0=00f0;1=00f0', None), False),

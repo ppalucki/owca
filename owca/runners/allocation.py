@@ -26,8 +26,8 @@ from owca.containers import ContainerInterface, Container
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information
 from owca.kubernetes import have_tasks_qos_label, are_all_tasks_of_single_qos
-from owca.nodes import Task
 from owca.metrics import Metric, MetricType
+from owca.nodes import Task
 from owca.resctrl_allocations import (RDTAllocationValue, RDTGroups, validate_mb_string,
                                       validate_l3_string)
 from owca.runners.detection import AnomalyStatistics
@@ -256,12 +256,12 @@ class AllocationRunner(MeasurementRunner):
 
         try:
             if root_rdt_l3 is not None:
-                validate_l3_string(root_rdt_l3, platform.sockets,
+                validate_l3_string(root_rdt_l3,
                                    platform.rdt_information.cbm_mask,
                                    platform.rdt_information.min_cbm_bits)
 
             if root_rdt_mb is not None:
-                validate_mb_string(root_rdt_mb, platform.sockets)
+                validate_mb_string(root_rdt_mb)
 
             resctrl.cleanup_resctrl(root_rdt_l3, root_rdt_mb, self._remove_all_resctrl_groups)
         except InvalidAllocations as e:
