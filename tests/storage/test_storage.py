@@ -93,6 +93,17 @@ def test_convert_to_prometheus_exposition_format(mock_get_current_time, sample_m
         )
     )
 
+    msg = storage.convert_to_prometheus_exposition_format(sample_metrics_with_quote)
+    assert(
+        msg == (
+            '# HELP average_latency_miliseconds latency measured in miliseconds\n'
+            '# TYPE average_latency_miliseconds counter\n'
+            'average_latency_miliseconds'  # next string the same line
+            '{node="slave_1 called \\"brave heart\\"",user="felidadae"} 8\n'
+            '\n'
+        )
+    )
+
     msg = storage.convert_to_prometheus_exposition_format(sample_metrics_with_float_value,
                                                           timestamp)
     assert(

@@ -128,5 +128,19 @@ def main():
     exit(exit_code)
 
 
+def debug():
+    """Debug hook to allow entering debug mode in compiled pex.
+    Run it as PEX_MODULE=owca.main:debug
+    """
+    import warnings
+    try:
+        import ipdb as pdb
+    except ImportError:
+        warnings.warn('ipdb not available, using pdb')
+        import pdb
+    pdb.set_trace()
+    main()
+
+
 if __name__ == '__main__':
     main()

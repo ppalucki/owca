@@ -61,7 +61,7 @@ class GettingCapabilitiesFailed(Exception):
     pass
 
 
-def are_privileges_sufficient() -> bool:
+def are_privileges_sufficient(rdt_enabled) -> bool:
     uid = os.geteuid()
     paranoid = _read_paranoid()
     capabilities = _get_capabilities()
@@ -72,7 +72,8 @@ def are_privileges_sufficient() -> bool:
     log.debug("Determining privileges necessary to call run OWCA - uid: {}, paranoid: {}, "
               "CAP_DAC_OVERRIDE: {}".format(uid, paranoid, has_cap_dac_override))
     return uid == GLOBAL_ROOT_UID or \
-        paranoid <= ALLOW_CPU_EVENTS and has_cap_dac_override and has_cap_setuid
+        paranoid <= ALLOW_CPU_EVENTS and (rdt_enabled is False or
+                                          (has_cap_dac_override and has_cap_setuid))
 
 
 def _get_capabilities():
