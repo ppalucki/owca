@@ -1,0 +1,7 @@
+runner: !MeasurementRunner
+  node: !StaticNode
+    tasks:
+      - task1
+  metrics_storage: !LogStorage
+    output_filename: 'metrics.prom'
+    overwrite: true
