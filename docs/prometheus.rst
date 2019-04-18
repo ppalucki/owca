@@ -8,16 +8,18 @@ Intro
 ========================
 
 
-Agent by default encodes metrics to `Prometheus text based exposition format <https://github.com/prometheus/docs/blob/master/content/docs/instrumenting/exposition_formats.md>`_.
+The agent by default encodes metrics to `Prometheus text based exposition format <https://github.com/prometheus/docs/blob/master/content/docs/instrumenting/exposition_formats.md>`_.
 
-Thanks to this it is easy to store those this metrics in Prometheus using `LogStorage` component and `node_exporter textfile collector <https://github.com/prometheus/node_exporter#textfile-collector>`_.
+Thanks to this it is easy to store metrics in Prometheus using `LogStorage` component and `node_exporter textfile collector <https://github.com/prometheus/node_exporter#textfile-collector>`_.
 
 
-Example OWCA config
-====================
+A simple usage scenario
+=======================
+
 
 .. code-block:: yaml
-
+    
+    # Content of configs/extra/static_measurements_for_node_exporter.yaml
     runner: !MeasurementRunner
       node: !StaticNode
         tasks:
@@ -27,24 +29,21 @@ Example OWCA config
         overwrite: true
 
 
-and the run like this:
+Run owca with below provided command:
 
 .. code-block:: shell
 
     sudo ./dist/owca.pex --root -c configs/extra/static_measurements_for_node_exporter.yaml
 
 
-node_exporter example
-=====================
-
-When run node_exporter like this:
+Then run node_exporter:
 
 .. code-block:: shell
     
     sudo node_exporter --collector.textfile.directory=$PWD
 
 
-metrics will be available at: http://127.0.0.1:9100/metrics
+The metrics will be available at: http://127.0.0.1:9100/metrics
 
 
 Example output::
@@ -57,7 +56,7 @@ Example output::
     owca_up{cores="4",cpus="8",host="gklab-126-081",owca_version="0.4.dev12+gb86e6ac",sockets="1"} 1.555587486599824e+09
 
 
-You can scrape those metric with Promethues with config like this:
+You can scrape metrics with Promethues with a configuration file:
 
 .. code-block:: yaml
 
