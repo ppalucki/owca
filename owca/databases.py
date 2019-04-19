@@ -115,9 +115,6 @@ class EtcdDatabase(Database):
     client_cert_path: str = None
     client_key_path: str = None
 
-    def __post_init__(self):
-        pass
-
     def set(self, key, value):
         data = {'key': key, 'value': value}
 
@@ -125,11 +122,15 @@ class EtcdDatabase(Database):
             url = '{}{}/kv/put'.format(host, self.api_path)
 
             try:
-                r = requests.post(url, data=json.dumps(data), timeout=self.timeout)
+                r = requests.post(
+                        url, data=json.dumps(data), timeout=self.timeout,
+                        verify=self.ssl_verify,
+                        cert=(self.client_cert_path, self.client_key_path))
                 r.raise_for_status()
                 return
             except requests.exceptions.Timeout:
-                log.warn('EtcdDatabase: Cannot put key "{}": Timeout on host {}'.format(key, host))
+                log.warning(
+                        'EtcdDatabase: Cannot put key "{}": Timeout on host {}'.format(key, host))
 
         raise Exception('EtcdDatabase: Cannot put key "{}": Timeout on all hosts!'.format(key))
 
@@ -141,12 +142,15 @@ class EtcdDatabase(Database):
             url = '{}{}/kv/range'.format(host, self.api_path)
 
             try:
-                r = requests.post(url, data=json.dumps(data), timeout=self.timeout)
+                r = requests.post(
+                        url, data=json.dumps(data), timeout=self.timeout,
+                        verify=self.ssl_verify,
+                        cert=(self.client_cert_path, self.client_key_path))
                 r.raise_for_status()
                 response_data = r.json()
                 break
             except requests.exceptions.Timeout:
-                log.warn('EtcdDatabase: Timeout on host {}'.format(host))
+                log.warning('EtcdDatabase: Timeout on host {}'.format(host))
                 continue
 
         if response_data:
