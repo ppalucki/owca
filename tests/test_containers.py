@@ -142,7 +142,9 @@ def test_sync_containers_state(_, get_pids_mock, sync_mock, perf_counters_mock,
 
     containers_manager = ContainerManager(rdt_enabled=True, rdt_mb_control_enabled=False,
                                           platform_cpus=1,
-                                          allocation_configuration=AllocationConfiguration())
+                                          allocation_configuration=AllocationConfiguration(),
+                                          event_names=[],
+                                          )
     # Put in into ContainerManager our input dict of containers.
     containers_manager.containers = dict(pre_running_containers)
 

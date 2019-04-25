@@ -21,7 +21,7 @@ from owca.allocations import InvalidAllocations
 from owca.allocators import RDTAllocation
 from owca.resctrl import ResGroup
 from owca.resctrl_allocations import RDTAllocationValue, RDTGroups, _parse_schemata_file_row, \
-    _count_enabled_bits, check_cbm_mask, _is_rdt_suballocation_changed
+    _count_enabled_bits, check_cbm_mask, _is_rdt_suballocation_changed, _validate_domains
 from owca.testing import create_open_mock, allocation_metric
 
 
@@ -192,7 +192,9 @@ def test_parse_schemata_file_row(line, expected_domains):
         #   but still expected_result is False.
         (('L3:0=00f;1=00f', 'L3:0=00f'), False),
         (('L3:0=00f;1=00ff', 'L3:0=0000f'), False),
-        # Differening with ending 0, should return True.
+        # No change for left filled with spaces as well.
+        (('L3:0= 00f;1=00ff', 'L3:0=  0000f'), False),
+        # Differencing with ending 0, should return True.
         (('L3:0=00f;1=00f', 'L3:0=00f0;1=00f0'), True),
         # The new allocation is not provided (None).
         (('L3:0=00f0;1=00f0', None), False),
@@ -242,3 +244,27 @@ def test_check_cbm_bits_gap(mask: str, cbm_mask: str, min_cbm_bits: str,
                             expected_error_message: str):
     with pytest.raises(InvalidAllocations, match=expected_error_message):
         check_cbm_mask(mask, cbm_mask, min_cbm_bits)
+
+
+@pytest.mark.parametrize(
+    'domains, platform_sockets', [
+        ([], 0),
+        ([], 5),
+        (['3'], 4),
+        (['0', '1', '2', '3'], 4),
+    ]
+)
+def test_validate_domain_ok(domains, platform_sockets):
+    _validate_domains(domains, platform_sockets)
+
+
+@pytest.mark.parametrize(
+    'domains, platform_sockets, exception_match', [
+        (['3'], 0, 'range'),
+        (['1', '6'], 5, 'range'),
+        (['xx'], 4, 'numeric'),
+    ]
+)
+def test_validate_domain_invalid(domains, platform_sockets, exception_match):
+    with pytest.raises(InvalidAllocations, match=exception_match):
+        _validate_domains(domains, platform_sockets)

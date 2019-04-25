@@ -99,6 +99,7 @@ HardwareEventNameMap = {
     MetricName.CYCLES: EventTypeConfig.PERF_COUNT_HW_CPU_CYCLES,
     MetricName.INSTRUCTIONS: EventTypeConfig.PERF_COUNT_HW_INSTRUCTIONS,
     MetricName.CACHE_MISSES: EventTypeConfig.PERF_COUNT_HW_CACHE_MISSES,
+    MetricName.CACHE_REFERENCES: EventTypeConfig.PERF_COUNT_HW_CACHE_REFERENCES,
 }
 
 

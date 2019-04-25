@@ -13,16 +13,18 @@
 # limitations under the License.
 
 
+import os
+from io import BytesIO
 from unittest import mock
+from unittest.mock import Mock, patch
 
 import pytest
-import os
-from unittest.mock import Mock, patch
-from io import BytesIO
 
+from owca import metrics
 from owca import perf
 from owca import perf_const as pc
-from owca import metrics
+from owca.metrics import MetricName, DerivedMetricName, DerivedMetricsGenerator
+from owca.perf import _parse_raw_event_name
 from owca.testing import create_open_mock
 
 
@@ -206,7 +208,7 @@ def test_cleanup(_open_mock, _get_cgroup_fd_mock, os_close_mock):
 def test_open_for_cpu_wrong_arg(_open_mock, _get_cgroup_fd_mock):
     prf = perf.PerfCounters('/mycgroup', [])
     # let's check non-existent type of measurement
-    with pytest.raises(KeyError):
+    with pytest.raises(Exception, match='unknown event name'):
         prf._open_for_cpu(0, 'invalid_event_name')
 
 
@@ -299,3 +301,80 @@ def test_read_broadwell_cpu_model(*args):
 }))
 def test_read_unknown_cpu_model(*args):
     assert pc.CPUModel.UNKNOWN == perf._get_cpu_model()
+
+
+@pytest.mark.parametrize('event_name, expected_attr_config', [
+    ('some__r000000', 0),
+    ('some__r000001', 0x01000000),
+    ('some__r0000ff', 0xff000000),
+    ('some__r0302', 0x00000203),
+    ('some__r0302ff', 0xff000203),
+    ('some__rc000', 0x000000c0),  # example of Instruction Retired
+
+])
+def test_parse_raw_event_name(event_name, expected_attr_config):
+    got_attr_config = _parse_raw_event_name(event_name)
+    assert got_attr_config == expected_attr_config
+
+
+@pytest.mark.parametrize('event_name, expected_match', [
+    ('som', 'contain'),
+    ('some__r00000100', 'length'),
+    ('some__r0000xx', 'invalid literal'),
+    ('some__rxx02', 'invalid literal'),
+
+])
+def test_parse_raw_event_name_invalid(event_name, expected_match):
+    with pytest.raises(Exception, match=expected_match):
+        _parse_raw_event_name(event_name)
+
+
+def test_derived_metrics():
+    def gm_func():
+        return {
+            MetricName.INSTRUCTIONS: 1000,
+            MetricName.CYCLES: 5,
+            MetricName.CACHE_MISSES: 10000,
+            MetricName.CACHE_REFERENCES: 50000,
+        }
+
+    derived_metrics_generator = DerivedMetricsGenerator(
+        event_names=[MetricName.INSTRUCTIONS, MetricName.CYCLES,
+                     MetricName.CACHE_MISSES, MetricName.CACHE_REFERENCES],
+        get_measurements_func=gm_func)
+
+    # First run, does not have enough information to generate those metrics.
+
+    with patch('time.time', return_value=1):
+        measurements = derived_metrics_generator.get_measurements()
+    assert DerivedMetricName.IPC not in measurements
+    assert DerivedMetricName.IPS not in measurements
+    assert DerivedMetricName.CACHE_HIT_RATIO not in measurements
+    assert DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS not in measurements
+
+    # 5 seconds later
+    def gm_func_2():
+        return {
+            MetricName.INSTRUCTIONS: 11000,  # 10k more
+            MetricName.CYCLES: 15,  # 10 more
+            MetricName.CACHE_MISSES: 20000,  # 10k more
+            MetricName.CACHE_REFERENCES: 100000,  # 50k more
+        }
+
+    derived_metrics_generator.get_measurements_func = gm_func_2
+    with patch('time.time', return_value=6):
+        measurements = derived_metrics_generator.get_measurements()
+    assert DerivedMetricName.IPC in measurements
+    assert DerivedMetricName.IPS in measurements
+    assert DerivedMetricName.CACHE_HIT_RATIO in measurements
+    assert DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS in measurements
+
+    assert measurements[DerivedMetricName.IPC] == (10000 / 10)
+    assert measurements[DerivedMetricName.IPS] == (10000 / 5)
+
+    # Assuming cache misses increase is 10k over all 50k cache references
+    # Cache hit ratio should be 40k / 50k = 80%
+    assert measurements[DerivedMetricName.CACHE_HIT_RATIO] == 0.8
+
+    # 10k misses per 10k instructions / 1000 = 10k / 10
+    assert measurements[DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS] == 1000

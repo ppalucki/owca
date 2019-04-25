@@ -12,4 +12,7 @@ Index of documents
 - `Wrappers guide <wrappers.rst>`_
 - `Logging configuration <logging.rst>`_
 - `Contribution guide <contributing.rst>`_
+- `Prometheus integration <prometheus.rst>`_
+- `Kubernetes integration <mesos.rst>`_
+- `Mesos integration <prometheus.rst>`_
 

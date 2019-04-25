@@ -160,6 +160,34 @@ def _scale_counter_value(raw_value, time_enabled, time_running) -> float:
         return float(raw_value)
 
 
+def _parse_raw_event_name(event_name: str) -> int:
+    """Parses raw event name with the format: name__rEEUUCC,
+        where UU == umask (Unit Mask),
+          and EE == event number (Event select field),
+          and optionally CMASK (Counter Mask)
+        EE,UU and CC are parsed as hex.
+
+    Intel Software Developer Manual Volume 2, Chapter 18.2.1
+
+    :returns value encoded for perf_event attr.config structure
+    """
+    if '__r' not in event_name:
+        raise Exception('raw events name is expected to contain "__r" characters.')
+    try:
+        _, bits = event_name.split('__r')
+        if len(bits) == 6:
+            cmask = int(bits[4:6], 16)
+        elif len(bits) == 4:
+            cmask = 0
+        else:
+            raise Exception('improper raw event_name specification (length should be 4 or 6)')
+        event = int(bits[0:2], 16)
+        umask = int(bits[2:4], 16)
+        return event | (umask << 8) | (cmask << 24)
+    except ValueError as e:
+        raise Exception('Cannot parse raw event definition: %r: error %s' % (bits, e)) from e
+
+
 def _create_event_attributes(event_name, disabled):
     """Creates perf_event_attr structure for perf_event_open syscall"""
     attr = pc.PerfEventAttr()
@@ -167,9 +195,19 @@ def _create_event_attributes(event_name, disabled):
     if event_name == MetricName.MEMSTALL:
         attr.type = pc.PerfType.PERF_TYPE_RAW
         attr.config = _get_memstall_config()
-    else:
+    elif event_name in pc.HardwareEventNameMap:
         attr.type = pc.PerfType.PERF_TYPE_HARDWARE
         attr.config = pc.HardwareEventNameMap[event_name]
+    elif '__r' in event_name:
+        attr.type = pc.PerfType.PERF_TYPE_RAW
+        attr.config = _parse_raw_event_name(event_name)
+    else:
+        raise Exception('unknown event name %r' % event_name)
+
+    log.log(logger.TRACE,
+            'perf: event_attribute: name=%r type=%r config=%r',
+            event_name, attr.type, attr.config)
+
     attr.sample_type = pc.PERF_SAMPLE_IDENTIFIER
     attr.read_format = (pc.PERF_FORMAT_GROUP |
                         pc.PERF_FORMAT_TOTAL_TIME_ENABLED |

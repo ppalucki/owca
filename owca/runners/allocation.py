@@ -21,12 +21,13 @@ from owca.allocations import AllocationsDict, InvalidAllocations, AllocationValu
 from owca.allocators import TasksAllocations, AllocationConfiguration, AllocationType, Allocator, \
     TaskAllocations, RDTAllocation
 from owca.cgroups_allocations import QuotaAllocationValue, SharesAllocationValue
+from owca.config import Numeric, Str
 from owca.containers import ContainerInterface, Container
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information
 from owca.kubernetes import have_tasks_qos_label, are_all_tasks_of_single_qos
-from owca.nodes import Task
 from owca.metrics import Metric, MetricType
+from owca.nodes import Task
 from owca.resctrl_allocations import (RDTAllocationValue, RDTGroups, validate_mb_string,
                                       validate_l3_string)
 from owca.runners.detection import AnomalyStatistics
@@ -176,6 +177,10 @@ class AllocationRunner(MeasurementRunner):
             (defaults to AllocationConfiguration() instance)
         remove_all_resctrl_groups (bool): remove all RDT controls groups upon starting
             (defaults to False)
+        event_names: perf counters to monitor
+            (defaults to instructions, cycles, cache-misses, memstalls)
+        enable_derived_metrics: enable derived metrics ips, ipc and cache_hit_ratio
+            (based on enabled_event names), default to False
     """
 
     def __init__(
@@ -185,18 +190,21 @@ class AllocationRunner(MeasurementRunner):
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
             allocations_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: float = 1.,  # [s]
+            action_delay: Numeric(0, 60) = 1.,  # [s]
             rdt_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
             rdt_mb_control_enabled: Optional[bool] = None,  # Defaults(None) - auto configuration.
-            extra_labels: Dict[str, str] = None,
+            extra_labels: Dict[Str, Str] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
             remove_all_resctrl_groups: bool = False,
+            event_names: Optional[List[str]] = None,
+            enable_derived_metrics: bool = False,
     ):
 
         self._allocation_configuration = allocation_configuration or AllocationConfiguration()
 
         super().__init__(node, metrics_storage, action_delay, rdt_enabled,
-                         extra_labels, _allocation_configuration=self._allocation_configuration)
+                         extra_labels, _allocation_configuration=self._allocation_configuration,
+                         event_names=event_names, enable_derived_metrics=enable_derived_metrics)
 
         # Allocation specific.
         self._allocator = allocator

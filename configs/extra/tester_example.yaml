@@ -1,0 +1,10 @@
+runner: !AllocationRunner
+  node: &tester !Tester
+   config: 'configs/extra/tester_config.yaml'
+   command: 'sleep 300'
+  action_delay: 5.
+  metrics_storage: *tester
+  anomalies_storage: *tester
+  allocations_storage: *tester
+  allocator: *tester
+  rdt_enabled: false

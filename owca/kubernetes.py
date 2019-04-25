@@ -21,6 +21,7 @@ import logging
 import requests
 
 from owca import logger
+from owca.config import Path, Url, Str
 from owca.metrics import MetricName
 from owca.nodes import Node, Task
 
@@ -71,14 +72,14 @@ class KubernetesNode(Node):
         default_factory=lambda: CgroupDriverType(CgroupDriverType.CGROUPFS))
 
     # By default use localhost, however kubelet may not listen on it.
-    kubelet_endpoint: str = 'https://127.0.0.1:10250'
+    kubelet_endpoint: Url = 'https://127.0.0.1:10250'
 
     # Key and certificate to access kubelet API, if needed.
-    client_private_key: Optional[str] = None
-    client_cert: Optional[str] = None
+    client_private_key: Optional[Path] = None
+    client_cert: Optional[Path] = None
 
     # List of namespaces to monitor pods in.
-    monitored_namespaces: List[str] = field(default_factory=lambda: ["default"])
+    monitored_namespaces: List[Str] = field(default_factory=lambda: ["default"])
 
     def _request_kubelet(self):
         PODS_PATH = '/pods'

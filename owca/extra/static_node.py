@@ -18,6 +18,7 @@ from typing import List
 
 from dataclasses import dataclass
 
+from owca.config import Str
 from owca.nodes import Node, Task
 
 log = logging.getLogger(__name__)
@@ -37,7 +38,8 @@ class StaticNode(Node):
     """
 
     # List of task names.
-    tasks: List[str]
+    tasks: List[Str]
+    require_pids: bool = False
 
     _BASE_CGROUP_PATH = '/sys/fs/cgroup'
     _REQUIRED_CONTROLLERS = ('cpu', 'cpuacct', 'perf_event')
@@ -47,9 +49,13 @@ class StaticNode(Node):
         for task_name in self.tasks:
             for required_controller in self._REQUIRED_CONTROLLERS:
                 full_cgroup_path = os.path.join(
-                    self._BASE_CGROUP_PATH, required_controller, task_name)
+                    self._BASE_CGROUP_PATH, required_controller, task_name, 'tasks')
                 if not os.path.exists(full_cgroup_path):
                     log.warning('StaticNode: There is no required cgroup %r for %r - skipping!',
+                                full_cgroup_path, task_name)
+                    break
+                if self.require_pids and len(open(full_cgroup_path).readlines()) == 0:
+                    log.warning('StaticNode: There is no pids in cgroup %r for %r - skipping!',
                                 full_cgroup_path, task_name)
                     break
             else:

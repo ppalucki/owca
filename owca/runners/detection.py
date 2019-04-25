@@ -15,6 +15,7 @@ import logging
 import time
 from typing import Dict, List, Optional
 
+from owca.config import Numeric, Str
 from owca import nodes, storage, detectors
 from owca.detectors import convert_anomalies_to_metrics, \
     update_anomalies_metrics_with_task_information, Anomaly
@@ -65,6 +66,10 @@ class DetectionRunner(MeasurementRunner):
             (defaults to None(auto) based on platform capabilities)
         extra_labels: additional labels attached to every metric
             (defaults to empty dict)
+        event_names: perf counters to monitor
+            (defaults to instructions, cycles, cache-misses, memstalls)
+        enable_derived_metrics: enable derived metrics ips, ipc and cache_hit_ratio
+            (based on enabled_event names), default to False
     """
 
     def __init__(
@@ -73,13 +78,16 @@ class DetectionRunner(MeasurementRunner):
             detector: detectors.AnomalyDetector,
             metrics_storage: storage.Storage = DEFAULT_STORAGE,
             anomalies_storage: storage.Storage = DEFAULT_STORAGE,
-            action_delay: float = 1.,
+            action_delay: Numeric(0, 60) = 1.,
             rdt_enabled: Optional[bool] = None,
-            extra_labels: Dict[str, str] = None,
+            extra_labels: Dict[Str, Str] = None,
+            event_names: Optional[List[str]] = None,
+            enable_derived_metrics: bool = False,
     ):
         super().__init__(node, metrics_storage,
                          action_delay, rdt_enabled,
-                         extra_labels)
+                         extra_labels, event_names,
+                         enable_derived_metrics)
         self._detector = detector
 
         # Anomaly.

@@ -22,6 +22,7 @@ from unittest.mock import mock_open, Mock, patch
 
 from owca import platforms
 from owca.allocators import AllocationConfiguration
+from owca.runners.measurement import DEFAULT_EVENTS
 from owca.containers import Container, ContainerSet, ContainerInterface
 from owca.detectors import ContendedResource, ContentionAnomaly, LABEL_WORKLOAD_INSTANCE, \
     _create_uuid_from_tasks_ids
@@ -145,14 +146,18 @@ def container(cgroup_path, subcgroups_paths=None, with_config=False, should_patc
                 platform_cpus=1,
                 allocation_configuration=AllocationConfiguration() if with_config else None,
                 resgroup=ResGroup(name=resgroup_name) if rdt_enabled else None,
-                rdt_enabled=rdt_enabled, rdt_mb_control_enabled=rdt_mb_control_enabled)
+                rdt_enabled=rdt_enabled, rdt_mb_control_enabled=rdt_mb_control_enabled,
+                event_names=DEFAULT_EVENTS
+            )
         else:
             return Container(
                 cgroup_path=cgroup_path,
                 rdt_enabled=rdt_enabled, platform_cpus=1,
                 rdt_mb_control_enabled=True,
                 allocation_configuration=AllocationConfiguration() if with_config else None,
-                resgroup=ResGroup(name=resgroup_name) if rdt_enabled else None)
+                resgroup=ResGroup(name=resgroup_name) if rdt_enabled else None,
+                event_names=DEFAULT_EVENTS
+            )
 
     if should_patch:
         with patch('owca.resctrl.ResGroup'), patch('owca.perf.PerfCounters'):
@@ -316,7 +321,9 @@ def assert_metric(got_metrics: List[Metric],
                 found_metric = got_metric
                 break
     if not found_metric:
-        raise AssertionError('metric %r not found' % expected_metric_name)
+        raise AssertionError(
+                'metric %r not found (labels=%s)' %
+                (expected_metric_name, expected_metric_some_labels))
     # Check values as well
     if expected_metric_value is not None:
         assert found_metric.value == expected_metric_value, \

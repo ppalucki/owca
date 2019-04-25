@@ -89,6 +89,13 @@ def main():
             log.exception('Detailed exception:')
         exit(1)
 
+    for key in configuration:
+        if key != 'loggers' and key != 'runner':
+            log.error('Error: Unknown field in configuration '
+                      'file: {}. Possible fields are: \'loggers\', '
+                      '\'runner\''.format(key))
+            exit(1)
+
     # TODO: replace with proper validation base on config._assure_type
     assert isinstance(configuration, dict), 'Improper config! - expected dict'
     assert 'runner' in configuration, 'Improper config - missing runner instance!'
@@ -119,6 +126,20 @@ def main():
     # Prepare and run the "main loop".
     exit_code = runner.run()
     exit(exit_code)
+
+
+def debug():
+    """Debug hook to allow entering debug mode in compiled pex.
+    Run it as PEX_MODULE=owca.main:debug
+    """
+    import warnings
+    try:
+        import ipdb as pdb
+    except ImportError:
+        warnings.warn('ipdb not available, using pdb')
+        import pdb
+    pdb.set_trace()
+    main()
 
 
 if __name__ == '__main__':

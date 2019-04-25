@@ -15,9 +15,11 @@ from unittest.mock import Mock, patch
 
 from owca.extra.static_node import StaticNode
 from owca.nodes import Task
+from owca.testing import mock_open
 
 
 @patch('os.path.exists', Mock(return_value=True))
+@patch('builtins.open', mock_open(read_data='100'))
 def test_static_node():
     static_node = StaticNode(tasks=['task1'])
     assert static_node.get_tasks() == [Task(
@@ -27,6 +29,14 @@ def test_static_node():
 
 
 @patch('os.path.exists', Mock(return_value=False))
+@patch('builtins.open', mock_open(read_data='100'))
 def test_static_node_without_cgroups():
     static_node = StaticNode(tasks=['task1'])
+    assert static_node.get_tasks() == []
+
+
+@patch('os.path.exists', Mock(return_value=True))
+@patch('builtins.open', mock_open(read_data=''))
+def test_static_node_with_cgroups_but_require_pids():
+    static_node = StaticNode(tasks=['task1'], require_pids=True)
     assert static_node.get_tasks() == []

@@ -20,7 +20,7 @@ from typing import List, Set, Dict
 from dataclasses import dataclass
 
 from owca.allocators import Allocator, TasksAllocations, AllocationType, RDTAllocation
-from owca.config import load_config
+from owca.config import load_config, Path
 from owca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
 from owca.metrics import Metric
 from owca.nodes import TaskId
@@ -109,7 +109,8 @@ class StaticAllocator(Allocator):
     Simple allocator based on rules defining relation between task labels
     and allocation definition (set of concrete values).
 
-    The allocator reads allocation rules from a yaml file.
+    The allocator reads allocation rules from a yaml file and directly
+    from constructor argument (passed as python dictionary).
     Refer to configs/extra/static_allocator_config.yaml to see sample
     input file for StaticAllocator.
 
@@ -128,14 +129,11 @@ class StaticAllocator(Allocator):
     If there are multiple matching rules then the rules' allocations are merged and applied.
     """
 
-    # File location of yaml config file with rules.
-    config: str
+    # Direct way to pass rules.
+    rules: List[dict] = None
 
-    def __post_init__(self):
-        if not os.path.exists(self.config):
-            log.warning('StaticAllocator: cannot find config file %r - ignoring!', self.config)
-        else:
-            log.info('StaticAllocator: rules config file: %s', self.config)
+    # Filepath of yaml config file with rules.
+    config: Path = None
 
     def allocate(
             self,
@@ -145,28 +143,30 @@ class StaticAllocator(Allocator):
             tasks_labels: TasksLabels,
             tasks_allocations: TasksAllocations,
     ) -> (TasksAllocations, List[Anomaly], List[Metric]):
-        if not os.path.exists(self.config):
-            log.warning('StaticAllocator: cannot find config file %r - ignoring!', self.config)
+
+        if not self.rules:
+            self.rules = []
+
+        if self.config:
+            if not os.path.exists(self.config):
+                log.warning('StaticAllocator: cannot find config file %r - ignoring!', self.config)
+            else:
+                self.rules.append(load_config(self.config))
+
+        if len(self.rules) == 0:
+            log.warning('StaticAllocator: no rules were provided!')
             return {}, [], []
-        else:
-            # Merge all tasks ids.
-            all_tasks_ids = (set(tasks_labels.keys()) | set(tasks_resources.keys()) |
-                             set(tasks_allocations.keys()))
-            log.log(TRACE,
-                    'StaticAllocator: handling allocations for %i tasks. ', len(all_tasks_ids))
-            for task_id, labels in tasks_labels.items():
-                log.log(TRACE, '%s', ' '.join('%s=%s' % (k, v) for k, v in sorted(labels.items())))
 
-            # Load configuration.
-            rules = load_config(self.config)
+        # Merge all tasks ids.
+        all_tasks_ids = (set(tasks_labels.keys()) | set(tasks_resources.keys()) |
+                         set(tasks_allocations.keys()))
+        log.log(TRACE,
+                'StaticAllocator: handling allocations for %i tasks. ', len(all_tasks_ids))
+        for task_id, labels in tasks_labels.items():
+            log.log(TRACE, '%s', ' '.join('%s=%s' % (k, v) for k, v in sorted(labels.items())))
 
-            # Parse configuration.
-            if type(rules) != list:
-                log.warning('StaticAllocator: improper format of config (expected list of rules)')
-                return {}, [], []
+        tasks_allocations = _build_allocations_from_rules(all_tasks_ids, tasks_labels, self.rules)
 
-            tasks_allocations = _build_allocations_from_rules(all_tasks_ids, tasks_labels, rules)
-
-            log.debug('StaticAllocator: final tasks allocations: \n %s',
-                      pprint.pformat(tasks_allocations))
-            return tasks_allocations, [], []
+        log.debug('StaticAllocator: final tasks allocations: \n %s',
+                  pprint.pformat(tasks_allocations))
+        return tasks_allocations, [], []

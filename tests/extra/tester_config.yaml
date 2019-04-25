@@ -1,0 +1,39 @@
+tests:
+  - test_case_name1:	
+    tasks: 
+      - /test/task1 
+      - /test/task2
+
+    allocator: !StaticAllocator
+      rules:
+        - name: Example first rule
+          allocations:
+            cpu_quota: 0.5
+            cpu_shares: 10
+    checks:
+      - !FileCheck
+        path: /sys/fs/cgroup/cpu/test/task1/cpu.shares
+        line: '10000'
+        subvalue: '100'
+      - !MetricCheck
+        name: anomaly_count
+        value: 0
+
+  - test_case_name2:	
+    tasks: 
+      - /test/task2 
+      - /test/task4
+
+    allocator: !StaticAllocator
+      rules:
+        - name: Example second rule
+          allocations:
+            cpu_quota: 1.0
+            cpu_shares: 20
+    checks:
+      - !FileCheck
+        path: /sys/fs/cgroup/cpu/test/task2/cpu.shares
+        line: '20000'
+        subvalue: '20'
+      - !MetricCheck
+        name: anomaly_count

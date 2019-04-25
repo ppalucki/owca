@@ -23,7 +23,8 @@ from owca.extra.static_allocator import StaticAllocator, _build_allocations_from
 @patch('owca.extra.static_allocator.load_config', return_value=[])
 @patch('owca.extra.static_allocator._build_allocations_from_rules', return_value={})
 def test_static_allocator(allocate_according_rules_mock, load_config_mock):
-    static_allocator = StaticAllocator(config='somefile')
+    static_allocator = StaticAllocator(
+        config='somefile', rules=[{'allocations': {'cpu_quota': 0.5}}])
     platform_mock = Mock()
     measurements = {'task1': {}}
     resources = {'task1': {}}
