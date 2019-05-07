@@ -144,16 +144,17 @@ class StaticAllocator(Allocator):
             tasks_allocations: TasksAllocations,
     ) -> (TasksAllocations, List[Anomaly], List[Metric]):
 
-        if not self.rules:
-            self.rules = []
+        rules = []
+        if self.rules:
+            rules.extend(self.rules)
 
         if self.config:
             if not os.path.exists(self.config):
                 log.warning('StaticAllocator: cannot find config file %r - ignoring!', self.config)
             else:
-                self.rules.append(load_config(self.config))
+                rules.extend(load_config(self.config))
 
-        if len(self.rules) == 0:
+        if len(rules) == 0:
             log.warning('StaticAllocator: no rules were provided!')
             return {}, [], []
 
@@ -165,7 +166,7 @@ class StaticAllocator(Allocator):
         for task_id, labels in tasks_labels.items():
             log.log(TRACE, '%s', ' '.join('%s=%s' % (k, v) for k, v in sorted(labels.items())))
 
-        tasks_allocations = _build_allocations_from_rules(all_tasks_ids, tasks_labels, self.rules)
+        tasks_allocations = _build_allocations_from_rules(all_tasks_ids, tasks_labels, rules)
 
         log.debug('StaticAllocator: final tasks allocations: \n %s',
                   pprint.pformat(tasks_allocations))
