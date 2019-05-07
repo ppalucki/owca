@@ -17,6 +17,10 @@ from typing import Dict, Union, List, Tuple, Callable
 
 from dataclasses import dataclass, field
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class MetricName(str, Enum):
     INSTRUCTIONS = 'instructions'
@@ -154,29 +158,34 @@ class Metric:
 Measurements = Dict[MetricName, MetricValue]
 
 
-def sum_measurements(measurements_list: List[Measurements]) -> \
+def merge_measurements(measurements_list: List[Measurements]) -> \
         Tuple[Measurements, List[MetricName]]:
     """Returns dictionary with metrics which are contained in all input measurements with value set
        to arithmetic sum."""
     summed_metrics: Measurements = {}
 
-    common_metrics_names = set()  # Intersect of set of names.
     all_metrics_names = set()  # Sum of set of names.
     for measurements in measurements_list:
-        metrics_names = set(measurements.keys())
-        if not common_metrics_names:
-            common_metrics_names = metrics_names
+        all_metrics_names.update(measurements.keys())
+
+    for metric_name in all_metrics_names:
+        if metric_name in METRICS_METADATA:
+
+            if METRICS_METADATA[metric_name].type == MetricType.GAUGE:
+                operation = lambda values: sum(values) / len(values)  # noqa
+            else:
+                assert METRICS_METADATA[metric_name].type == MetricType.COUNTER
+                operation = sum
+
         else:
-            common_metrics_names = common_metrics_names.intersection(metrics_names)
-        all_metrics_names.update(metrics_names)
+            log.debug('defults for sum for merge operations for metric: %r', metric_name)
+            operation = sum
 
-    ignored_metrics_names = sorted(list(all_metrics_names.difference(common_metrics_names)))
+        summed_metrics[metric_name] = operation(
+            [measurements[metric_name] for measurements in measurements_list
+             if metric_name in measurements])
 
-    for metric_name in common_metrics_names:
-        summed_metrics[metric_name] = sum([measurements[metric_name]
-                                           for measurements in measurements_list])
-
-    return summed_metrics, ignored_metrics_names
+    return summed_metrics
 
 
 class DerivedMetricsGenerator:

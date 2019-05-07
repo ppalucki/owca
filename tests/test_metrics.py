@@ -16,7 +16,7 @@
 import pytest
 
 from owca.mesos import create_metrics, sanitize_mesos_label
-from owca.metrics import Metric, sum_measurements
+from owca.metrics import Metric, merge_measurements
 
 
 @pytest.mark.parametrize('label_key,expected_label_key', (
@@ -43,12 +43,16 @@ def test_create_metrics(task_measurements, expected_metrics):
     assert expected_metrics == got_metrics
 
 
-@pytest.mark.parametrize('measurements_list,expected_sum,expected_ignored', (
-    ([{}, {}], {}, []),
-    ([{'m1': 3}, {'m1': 5}, {'m2': 7}], {}, ['m1', 'm2']),
-    ([{'m1': 8}, {'m1': 3}], {'m1': 11}, []),
-    ([{'m1': 8}, {'m1': 3, 'm2': 2}], {'m1': 11}, ['m2']),
-    ([{'m1': 8, 'm2': 3}, {'m1': 3, 'm2': 7}, {'m1': 3}], {'m1': 14}, ['m2']),
+@pytest.mark.parametrize('measurements_list,expected_merge', (
+    ([{}, {}], {}),
+    ([{'m1': 3}, {'m1': 5}, {'m2': 7}], {'m1': 8, 'm2': 7}),
+    ([{'m1': 8}, {'m1': 3, 'm2': 2}], {'m1': 11, 'm2': 2}),
+    ([{'m1': 8}, {'m1': 3}], {'m1': 11}),
+    ([{'m1': 8, 'm2': 3}, {'m1': 3, 'm2': 7}, {'m1': 3}], {'m1': 14, 'm2': 10}),
+    ([{'ipc': 2}, {'ipc': 4}], {'ipc': 3}),
+    ([{'ipc': 2}, {'ipc': 4}], {'ipc': 3}),
+    ([{'ipc': 2}, {'ipc': 4}, {'m1': 2}, {'m1': 3}], {'ipc': 3, 'm1': 5}),
+    ([{'cycles': 2}, {'cycles': 4}], {'cycles': 6}),
 ))
-def test_sum_measurements(measurements_list, expected_sum, expected_ignored):
-    assert sum_measurements(measurements_list) == (expected_sum, expected_ignored)
+def test_merge_measurements(measurements_list, expected_merge):
+    assert merge_measurements(measurements_list) == expected_merge

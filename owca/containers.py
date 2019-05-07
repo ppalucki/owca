@@ -23,7 +23,7 @@ from owca import logger
 from owca import perf
 from owca import resctrl
 from owca.allocators import AllocationConfiguration, TaskAllocations
-from owca.metrics import Measurements, sum_measurements, DerivedMetricsGenerator
+from owca.metrics import Measurements, merge_measurements, DerivedMetricsGenerator
 from owca.nodes import Task
 from owca.profiling import profiler
 from owca.resctrl import ResGroup
@@ -170,11 +170,8 @@ class ContainerSet(ContainerInterface):
         measurements_list: List[Measurements] = [container.get_measurements()
                                                  for container in self._subcontainers.values()]
 
-        summed_measurements, ignored_metrics = sum_measurements(measurements_list)
-        measurements.update(summed_measurements)
-        if ignored_metrics:
-            log.warning('ContainerSet.get_measuremenets: ignored metrics {} while summing up.'
-                        .format(ignored_metrics))
+        merged_measurements = merge_measurements(measurements_list)
+        measurements.update(merged_measurements)
 
         # Resgroup management is entirely done in this class.
         if self._rdt_enabled:
