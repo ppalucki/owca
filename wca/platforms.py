@@ -68,12 +68,12 @@ class RDTInformation:
     # Reflects state of the system.
 
     # Monitoring.
-    rdt_mb_monitoring_enabled: bool     # based on /sys/fs/resctrl/mon_data/mon_MB_00
-    rdt_cache_monitoring_enabled: bool  # based on /sys/fs/resctrl/mon_data/mon_L3_00
+    rdt_cache_monitoring_enabled: bool  # based on /sys/fs/resctrl/mon_data/mon_L3_00/llc_occupancy
+    rdt_mb_monitoring_enabled: bool     # based on /sys/fs/resctrl/mon_data/mon_L3_00/total_bytes
 
     # Allocation.
-    rdt_mb_control_enabled: bool      # based on 'MB:' in /sys/fs/resctrl/schemata
     rdt_cache_control_enabled: bool   # based on 'L3:' in /sys/fs/resctrl/schemata
+    rdt_mb_control_enabled: bool      # based on 'MB:' in /sys/fs/resctrl/schemata
 
     # Cache control read-only parameters. Available only if CAT control
     # is supported by platform,otherwise set to None.
@@ -286,11 +286,13 @@ def _collect_rdt_information() -> RDTInformation:
     Assumes resctrl is already mounted.
     """
 
-    rdt_cat_monitoring_enabled = os.path.exists('/sys/fs/resctrl/mon_data/mon_L3_00')
-    rdt_mb_monitoring_enabled = os.path.exists('/sys/fs/resctrl/mon_data/mon_MB_00')
+    rdt_cache_monitoring_enabled = os.path.exists(
+        os.path.join(BASE_RESCTRL_PATH, '/mon_data/mon_L3_00/llc_occupancy'))
+    rdt_mb_monitoring_enabled = os.path.exists(
+        os.path.join(BASE_RESCTRL_PATH, '/mon_data/mon_L3_00/total_bytes'))
 
     def _read_value(subpath):
-        with open(os.path.join('/sys/fs/resctrl/', subpath)) as f:
+        with open(os.path.join(BASE_RESCTRL_PATH, subpath)) as f:
             return f.read().strip()
 
     schemata_body = _read_value('schemata')
@@ -314,10 +316,10 @@ def _collect_rdt_information() -> RDTInformation:
     if rdt_cache_control_enabled and rdt_mb_control_enabled:
         num_closids = min(num_closids, mb_num_closids)
 
-    return RDTInformation(rdt_cat_monitoring_enabled,
+    return RDTInformation(rdt_cache_monitoring_enabled,
                           rdt_mb_monitoring_enabled,
-                          rdt_mb_control_enabled,
                           rdt_cache_control_enabled,
+                          rdt_mb_control_enabled,
                           cbm_mask,
                           min_cbm_bits,
                           num_closids,
