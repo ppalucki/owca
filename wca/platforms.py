@@ -68,8 +68,8 @@ class RDTInformation:
     # Reflects state of the system.
 
     # Monitoring.
-    rdt_cache_monitoring_enabled: bool  # based on /sys/fs/resctrl/mon_data/mon_L3_00/llc_occupancy
-    rdt_mb_monitoring_enabled: bool     # based on /sys/fs/resctrl/mon_data/mon_L3_00/total_bytes
+    rdt_cache_monitoring_enabled: bool  # based /sys/fs/resctrl/mon_data/mon_L3_00/llc_occupancy
+    rdt_mb_monitoring_enabled: bool   # based on /sys/fs/resctrl/mon_data/mon_L3_00/mbm_total_bytes
 
     # Allocation.
     rdt_cache_control_enabled: bool   # based on 'L3:' in /sys/fs/resctrl/schemata
@@ -279,6 +279,7 @@ BASE_RESCTRL_PATH = '/sys/fs/resctrl'
 MON_DATA = 'mon_data'
 MON_L3_00 = 'mon_L3_00'
 MBM_TOTAL = 'mbm_total_bytes'
+LLC_OCCUPANCY = 'llc_occupancy'
 
 
 def _collect_rdt_information() -> RDTInformation:
@@ -287,9 +288,9 @@ def _collect_rdt_information() -> RDTInformation:
     """
 
     rdt_cache_monitoring_enabled = os.path.exists(
-        os.path.join(BASE_RESCTRL_PATH, 'mon_data/mon_L3_00/llc_occupancy'))
+        os.path.join(BASE_RESCTRL_PATH, 'mon_data/mon_L3_00', LLC_OCCUPANCY))
     rdt_mb_monitoring_enabled = os.path.exists(
-        os.path.join(BASE_RESCTRL_PATH, 'mon_data/mon_L3_00/total_bytes'))
+        os.path.join(BASE_RESCTRL_PATH, 'mon_data/mon_L3_00', MBM_TOTAL))
 
     def _read_value(subpath):
         with open(os.path.join(BASE_RESCTRL_PATH, subpath)) as f:
