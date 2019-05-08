@@ -178,7 +178,7 @@ def merge_measurements(measurements_list: List[Measurements]) -> \
                 operation = sum
 
         else:
-            log.debug('defults for sum for merge operations for metric: %r', metric_name)
+            log.debug('By default, unknown metric %r uses "sum" as merge operation.', metric_name)
             operation = sum
 
         summed_metrics[metric_name] = operation(
