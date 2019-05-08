@@ -287,9 +287,9 @@ def _collect_rdt_information() -> RDTInformation:
     """
 
     rdt_cache_monitoring_enabled = os.path.exists(
-        os.path.join(BASE_RESCTRL_PATH, '/mon_data/mon_L3_00/llc_occupancy'))
+        os.path.join(BASE_RESCTRL_PATH, 'mon_data/mon_L3_00/llc_occupancy'))
     rdt_mb_monitoring_enabled = os.path.exists(
-        os.path.join(BASE_RESCTRL_PATH, '/mon_data/mon_L3_00/total_bytes'))
+        os.path.join(BASE_RESCTRL_PATH, 'mon_data/mon_L3_00/total_bytes'))
 
     def _read_value(subpath):
         with open(os.path.join(BASE_RESCTRL_PATH, subpath)) as f:

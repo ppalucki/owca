@@ -109,7 +109,9 @@ def test_collect_topology_information_2_cores_per_socket_all_cpus_online(*mocks)
     "/proc/meminfo": "parsed value mocked below",
     "/proc/cpuinfo": "model name : intel xeon"
 }))
-@patch('wca.platforms.os.path.exists', return_value=True)
+@patch('wca.platforms.os.path.exists', side_effect= lambda path:
+       path in ['/sys/fs/resctrl/mon_data/mon_L3_00/llc_occupancy']
+)
 @patch('wca.platforms.get_wca_version', return_value="0.1")
 @patch('socket.gethostname', return_value="test_host")
 @patch('wca.platforms.parse_proc_meminfo', return_value=1337)
@@ -119,7 +121,7 @@ def test_collect_topology_information_2_cores_per_socket_all_cpus_online(*mocks)
 def test_collect_platform_information(*mocks):
     assert collect_platform_information() == (
         Platform(1, 1, 2, {0: 100, 1: 200}, 1337, 1536071557.123456,
-                 RDTInformation(True, True, True, True, 'fffff', '2', 8, 10, 20)),
+                 RDTInformation(True, False, True, True, 'fffff', '2', 8, 10, 20)),
         [
             Metric.create_metric_with_metadata(
                 name=MetricName.MEM_USAGE, value=1337
