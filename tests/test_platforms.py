@@ -109,9 +109,9 @@ def test_collect_topology_information_2_cores_per_socket_all_cpus_online(*mocks)
     "/proc/meminfo": "parsed value mocked below",
     "/proc/cpuinfo": "model name : intel xeon"
 }))
-@patch('wca.platforms.os.path.exists', side_effect= lambda path:
-       path in ['/sys/fs/resctrl/mon_data/mon_L3_00/llc_occupancy']
-)
+@patch('wca.platforms.os.path.exists', side_effect=lambda path: path in [
+    '/sys/fs/resctrl/mon_data/mon_L3_00/llc_occupancy'
+])
 @patch('wca.platforms.get_wca_version', return_value="0.1")
 @patch('socket.gethostname', return_value="test_host")
 @patch('wca.platforms.parse_proc_meminfo', return_value=1337)
