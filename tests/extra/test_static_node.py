@@ -40,3 +40,14 @@ def test_static_node_without_cgroups():
 def test_static_node_with_cgroups_but_require_pids():
     static_node = StaticNode(tasks=['task1'], require_pids=True)
     assert static_node.get_tasks() == []
+
+
+@patch('os.path.exists', Mock(return_value=True))
+@patch('builtins.open', mock_open(read_data='100'))
+def test_static_node_with_labels_and_resources():
+    static_node = StaticNode(tasks=['task1'], default_labels=dict(foo='bar'),
+                             default_resources=dict(cpu=1))
+    assert static_node.get_tasks() == [Task(
+        name='task1', task_id='task1', cgroup_path='/task1',
+        labels={'foo': 'bar'}, resources={'cpu': 1}, subcgroups_paths=[]
+    )]

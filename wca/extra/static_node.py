@@ -14,9 +14,9 @@
 
 import logging
 import os
-from typing import List
+from typing import List, Dict, Union
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from wca.config import Str
 from wca.nodes import Node, Task
@@ -40,6 +40,8 @@ class StaticNode(Node):
     # List of task names.
     tasks: List[Str]
     require_pids: bool = False
+    default_labels: Dict[Str, Str] = field(default_factory=dict)
+    default_resources: Dict[Str, Union[Str, float]] = field(default_factory=dict)
 
     _BASE_CGROUP_PATH = '/sys/fs/cgroup'
     _REQUIRED_CONTROLLERS = ('cpu', 'cpuacct', 'perf_event')
@@ -64,8 +66,8 @@ class StaticNode(Node):
                         name=task_name,
                         task_id=task_name,
                         cgroup_path='/%s' % task_name,
-                        labels={},
-                        resources={},
+                        labels=dict(self.default_labels),
+                        resources=dict(self.default_resources),
                         subcgroups_paths=[]
                     )
                 )
