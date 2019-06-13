@@ -122,6 +122,7 @@ class ZookeeperDatabase(Database):
                         hosts=self.hosts,
                         timeout=self.timeout,
                         use_ssl=True,
+                        verify_certs=True,
                         ca=self.ssl.server_verify,
                         certfile=self.ssl.client_cert_path,
                         keyfile=self.ssl.client_key_path,
@@ -130,7 +131,9 @@ class ZookeeperDatabase(Database):
                 self._client = KazooClient(
                         hosts=self.hosts,
                         timeout=self.timeout,
-                        use_ssl=self.ssl.server_verify,
+                        use_ssl=True,
+                        ca=self.ssl.server_verify,
+                        verify_certs=self.ssl.server_verify,
                         certfile=self.ssl.client_cert_path,
                         keyfile=self.ssl.client_key_path,
                         )
