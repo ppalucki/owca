@@ -113,7 +113,7 @@ class SetEffectiveRootUid:
 
 
 @dataclass
-class SSL():
+class SSL:
     server_verify: Union[bool, Path(absolute=True, mode=os.R_OK)] = False
     client_cert_path: Optional[Path(absolute=True, mode=os.R_OK)] = None
     client_key_path: Optional[Path(absolute=True, mode=os.R_OK)] = None
@@ -129,10 +129,11 @@ class SSL():
                 return
             else:
                 if not self.client_key_path:
-                    raise ValidationError('There is no client key!')
+                    raise ValidationError(
+                        'Client certiticate provided but without client private key!')
         elif self.client_key_path:
             # There is only client key path, that is wrong, throw error.
-            raise ValidationError('There is no client certificate!')
+            raise ValidationError('Client private key provided but without certificate path!')
 
     def get_client_certs(self):
         """Return client cert and key path.
