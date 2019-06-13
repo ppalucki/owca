@@ -27,7 +27,8 @@ Please go to `requests library documentation`_ for further reference.
 .. _`requests library documentation`: https://2.python-requests.org/en/master/user/advanced/#ssl-cert-verification
 
 For ``ZookeeperDatabase``, the ``SSL`` component is just a transport for following parameters for
-**KazooClient** class: **use_ssl**, **ca**, **certfile** and **keyfile**. Please go to `Kazoo client documentation`_ for more information.
+**KazooClient** class: **use_ssl**, **ca**, **certfile**, **keyfile** and **verify_certs**. 
+Please go to `Kazoo client documentation`_ for more information.
 
 .. _`Kazoo client documentation`: https://kazoo.readthedocs.io/en/latest/api/client.html#kazoo.client.KazooClient
 
