@@ -6,9 +6,9 @@ Extending WCA
 Introduction
 ------------
 
-WCA project contains simple builtin dependency injection framework, so it is easy
-to extend add new functionality. To provide new functionality, operator of WCA, has to provide
-new component defined as python class. This class has to be registered at start time from
+WCA project contains simple built-in dependency injection framework. It allows 
+to extend existing or add new functionality. To provide new functionality, operator of WCA, has to provide
+new component defined as python class. This class has to be registered during itart time from
 command line and then configured using the configuration file.
 
 Actually all provided features are based on internal components and use the same mechanism for
@@ -51,12 +51,6 @@ effectively means running equivalent of python code:
 
 
 
-
-
-
-
-
-
 Example builtin runners:
 
 - `MeasurementRunner` component requires single `Storage` component as a backend to store all
@@ -73,4 +67,6 @@ throughout whole application life.
 Step by step instruction to provide external storage class
 -----------------------------------------------------------
 
-Depending of selected `Runner` class
+Different runners have 
+
+
