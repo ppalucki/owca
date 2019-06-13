@@ -107,8 +107,9 @@ def assure_absolute_path(value):
 
 def assure_permission_path(value, permission):
     if not os.access(value, permission):
-        raise PermissionError(
-                'cannot access to `{}` with permission `{}`'.format(value, permission))
+        raise ValidationError(
+                'file does not exist or cannot access to `{}` with permission `{}`'.format(
+                    value, permission))
 
 
 def assure_no_parent_directory_access(value):
