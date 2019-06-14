@@ -165,7 +165,7 @@ external http web service using post method:
             )
 
 
-then in can be used with ``MeasurementRunner`` with following configuration file `<../configs/extending/measurement_http_storage.yaml>`_:
+then in can be used with ``MeasurementRunner`` with following `configuration file <../configs/extending/measurement_http_storage.yaml>`_:
 
 .. code-block:: yaml
 
