@@ -12,8 +12,8 @@ WCA - Workload Collocation Agent
 Introduction
 ============
 
-Workload Collocation Agent goal is to reduce interference between collocated tasks and increase tasks density while ensuring the quality of
-service for high priority tasks. Chosen approach is to enable real-time resource isolation management
+Workload Collocation Agent's goal is to reduce interference between collocated tasks and increase tasks density while ensuring the quality of
+service for high priority tasks. Chosen approach allows to enable real-time resource isolation management
 to ensure that high priority jobs meet their Service Level Objective (SLO) and best-effort jobs
 effectively utilize as many idle resources as possible.
 
@@ -63,7 +63,7 @@ WCA is targeted at and tested on Centos 7.5.
     # Prepare tasks manually (only cgroups are required)
     sudo mkdir /sys/fs/cgroups/{cpu,cpuacct,perf_event}/task1
 
-    # Example of running agent in measurments-only mode with predefined static list of tasks
+    # Example of running agent in measurements-only mode with predefined static list of tasks
     sudo dist/wca.pex --config /etc/wca/configs/extra/static_measurements.yaml --root
 
     # Example of static allocation with predefined rules on predefined list of tasks.

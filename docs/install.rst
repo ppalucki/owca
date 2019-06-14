@@ -61,7 +61,7 @@ Should output::
 Alternative options for Python 3.6 installation 
 ----------------------------------------------
 
-To you simplify python interpreter management (no need to use ``scl`` tool as prefix), 
+To simplify python interpreter management (no need to use ``scl`` tool as prefix), 
 you can use Intel Distribution for Python according to `yum-based installation guide <https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-yum-repo>`_.
 or use community maintained third-party ``epel`` repository and install ``python36`` package from there::
 
@@ -94,7 +94,7 @@ Assumptions:
 - ``/var/lib/wca`` directory exists
 - ``wca`` user and group already exists
  
-Please use following `template <../configs/wca.service>`_ as systemd ``/etc/systemd/system/wca.service`` unit file::
+Please use following `template <../configs/systemd-unit/wca.service>`_ as systemd ``/etc/systemd/system/wca.service`` unit file::
 
     [Unit]
     Description=Workload Collocation Agent
@@ -130,34 +130,42 @@ You can use ``example.external_package:ExampleDetector`` that is already bundled
 It is recommended to build a pex file with external component and its dependencies bundled. See `prm plugin from platform-resource-manager 
 <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ as an example of such an approach.
 
-See an `example configuration file <configs/mesos_kafka_example.yaml>`_ to be used with ``ExampleDetector``:
+See an `example configuration file <configs/mesos/mesos_external_detector.yaml>`_ to be used with ``ExampleDetector``:
 
 .. code-block:: yaml
 
     runner: !DetectionRunner
-      rdt_enabled: true
-      node: !MesosNode
-        ssl_verify: true
-        mesos_agent_endpoint: "https://127.0.0.1:5051"
-      action_delay: 1.
-      metrics_storage: !KafkaStorage
-        brokers_ips: ['$KAFKA_BROKER_IP:9092']
-        topic: "wca_metrics"
-        max_timeout_in_seconds: 5.
-      anomalies_storage: !KafkaStorage
-        brokers_ips: ['$KAFKA_BROKER_IP:9092']
-        topic: "wca_anomalies"
-        max_timeout_in_seconds: 5.
-      detector: !ExampleDetector
-        skew: true
-      extra_labels:
-        own_ip: "$HOST_IP"  # optional
+        node: !MesosNode
+            mesos_agent_endpoint: 'http://127.0.0.1:5051'
+            timeout: 5
+            ssl: !SSL
+                server_verify: True
+                client_cert_path: "$PATH/apiserver-aurora-client.crt"
+                client_key_path: "$PATH/apiserver-aurora-client.key"
 
+        action_delay: 1.
+
+        metrics_storage: !LogStorage
+            output_filename: '/tmp/output_anomalies.log'
+
+        anomalies_storage: !KafkaStorage
+            brokers_ips: ['$KAFKA_BROKER_IP:9092']
+            topic: wca_anomalies
+            max_timeout_in_seconds: 5.
+
+        # Example use of external component.
+        # Requires registration with -r example.external_package:ExampleDetector
+        detector: !ExampleDetector
+
+        # Decorate every metric with extra labels.
+        extra_labels:
+            env_id: "$HOST_IP"
 
 Apply following changes to the file above:
 
 - ``$KAFKA_BROKER`` must be replaced with IP address of Kafka broker,
 - ``$HOST_IP`` may be replaced with host IP address to tag all metrics originating from WCA process
+- ``$PATH`` may be replaced with path to aurora client key and certificate
 
 Following configuration is required in order to use ``MesosNode`` component to discover new tasks:
 

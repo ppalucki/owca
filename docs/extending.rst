@@ -20,7 +20,7 @@ To provide new functionality, operator of WCA, has to:
 - provide new component defined as python class, 
 - this python class has to be registered upon starting with extra command line ``--register`` parameter as ``package_name.module_name:class name``) (package name is optional),
 - component name is referenced in configuration file (using name of class),
-- python module has to accessible by python interperter for import (``PYTHONPATH`` and ``PEX_INHERITPATH`` environment variables)
+- python module has to accessible by python interpreter for import (``PYTHONPATH`` and ``PEX_INHERITPATH`` environment variables)
 
 
 In this document when referring to `component`, it means a simple python class that was **registered** and by this allowed to be used in configuration file.
@@ -35,9 +35,8 @@ From high-level standpoint, main entry point to application is only responsible 
 instantiation of python classes defined in yaml configuration, then parsing and preparing logging infrastructure and then call generic `run` method on already created `Runner` class.  `Runner` class is a main vehicle integrating all other objects together.
 
 For example, ``MeasurementRunner`` is a simple loop
-using `Node` class as interface to discover locally running tasks, collect metrics for those tasks
+that uses `Node` class as interface to discover locally running tasks, collect metrics for those tasks
 and then use a `Storage` kind of component to store those metrics.
-
 
 Using this configuration file config.yaml:
 
@@ -67,7 +66,7 @@ Example builtin runners:
 - `MeasurementRunner` component requires single `Storage` component as a backend to store all
   generic metrics. Additionally `Node` subclass component is required,
 - `DetectionRunner` component requires two `Storage` components. First for generic metrics and second
-  for metrics related od detected anomalies. It also requires component for
+  for metrics related to detected anomalies. It also requires component for
 
 It is important to note, that configuration based objects are static singletons available
 throughout whole application life.
@@ -102,7 +101,7 @@ and then WCA run like this:
 
     PYTHONPATH=example PEX_INERHITPATH=1 ./dist/wca.pex -c $PWD/configs/hello_world/config.yaml -r hello_world_runner:HelloWorldRunner
 
-should ouput:
+should output:
 
 .. code-block: shell
 
