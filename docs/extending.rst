@@ -108,15 +108,104 @@ should output:
     Hello world!
 
 
+Example: Integration with custom monitoring system
+--------------------------------------------------
+
+To integrate with custom monitoring system it is enough to provide definition of custom ``Storage`` class.
+``Storage`` class is a simple interface that expose just one method ``store`` as defined below:
+
+.. code-block:: python
+
+    class Storage:
+
+        def store(self, metrics: List[Metric]) -> None:
+            """store metrics; may throw FailedDeliveryException"""
+            ...
+
+where `Metric <../wca/metrics.py#138`_ is simple class with structure influenced by Prometheus and `OpenMetrics initiative <https://openmetrics.io/>`_ :
+
+.. code-block:: python
+
+    @dataclass
+    class Metric:
+        name: str
+        value: float
+        labels: Dict[str, str]
+        type: str            # gauge/counter
+        help: str
+
+
+Example of HTTP based ``Storage`` class
+........................................
+
+This is simple ``Storage`` class that can be used to post metrics serialized as json to 
+external http web service using post method:
+
+.. code-block:: python
+
+    import requests, json
+    from wca.storage import Storage
+
+    @dataclass
+    class HTTPStorage(Storage):
+
+        http_endpoint: str = 'https://127.0.0.1:8000'
+        
+        def store(metrics):
+            requests.post(self.http_endpoint, json={metric.name: metric.value for metric in metrics})
+
+then in can be used with ``MeasurementRunner`` with following configuration file `<configs/extending/measurement_http_storage.yaml>`_:
+
+.. code-block:: yaml
+
+    runner: !MeasurementRunner
+      metrics_storage: !HTTPStorage
 
 
 
 
 
+Configuring Runners to use external ``Storage`` component
+...........................................................
 
-Step by step instruction to provide external storage class
------------------------------------------------------------
 
-Different runners have 
+Depending on `Runner` component, different kinds of metrics are produced and send to different instances
+of ``Storage`` components:
+
+1. ``MeasurementRunner`` uses ``Storage`` instance under ``metrics_storage`` property to store:
+
+   - platform level resources usage (CPU/memory usage) metrics,
+   - internal WCA metrics: number of monitored tasks, number of errors/warnings, health-checks, WCA memory usage,
+   - (per-task) perf system based metrics e.g. instructions, cycles
+   - (per-task) Intel RDT based metrics e.g. cache usage, memory bandwidth
+   - (per-task) cgroup based metrics e.g. CPU/memory usage 
+
+   Each of those metrics has additional metadata attached (in form of labels) about:
+   - platform topology (sockets/cores/cpus),
+   - extra labels defined in WCA configuration file (e.g. own_ip),
+   - (only per-task metrics) task id and name and metadata acquired from orchestration system (Mesos task/Kubernetes pod labels)
+
+2. ``DetectionRunner`` uses ``Storage`` subclass instances:
+    
+   in ``metrics_storage`` property:
+   - the same metrics as send to ``MeasurmentRunner``.``metrics_storage`` above,
+
+   in ``anomalies_storage`` property:
+   - number of anomalies detected by ``Allcocator`` class
+   - individual instances of detected anomalies encoded as metrics (more details `here <detecion.rst#representation-of-anomaly-and-metrics-in-persistent-storage>`)
+
+3. ``AllocationRunner`` uses ``Storage`` subclass instances:
+
+   in ``metrics_storage`` property:
+   - the same metrics as send to ``MeasurementRunner``.``metrics_storage`` above,
+
+   in ``anomalies_storage`` property:
+   - the same metrics as send to ``DetectionRunner``.``anomalies_storage`` above,
+
+   in ``alloation_storage`` property:
+   - number of resource allocations performed during last iteration,
+   - details about performed allocations like: number of CPU shares or CPU quota or cache allocation,
+   - more details `here <docs/allocation.rst#taskallocations-metrics>`
+
 
 
