@@ -65,18 +65,17 @@ it effectively means running equivalent of Python code:
 
 
 
-Example builtin runners:
+For example, to provide measure only mode, anomaly detection mode or resource allocation mode, WCA contains following components:
 
-- `MeasurementRunner` component requires single `Storage` component as a backend to store all
-  generic metrics. Additionally `Node` subclass component is required,
-- `DetectionRunner` component requires two `Storage` components. First for generic metrics and second
-  for metrics related to detected anomalies. It also requires component for
+- ``MeasurementRunner`` that is only responsible for collecting metrics,
+- ``DetectionRunner`` that extends ``MeasurementRunner`` to allow anomaly detection and generate additional metrics,
+- ``AllocationRunner`` that allows to configure resources based on provided ``Allocator`` component instance,
 
-It is important to note, that configuration based objects are static singletons available
-throughout whole application life.
+It is important to note, that configuration based objects (components) are static singletons available
+throughout whole application life but only accessible by parent objects.
 
-hello world
-..................
+Hello world ``Runner`` example.
+................................
 
 Let's start with very basic thing and create ``HelloWorldRunner`` that just outputs 'Hello world!' string.
 
