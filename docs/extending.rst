@@ -242,7 +242,7 @@ Depending on ``Runner`` component, different kinds of metrics are produced and s
     
    in ``metrics_storage`` property:
 
-   - the same metrics as send to ``MeasurmentRunner``.``metrics_storage`` above,
+   - the same metrics as send to ``MeasurmentRunner`` in ``metrics_storage`` above,
 
    in ``anomalies_storage`` property:
 
@@ -253,11 +253,11 @@ Depending on ``Runner`` component, different kinds of metrics are produced and s
 
    in ``metrics_storage`` property:
 
-   - the same metrics as send to ``MeasurementRunner``.``metrics_storage`` above,
+   - the same metrics as send to ``MeasurementRunner`` in ``metrics_storage`` above,
 
    in ``anomalies_storage`` property:
 
-   - the same metrics as send to ``DetectionRunner``.``anomalies_storage`` above,
+   - the same metrics as send to ``DetectionRunner`` in ``anomalies_storage`` above,
 
    in ``alloation_storage`` property:
 
