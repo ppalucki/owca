@@ -125,7 +125,7 @@ To integrate with custom monitoring system it is enough to provide definition of
             """store metrics; may throw FailedDeliveryException"""
             ...
 
-where `Metric <../wca/metrics.py#138>`_ is simple class with structure influenced by `Prometheus metric model <https://prometheus.io/docs/concepts/data_model/>`_
+where `Metric <../wca/metrics.py#L138>`_ is simple class with structure influenced by `Prometheus metric model <https://prometheus.io/docs/concepts/data_model/>`_
 and `OpenMetrics initiative <https://openmetrics.io/>`_ :
 
 .. code-block:: python
@@ -145,14 +145,13 @@ Example of HTTP based ``Storage`` class
 This is simple ``Storage`` class that can be used to post metrics serialized as json to 
 external http web service using post method:
 
+(full source code  `here <../example/http_storage.py>`_)
+
 .. code-block:: python
 
     import requests, json
     from dataclasses import dataclass
     from wca.storage import Storage
-    import logging
-
-    log = logging.getLogger(__name__)
 
     @dataclass
     class HTTPStorage(Storage):
@@ -160,12 +159,10 @@ external http web service using post method:
         http_endpoint: str = 'http://127.0.0.1:8000'
         
         def store(self, metrics):
-            log.info('sending!')
-            try:
-                requests.post(self.http_endpoint, json={metric.name: metric.value for metric in metrics}, timeout=1)
-            except requests.exceptions.ReadTimeout:
-                log.warning('timeout!')
-                pass
+            requests.post(
+                self.http_endpoint, 
+                json={metric.name: metric.value for metric in metrics}:w
+            )
 
 
 then in can be used with ``MeasurementRunner`` with following configuration file `<../configs/extending/measurement_http_storage.yaml>`_:
