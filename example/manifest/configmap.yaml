@@ -1,0 +1,56 @@
+# Copyright (c) 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+    name: wca-config
+    namespace: wca
+data:
+  wca_config.yml: |
+
+    runner: !AllocationRunner
+      action_delay: 5.0
+      rdt_enabled: true
+      enable_derived_metrics: True
+      node: !KubernetesNode
+        # We support two options: cgroupfs, systemd.
+        cgroup_driver: cgroupfs
+        client_private_key: "/etc/wca/certs/client.key"
+        client_cert: "/etc/wca/certs/client.crt"
+        kubelet_endpoint: "https://$OWN_IP_TO_BE_REPLACED:10250"
+        monitored_namespaces: ["default"]
+
+      metrics_storage: !LogStorage
+        overwrite: True
+        output_filename: /var/lib/wca/metrics.prom
+      anomalies_storage: !LogStorage
+        overwrite: True
+        output_filename: /var/lib/wca/anomalies.prom
+      allocations_storage: !LogStorage
+        overwrite: True
+        output_filename: /var/lib/wca/allocations.prom
+
+      extra_labels:
+        env_uniq_id: $ENV_UNIQ_ID_TO_BE_REPLACED
+        own_ip: $OWN_IP_TO_BE_REPLACED
+
+      allocator: !StaticAllocator
+        rules:
+        - name: Default rule for all tasks.
+          allocations:
+            cpu_quota: 1.
+            rdt:
+              name: ''

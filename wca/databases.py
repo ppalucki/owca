@@ -17,11 +17,15 @@ import string
 import requests
 import json
 import base64
+import urllib.parse
 
 from abc import ABC
-from typing import Optional, List, Union
+from typing import Optional, List
 
 from dataclasses import dataclass
+
+from wca.config import assure_type, Numeric, Path
+from wca.security import SSL
 
 log = logging.getLogger(__name__)
 
@@ -52,9 +56,8 @@ class Database(ABC):
 _VALID_FILENAME_CHARACTERS = bytes("-_.%s%s" % (string.ascii_letters, string.digits), 'ascii')
 
 
-def _validate_key(key):
-    if not isinstance(key, bytes):
-        raise InvalidKey('Key must be in bytes')
+def _validate_key(key: bytes):
+    assure_type(key, bytes)
 
     if not (0 < len(key) <= 255):
         raise InvalidKey('Max key length is 255 bytes')
@@ -62,6 +65,10 @@ def _validate_key(key):
     for character in key:
         if character not in _VALID_FILENAME_CHARACTERS:
             raise InvalidKey()
+
+
+def _validate_value(value: bytes):
+    assure_type(value, bytes)
 
 
 @dataclass
@@ -73,8 +80,9 @@ class LocalDatabase(Database):
     def __post_init__(self):
         os.makedirs(self.directory)
 
-    def set(self, key, value):
+    def set(self, key: bytes, value: bytes):
         _validate_key(key)
+        _validate_value(value)
 
         formatted_key = key.decode('ascii')
 
@@ -83,7 +91,7 @@ class LocalDatabase(Database):
         with open(full_path, 'wb') as f:
             f.write(value)
 
-    def get(self, key):
+    def get(self, key: bytes) -> bytes:
         _validate_key(key)
 
         formatted_key = key.decode('ascii')
@@ -94,9 +102,7 @@ class LocalDatabase(Database):
             return None
 
         with open(full_path, 'rb') as f:
-            value = f.read()
-
-        return value
+            return f.read()
 
 
 @dataclass
@@ -104,14 +110,44 @@ class ZookeeperDatabase(Database):
     # used as prefix for key, to namespace all queries
     hosts: List[str]
     namespace: str
+    timeout: Numeric(1, 60) = 5.  # request timeout in seconds (tries another host) [s]
+    ssl: Optional[SSL] = None
 
     def __post_init__(self):
         from kazoo.client import KazooClient
-        self._client = KazooClient(hosts=self.hosts)
+
+        if self.ssl:
+            if isinstance(self.ssl.server_verify, Path):
+                self._client = KazooClient(
+                        hosts=self.hosts,
+                        timeout=self.timeout,
+                        use_ssl=True,
+                        verify_certs=True,
+                        ca=self.ssl.server_verify,
+                        certfile=self.ssl.client_cert_path,
+                        keyfile=self.ssl.client_key_path,
+                        )
+            else:
+                self._client = KazooClient(
+                        hosts=self.hosts,
+                        timeout=self.timeout,
+                        use_ssl=True,
+                        ca=self.ssl.server_verify,
+                        verify_certs=self.ssl.server_verify,
+                        certfile=self.ssl.client_cert_path,
+                        keyfile=self.ssl.client_key_path,
+                        )
+
+        else:
+            self._client = KazooClient(
+                    hosts=self.hosts,
+                    timeout=self.timeout)
+
         self._client.start()
 
-    def set(self, key, value):
+    def set(self, key: bytes, value: bytes):
         _validate_key(key)
+        _validate_value(value)
 
         formatted_key = key.decode('ascii')
 
@@ -121,7 +157,7 @@ class ZookeeperDatabase(Database):
 
         self._client.set(full_path, value)
 
-    def get(self, key):
+    def get(self, key: bytes) -> bytes:
         from kazoo.exceptions import NoNodeError
         _validate_key(key)
 
@@ -131,7 +167,7 @@ class ZookeeperDatabase(Database):
 
         try:
             data = self._client.get(full_path)
-            return data[0]
+            return bytes(data[0])
         except NoNodeError:
             return None
 
@@ -146,22 +182,30 @@ class EtcdDatabase(Database):
     """
 
     hosts: List[str]
-    ssl_verify: Union[bool, str] = True  # requests: Can be used to pass cert CA bundle.
-    timeout: float = 5.0  # request timeout in seconds (tries another host)
-    api_path: str = '/v3alpha'
-    client_cert_path: str = None
-    client_key_path: str = None
+    timeout: Optional[Numeric(1, 60)] = 5.0
+    api_path: Optional[str] = '/v3alpha'
+    ssl: Optional[SSL] = None
 
     def _send(self, url, data):
         response_data = None
 
         for host in self.hosts:
             try:
-                r = requests.post(
-                        '{}{}{}'.format(host, self.api_path, url),
-                        data=json.dumps(data), timeout=self.timeout,
-                        verify=self.ssl_verify,
-                        cert=(self.client_cert_path, self.client_key_path))
+                api_url = urllib.parse.urljoin(host, self.api_path)
+                full_url = urllib.parse.urljoin(api_url, url)
+                if self.ssl:
+                    r = requests.post(
+                            full_url,
+                            data=json.dumps(data),
+                            timeout=self.timeout,
+                            verify=self.ssl.server_verify,
+                            cert=self.ssl.get_certs())
+                else:
+                    r = requests.post(
+                            full_url,
+                            data=json.dumps(data),
+                            timeout=self.timeout)
+
                 r.raise_for_status()
                 response_data = r.json()
                 break
@@ -179,8 +223,9 @@ class EtcdDatabase(Database):
 
         return formatted_data
 
-    def set(self, key, value):
+    def set(self, key: bytes, value: bytes):
         _validate_key(key)
+        _validate_value(value)
 
         data = {'key': key, 'value': value}
 
@@ -194,7 +239,7 @@ class EtcdDatabase(Database):
             raise TimeoutOnAllHosts(
                     'EtcdDatabase: Cannot put key "{}": Timeout on all hosts!'.format(key))
 
-    def get(self, key):
+    def get(self, key) -> bytes:
         _validate_key(key)
 
         data = {'key': key}

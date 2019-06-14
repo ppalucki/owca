@@ -3,6 +3,12 @@
 runner: !DetectionRunner
   node: !MesosNode
     mesos_agent_endpoint: 'http://127.0.0.1:5051'
+    timeout: 5
+    ssl: !SSL
+      server_verify: True
+      client_cert_path: "$PATH/apiserver-aurora-client.crt"
+      client_key_path: "$PATH/apiserver-aurora-client.key"
+
   action_delay: 1.
 
   metrics_storage: !LogStorage
@@ -13,7 +19,7 @@ runner: !DetectionRunner
     max_timeout_in_seconds: 5.
 
   # Example use of external component.
-  # Requires registration with -r example.external_package:ExternalDetector
+  # Requires registration with -r example.external_package:ExampleDetector
   detector: !ExampleDetector
 
   # Decorate every metric with extra labels.

@@ -208,6 +208,8 @@ Further reading
 - `Logging configuration <docs/logging.rst>`_
 - `Supported workloads and definitions </workloads>`_
 - `WCA Architecture 1.7.pdf`_
+- `Secure communication with SSL <docs/ssl.rst>`_
+- `Security policy <SECURITY.md>`_
 
 .. _`WCA Architecture 1.7.pdf`: docs/WCA_Architecture_v1.7.pdf
 

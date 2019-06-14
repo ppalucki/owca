@@ -14,16 +14,16 @@
 
 
 import logging
-import os
 import urllib.parse
-from typing import List, Union
+from typing import List, Optional
 
 import requests
 from dataclasses import dataclass
 
-from wca.config import assure_type, Numeric, Path, Url
+from wca.config import assure_type, Numeric, Url
 from wca.metrics import Measurements, Metric
 from wca.nodes import Node, Task
+from wca.security import SSL
 
 MESOS_TASK_STATE_RUNNING = 'TASK_RUNNING'
 CGROUP_DEFAULT_SUBSYSTEM = 'cpu'
@@ -76,33 +76,35 @@ def find_cgroup(pid):
 class MesosNode(Node):
     mesos_agent_endpoint: Url = 'https://127.0.0.1:5051'
 
-    # A flag of python requests library to enable ssl_verify or pass CA bundle:
-    # https://github.com/kennethreitz/requests/blob/5c1f72e80a7d7ac129631ea5b0c34c7876bc6ed7/requests/api.py#L41
-    ssl_verify: Union[bool, Path] = True
-
     # Timeout to access mesos agent.
     timeout: Numeric(1, 60) = 5.  # [s]
+
+    # https://github.com/kennethreitz/requests/blob/5c1f72e80a7d7ac129631ea5b0c34c7876bc6ed7/requests/api.py#L41
+    ssl: Optional[SSL] = None
 
     METHOD = 'GET_STATE'
     api_path = '/api/v1'
 
-    def __post_init__(self):
-        if isinstance(self.ssl_verify, str):
-            if not os.path.exists(self.ssl_verify):
-                raise FileNotFoundError('cannot locate CA cert bundle file at %s for '
-                                        'verify SSL Mesos connection!' % self.ssl_verify)
-
     def get_tasks(self):
         """ only return running tasks """
         full_url = urllib.parse.urljoin(self.mesos_agent_endpoint, self.api_path)
-        r = requests.post(
-            full_url,
-            json=dict(type=self.METHOD),
-            verify=self.ssl_verify,
-            timeout=self.timeout,
-        )
+
+        if self.ssl:
+            r = requests.post(
+                    full_url,
+                    json=dict(type=self.METHOD),
+                    timeout=self.timeout,
+                    verify=self.ssl.server_verify,
+                    cert=self.ssl.get_client_certs())
+        else:
+            r = requests.post(
+                    full_url,
+                    json=dict(type=self.METHOD),
+                    timeout=self.timeout)
+
         r.raise_for_status()
         state = r.json()
+
         tasks = []
 
         # Fast return path if there is no any launched tasks.

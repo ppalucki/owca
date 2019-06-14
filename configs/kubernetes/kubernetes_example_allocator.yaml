@@ -9,8 +9,10 @@ runner: !AllocationRunner
     cgroup_driver: cgroupfs
 
     # Fill needed PATH to key and certificate to access kubelet.
-    client_private_key: "$PATH/apiserver-kubelet-client.key"
-    client_cert: "$PATH/apiserver-kubelet-client.crt"
+    ssl: !SSL
+      server_verify: True
+      client_cert_path: "$PATH/apiserver-kubelet-client.crt"
+      client_key_path: "$PATH/apiserver-kubelet-client.key"
 
     # If the kubelete agent does not listen on localhost, 
     #   the endpoint must be provided.

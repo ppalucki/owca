@@ -17,6 +17,7 @@
 
 import functools
 import os
+import json
 from typing import List, Dict, Union, Optional
 from unittest.mock import mock_open, Mock, patch
 
@@ -31,6 +32,14 @@ from wca.nodes import TaskId, Task
 from wca.platforms import RDTInformation
 from wca.resctrl import ResGroup
 from wca.runners import Runner
+
+
+def create_json_fixture_mock(name, path=__file__, status_code=200):
+    """ Helper function to shorten the notation. """
+    return Mock(
+                json=Mock(return_value=json.load(
+                    open(relative_module_path(path, 'fixtures/' + name + '.json')))),
+                status_code=status_code,)
 
 
 def relative_module_path(module_file, relative_path):

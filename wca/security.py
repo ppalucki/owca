@@ -16,8 +16,10 @@
 import ctypes
 import logging
 import os
-
+from dataclasses import dataclass
+from typing import Optional, Union
 from wca import logger
+from wca.config import ValidationError, Path
 
 LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
 
@@ -39,6 +41,8 @@ CAP_SETUID = 128
 LINUX_CAPABILITY_VERSION_1 = 0x19980330
 
 GLOBAL_ROOT_UID = 0
+
+HTTP_RESPONSE_MAX_SIZE = 1024
 
 
 # We need a class that can be mapped to __user_cap_header_struct.
@@ -106,3 +110,37 @@ class SetEffectiveRootUid:
             os.seteuid(self.uid)
             log.log(logger.TRACE, "Effective user id from 0 to {}".format(self.uid))
             self.uid = 0
+
+
+@dataclass
+class SSL:
+    server_verify: Union[bool, Path(absolute=True, mode=os.R_OK)] = True
+    client_cert_path: Optional[Path(absolute=True, mode=os.R_OK)] = None
+    client_key_path: Optional[Path(absolute=True, mode=os.R_OK)] = None
+
+    def __post_init__(self):
+
+        if self.client_cert_path:
+            client_cert_filename = os.path.basename(self.client_cert_path)
+            client_cert_extension = os.path.splitext(client_cert_filename)[1]
+
+            if client_cert_extension == '.pem':
+                # .pem file consists both client cert and key data so ignore client_key_path.
+                return
+            else:
+                if not self.client_key_path:
+                    raise ValidationError(
+                        'Client certiticate provided but without client private key!')
+        elif self.client_key_path:
+            # There is only client key path, that is wrong, throw error.
+            raise ValidationError('Client private key provided but without certificate path!')
+
+    def get_client_certs(self):
+        """Return client cert and key path.
+        """
+        if self.client_cert_path and self.client_key_path:
+            # Both are provided, so return tuple.
+            return (self.client_cert_path, self.client_key_path)
+
+        # Otherwise return None or path to .pem file which consists client cert and key.
+        return self.client_cert_path

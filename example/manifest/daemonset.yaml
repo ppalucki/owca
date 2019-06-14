@@ -1,0 +1,162 @@
+# Copyright (c) 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: wca
+  namespace: wca
+  labels:
+    name: wca
+spec:
+  selector:
+    matchLabels:
+      name: wca
+  template:
+    metadata:
+      labels:
+        name: wca
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      terminationGracePeriodSeconds: 10
+      hostPID: true
+      hostIPC: true
+      hostNetwork: true
+
+#      affinity:
+#        nodeAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#            nodeSelectorTerms:
+#              - matchExpressions:
+#                  - key: own_ip
+#                    operator: In
+#                    values:
+#                      - 100.64.176.33
+#                      - 100.64.176.34
+
+      initContainers:
+
+      - name: wca-set-config
+        image: busybox
+        env:
+          # Env CONFIG have to be this same path as for config from volume mounts wca-config
+          - name: CONFIG
+            value: /etc/wca/wca_config.yml
+          - name: OWN_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: ENV_UNIQ_ID
+            value: "'0'"
+        command: ['sh', '-c',
+                  'sed
+                  -e "s/\$OWN_IP_TO_BE_REPLACED/$OWN_IP/g"
+                  -e " s/\$ENV_UNIQ_ID_TO_BE_REPLACED/$ENV_UNIQ_ID/g"
+                  $CONFIG > /var/lib/wca/config.yml']
+        volumeMounts:
+          # Read only config
+          - name: wca-config
+            mountPath: /etc/wca/
+          # Directory with config and logs
+          - name: var-lib-wca
+            mountPath: /var/lib/wca/
+
+      containers:
+
+      - name: wca
+        image: wca
+        securityContext:
+          privileged: true
+        env:
+          - name: LOG
+            value: info
+          # Env CONFIG have to be this same path as for config created by init-pod wca-set-config
+          - name: CONFIG
+            value: /var/lib/wca/config.yml
+          - name: EXTRA_COMPONENT
+            value: example.external_package:ExampleDetector
+        volumeMounts:
+          - name: kubelet-key-crt
+            mountPath: /etc/wca/certs/
+            readOnly: true
+          - name: var-lib-wca
+            mountPath: /var/lib/wca/
+          - name: cgroup
+            mountPath: /sys/fs/cgroup/
+          - name: resctrl
+            mountPath: /sys/fs/resctrl/
+          - name: dev-cpu
+            mountPath: /dev/cpu
+
+      - name: node-exporter
+        image: prom/node-exporter:v0.18.1
+        securityContext:
+          privileged: true
+        args:
+          - --collector.textfile.directory
+          - /var/lib/wca
+        ports:
+          - containerPort: 9100
+            protocol: TCP
+        volumeMounts:
+          - name: var-lib-wca
+            mountPath: /var/lib/wca
+          - name: dev
+            mountPath: /host/dev
+          - name: proc
+            mountPath: /host/proc
+          - name: sys
+            mountPath: /host/sys
+          - name: rootfs
+            mountPath: /rootfs
+
+      volumes:
+        # Client private key and cert to communicate with kubelet
+        - name: kubelet-key-crt
+          secret:
+            secretName: kubelet-key-crt
+        # Config for wca
+        - name: wca-config
+          configMap:
+            name: wca-config
+        # Volume to write wca log
+        - name: var-lib-wca
+          emptyDir: {}
+        # Path for wca to read cgroup, resctrl and dev-cpu
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup/
+        - name: resctrl
+          hostPath:
+            path: /sys/fs/resctrl/
+        - name: dev-cpu
+          hostPath:
+            path: /dev/cpu
+
+        # Paths for node_exporter to collect metrics
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: rootfs
+          hostPath:
+            path: /

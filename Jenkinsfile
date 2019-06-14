@@ -34,6 +34,17 @@ pipeline {
                 archiveArtifacts(artifacts: "dist/**")
             }
         }
+        stage("Build and push Workload Collocation Agent Docker image") {
+            steps {
+                sh '''
+                IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca:${GIT_COMMIT}
+                IMAGE_DIR=${WORKSPACE}
+
+                docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
+                docker push ${IMAGE_NAME}
+                '''
+            }
+        }
         stage("Building Docker images and do tests in parallel") {
             parallel {
                 stage("Using tester") {
@@ -47,36 +58,6 @@ pipeline {
 						"
                     '''
                      }
-                }
-                stage("Build and push Tensorflow training Docker image") {
-                    when {expression{return params.BUILD_IMAGES}}
-                    steps {
-                    withCredentials([file(credentialsId: 'kaggle.json', variable: 'KAGGLE_JSON')]) {
-                        sh '''
-                        IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/tensorflow_train:${GIT_COMMIT}
-                        IMAGE_DIR=${WORKSPACE}/workloads/tensorflow_train
-                        cp -r dist ${IMAGE_DIR}
-                        cp -f ${KAGGLE_JSON} ${IMAGE_DIR}/kaggle.json
-                        docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
-                        docker push ${IMAGE_NAME}
-                        '''
-                    }
-                    }
-                }
-                stage("Build and push Tensorflow inference Docker image") {
-                    when {expression{return params.BUILD_IMAGES}}
-                    steps {
-                    withCredentials([file(credentialsId: 'kaggle.json', variable: 'KAGGLE_JSON')]) {
-                        sh '''
-                        IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/tensorflow_inference:${GIT_COMMIT}
-                        IMAGE_DIR=${WORKSPACE}/workloads/tensorflow_inference
-                        cp -r dist ${IMAGE_DIR}
-                        cp -f ${KAGGLE_JSON} ${IMAGE_DIR}/kaggle.json
-                        docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
-                        docker push ${IMAGE_NAME}
-                        '''
-                    }
-                    }
                 }
                 stage("Build and push Tensorflow Benchmark Docker image") {
                     when {expression{return params.BUILD_IMAGES}}

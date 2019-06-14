@@ -21,9 +21,10 @@ import logging
 import requests
 
 from wca import logger
-from wca.config import assure_type, Path, Url, Str
+from wca.config import assure_type, Numeric, Url, Str
 from wca.metrics import MetricName
 from wca.nodes import Node, Task
+from wca.security import SSL
 
 DEFAULT_EVENTS = (MetricName.INSTRUCTIONS, MetricName.CYCLES, MetricName.CACHE_MISSES)
 
@@ -74,12 +75,13 @@ class KubernetesNode(Node):
     cgroup_driver: CgroupDriverType = field(
         default_factory=lambda: CgroupDriverType(CgroupDriverType.CGROUPFS))
 
+    ssl: Optional[SSL] = None
+
     # By default use localhost, however kubelet may not listen on it.
     kubelet_endpoint: Url = 'https://127.0.0.1:10250'
 
-    # Key and certificate to access kubelet API, if needed.
-    client_private_key: Optional[Path] = None
-    client_cert: Optional[Path] = None
+    # Timeout to access kubernetes agent.
+    timeout: Numeric(1, 60) = 5  # [s]
 
     # List of namespaces to monitor pods in.
     monitored_namespaces: List[Str] = field(default_factory=lambda: ["default"])
@@ -87,8 +89,20 @@ class KubernetesNode(Node):
     def _request_kubelet(self):
         PODS_PATH = '/pods'
         full_url = urljoin(self.kubelet_endpoint, PODS_PATH)
-        r = requests.get(full_url, json=dict(type='GET_STATE'),
-                         verify=False, cert=(self.client_cert, self.client_private_key))
+
+        if self.ssl:
+            r = requests.get(
+                    full_url,
+                    json=dict(type='GET_STATE'),
+                    timeout=self.timeout,
+                    verify=self.ssl.server_verify,
+                    cert=self.ssl.get_client_certs())
+        else:
+            r = requests.get(
+                full_url,
+                json=dict(type='GET_STATE'),
+                timeout=self.timeout)
+
         r.raise_for_status()
 
         return r.json()

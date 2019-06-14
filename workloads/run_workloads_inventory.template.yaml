@@ -12,10 +12,12 @@ application_hosts:
     10.10.10.1:
       env_uniq_id: 1
       load_generator_host_ip: 10.10.10.11
+      orchestrator: "Mesos"
 
     10.10.10.2:
       env_uniq_id: 2
       load_generator_host_ip: 10.10.10.12
+      orchestrator: "Kubernetes"
 
       # Overwrite choosen keys.
       # Note: must then be used with ANSIBLE_HASH_BEHAVIOUR=merge.
@@ -26,8 +28,6 @@ application_hosts:
         twemcache_rpc_perf: {'default': {'count': 0}}
         twemcache_mutilate: {'default': {'count': 0}}
         specjbb: {'default': {'count': 0}}
-        tensorflow_train: {'default': {'count': 0}}
-        tensorflow_inference: {'default': {'count': 0}}
         tensorflow_benchmark_prediction: {'default': {'count': 0}}
         tensorflow_benchmark_train: {'default': {'count': 0}}
 
@@ -44,6 +44,12 @@ application_hosts:
 
     wrapper_kafka_brokers: 10.10.10.99
     docker_registry: 10.10.10.99:80
+
+    # Possible values: 'Kubernetes', 'Mesos'.
+    orchestrator: "Kubernetes"
+    # Option available only when orchestrator == "Kubernetes".
+    k8s_namespace: "default"
+    k8s_pod_naming: "short" # When set to "short" in name of a pod there will be no cluster and roles names.
 
     # Allow to add additional labels to all newly created workloads.
     additional_labels:
@@ -149,20 +155,6 @@ application_hosts:
           backend:
           injector:
           controller:
-
-      tensorflow_inference:
-        default:
-          count: 1
-          slo: 2 # in seconds (maximum time to process a single image)
-          resources:
-            cpu: 1
-            ram: 2
-            disk: 2
-
-      tensorflow_train:
-        default:
-          count: 1
-          slo: 0.5
 
       tensorflow_benchmark_train:
         default:

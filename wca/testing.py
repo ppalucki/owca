@@ -16,6 +16,7 @@
 """Module for independent simple helper functions."""
 
 import functools
+import json
 import os
 from typing import List, Dict, Union, Optional
 from unittest.mock import mock_open, Mock, patch
@@ -37,6 +38,14 @@ def relative_module_path(module_file, relative_path):
     """Returns path relative to current python module."""
     dir_path = os.path.dirname(os.path.realpath(module_file))
     return os.path.join(dir_path, relative_path)
+
+
+def create_json_fixture_mock(name, path=__file__, status_code=200):
+    """ Helper function to shorten the notation. """
+    return Mock(
+                json=Mock(return_value=json.load(
+                    open(relative_module_path(path, 'fixtures/' + name + '.json')))),
+                status_code=status_code,)
 
 
 def create_open_mock(paths: Dict[str, Mock]):

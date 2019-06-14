@@ -14,7 +14,7 @@
 
 
 from unittest.mock import patch
-
+from wca.config import ValidationError
 import pytest
 
 import wca.security
@@ -94,3 +94,27 @@ def test_privileges_not_root_capabilities_dac_paranoid_no_setuid(capget, read_pa
 @patch('wca.security.LIBC.capget', side_effect=no_cap_dac_override_cap_setuid)
 def test_privileges_not_root_capabilities_no_dac_paranoid_setuid(capget, read_paranoid, geteuid):
     assert not wca.security.are_privileges_sufficient(True)
+
+
+def test_ssl_raise_error_if_only_client_key_is_provided():
+    with pytest.raises(ValidationError):
+        wca.security.SSL(client_key_path='/key')
+
+
+def test_ssl_raise_error_if_only_client_cert_is_provided():
+    with pytest.raises(ValidationError):
+        wca.security.SSL(client_cert_path='/cert')
+
+
+def test_ssl_not_raise_error_when_client_pem_file_is_provided():
+    wca.security.SSL(client_cert_path='/cert.pem')
+
+
+def test_ssl_get_client_certs_return_path_to_client_pem_file():
+    ssl = wca.security.SSL(client_cert_path='/cert.pem')
+    assert ssl.get_client_certs() == '/cert.pem'
+
+
+def test_ssl_get_client_certs_return_tuple_with_client_key_and_cert_paths():
+    ssl = wca.security.SSL(client_cert_path='/cert', client_key_path='/key')
+    assert ssl.get_client_certs() == ('/cert', '/key')

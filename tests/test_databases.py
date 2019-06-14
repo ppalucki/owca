@@ -21,9 +21,10 @@ from wca.databases import EtcdDatabase, InvalidKey, _validate_key, TimeoutOnAllH
 
 @patch('requests.post')
 def test_if_set_raise_exception_if_all_host_timeout(mock_post: MagicMock):
-    db = EtcdDatabase(['host_1', 'host_2'])
+    db = EtcdDatabase(['https://127.0.0.1:2379', 'https://127.0.0.2:2379'])
 
-    mock_post.return_value.raise_for_status.side_effect = requests.exceptions.Timeout
+    mock_post.return_value.\
+        raise_for_status.side_effect = requests.exceptions.Timeout
     with pytest.raises(TimeoutOnAllHosts):
         db.set(bytes('key', 'ascii'), bytes('val', 'ascii'))
 
@@ -32,16 +33,17 @@ def test_if_set_raise_exception_if_all_host_timeout(mock_post: MagicMock):
 
 @patch('requests.post')
 def test_if_get_raise_exception_if_all_host_timeout(mock_post: MagicMock):
-    db = EtcdDatabase(['host_1', 'host_2'])
+    db = EtcdDatabase(['https://127.0.0.1:2379', 'https://127.0.0.2:2379'])
 
-    mock_post.return_value.raise_for_status.side_effect = requests.exceptions.Timeout
+    mock_post.return_value.\
+        raise_for_status.side_effect = requests.exceptions.Timeout
     with pytest.raises(TimeoutOnAllHosts):
         db.get(bytes('key', 'ascii'))
 
     assert mock_post.return_value.raise_for_status.call_count == 2
 
 
-@pytest.mark.parametrize('key', (0*'\x6f', 256*'\x6f', 255*'\x00'))
+@pytest.mark.parametrize('key', (0*b"\x6f", 256*b"\x6f", 255*b"\x00"))
 def test_if_raise_exception_when_invalid_key(key):
     with pytest.raises(InvalidKey):
         _validate_key(key)

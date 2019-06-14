@@ -31,11 +31,12 @@ import inspect
 import io
 import ipaddress
 import logging
+import os
 import types
 import typing
 from os.path import exists, isabs, split  # direct target import for mocking purposes in test_main
 from ruamel import yaml
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 from wca import logger
@@ -102,6 +103,13 @@ def assure_absolute_path(value):
                               'absolute path is obligatory. Use absolute '
                               'path or turn off `absolute` option by '
                               'setting it to False.')
+
+
+def assure_permission_path(value, permission):
+    if not os.access(value, permission):
+        raise ValidationError(
+                'file does not exist or cannot access to `{}` with permission `{}`'.format(
+                    value, permission))
 
 
 def assure_no_parent_directory_access(value):
@@ -215,10 +223,17 @@ class _PathType(type):
         if cls.absolute:
             assure_absolute_path(value)
 
+        if cls.mode:
+            assure_permission_path(value, cls.mode)
 
-def Path(absolute=False, max_size=400):
+
+def Path(absolute: Optional[bool] = False,
+         max_size: int = 400,
+         mode: Optional[int] = None  # Permission mode
+         ):
+
     return _PathType('Path', (_PathType, SemanticType),
-                     dict(absolute=absolute, max_size=max_size))
+                     dict(absolute=absolute, max_size=max_size, mode=mode))
 
 
 class _IpPort(type):

@@ -13,23 +13,15 @@
 # limitations under the License.
 
 
-import json
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 import pytest
 
 from wca.mesos import MesosNode, MesosTask
-from tests.testing import relative_module_path
+from tests.testing import create_json_fixture_mock
 
 
-def create_json_fixture_mock(name, status_code=200):
-    """ Helper function to shorten the notation. """
-    return Mock(json=Mock(
-        return_value=json.load(open(relative_module_path(__file__, 'fixtures/' + name + '.json'))),
-        status_code=status_code))
-
-
-@patch('requests.post', return_value=create_json_fixture_mock('mesos_get_state', 200))
+@patch('requests.post', return_value=create_json_fixture_mock('mesos_get_state', __file__))
 @patch('wca.mesos.find_cgroup', return_value='mesos/120-123')
 def test_get_tasks(find_cgroup_mock, post_mock):
     node = MesosNode()
@@ -58,9 +50,9 @@ def test_get_tasks(find_cgroup_mock, post_mock):
 
 
 @pytest.mark.parametrize(
-    "json_mock", [create_json_fixture_mock('missing_executor_pid_in_mesos_response'),
-                  create_json_fixture_mock('missing_statuses_in_mesos_response'),
-                  create_json_fixture_mock('empty_statuses_in_mesos_response')])
+    "json_mock", [create_json_fixture_mock('missing_executor_pid_in_mesos_response', __file__),
+                  create_json_fixture_mock('missing_statuses_in_mesos_response', __file__),
+                  create_json_fixture_mock('empty_statuses_in_mesos_response', __file__)])
 def test_not_enough_data_in_response(json_mock):
     """MesosNode get_tasks should return none tasks as vital data in mesos response is missing."""
     with patch('requests.post', return_value=json_mock):

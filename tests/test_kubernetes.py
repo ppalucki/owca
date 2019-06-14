@@ -13,20 +13,11 @@
 # limitations under the License.
 
 import pytest
-import json
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from wca.kubernetes import KubernetesNode, KubernetesTask, _calculate_pod_resources, \
     _build_cgroup_path, are_all_tasks_of_single_qos, QOS_LABELNAME
-from tests.testing import relative_module_path
-
-
-def create_json_fixture_mock(name, status_code=200):
-    """ Helper function to shorten the notation. """
-    return Mock(json=Mock(
-        return_value=json.load(
-            open(relative_module_path(__file__, 'fixtures/' + name + '.json'))),
-        status_code=status_code))
+from tests.testing import create_json_fixture_mock
 
 
 def ktask(name, qos):
@@ -43,8 +34,9 @@ def ktask(name, qos):
                                 '/kubepods/{}/pod{}/t2'.format(qos, name)])
 
 
-@patch('requests.get', return_value=create_json_fixture_mock('kubernetes_get_state', 200))
+@patch('requests.get', return_value=create_json_fixture_mock('kubernetes_get_state', __file__))
 def test_get_tasks(get_mock):
+
     expected_tasks = [KubernetesTask(
                           name='test',
                           task_id='4d6a81df-3448-11e9-8e1d-246e96663c22',
@@ -81,7 +73,9 @@ def test_get_tasks(get_mock):
         assert task == expected_tasks[i]
 
 
-@patch('requests.get', return_value=create_json_fixture_mock('kubernetes_get_state_not_ready', 200))
+@patch(
+        'requests.get',
+        return_value=create_json_fixture_mock('kubernetes_get_state_not_ready', __file__))
 def test_get_tasks_not_all_ready(get_mock):
     node = KubernetesNode()
     tasks = node.get_tasks()
