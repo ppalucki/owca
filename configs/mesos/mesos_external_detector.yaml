@@ -15,6 +15,7 @@ runner: !DetectionRunner
     output_filename: '/tmp/output_anomalies.log'
 
   anomalies_storage: !KafkaStorage
+    brokers_ips: ['$KAFKA_BROKER_IP:9092']
     topic: wca_anomalies
     max_timeout_in_seconds: 5.
 
@@ -24,4 +25,4 @@ runner: !DetectionRunner
 
   # Decorate every metric with extra labels.
   extra_labels:
-    env_id: "host"
+    env_id: "$HOST_IP"
