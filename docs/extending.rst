@@ -98,7 +98,7 @@ you need to start WCA with following `example config file <configs/extending/hel
     runner: !HelloWorldRunner
 
 
-and then with WCA started like this:
+and then with WCA started like this (**tip** you can just copy-paste this command, all required example files are all in project)
 
 .. code-block:: shell
 
