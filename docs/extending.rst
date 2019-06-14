@@ -247,7 +247,7 @@ Depending on ``Runner`` component, different kinds of metrics are produced and s
    in ``anomalies_storage`` property:
 
    - number of anomalies detected by ``Allcocator`` class
-   - individual instances of detected anomalies encoded as metrics (more details `here <detecion.rst#representation-of-anomaly-and-metrics-in-persistent-storage>`)
+   - individual instances of detected anomalies encoded as metrics (more details `here <detecion.rst#representation-of-anomaly-and-metrics-in-persistent-storage>_`)
 
 3. ``AllocationRunner`` uses ``Storage`` subclass instances:
 
