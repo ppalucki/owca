@@ -17,7 +17,7 @@ Overview
 
 To provide new functionality, operator of WCA, has to provide
 new component defined as python class. This class has to be registered upon starting with extra
-command line ``--register`` parameter and reference in configuration file.
+command line ``--register`` parameter and referenced in configuration file.
 
 Actually all provided features are based on internal components and use the same mechanism for
 initialization.
@@ -67,8 +67,8 @@ like this:
 
 
 
-For example, let's start ``MeasurementRunner`` is a simple loop
-using `Node` class as interface to discover locally running tasks, collect metrics for those tasks
+For example, let's start ``MeasurementRunner``. It is a simple loop
+that uses `Node` class as interface to discover locally running tasks, collect metrics for those tasks
 and then use a `Storage` kind of component to store those metrics.
 
 
@@ -100,7 +100,7 @@ Example builtin runners:
 - `MeasurementRunner` component requires single `Storage` component as a backend to store all
   generic metrics. Additionally `Node` subclass component is required,
 - `DetectionRunner` component requires two `Storage` components. First for generic metrics and second
-  for metrics related od detected anomalies. It also requires component for
+  for metrics related to detected anomalies. It also requires component for
 
 It is important to note, that configuration based objects are static singletons available
 throughout whole application life.
