@@ -214,20 +214,15 @@ Expected output is:
 
 Note:
 
-- `sudo` is required to enable perf and resctrl based metrics,
-- `--log` parameter allow to specify log level for custom components
-
-
-
-
+- **sudo** is required to enable perf and resctrl based metrics,
+- **--log** parameter allow to specify log level for custom components
 
 
 Configuring Runners to use external ``Storage`` component
 ...........................................................
 
 
-Depending on `Runner` component, different kinds of metrics are produced and send to different instances
-of ``Storage`` components:
+Depending on `Runner` component, different kinds of metrics are produced and send to different instances of ``Storage`` components:
 
 1. ``MeasurementRunner`` uses ``Storage`` instance under ``metrics_storage`` property to store:
 
@@ -263,6 +258,56 @@ of ``Storage`` components:
    - number of resource allocations performed during last iteration,
    - details about performed allocations like: number of CPU shares or CPU quota or cache allocation,
    - more details `here <docs/allocation.rst#taskallocations-metrics>`
+
+Note that it is possible by using `YAML anchors and aliases <https://yaml.org/refcard.html>`_ to configure that the same instance of ``Storage`` should be used to store all kinds of metrics:
+
+.. code-block:: yaml
+
+    runner: !AllocationRunner
+      metrics_storage: &kafka_storage_instance !KafkaStorage
+        topic: all_metrics
+        broker_ips: 
+        - 127.0.0.1:9092
+        - 127.0.0.2:9092
+        max_timeout_in_seconds: 5.
+      anomalies_storage: *kafka_storage_instance
+      allocations_storage: *kafka_storage_instance
+
+This approach can help to save resources (like connections), share state or simplify configuration (no need to repeat the same arguments).
+            
+
+Bundling additional dependencies for external component.
+--------------------------------------------------------
+
+If component requires some additional dependencies and you do not want to dirty
+system interpreter library, the best way to bundle new component is to
+use `PEX <https://github.com/pantsbuild/pex>`_ file to package all source code including dependencies.
+
+(``requests`` library from previous example was available because it is already required by WCA itself).
+
+
+.. code-block:: shell
+
+    pex -D example/hello_world_runner_with_dateutil.py  python-dateutil==2.8.0 -o hello_world.pex -v
+
+
+where ``example/hello_world_runner_with_dateutil.py``:
+
+.. code-block:: python
+
+    from wca.runners import Runner
+    from dateutil.utils import today
+
+    class HelloWorldRunner(Runner):
+
+        def run(self):
+            print('Hello world! Today is %s' % today)
+
+
+
+
+
+    
 
 
 
