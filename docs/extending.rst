@@ -2,12 +2,15 @@
 Extending WCA
 =============
 
+**This software is pre-production and should not be deployed to production servers.**
+
+.. contents:: Table of Contents
 
 Introduction
 ------------
 
-WCA project contains simple built-in dependency injection framework. It allows 
-to extend existing or add new functionality. 
+WCA project contains simple built-in dependency injection framework that allows 
+to extend existing or add new functionalities. 
 
 This document contains example of adding new ``Storage`` component
 to save metrics in external http based service, using ``requests`` and ``json`` library.
