@@ -130,7 +130,7 @@ You can use ``example.external_package:ExampleDetector`` that is already bundled
 It is recommended to build a pex file with external component and its dependencies bundled. See `prm plugin from platform-resource-manager 
 <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ as an example of such an approach.
 
-See an `example configuration file <configs/mesos/mesos_external_detector.yaml>`_ to be used with ``ExampleDetector``:
+See an `example configuration file <../configs/mesos/mesos_external_detector.yaml>`_ to be used with ``ExampleDetector``:
 
 .. code-block:: yaml
 
