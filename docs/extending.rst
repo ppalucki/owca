@@ -35,7 +35,8 @@ Built-in components
 All WCA features (detection/CMS integration) are based on internal components and use the same mechanism for initialization.
 
 From high-level standpoint, main entry point to application is only responsible for
-instantiation of python classes defined in yaml configuration, then parsing and preparing logging infrastructure and then call generic `run` method on already created `Runner` class.  `Runner` class is a main vehicle integrating all other objects together.
+instantiation of python classes defined in yaml configuration, then parsing and preparing logging infrastructure and then call generic ``run`` method on already created ``Runner`` class. 
+``Runner`` class is a main vehicle integrating all other depended objects together.
 
 For example, ``MeasurementRunner`` is a simple loop
 that uses `Node` class as interface to discover locally running tasks, collect metrics for those tasks
@@ -125,7 +126,7 @@ To integrate with custom monitoring system it is enough to provide definition of
             """store metrics; may throw FailedDeliveryException"""
             ...
 
-where `Metric <../wca/metrics.py#138`_ is simple class with structure influenced by Prometheus and `OpenMetrics initiative <https://openmetrics.io/>`_ :
+where `Metric <../wca/metrics.py#138>`_ is simple class with structure influenced by Prometheus and `OpenMetrics initiative <https://openmetrics.io/>`_ :
 
 .. code-block:: python
 
