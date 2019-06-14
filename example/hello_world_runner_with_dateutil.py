@@ -1,6 +1,7 @@
 from wca.runners import Runner
 from dateutil.utils import today
 
+
 class HelloWorldRunner(Runner):
 
     def run(self):
