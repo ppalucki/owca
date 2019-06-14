@@ -210,6 +210,8 @@ Further reading
 - `WCA Architecture 1.7.pdf`_
 - `Secure communication with SSL <docs/ssl.rst>`_
 - `Security policy <SECURITY.md>`_
+- `Configuration examples for Kubernetes and Mesos <configs/>`_
+- `Other examples (e.g. how to add new component) <examples/>`_
 
 .. _`WCA Architecture 1.7.pdf`: docs/WCA_Architecture_v1.7.pdf
 

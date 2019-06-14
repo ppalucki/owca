@@ -7,23 +7,67 @@ Introduction
 ------------
 
 WCA project contains simple built-in dependency injection framework. It allows 
-to extend existing or add new functionality. To provide new functionality, operator of WCA, has to provide
-new component defined as python class. This class has to be registered during itart time from
-command line and then configured using the configuration file.
+to extend existing or add new functionality. 
+
+This document contains example of adding new ``Storage`` component
+to save metrics in external http based service, using ``requests`` and ``json`` library.
+
+Overview
+--------
+
+To provide new functionality, operator of WCA, has to provide
+new component defined as python class. This class has to be registered upon starting with extra
+command line ``--register`` parameter and reference in configuration file.
 
 Actually all provided features are based on internal components and use the same mechanism for
 initialization.
 
 From high-level standpoint, main entry point to application is only responsible for
-instantiation of python classes defined in yaml configuration, parse and prepare logging infrastructure
-and then call generic `run` method on already created `Runner` class. `Runner` class is a main
-vehicle integrating all other objects together.
+instantiation of python classes defined in yaml configuration, then parsing and preparing logging infrastructure
+and then call generic `run` method on already created `Runner` class. 
+`Runner` class is a main vehicle integrating all other objects together.
 
-In this document when referring to `component` it means a simple python class that was registered and
+In this document when referring to `component`, it means a simple python class that was **registered** and
 by this allowed to be used in configuration file.
 
 
-For example, let's start w`MeasurementRunner` is a simple loop
+hello world
+..................
+
+Let's start with very basic thing and create ``HelloWorldRunner`` that just outputs 'Hello world!' string.
+
+With python module ``hello_world_runner.py`` containing HelloWorldRunner:
+
+.. code-block:: python
+
+    from wca.runners import Runner
+
+    class HelloWorldRunner(Runner):
+
+        def run(self):
+            print('Hello world!')
+
+
+
+you need to start WCA with following config file ``configs/:
+
+.. code-block:: yaml
+
+    runner: !HelloWorldRunner
+
+like this:
+
+.. code-block:: shell
+
+    ./dist/wca.pex -c 
+
+
+
+
+
+
+
+For example, let's start ``MeasurementRunner`` is a simple loop
 using `Node` class as interface to discover locally running tasks, collect metrics for those tasks
 and then use a `Storage` kind of component to store those metrics.
 
