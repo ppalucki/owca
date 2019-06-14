@@ -72,14 +72,14 @@ For example, to provide measure only mode, anomaly detection mode or resource al
 - ``AllocationRunner`` that allows to configure resources based on provided ``Allocator`` component instance,
 
 It is important to note, that configuration based objects (components) are static singletons available
-throughout whole application life but only accessible by parent objects.
+throughout whole application life and only accessible by parent objects.
 
 Hello world ``Runner`` example.
 ................................
 
 Let's start with very basic thing and create ``HelloWorldRunner`` that just outputs 'Hello world!' string.
 
-With python module ``hello_world_runner.py`` containing HelloWorldRunner:
+With Python module ``hello_world_runner.py`` containing ``HelloWorldRunner`` subclass of ``Runner``:
 
 .. code-block:: python
 
@@ -91,14 +91,14 @@ With python module ``hello_world_runner.py`` containing HelloWorldRunner:
             print('Hello world!')
 
 
-you need to start WCA with following `example config file <configs/hello_world/config.yaml>`_:
+you need to start WCA with following `example config file <configs/extending/hello_world.yaml>`_:
 
 .. code-block:: yaml
 
     runner: !HelloWorldRunner
 
 
-and then WCA run like this:
+and then with WCA started like this:
 
 .. code-block:: shell
 
@@ -106,7 +106,7 @@ and then WCA run like this:
 
 should output:
 
-.. code-block: shell
+.. code-block:: shell
 
     Hello world!
 
