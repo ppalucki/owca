@@ -61,7 +61,7 @@ Should output::
 Alternative options for Python 3.6 installation 
 ----------------------------------------------
 
-To you simplify python interpreter management (no need to use ``scl`` tool as prefix), 
+To simplify python interpreter management (no need to use ``scl`` tool as prefix), 
 you can use Intel Distribution for Python according to `yum-based installation guide <https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-yum-repo>`_.
 or use community maintained third-party ``epel`` repository and install ``python36`` package from there::
 
@@ -94,7 +94,7 @@ Assumptions:
 - ``/var/lib/wca`` directory exists
 - ``wca`` user and group already exists
  
-Please use following `template <../configs/wca.service>`_ as systemd ``/etc/systemd/system/wca.service`` unit file::
+Please use following `template <../configs/systemd-unit/wca.service>`_ as systemd ``/etc/systemd/system/wca.service`` unit file::
 
     [Unit]
     Description=Workload Collocation Agent
