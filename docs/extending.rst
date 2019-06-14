@@ -35,14 +35,14 @@ Built-in components
 All WCA features (detection/CMS integration) are based on internal components and use the same mechanism for initialization.
 
 From high-level standpoint, main entry point to application is only responsible for
-instantiation of python classes defined in yaml configuration, then parsing and preparing logging infrastructure and then call generic ``run`` method on already created ``Runner`` class. 
+instantiation of python classes defined in yaml configuration, then parsing and preparing logging infrastructure and then call generic ``run`` method on already created ``Runner`` instance. 
 ``Runner`` class is a main vehicle integrating all other depended objects together.
 
-For example, ``MeasurementRunner`` is a simple loop
-that uses `Node` class as interface to discover locally running tasks, collect metrics for those tasks
-and then use a `Storage` kind of component to store those metrics.
+For example, ``MeasurementRunner`` is implements simple loop
+that uses ``Node`` subclass (e.g. ``MesosNode``) instance to discover locally running tasks, then collects metrics for those tasks
+and then uses a ``Storage`` subclass to store those metrics somewhere (e.g. ``KafkaStorage`` or ``LogStorage``).
 
-Using this configuration file config.yaml:
+To illustrate that, when someone uses WCA with configuration file like this:
 
 .. code-block:: yaml
 
@@ -51,7 +51,7 @@ Using this configuration file config.yaml:
         metric_storage: !LogStorage     # subclass of Storage
             output_filename: /tmp/logs.txt
 
-effectively means running equivalent of python code:
+it effectively means running equivalent of Python code:
 
 .. code-block:: python
 
