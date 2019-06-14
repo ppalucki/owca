@@ -144,22 +144,78 @@ external http web service using post method:
 .. code-block:: python
 
     import requests, json
+    from dataclasses import dataclass
     from wca.storage import Storage
+    import logging
+
+    log = logging.getLogger(__name__)
 
     @dataclass
     class HTTPStorage(Storage):
 
-        http_endpoint: str = 'https://127.0.0.1:8000'
+        http_endpoint: str = 'http://127.0.0.1:8000'
         
-        def store(metrics):
-            requests.post(self.http_endpoint, json={metric.name: metric.value for metric in metrics})
+        def store(self, metrics):
+            log.info('sending!')
+            try:
+                requests.post(self.http_endpoint, json={metric.name: metric.value for metric in metrics}, timeout=1)
+            except requests.exceptions.ReadTimeout:
+                log.warning('timeout!')
+                pass
 
-then in can be used with ``MeasurementRunner`` with following configuration file `<configs/extending/measurement_http_storage.yaml>`_:
+
+then in can be used with ``MeasurementRunner`` with following configuration file `<../configs/extending/measurement_http_storage.yaml>`_:
 
 .. code-block:: yaml
 
     runner: !MeasurementRunner
+      node: !StaticNode
+        tasks: []                   # this disables any tasks metrics
       metrics_storage: !HTTPStorage
+
+To be able to verify that data was posted to http service correctly please start naive service
+using ``socat``:
+
+.. code-block:: shell
+
+    socat - tcp4-listen:8000,fork
+
+and then run WCA like this:
+
+.. code-block:: shell
+
+    sudo env PYTHONPATH=example PEX_INERHITPATH=1 ./dist/wca.pex -c $PWD/configs/extending/measurement_http_storage.yaml -r http_storage:HTTPStorage --root --log http_storage:info
+
+
+Expected output is:
+
+.. code-block:: shell
+
+    # from WCA:
+    2019-06-14 21:51:17,859 WARNING  {MainThread} [http_storage] timeout!
+    2019-06-14 21:51:17,862 INFO     {MainThread} [http_storage] sending!
+
+    # from socat:
+    POST / HTTP/1.1
+    Host: 127.0.0.1:8000
+    User-Agent: python-requests/2.21.0
+    Accept-Encoding: gzip, deflate
+    Accept: */*
+    Connection: keep-alive
+    Content-Length: 240
+    Content-Type: application/json
+
+    {"wca_up": 1560541957.1652732, "wca_tasks": 0, "wca_memory_usage_bytes": 50159616, 
+    "memory_usage": 1399689216, "cpu_usage_per_cpu": 1205557, 
+    "wca_duration_seconds": 1.0013580322265625e-05, 
+    "wca_duration_seconds_avg": 1.0013580322265625e-05}
+
+
+Note:
+
+- `sudo` is required to enable perf and resctrl based metrics,
+- `--log` parameter allow to specify log level for custom components
+
 
 
 
