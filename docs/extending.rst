@@ -98,11 +98,11 @@ you need to start WCA with following `example config file <configs/extending/hel
     runner: !HelloWorldRunner
 
 
-and then with WCA started like this (**tip** you can just copy-paste this command, all required example files are all in project)
+and then with WCA started like this (**tip** you can just copy-paste this command, all required example files are already in project)
 
 .. code-block:: shell
 
-    PYTHONPATH=example PEX_INERHITPATH=1 ./dist/wca.pex -c $PWD/configs/hello_world/config.yaml -r hello_world_runner:HelloWorldRunner
+    PYTHONPATH=example PEX_INERHITPATH=1 ./dist/wca.pex -c $PWD/configs/extending/hello_world.yaml -r hello_world_runner:HelloWorldRunner
 
 should output:
 
@@ -125,7 +125,8 @@ To integrate with custom monitoring system it is enough to provide definition of
             """store metrics; may throw FailedDeliveryException"""
             ...
 
-where `Metric <../wca/metrics.py#138>`_ is simple class with structure influenced by Prometheus and `OpenMetrics initiative <https://openmetrics.io/>`_ :
+where `Metric <../wca/metrics.py#138>`_ is simple class with structure influenced by `Prometheus metric model <https://prometheus.io/docs/concepts/data_model/>`_
+and `OpenMetrics initiative <https://openmetrics.io/>`_ :
 
 .. code-block:: python
 
