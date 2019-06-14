@@ -301,13 +301,22 @@ where ``example/hello_world_runner_with_dateutil.py``:
     class HelloWorldRunner(Runner):
 
         def run(self):
-            print('Hello world! Today is %s' % today)
+            print('Hello world! Today is %s' % today())
+
+then it is possible to combine two PEX files into single environment, by using
+`PEX_PATH <>`_ environment variable:
+
+.. code-block:: shell
+
+    PEX_PATH=hello_world.pex ./dist/wca.pex -c $PWD/configs/extending/hello_world.yaml -r hello_world_runner_with_dateutil:HelloWorldRunner
 
 
+outputs:
 
+.. code-block:: shell
 
+    Hello world! Today is 2019-06-14 00:00:00
 
-    
-
-
-
+Note this method works great if there is no conflicting sub dependencies (Diamond dependency problem), because only one version will be available during runtime. 
+In such case, you need to consolidate WCA and your component into single project (with common requirments) so that conflicts will be resolved during requirements gathering phase. 
+You can check Platform Resource Manager `prm component <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ as example of such approach.
