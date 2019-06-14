@@ -22,14 +22,12 @@ Overview
 
 To provide new functionality, operator of WCA, has to: 
 
-- provide new component defined as python class, 
-- this python class has to be registered upon starting with extra command line ``--register`` parameter as ``package_name.module_name:class name``) (package name is optional),
-- component name is referenced in configuration file (using name of class),
-- python module has to accessible by python interpreter for import (``PYTHONPATH`` and ``PEX_INHERITPATH`` environment variables)
+- provide new component defined as **Python class**,
+- this Python class has to be **registered** upon starting with extra command line ``--register`` parameter as ``package_name.module_name:class name``) (package name is optional),
+- component name is **referenced** in configuration file (using name of class),
+- Python module has to **accessible** by Python interpreter for import (``PYTHONPATH`` and ``PEX_INHERITPATH`` environment variables)
 
-
-In this document when referring to `component`, it means a simple python class that was **registered** and by this allowed to be used in configuration file.
-
+In this document when referring to **component**, it means a simple Python class that was **registered** and by this allowed to be used in configuration file.
 
 Built-in components
 -------------------
