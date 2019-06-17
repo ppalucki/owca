@@ -239,7 +239,7 @@ Depending on ``Runner`` component, different kinds of metrics are produced and s
    - platform topology (sockets/cores/cpus),
    - ``extra labels`` defined in WCA configuration file (e.g. own_ip),
    - labels to identify WCA version ``wca_version`` and host name (``host``) and host CPU model ``cpu_model``,
-   - (only for per-task metrics) task id (``task_id``) and name (``task_name``) and metadata acquired from orchestration system (Mesos task or Kubernetes pod labels)
+   - (only for per-task metrics) task id (``task_id``) and metadata acquired from orchestration system (Mesos task or Kubernetes pod labels)
 
 2. ``DetectionRunner`` uses ``Storage`` subclass instances:
     
