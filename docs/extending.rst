@@ -91,7 +91,7 @@ With Python module ``hello_world_runner.py`` containing ``HelloWorldRunner`` sub
             print('Hello world!')
 
 
-you need to start WCA with following `example config file <extending/hello_world.yaml>`_:
+you need to start WCA with following `example config file <../configs/extending/hello_world.yaml>`_:
 
 .. code-block:: yaml
 
@@ -145,7 +145,7 @@ Example of HTTP based ``Storage`` class
 This is simple ``Storage`` class that can be used to post metrics serialized as json to 
 external http web service using post method:
 
-(full source code  `here <example/http_storage.py>`_)
+(full source code  `here <..configs/example/http_storage.py>`_)
 
 .. code-block:: python
 
@@ -165,7 +165,7 @@ external http web service using post method:
             )
 
 
-then in can be used with ``MeasurementRunner`` with following `configuration file <extending/measurement_http_storage.yaml>`_:
+then in can be used with ``MeasurementRunner`` with following `configuration file <../configs/extending/measurement_http_storage.yaml>`_:
 
 .. code-block:: yaml
 
@@ -247,7 +247,7 @@ Depending on ``Runner`` component, different kinds of metrics are produced and s
    in ``anomalies_storage`` property:
 
    - number of anomalies detected by ``Allcocator`` class
-   - individual instances of detected anomalies encoded as metrics (more details `here <detecion.rst#representation-of-anomaly-and-metrics-in-persistent-storage>`_)
+   - individual instances of detected anomalies encoded as metrics (more details `here <detection.rst#representation-of-anomaly-and-metrics-in-persistent-storage>`_)
 
 3. ``AllocationRunner`` uses ``Storage`` subclass instances:
 
