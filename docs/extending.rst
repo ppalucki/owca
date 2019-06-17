@@ -145,7 +145,7 @@ Example of HTTP based ``Storage`` class
 This is simple ``Storage`` class that can be used to post metrics serialized as json to 
 external http web service using post method:
 
-(full source code  `here <..configs/example/http_storage.py>`_)
+(full source code  `here <../configs/example/http_storage.py>`_)
 
 .. code-block:: python
 
