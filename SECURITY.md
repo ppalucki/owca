@@ -11,6 +11,12 @@
 | 0.1.x          | :x:                |
 | < 0.1          | :x:                |
 
+## Supported external components
+
+| Name                           | Link                                                | Supported          |
+| ------------------------------ | --------------------------------------------------- | ------------------ |
+| Platform Resource Manager      | https://github.com/intel/platform-resource-manager  | :white_check_mark: |
+
 ## Reporting a Potential Security Vulnerability: 
 
 Please visit http://intel.com/security for security issue report.
