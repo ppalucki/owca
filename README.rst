@@ -183,8 +183,8 @@ Officially supported third-party components:
 
 - `Intel "Platform Resource Manager" plugin <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ - machine learning based component for both anomaly detection and allocation.
 
-:warning: Note that, those components are run as ordinary python class, without any isolation and with process privileges so there is no built-in protection against malicious external components. 
-For **security** reasons, **please use only built-in and officially supported components**. More about security `here <SECURITY.md>_`.
+:Warning: Note that, those components are run as ordinary python class, without any isolation and with process privileges so there is no built-in protection against malicious external components.  
+          For **security** reasons, **please use only built-in and officially supported components**. More about security `here <SECURITY.md>`_.
 
 
 Workloads
