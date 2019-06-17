@@ -6,4 +6,4 @@ Examples
 
 - `extra directory <extra/>`_ contains examples for extra components like: ``StaticNode`` and ``StaticAllocator``
 - `kubernetes configuration file <kubernetes/kubernetes_example_allocator.yaml>`_ shows how to run ``StaticAllocator`` with **Kubernetes**
-- `mesos configuration file <mesos/mesos_external_detector.yaml >`_ shows WCA configured to be run with Mesos in detection mode with ``ExampleDetector``
+- `mesos configuration file <mesos/mesos_external_detector.yaml>`_ shows WCA configured to be run with Mesos in detection mode with ``ExampleDetector``
