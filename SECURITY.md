@@ -19,4 +19,4 @@
 
 ## Reporting a Potential Security Vulnerability: 
 
-Please visit http://intel.com/security for security issue report.
+Please visit https://intel.com/security for security issue report.

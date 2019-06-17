@@ -98,11 +98,13 @@ you need to start WCA with following `example config file <../configs/extending/
     runner: !HelloWorldRunner
 
 
-and then with WCA started like this (**tip** you can just copy-paste this command, all required example files are already in project)
+and then with WCA started like this 
 
 .. code-block:: shell
 
     PYTHONPATH=example PEX_INERHITPATH=1 ./dist/wca.pex -c $PWD/configs/extending/hello_world.yaml -r hello_world_runner:HelloWorldRunner
+
+:Tip: You can just copy-paste this command, all required example files are already in project, but you have to build pex file first with ``make``.
 
 should output:
 
@@ -235,8 +237,9 @@ Depending on ``Runner`` component, different kinds of metrics are produced and s
    Each of those metrics has additional metadata attached (in form of labels) about:
 
    - platform topology (sockets/cores/cpus),
-   - extra labels defined in WCA configuration file (e.g. own_ip),
-   - (only per-task metrics) task id and name and metadata acquired from orchestration system (Mesos task/Kubernetes pod labels)
+   - ``extra labels`` defined in WCA configuration file (e.g. own_ip),
+   - labels to identify WCA version ``wca_version`` and host name (``host``) and host CPU model ``cpu_model``,
+   - (only for per-task metrics) task id (``task_id``) and name (``task_name``) and metadata acquired from orchestration system (Mesos task or Kubernetes pod labels)
 
 2. ``DetectionRunner`` uses ``Storage`` subclass instances:
     
@@ -310,7 +313,7 @@ where ``example/hello_world_runner_with_dateutil.py``:
             print('Hello world! Today is %s' % today())
 
 then it is possible to combine two PEX files into single environment, by using
-`PEX_PATH <>`_ environment variable:
+``PEX_PATH`` environment variable:
 
 .. code-block:: shell
 
@@ -337,9 +340,6 @@ Any children object that is used by any runner, can be replaced with extrnal com
 - ``Storage`` classes used to enable persistance for internal metrics (``*_storage`` properties),
 - ``Detector`` class to provide anomaly detection logic,
 - ``Allocator`` class to provide anomaly detection and anomaly mittigation logic (by resource allocation),
-
-
-
 
 
 
