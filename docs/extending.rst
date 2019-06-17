@@ -20,12 +20,12 @@ This document contains examples:
 Overview
 --------
 
-To provide new functionality, operator of WCA, has to: 
+To provide new functionality operator of WCA has to: 
 
 - provide new component defined as **Python class**,
-- this Python class has to be **registered** upon starting with extra command line ``--register`` parameter as ``package_name.module_name:class name``) (package name is optional),
-- component name is **referenced** in configuration file (using name of class),
-- Python module has to **accessible** by Python interpreter for import (``PYTHONPATH`` and ``PEX_INHERITPATH`` environment variables)
+- **register** this Python class upon starting with extra command line ``--register`` parameter as ``package_name.module_name:class name``) (package name is optional),
+- **reference** component name in configuration file (using name of class),
+- make Python module **accessible** by Python interpreter for import (``PYTHONPATH`` and ``PEX_INHERITPATH`` environment variables)
 
 In this document when referring to **component**, it means a simple Python class that was **registered** and by this allowed to be used in configuration file.
 
@@ -65,7 +65,7 @@ it effectively means running equivalent of Python code:
 
 
 
-For example, to provide measure only mode, anomaly detection mode or resource allocation mode, WCA contains following components:
+For example, to provide measure-only mode, anomaly detection mode or resource allocation mode, WCA contains following components:
 
 - ``MeasurementRunner`` that is only responsible for collecting metrics,
 - ``DetectionRunner`` that extends ``MeasurementRunner`` to allow anomaly detection and generate additional metrics,
@@ -91,7 +91,7 @@ With Python module ``hello_world_runner.py`` containing ``HelloWorldRunner`` sub
             print('Hello world!')
 
 
-you need to start WCA with following `example config file <configs/extending/hello_world.yaml>`_:
+you need to start WCA with following `example config file <extending/hello_world.yaml>`_:
 
 .. code-block:: yaml
 
@@ -115,7 +115,7 @@ Example: Integration with custom monitoring system
 --------------------------------------------------
 
 To integrate with custom monitoring system it is enough to provide definition of custom ``Storage`` class.
-``Storage`` class is a simple interface that expose just one method ``store`` as defined below:
+``Storage`` class is a simple interface that exposes just one method ``store`` as defined below:
 
 .. code-block:: python
 
@@ -145,7 +145,7 @@ Example of HTTP based ``Storage`` class
 This is simple ``Storage`` class that can be used to post metrics serialized as json to 
 external http web service using post method:
 
-(full source code  `here <../example/http_storage.py>`_)
+(full source code  `here <example/http_storage.py>`_)
 
 .. code-block:: python
 
@@ -165,7 +165,7 @@ external http web service using post method:
             )
 
 
-then in can be used with ``MeasurementRunner`` with following `configuration file <../configs/extending/measurement_http_storage.yaml>`_:
+then in can be used with ``MeasurementRunner`` with following `configuration file <extending/measurement_http_storage.yaml>`_:
 
 .. code-block:: yaml
 
@@ -247,7 +247,7 @@ Depending on ``Runner`` component, different kinds of metrics are produced and s
    in ``anomalies_storage`` property:
 
    - number of anomalies detected by ``Allcocator`` class
-   - individual instances of detected anomalies encoded as metrics (more details `here <detecion.rst#representation-of-anomaly-and-metrics-in-persistent-storage>_`)
+   - individual instances of detected anomalies encoded as metrics (more details `here <detecion.rst#representation-of-anomaly-and-metrics-in-persistent-storage>`_)
 
 3. ``AllocationRunner`` uses ``Storage`` subclass instances:
 
@@ -263,7 +263,7 @@ Depending on ``Runner`` component, different kinds of metrics are produced and s
 
    - number of resource allocations performed during last iteration,
    - details about performed allocations like: number of CPU shares or CPU quota or cache allocation,
-   - more details `here <docs/allocation.rst#taskallocations-metrics>`
+   - more details `here <docs/allocation.rst#taskallocations-metrics>`_
 
 Note that it is possible by using `YAML anchors and aliases <https://yaml.org/refcard.html>`_ to configure that the same instance of ``Storage`` should be used to store all kinds of metrics:
 
@@ -285,7 +285,7 @@ This approach can help to save resources (like connections), share state or simp
 Bundling additional dependencies for external component.
 --------------------------------------------------------
 
-If component requires some additional dependencies and you do not want to dirty
+If component requires some additional dependencies and you do not want dirty
 system interpreter library, the best way to bundle new component is to
 use `PEX <https://github.com/pantsbuild/pex>`_ file to package all source code including dependencies.
 
@@ -325,4 +325,4 @@ outputs:
 
 Note this method works great if there is no conflicting sub dependencies (Diamond dependency problem), because only one version will be available during runtime. 
 In such case, you need to consolidate WCA and your component into single project (with common requirments) so that conflicts will be resolved during requirements gathering phase. 
-You can check Platform Resource Manager `prm component <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ as example of such approach.
+You can check Platform Resource Manager `prm component <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ as an example of such approach.
