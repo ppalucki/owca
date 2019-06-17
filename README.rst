@@ -172,17 +172,18 @@ Following built-in components are available (stable API):
 - `NOPAllocator <wca/allocators.py#L98>`_ dummy "no operation" allocator that returns no metrics, nor anomalies and does not configure resources. See `Detection API <docs/detection.rst>`_ for more details.
 - `KafkaStorage <wca/storage.py#L253>`_ logs metrics to `Kafka streaming platform <https://kafka.apache.org/>`_ using configurable topics.
 - `LogStorage <wca/storage.py#L49>`_ logs metrics to standard error or to a file at configurable location.
+- `SSL <wca/security.py#L116>`_ to enabled secure communication with external components (more information `here <docs/ssl.rst>`_).
 
 Following built-in components are available as provisional API:
 
-- `StaticNode <wca/extra/static_node.py>`_ to support static list of tasks (does not require full orchestration software stack),
-- `StaticAllocator <wca/extra/static_allocator.py>`_ to support simple rules based logic for resource allocation.
+- `StaticNode <wca/extra/static_node.py#L28>`_ to support static list of tasks (does not require full orchestration software stack),
+- `StaticAllocator <wca/extra/static_allocator.py#L108>`_ to support simple rules based logic for resource allocation.
 
 Officially supported third-party components:
 
 - `Intel "Platform Resource Manager" plugin <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ - machine learning based component for both anomaly detection and allocation.
 
-Note that, those components are run as ordinary python class, without any isolation and with process privileges so there is no built-in protection against malicious external components. 
+:warning: Note that, those components are run as ordinary python class, without any isolation and with process privileges so there is no built-in protection against malicious external components. 
 For **security** reasons, **please use only built-in and officially supported components**. More about security `here <SECURITY.md>_`.
 
 
