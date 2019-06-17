@@ -12,20 +12,20 @@ Introduction
 WCA project contains simple built-in dependency injection framework that allows 
 to extend existing or add new functionalities. 
 
-This document contains examples:
+This document contains examples of:
 
-- simple ``Runner`` that outputs "Hello World!",
-- HTTP based ``Storage`` component to save metrics in external http based service, using ``requests`` and ``json`` library.
+- simple ``Runner`` that outputs ``"Hello World!"``,
+- HTTP based ``Storage`` component to save metrics in external http based service, using ``requests`` library.
 
 Overview
 --------
 
-To provide new functionality, operator of WCA, has to: 
+To provide new functionality using external compoent, operator of WCA, has to: 
 
 - provide new component defined as **Python class**,
-- this Python class has to be **registered** upon starting with extra command line ``--register`` parameter as ``package_name.module_name:class name``) (package name is optional),
+- this Python class has to be **registered** upon starting with extra command line ``--register`` parameter as ``package_name.module_name:class_name``) (package name is optional),
 - component name is **referenced** in configuration file (using name of class),
-- Python module has to **accessible** by Python interpreter for import (``PYTHONPATH`` and ``PEX_INHERITPATH`` environment variables)
+- Python module has to be **accessible** by Python interpreter for import (``PYTHONPATH`` and ``PEX_INHERITPATH`` or ``PEX_PATH`` environment variables, example below)
 
 In this document when referring to **component**, it means a simple Python class that was **registered** and by this allowed to be used in configuration file.
 
@@ -326,3 +326,21 @@ outputs:
 Note this method works great if there is no conflicting sub dependencies (Diamond dependency problem), because only one version will be available during runtime. 
 In such case, you need to consolidate WCA and your component into single project (with common requirments) so that conflicts will be resolved during requirements gathering phase. 
 You can check Platform Resource Manager `prm component <https://github.com/intel/platform-resource-manager/tree/master/prm>`_ as example of such approach.
+
+
+Officially support extensions points
+-------------------------------------
+
+Any children object that is used by any runner, can be replaced with extrnal component, but WCA was designed to be extended, by providing following components:
+
+- ``Node`` class used by all ``Runners`` to perform task discovery,
+- ``Storage`` classes used to enable persistance for internal metrics (``*_storage`` properties),
+- ``Detector`` class to provide anomaly detection logic,
+- ``Allocator`` class to provide anomaly detection and anomaly mittigation logic (by resource allocation),
+
+
+
+
+
+
+
