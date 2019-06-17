@@ -16,7 +16,7 @@ class HTTPStorage(Storage):
         try:
             requests.post(
                 self.http_endpoint,
-                json={metric.name: metric.value for metric in metrics}, 
+                json={metric.name: metric.value for metric in metrics},
                 timeout=1
             )
         except requests.exceptions.ReadTimeout:
