@@ -16,6 +16,7 @@
 import ctypes
 import logging
 import os
+import statistics
 import struct
 from typing import List, Dict, BinaryIO, Iterable
 
@@ -99,28 +100,54 @@ def _parse_online_cpus_string(raw_string) -> List[int]:
 def _parse_event_groups(file, event_names) -> Measurements:
     """Reads event values from the event file"""
     measurements = {}
+    scaling_factors = []
     size = struct.unpack('q', file.read(8))[0]
     assert size == len(event_names)
     time_enabled = struct.unpack('q', file.read(8))[0]
     time_running = struct.unpack('q', file.read(8))[0]
     for current_event in range(0, size):
         raw_value = struct.unpack('q', file.read(8))[0]
-        measurements[event_names[current_event]] = _scale_counter_value(
+        measurement, scaling_factor = _scale_counter_value(
             raw_value,
             time_enabled,
             time_running
         )
+        measurements[event_names[current_event]] = measurement
+
+        scaling_factors.append(scaling_factor)
         # id is unused, but we still need to read the whole struct
         struct.unpack('q', file.read(8))[0]
+
+    # we add 2 non-standard metrics based on unpacked values,
+    # we need to collect scaling factors here
+    measurements[MetricName.SCALING_FACTOR_AVG] = statistics.mean(scaling_factors)
+    measurements[MetricName.SCALING_FACTOR_MAX] = max(scaling_factors)
     return measurements
 
 
 def _aggregate_measurements(measurements_per_cpu, event_names) -> Measurements:
-    """Sums measurements values from all cpus"""
+    """Sums measurements values from all cpus, handles average and max scaling factors"""
+    # because we later add 2 non-standard metrics,
+    # we shouldn't return them when they are dependent on other events
+    if len(event_names) == 0:
+        return {}
+
     aggregated_measurements: Measurements = {metric_name: 0 for metric_name in event_names}
+    aggregated_measurements.update(**{MetricName.SCALING_FACTOR_MAX: 0,
+                                      MetricName.SCALING_FACTOR_AVG: 0})
     for cpu, measurements_from_single_cpu in measurements_per_cpu.items():
-        for metric_name, metric_value in measurements_from_single_cpu.items():
-            aggregated_measurements[metric_name] += metric_value
+        for metric_name in event_names:
+            aggregated_measurements[metric_name] += measurements_from_single_cpu[metric_name]
+        aggregated_measurements[MetricName.SCALING_FACTOR_MAX] = max(
+            aggregated_measurements[MetricName.SCALING_FACTOR_MAX],
+            measurements_from_single_cpu[MetricName.SCALING_FACTOR_MAX]
+        )
+        aggregated_measurements[MetricName.SCALING_FACTOR_AVG] += measurements_from_single_cpu[
+            MetricName.SCALING_FACTOR_AVG]
+    if len(measurements_per_cpu) > 0:
+        aggregated_measurements[MetricName.SCALING_FACTOR_AVG] /= len(
+            measurements_per_cpu)  # assuming even number of measurements per CPU
+
     return aggregated_measurements
 
 
@@ -140,24 +167,26 @@ def _get_cgroup_fd(cgroup) -> int:
     return os.open(path, os.O_RDONLY)
 
 
-def _scale_counter_value(raw_value, time_enabled, time_running) -> float:
+def _scale_counter_value(raw_value, time_enabled, time_running) -> (float, float):
     """
     Scales raw counter measurement with time_enabled and time_running values,
     according to https://perf.wiki.kernel.org/index.php/Tutorial#multiplexing_and_scaling_events
+
+    Return (scaled metric value, scaling factor)
     """
     # After the start of measurement, first few readings may contain only 0's
     if time_running == 0:
-        return 0.0
+        return 0.0, 0.0
     if time_enabled == 0:
         log.warning("Event time enabled equals 0")
-        return 0.0
+        return 0.0, 0.0
     if time_running != time_enabled:
-        scaling_rate = float(time_enabled) / float(time_running)
-        if scaling_rate > SCALING_RATE_WARNING_THRESHOLD:
-            log.warning(f'Measurement scaling rate: {scaling_rate}')
-        return round(float(raw_value) * scaling_rate)
+        scaling_factor = float(time_enabled) / float(time_running)
+        if scaling_factor > SCALING_RATE_WARNING_THRESHOLD:
+            log.warning("Measurement scaling rate: %f", scaling_factor)
+        return round(float(raw_value) * scaling_factor), scaling_factor
     else:
-        return float(raw_value)
+        return float(raw_value), 1.0
 
 
 def _parse_raw_event_name(event_name: str) -> int:
@@ -327,12 +356,12 @@ class PerfCounters:
 
     def _read_events(self) -> Measurements:
         """Reads, scales and aggregates event measurements"""
-        scaled_measurements_per_cpu: Dict[int, Measurements] = {}
+        scaled_measurements_and_factor_per_cpu: Dict[int, Measurements] = {}
         for cpu, event_leader_file in self._group_event_leader_files.items():
-            scaled_measurements_per_cpu[cpu] = _parse_event_groups(event_leader_file,
-                                                                   self._event_names)
+            scaled_measurements_and_factor_per_cpu[cpu] = _parse_event_groups(event_leader_file,
+                                                                              self._event_names)
 
-        return _aggregate_measurements(scaled_measurements_per_cpu, self._event_names)
+        return _aggregate_measurements(scaled_measurements_and_factor_per_cpu, self._event_names)
 
 
 class UnableToOpenPerfEvents(Exception):

@@ -28,15 +28,17 @@ from wca.perf import _parse_raw_event_name
 from tests.testing import create_open_mock
 
 
-@pytest.mark.parametrize("raw_value,time_enabled,time_running,expected", [
-    (300, 200, 100, 600),
-    (0, 0, 0, 0),
-    (200, 0, 100, 0),
-    (200, 100, 0, 0),
-    (300, 200, 200, 300),
+@pytest.mark.parametrize("raw_value,time_enabled,time_running,expected_value,expected_factor", [
+    (300, 200, 100, 600, 2.0),
+    (0, 0, 0, 0, 0),
+    (200, 0, 100, 0, 0),
+    (200, 100, 0, 0, 0),
+    (300, 200, 200, 300, 1.0),
 ])
-def test_scale_counter_value(raw_value, time_running, time_enabled, expected):
-    assert perf._scale_counter_value(raw_value, time_enabled, time_running) == expected
+def test_scale_counter_value(raw_value, time_running, time_enabled, expected_value,
+                             expected_factor):
+    assert perf._scale_counter_value(raw_value, time_enabled, time_running) == (
+        expected_value, expected_factor)
 
 
 @patch('os.open', return_value=10)
@@ -79,7 +81,9 @@ def test_parse_online_cpus_string(raw_string, expected):
     (BytesIO(b"\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
              b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x4a\x16\x00\x00\x00\x00\x00\x00"),
      [metrics.MetricName.CYCLES],
-     {metrics.MetricName.CYCLES: 0}
+     {metrics.MetricName.CYCLES: 0,
+      metrics.MetricName.SCALING_FACTOR_AVG: 0,
+      metrics.MetricName.SCALING_FACTOR_MAX: 0}
      ),
     # case with no scaling
     (BytesIO(b"\x03\x00\x00\x00\x00\x00\x00\x00\x26\xe7\xea\x29\x01\x00\x00\x00\x26\xe7\xea\x29"
@@ -88,7 +92,9 @@ def test_parse_online_cpus_string(raw_string, expected):
              b"\x00\x00\x00\x00\x1f\x17\x00\x00\x00\x00\x00\x00"),
      [metrics.MetricName.INSTRUCTIONS, metrics.MetricName.CYCLES, metrics.MetricName.CACHE_MISSES],
      {metrics.MetricName.INSTRUCTIONS: 36995493542, metrics.MetricName.CYCLES: 19462159816,
-      metrics.MetricName.CACHE_MISSES: 4442136}
+      metrics.MetricName.CACHE_MISSES: 4442136,
+      metrics.MetricName.SCALING_FACTOR_AVG: 1.0,
+      metrics.MetricName.SCALING_FACTOR_MAX: 1.0}
      ),
     # case with 50% scaling factor
     (BytesIO(b"\x03\x00\x00\x00\x00\x00\x00\x00\xb2\xef\xff\x29\x01\x00\x00\x00\x07\x13\x08\x95"
@@ -97,7 +103,10 @@ def test_parse_online_cpus_string(raw_string, expected):
              b"\x00\x00\x00\x00\x5f\x19\x00\x00\x00\x00\x00\x00"),
      [metrics.MetricName.INSTRUCTIONS, metrics.MetricName.CYCLES, metrics.MetricName.CACHE_MISSES],
      {metrics.MetricName.INSTRUCTIONS: 36900158682, metrics.MetricName.CYCLES: 19436397211,
-      metrics.MetricName.CACHE_MISSES: 2836869}
+      metrics.MetricName.CACHE_MISSES: 2836869,
+      # TODO: assert for 2.0 with some margin
+      metrics.MetricName.SCALING_FACTOR_AVG: 1.9995750600302817,
+      metrics.MetricName.SCALING_FACTOR_MAX: 1.9995750600302817}
      )
 ])
 def test_parse_event_groups(file, event_names, expected):
@@ -109,17 +118,23 @@ def test_parse_event_groups(file, event_names, expected):
             {
                 0: {
                     metrics.MetricName.CYCLES: 600,
-                    metrics.MetricName.INSTRUCTIONS: 400
+                    metrics.MetricName.INSTRUCTIONS: 400,
+                    metrics.MetricName.SCALING_FACTOR_AVG: 1.5,
+                    metrics.MetricName.SCALING_FACTOR_MAX: 2.0,
                 },
                 1: {
                     metrics.MetricName.CYCLES: 500,
-                    metrics.MetricName.INSTRUCTIONS: 300
+                    metrics.MetricName.INSTRUCTIONS: 300,
+                    metrics.MetricName.SCALING_FACTOR_AVG: 1.0,
+                    metrics.MetricName.SCALING_FACTOR_MAX: 1.0,
                 }
             },
             [metrics.MetricName.CYCLES, metrics.MetricName.INSTRUCTIONS],
             {
                 metrics.MetricName.CYCLES: 1100,
-                metrics.MetricName.INSTRUCTIONS: 700
+                metrics.MetricName.INSTRUCTIONS: 700,
+                metrics.MetricName.SCALING_FACTOR_AVG: 1.25,
+                metrics.MetricName.SCALING_FACTOR_MAX: 2.0,
             }
     ),
 ])
@@ -147,7 +162,9 @@ def test_get_online_cpus(_parse_online_cpu_string_mock, open_mock):
 @patch('wca.perf.PerfCounters._open')
 def test_read_metrics(_open_mock, _get_cgroup_fd_mock):
     prf = perf.PerfCounters('/mycgroup', [metrics.MetricName.CYCLES])
-    assert prf.get_measurements() == {metrics.MetricName.CYCLES: 0}
+    assert prf.get_measurements() == {metrics.MetricName.CYCLES: 0,
+                                      metrics.MetricName.SCALING_FACTOR_AVG: 0,
+                                      metrics.MetricName.SCALING_FACTOR_MAX: 0}
 
 
 @patch('wca.perf.LIBC.ioctl', return_value=1)

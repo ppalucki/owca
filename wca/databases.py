@@ -17,14 +17,13 @@ import string
 import requests
 import json
 import base64
-import urllib.parse
 
 from abc import ABC
 from typing import Optional, List
 
 from dataclasses import dataclass
 
-from wca.config import assure_type, Numeric, Path
+from wca.config import assure_type, Numeric, ValidationError
 from wca.security import SSL
 
 log = logging.getLogger(__name__)
@@ -117,7 +116,7 @@ class ZookeeperDatabase(Database):
         from kazoo.client import KazooClient
 
         if self.ssl:
-            if isinstance(self.ssl.server_verify, Path):
+            if isinstance(self.ssl.server_verify, str):
                 self._client = KazooClient(
                         hosts=self.hosts,
                         timeout=self.timeout,
@@ -127,17 +126,18 @@ class ZookeeperDatabase(Database):
                         certfile=self.ssl.client_cert_path,
                         keyfile=self.ssl.client_key_path,
                         )
-            else:
+            elif isinstance(self.ssl.server_verify, bool):
                 self._client = KazooClient(
                         hosts=self.hosts,
                         timeout=self.timeout,
                         use_ssl=True,
-                        ca=self.ssl.server_verify,
                         verify_certs=self.ssl.server_verify,
                         certfile=self.ssl.client_cert_path,
                         keyfile=self.ssl.client_key_path,
                         )
 
+            else:
+                raise ValidationError('SSL server verify must be type of Path or boolean!')
         else:
             self._client = KazooClient(
                     hosts=self.hosts,
@@ -191,15 +191,14 @@ class EtcdDatabase(Database):
 
         for host in self.hosts:
             try:
-                api_url = urllib.parse.urljoin(host, self.api_path)
-                full_url = urllib.parse.urljoin(api_url, url)
+                full_url = '{}{}{}'.format(host, self.api_path, url)
                 if self.ssl:
                     r = requests.post(
                             full_url,
                             data=json.dumps(data),
                             timeout=self.timeout,
                             verify=self.ssl.server_verify,
-                            cert=self.ssl.get_certs())
+                            cert=self.ssl.get_client_certs())
                 else:
                     r = requests.post(
                             full_url,
