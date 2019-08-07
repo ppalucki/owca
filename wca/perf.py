@@ -183,7 +183,7 @@ def _scale_counter_value(raw_value, time_enabled, time_running) -> (float, float
     if time_running != time_enabled:
         scaling_factor = float(time_enabled) / float(time_running)
         if scaling_factor > SCALING_RATE_WARNING_THRESHOLD:
-            log.warning("Measurement scaling rate: %f", scaling_factor)
+            log.debug("Measurement scaling rate: %f", scaling_factor)
         return round(float(raw_value) * scaling_factor), scaling_factor
     else:
         return float(raw_value), 1.0
