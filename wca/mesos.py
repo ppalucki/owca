@@ -151,7 +151,11 @@ class MesosNode(Node):
                             'Ignoring this task. Reason: %s', task_name, e)
                 continue
 
+            task_name = launched_task['name']
+
             labels = {label['key']: label['value'] for label in launched_task['labels']['labels']}
+            # Extend labels with 'task_name'.
+            labels['task_name'] = task_name
 
             # Extract scalar resources.
             resources = dict()
