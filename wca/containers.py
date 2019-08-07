@@ -218,6 +218,7 @@ class Container(ContainerInterface):
                  enable_derived_metrics: bool = False):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
+        assert len(self._name) > 0, 'Container name cannot be empty string!'
         self._allocation_configuration = allocation_configuration
         self._rdt_information = rdt_information
         self._resgroup = resgroup

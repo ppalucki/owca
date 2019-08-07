@@ -90,6 +90,7 @@ class ResGroup:
             return
 
         log.log(logger.TRACE, 'resctrl: write(%s): number_of_pids=%r', tasks_filepath, len(pids))
+        ftasks = None
         try:
             ftasks = open(tasks_filepath, 'w')
             with SetEffectiveRootUid():
@@ -117,7 +118,8 @@ class ResGroup:
             try:
                 # Try what we can to close the file but it is expected
                 # to fails because the wrong # data is waiting to be flushed
-                ftasks.close()
+                if ftasks is not None:
+                    ftasks.close()
             except (ProcessLookupError, FileNotFoundError, OSError):
                 log.warning('Could not close resctrl/tasks file - ignored!'
                             '(side-effect of previous warning!)')
@@ -137,6 +139,8 @@ class ResGroup:
         """Adds the pids to the resctrl group and creates mongroup with the pids.
            If the resctrl group does not exists creates it (lazy creation).
            If the mongroup exists adds pids to the group (no error will be thrown)."""
+        assert mongroup_name is not None and len(mongroup_name) > 0, 'mongroup_name cannot be empty'
+
         if self.name != RESCTRL_ROOT_NAME:
             log.debug('creating resctrl group %r', self.name)
             self._create_controlgroup_directory()
