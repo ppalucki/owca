@@ -67,15 +67,24 @@ class MesosTask(Task):
 def find_cgroup(pid):
     """ Returns cgroup_path relative to 'cpu' subsystem based on /proc/{pid}/cgroup
     with leading '/'"""
-
-    with open(f'/proc/{pid}/cgroup') as f:
-        for line in f:
+    fname = f'/proc/{pid}/cgroup'
+    with open(fname) as f:
+        lines = f.readlines()
+        for line in lines:
             _, subsystems, path = line.strip().split(':')
             subsystems = subsystems.split(',')
             if CGROUP_DEFAULT_SUBSYSTEM in subsystems:
+                if path == '/':
+                    raise MesosCgroupNotFoundException(
+                        'Mesos executor pid=%s found in root cgroup ("/") for %s subsystem in %r. '
+                        'Possible explanation: '
+                        ' cgroups/cpu isolator is missing, initialization races'
+                        ' or unsupported Mesos software stack'
+                        % (pid, CGROUP_DEFAULT_SUBSYSTEM, fname))
                 return path
-        else:
-            raise MesosCgroupNotFoundException
+
+        raise MesosCgroupNotFoundException(
+            '%r controller not found for pid=%r in %s' % (CGROUP_DEFAULT_SUBSYSTEM, pid, fname))
 
 
 @dataclass
@@ -133,12 +142,13 @@ class MesosNode(Node):
                 continue
 
             executor_pid = last_status['container_status']['executor_pid']
+            task_name = launched_task['name']
 
             try:
                 cgroup_path = find_cgroup(executor_pid)
-            except MesosCgroupNotFoundException:
-                logging.warning(f'Cannot find pid/cgroup mesos path for {executor_pid}. '
-                                f'Ignoring task (inconsistent state returned from Mesos).')
+            except MesosCgroupNotFoundException as e:
+                log.warning('Cannot determine proper cgroup for task=%r! '
+                            'Ignoring this task. Reason: %s', task_name, e)
                 continue
 
             labels = {label['key']: label['value'] for label in launched_task['labels']['labels']}
@@ -151,7 +161,7 @@ class MesosNode(Node):
 
             tasks.append(
                 MesosTask(
-                    name=launched_task['name'],
+                    name=task_name,
                     executor_pid=executor_pid,
                     cgroup_path=cgroup_path,
                     subcgroups_paths=[],

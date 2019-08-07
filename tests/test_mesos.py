@@ -17,9 +17,9 @@ from unittest.mock import patch
 
 import pytest
 
+from tests.testing import create_json_fixture_mock, create_open_mock
 from wca.config import ValidationError
 from wca.mesos import MesosNode, MesosTask
-from tests.testing import create_json_fixture_mock
 
 
 @patch('requests.post', return_value=create_json_fixture_mock('mesos_get_state', __file__))
@@ -48,6 +48,16 @@ def test_get_tasks(find_cgroup_mock, post_mock):
         task_id='root-staging14-cassandra--9043-0-9ee9fbf1-b51b-4bb3-9748-6a4327fd7e0e',
         resources={'mem': 2048.0, 'cpus': 8.0, 'disk': 10240.0}
     )
+
+
+@patch('requests.post', return_value=create_json_fixture_mock('mesos_get_state', __file__))
+@patch('builtins.open', new=create_open_mock({
+    "/proc/32620/cgroup": "2:cpuacct,cpu:/",
+}))
+def test_get_tasks_with_wrong_cgroup(post_mock):
+    node = MesosNode()
+    tasks = set(node.get_tasks())  # Wrap with set to make sure that hash is implemented.
+    assert len(tasks) == 0
 
 
 @pytest.mark.parametrize(
