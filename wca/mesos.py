@@ -78,7 +78,7 @@ def find_cgroup(pid):
                     raise MesosCgroupNotFoundException(
                         'Mesos executor pid=%s found in root cgroup ("/") for %s subsystem in %r. '
                         'Possible explanation: '
-                        ' cgroups/cpu isolator is missing, initialization races' 
+                        ' cgroups/cpu isolator is missing, initialization races'
                         ' or unsupported Mesos software stack'
                         % (pid, CGROUP_DEFAULT_SUBSYSTEM, fname))
                 return path
