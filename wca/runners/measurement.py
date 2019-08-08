@@ -149,11 +149,13 @@ class MeasurementRunner(Runner):
         """Check privileges, RDT availability and prepare internal state.
         Can return error code that should stop Runner.
         """
-        if not security.are_privileges_sufficient(self._rdt_enabled):
-            log.error("Impossible to use perf_event_open/resctrl subsystems. "
-                      "You need to: adjust /proc/sys/kernel/perf_event_paranoid (set to -1); "
-                      "or has CAP_DAC_OVERRIDE and CAP_SETUID capabilities set."
-                      "You can run process as root too.")
+        if not security.are_privileges_sufficient():
+            log.error("Insufficient privileges! "
+                      "Impossible to use perf_event_open/resctrl subsystems. "
+                      "For unprivileged user it is needed to: "
+                      "adjust /proc/sys/kernel/perf_event_paranoid (set to -1); "
+                      "and has CAP_DAC_OVERRIDE and CAP_SETUID capabilities set and"
+                      "SECBIT_NO_SETUID_FIXUP secure bit set.")
             return 1
 
         # Initialization (auto discovery Intel RDT features).
