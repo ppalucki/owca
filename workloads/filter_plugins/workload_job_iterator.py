@@ -16,7 +16,6 @@ def workload_job_iterator(workloads_versions, job_id):
       {3, big, 0}, {3, big, 1} ]
     """
     r = []
-    i = 0
     for workload_version_name, workload_version in workloads_versions.items():
 
         try:
@@ -31,7 +30,6 @@ def workload_job_iterator(workloads_versions, job_id):
                 r.append({'workload_instance_index': workload_instance_index,
                           'workload_version_name': workload_version_name,
                           'job_replica_index': job_replica_index})
-            i += 1
     return r
 
 
