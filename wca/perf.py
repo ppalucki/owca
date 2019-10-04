@@ -129,7 +129,7 @@ def _get_cgroup_fd(cgroup) -> int:
     # descriptor we receive from os.open
     try:
         return os.open(path, os.O_RDONLY)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         raise MissingMeasurementException(
             'cannot initialize perf for cgroup %r - directory not found' % cgroup)
 
