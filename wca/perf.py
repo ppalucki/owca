@@ -22,7 +22,7 @@ from typing import List, Dict, BinaryIO, Iterable
 
 from wca import logger
 from wca import perf_const as pc
-from wca.metrics import Measurements, MetricName
+from wca.metrics import Measurements, MetricName, MissingMeasurementException
 from wca.platforms import Platform, CPUCodeName
 
 LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
@@ -127,7 +127,11 @@ def _get_cgroup_fd(cgroup) -> int:
     path = os.path.join('/sys/fs/cgroup/perf_event', cgroup)
     # cgroup is a directory, so we can't use fdopen on the file
     # descriptor we receive from os.open
-    return os.open(path, os.O_RDONLY)
+    try:
+        return os.open(path, os.O_RDONLY)
+    except FileNotFoundError as e:
+        raise MissingMeasurementException(
+            'cannot initialize perf for cgroup %r - directory not found' % cgroup)
 
 
 def _scale_counter_value(raw_value, time_enabled, time_running) -> (float, float):
