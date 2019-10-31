@@ -1,6 +1,7 @@
 import logging
 from typing import List, Dict
-# from pprint import pprint
+from pprint import pprint
+import math
 
 from dataclasses import dataclass
 
@@ -19,10 +20,10 @@ class NUMAAllocator(Allocator):
     # parse15
     # preferences_threshold: float = 0.66
     preferences_threshold: float = 0.0  # always migrate
-    memory_migrate: bool = True
+    memory_migrate: bool = False
 
     # use candidate
-    candidate = True
+    candidate = False
 
     def allocate(
             self,
@@ -86,10 +87,10 @@ class NUMAAllocator(Allocator):
                 (task,
                  _get_task_memory_limit(tasks_measurements[task], total_memory),
                  _get_numa_node_preferences(tasks_measurements[task], platform)))
-        # tasks_memory = sorted(tasks_memory, reverse=True, key=lambda x: x[1])
+        tasks_memory = sorted(tasks_memory, reverse=True, key=lambda x: x[1])
         # FOR DEBUGGING PURPOSES just sort by name (it should work the same assuming
         # memory is equal for all tasks)
-        tasks_memory = sorted(tasks_memory, reverse=False, key=lambda x: x[0])  # by name
+        # tasks_memory = sorted(tasks_memory, reverse=False, key=lambda x: x[0])  # by name
         # pprint(tasks_memory)
 
         # Current state of the system
@@ -133,9 +134,14 @@ class NUMAAllocator(Allocator):
                 decode_listformat(tasks_allocations[task][AllocationType.CPUSET_CPUS]),
                 platform.node_cpus)
             most_used_node = _get_most_used_node(preferences)
+            most_used_nodes = _get_most_used_node_v2(preferences)
             best_memory_node = _get_best_memory_node(memory, balanced_memory)
+            best_memory_nodes = _get_best_memory_node_v3(memory, balanced_memory)
             most_free_memory_node = \
                 _get_most_free_memory_node(memory,
+                                           platform.measurements[MetricName.MEM_NUMA_FREE])
+            most_free_memory_nodes = \
+                _get_most_free_memory_node_v3(memory,
                                            platform.measurements[MetricName.MEM_NUMA_FREE])
             extra_metrics.extend([
                 Metric('numa__task_current_node', value=current_node,
@@ -170,8 +176,10 @@ class NUMAAllocator(Allocator):
             # print("Best memory node: %d" % best_memory_node)
             # print("Best free memory node: %d" % most_free_memory_node)
 
-            log.debug("Task %s: Most used node: %d, Best free node: %d, Best memory node: %d" %
-                      (task, most_used_node, most_free_memory_node, best_memory_node))
+            # log.debug("Task %s: Most used node: %d, Best free node: %d, Best memory node: %d" %
+            #           (task, most_used_node, most_free_memory_node, best_memory_node))
+            log.debug("Task %s: Most used node: %d (%s), Best free node: %s, Best memory node: %s" %
+                      (task, most_used_node, most_used_nodes, most_free_memory_nodes, best_memory_nodes))
 
             # if not yet task found for balancing
             if balance_task is None and balance_task_node is None:
@@ -181,7 +189,18 @@ class NUMAAllocator(Allocator):
                     log.debug("   THRESHOLD: not most of the memory balanced, continue")
                     continue
 
-                if most_used_node == best_memory_node or most_used_node == most_free_memory_node:
+                # if most_used_node == best_memory_node or most_used_node == most_free_memory_node:
+                if len(most_used_nodes.intersection(best_memory_nodes)) == 1:
+                    log.debug("   OK: found task for best memory node")
+                    balance_task = task
+                    balance_task_node = list(most_used_nodes.intersection(best_memory_nodes))[0]
+
+                elif len(most_used_nodes.intersection(most_free_memory_nodes)) == 1:
+                    log.debug("   OK: found task for most free memory node")
+                    balance_task = task
+                    balance_task_node = list(most_used_nodes.intersection(most_free_memory_nodes))[0]
+
+                elif most_used_node in best_memory_nodes or most_used_node in most_free_memory_nodes:
                     log.debug("   OK: found task for balancing")
                     balance_task = task
                     balance_task_node = most_used_node
@@ -251,7 +270,6 @@ class NUMAAllocator(Allocator):
         #     allocations[task] = {
         #         AllocationType.CPUSET_MEM_MIGRATE: memory_migrate,
         #     }
-
         return allocations, [], extra_metrics
 
 
@@ -319,3 +337,57 @@ def _get_most_free_memory_node(memory, node_memory_free):
     # print('free:')
     # pprint(free_nodes)
     return free_nodes[0][0]
+
+def _get_best_memory_node_v2(memory, balanced_memory):
+    """for equal task memory, choose node with less allocated memory by WCA"""
+    d = {}
+    for node in balanced_memory:
+        d[node] = round(math.log1p((memory / (sum([k[1] for k in balanced_memory[node]]) + memory))*100),0)
+    best = sorted(d.items(), reverse=True, key=lambda x: x[1])
+    z = best[0][1]
+    best_nodes = [x[0] for x in best if x[1] == z]
+    print('best v2:')
+    pprint((best, best_nodes))
+    return best_nodes
+
+def _get_most_free_memory_node_v2(memory, node_memory_free):
+    d = {}
+    for node in node_memory_free:
+        d[node] = round(math.log1p((memory / node_memory_free[node]) * 100),0)
+    free_nodes = sorted(d.items(), key=lambda x: x[1])
+    z = free_nodes[0][1]
+    best_free_nodes = [x[0] for x in free_nodes if x[1] == z]
+    print('free v2:')
+    pprint((free_nodes, best_free_nodes))
+    return best_free_nodes
+
+def _get_best_memory_node_v3(memory, balanced_memory):
+    """for equal task memory, choose node with less allocated memory by WCA"""
+    d = {}
+    for node in balanced_memory:
+        d[node] = round(math.log10((sum([k[1] for k in balanced_memory[node]]) + memory)),1)
+    best = sorted(d.items(), key=lambda x: x[1])
+    z = best[0][1]
+    best_nodes = set([x[0] for x in best if x[1] == z])
+    # pprint(('best v3:', best, best_nodes))
+    return best_nodes
+
+def _get_most_free_memory_node_v3(memory, node_memory_free):
+    d = {}
+    for node in node_memory_free:
+        d[node] = round(math.log10(node_memory_free[node] - memory),1)
+    free_nodes = sorted(d.items(), reverse=True, key=lambda x: x[1])
+    z = free_nodes[0][1]
+    best_free_nodes = set([x[0] for x in free_nodes if x[1] == z])
+    # pprint(('free v3:', free_nodes, best_free_nodes))
+    return best_free_nodes
+
+def _get_most_used_node_v2(preferences):
+    d = {}
+    for node in preferences:
+        d[node] = round(math.log1p(preferences[node]*1000))
+    nodes = sorted(d.items(), reverse=True, key=lambda x: x[1])
+    z = nodes[0][1]
+    best_nodes = set([x[0] for x in nodes if x[1] == z])
+    # pprint(('node v2:', nodes, best_nodes))
+    return best_nodes
