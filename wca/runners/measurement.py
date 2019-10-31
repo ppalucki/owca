@@ -273,6 +273,7 @@ class MeasurementRunner(Runner):
             log.error('Cannot synchronize tasks with node (error=%s) - skip this iteration!', e)
             self._wait()
             return
+
         append_additional_labels_to_tasks(self._task_label_generators, tasks)
         log.debug('Tasks detected: %d', len(tasks))
 
@@ -293,8 +294,13 @@ class MeasurementRunner(Runner):
         # Common labels
         common_labels = dict(platform_labels, **self._extra_labels)
 
-        # Tasks data
-        tasks_measurements, tasks_resources, tasks_labels = _prepare_tasks_data(containers)
+        try:
+            # Tasks data
+            tasks_measurements, tasks_resources, tasks_labels = _prepare_tasks_data(containers)
+        except MissingMeasurementException as e:
+            log.error('Cannot synchronize tasks measurements (error=%s) - skip this iteration!', e)
+            self._wait()
+            return
 
         self._iterate_body(containers, platform, tasks_measurements, tasks_resources,
                            tasks_labels, common_labels)
@@ -386,7 +392,7 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
             log.warning('One or more measurements are missing '
                         'for container {} - ignoring! '
                         '(because {})'.format(container, e))
-            continue
+            raise 
         # Extra metrics
         task_measurements[MetricName.UP.value] = 1
         task_measurements[MetricName.LAST_SEEN.value] = time.time()

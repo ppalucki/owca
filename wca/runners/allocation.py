@@ -311,11 +311,14 @@ class AllocationRunner(MeasurementRunner):
 
         current_allocations = _get_tasks_allocations(containers)
 
+        tasks_pids = {task.task_id: container.get_pids(include_threads=False) 
+                      for task, container in containers.items()}
+
         # Allocator callback
         allocate_start = time.time()
         new_allocations, anomalies, extra_metrics = self._allocator.allocate(
             platform, tasks_measurements, tasks_resources, tasks_labels,
-            current_allocations)
+            current_allocations, tasks_pids)
         allocate_duration = time.time() - allocate_start
 
         # Validate callback output

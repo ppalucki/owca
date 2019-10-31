@@ -1,8 +1,6 @@
 loggers:
-#  "wca.runners.measurement": "trace"
-  # "wca.extra.numa_allocator": "info"
   "wca.extra.numa_allocator": "debug"
-  #"wca.platforms": "debug"
+  "wca": "info"
 runner: !AllocationRunner
   action_delay: 10
   node: !MesosNode
@@ -34,11 +32,14 @@ runner: !AllocationRunner
 
   # Metrics to files
   metrics_storage: !LogStorage
-    output_filename: /dev/null
+    output_filename: metrics.prom
+    overwrite: true
   allocations_storage: !LogStorage
-    output_filename: /dev/null
+    output_filename: allocations.prom
+    overwrite: true
   anomalies_storage: !LogStorage
-    output_filename: /dev/null
+    output_filename: anomalies.prom
+    overwrite: true
 
   extra_labels:
     node: !Env HOSTNAME
