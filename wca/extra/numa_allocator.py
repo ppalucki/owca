@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from wca.allocators import Allocator, TasksAllocations, AllocationType
 from wca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
+from wca.logger import TRACE
 from wca.metrics import Metric, MetricName
 from wca.platforms import Platform, encode_listformat, decode_listformat
 
@@ -30,7 +31,7 @@ class NUMAAllocator(Allocator):
     # parse15
     # preferences_threshold: float = 0.66
     preferences_threshold: float = 0.0  # always migrate
-    memory_migrate: bool = False
+    memory_migrate: bool = True
     memory_migrate_min_task_balance: float = 0.95
 
     # use candidate
@@ -126,7 +127,7 @@ class NUMAAllocator(Allocator):
                 balanced_memory[current_node].append((task, memory))
 
                 task_balance = max(preferences.values())
-                if task_balance < self.memory_migrate_min_task_balance:
+                if self.memory_migrate and task_balance < self.memory_migrate_min_task_balance:
                     log.warn('move missing pages again task balance = %r', task_balance)
                     migrate_pages(task, tasks_pids, current_node)
 
@@ -374,7 +375,7 @@ def _get_best_memory_node_v2(memory, balanced_memory):
 def _get_most_free_memory_node_v2(memory, node_memory_free):
     d = {}
     for node in node_memory_free:
-        d[node] = round(math.log1p((memory / node_memory_free[node]) * 100),0)
+        d[node] = round(math.log1p((memory / node_memory_free[node]) * 100), 0)
     free_nodes = sorted(d.items(), key=lambda x: x[1])
     z = free_nodes[0][1]
     best_free_nodes = [x[0] for x in free_nodes if x[1] == z]
@@ -386,7 +387,10 @@ def _get_best_memory_node_v3(memory, balanced_memory):
     """for equal task memory, choose node with less allocated memory by WCA"""
     d = {}
     for node in balanced_memory:
-        d[node] = round(math.log10((sum([k[1] for k in balanced_memory[node]]) + memory)),1)
+        memory_on_node = (sum([k[1] for k in balanced_memory[node]]) + memory)
+        memory_on_node = max(memory_on_node, 1) # make sure we have approprrite value for log10
+        log.log(TRACE, 'best memory v3: memory on node %s (%s/%s)', memory_on_node, [k[1] for k in balanced_memory[node]], memory)
+        d[node] = round(math.log10(memory_on_node), 1)
     best = sorted(d.items(), key=lambda x: x[1])
     z = best[0][1]
     best_nodes = set([x[0] for x in best if x[1] == z])
@@ -396,7 +400,10 @@ def _get_best_memory_node_v3(memory, balanced_memory):
 def _get_most_free_memory_node_v3(memory, node_memory_free):
     d = {}
     for node in node_memory_free:
-        d[node] = round(math.log10(node_memory_free[node] - memory),1)
+        memory_on_node = node_memory_free[node] - memory
+        memory_on_node = max(memory_on_node, 1) # make sure we have approprrite value for log10
+        log.log(TRACE, 'most free memory v3: memory on node %s (%s/%s)', memory_on_node, node_memory_free[node], memory)
+        d[node] = round(math.log10(memory_on_node), 1)
     free_nodes = sorted(d.items(), reverse=True, key=lambda x: x[1])
     z = free_nodes[0][1]
     best_free_nodes = set([x[0] for x in free_nodes if x[1] == z])

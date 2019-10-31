@@ -100,6 +100,9 @@ class MesosNode(Node):
     METHOD = 'GET_STATE'
     api_path = '/api/v1'
 
+    def __post_init__(self):
+        log.info('Mesos task discovery on: %r', self.mesos_agent_endpoint)
+
     def get_tasks(self):
         """ only return running tasks """
         full_url = urllib.parse.urljoin(self.mesos_agent_endpoint, self.api_path)
