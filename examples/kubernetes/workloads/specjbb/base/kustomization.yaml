@@ -1,0 +1,22 @@
+resources:
+  - specjbb.yaml
+  - controller.yaml
+  - backend.yaml
+
+configMapGenerator:
+  - name: specjbb
+    literals:
+      - threads=4
+      - cpus=0-1000
+      - memory=16g
+      - report_interval=1
+      - extra=
+      - specjbb_jar='/home/specjbb/specjbb2015.jar'
+      - base_cores= #int(os.environ['CORES'])
+      - group_count= #int(os.environ['GROUP_COUNT'])
+      - use_numa_binding= #str(os.environ['USE_NUMA_BINDING'])  # no | yes
+      - experiment_name= #str(os.environ['EXPERIMENT_NAME'])  # no | yes
+      - id_env= #str(os.environ['ID'])
+
+patchesStrategicMerge:
+- resources.yaml
