@@ -213,8 +213,9 @@ class MeasurementRunner(Runner):
         use_resctrl = self._rdt_enabled
         use_perf = len(self._event_names) > 0
 
-        if not security.are_privileges_sufficient(use_cgroup, use_resctrl, use_perf):
-            return 1
+        if use_cgroup or use_cgroup or use_perf:
+            if not security.are_privileges_sufficient(use_cgroup, use_resctrl, use_perf):
+                return 1
 
         if self._rdt_enabled:
             # Resctrl is enabled and available, call a placeholder to allow further initialization.
