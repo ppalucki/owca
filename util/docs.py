@@ -63,7 +63,7 @@ def generate_docs():
 
     internal_data = []
 
-    for metric, metadata in sorted(METRICS_METADATA.items()):
+    for metric, metadata in METRICS_METADATA.items():
         if metadata.levels is not None:
             levels = ' '.join(metadata.levels)
         else:
@@ -72,6 +72,8 @@ def generate_docs():
         data = (metric, metadata.help, metadata.unit, metadata.type,
                 metadata.source, levels)
 
+        if metadata.granularity == MetricGranurality.INTERNAL:
+            internal_data.append(data)
         if metadata.granularity == MetricGranurality.TASK:
             task_data.append(data)
         elif metadata.granularity == MetricGranurality.PLATFORM:
