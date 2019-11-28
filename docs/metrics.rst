@@ -45,11 +45,11 @@ Task's metrics
 	"ips", "Instructions per second. [numeric](gauge)", "derived", ""
 	"cache_hit_ratio", "Cache hit ratio, based on cache-misses and cache-references. [numeric](gauge)", "derived", ""
 	"cache_misses_per_kilo_instructions", "Cache misses per kilo instructions. [numeric](gauge)", "derived", ""
-	"memstalls__ra310", "Memory stalls... [numeric](counter)", "perf event", "cpu"
 	"mem_load_retired_local_pmm__rd180", "mem_load_retired_local_pmm__rd180 [numeric](counter)", "perf event", "cpu"
 	"mem_inst_retired_all_loads__rd081", "mem_load_retired_local_pmm__rd180 [numeric](counter)", "perf event", "cpu"
 	"mem_inst_retired_all_stores__rd082", "TODO: [numeric](counter)", "perf event", "cpu"
 	"dtlb_load_misses__r080e", "TBD [numeric](counter)", "perf event", "cpu"
+	"wca_up", "Always returns 1 [numeric](counter)", "internal", ""
 
 
 
@@ -63,9 +63,9 @@ Platform's metrics
 	"memory_usage", "Total memory used by platform in bytes based on /proc/meminfo and uses heuristic based on linux free tool (total - free - buffers - cache). [bytes](gauge)", "/proc", ""
 	"scaling_factor_max", "Perf metric scaling factor, MAX value. [numeric](gauge)", "perf event", ""
 	"scaling_factor_avg", "Perf metric scaling factor, average from all CPUs. [numeric](gauge)", "perf event", ""
-	"memory_stat_page_faults", "Page faults [numeric](counter)", "cgroup", ""
+	"memory_stat_page_faults", "Page faults [numeric](counter)", "cgroup", "numa_node"
 	"memory_numa_free", "NUMA memory free per numa node TODO! [numeric](gauge)", "/proc", "numa_node"
-	"memory_numa_used", "NUMA memory used per numa node TODO! [numeric](gauge)", "/proc", "numa_node"
+	"memory_numa_used", "NUMA memory used per numa node TODO! [numeric](gauge)", "/proc", ""
 	"pmm_bandwidth_read", "Persistent memory module number of reads. [numeric](counter)", "perf event", "cpu, pmu"
 	"pmm_bandwidth_write", "Persistent memory module number of writes. [numeric](counter)", "perf event", "cpu, pmu"
 	"cas_count_read", "Column adress select number of reads [numeric](counter)", "perf event", "cpu, pmu"
@@ -75,9 +75,9 @@ Platform's metrics
 	"pmm_total_mb_per_second", "TBD [numeric](gauge)", "derived", "cpu, pmu"
 	"dram_reads_mb_per_second", "TBD [numeric](gauge)", "derived", "cpu, pmu"
 	"dram_writes_mb_per_second", "TBD [numeric](gauge)", "derived", "cpu, pmu"
-	"dram_total_mb_per_second", "TBD [numeric](gauge)", "perf event", "cpu, pmu"
+	"dram_total_mb_per_second", "TBD [numeric](gauge)", "perf event", "cpu, pjmu"
 	"dram_hit", "TBD [numeric](gauge)", "derived", "cpu, pmu"
-	"upi_txl_flits", "TBD [numeric](counter)", "perf event", "cpu, pmu"
+	"upi_txl_flits", "TBD [numeric](counter)", "perf event", "jcpu, pmu"
 	"upi_rxl_flits", "TBD [numeric](counter)", "perf event", "cpu, pmu"
 	"upi_bandwidth_mb_per_second", "TBD [numeric](counter)", "derived", "cpu, pmu"
 
@@ -90,6 +90,8 @@ Internal metrics
 	:header: "Name", "Help", "Source", "Levels/Labels"
 	:widths: 5, 5, 5, 5 
 
-	"up", "Time the WCA was last seen. [numeric](counter)", "internal", ""
-	"up", "Time the WCA was last seen. [numeric](counter)", "internal", ""
+	"wca_duration_seconds", "Interal WCA function call duration metric for profiling [numeric](gauge)", "internal", ""
+	"wca_duration_seconds", "Interal WCA function call duration metric for profiling [numeric](gauge)", "internal", ""
+	"wca_duration_seconds_avg", "Interal WCA function call duration metric for profiling (average from last restart) [numeric](gauge)", "internal", ""
+	"wca_duration_seconds_avg", "Interal WCA function call duration metric for profiling (average from last restart) [numeric](gauge)", "internal", ""
 
