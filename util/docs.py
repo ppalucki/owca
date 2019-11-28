@@ -83,8 +83,6 @@ def generate_docs():
             metadata.source, levels
         )
 
-        if metadata.granularity == MetricGranurality.INTERNAL:
-            internal_data.append(data)
         if metadata.granularity == MetricGranurality.TASK:
             task_data.append(data)
         elif metadata.granularity == MetricGranurality.PLATFORM:

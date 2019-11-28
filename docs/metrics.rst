@@ -91,7 +91,5 @@ Internal metrics
 	:widths: 5, 5, 5, 5 
 
 	"wca_duration_seconds", "Interal WCA function call duration metric for profiling [numeric](gauge)", "internal", ""
-	"wca_duration_seconds", "Interal WCA function call duration metric for profiling [numeric](gauge)", "internal", ""
-	"wca_duration_seconds_avg", "Interal WCA function call duration metric for profiling (average from last restart) [numeric](gauge)", "internal", ""
 	"wca_duration_seconds_avg", "Interal WCA function call duration metric for profiling (average from last restart) [numeric](gauge)", "internal", ""
 
