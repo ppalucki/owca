@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import enum
 from wca.metrics import METRICS_METADATA, MetricGranurality
 
 
@@ -65,11 +66,17 @@ def generate_docs():
 
     for metric, metadata in METRICS_METADATA.items():
         if metadata.levels is not None:
-            levels = ' '.join(metadata.levels)
+            levels = ', '.join(metadata.levels)
         else:
             levels = ''
 
-        data = (metric + ' [%s] (%s)' %  (str(metadata.unit), str(metadata.type)), 
+        def value_or_str(v):
+            if isinstance(v, enum.Enum):
+                return str(v.value)
+            else:
+                return str(v)
+
+        data = (metric + ' [%s/%s]' % (value_or_str(metadata.unit), value_or_str(metadata.type)), 
                 metadata.help, metadata.source, levels)
 
         if metadata.granularity == MetricGranurality.INTERNAL:
