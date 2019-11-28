@@ -18,7 +18,7 @@ from wca.metrics import METRICS_METADATA, MetricGranurality
 def prepare_csv_table(data):
     table = '.. csv-table::\n'
     table += '\t:header: "Name", "Help", "Source", "Levels"\n'
-    table += '\t:widths: auto\n\n\t'
+    table += '\t:widths: 5, 5, 5, 5 \n\n\t'
 
     table += '\n\t'.join(['"{}", "{}", "{}", "{}"'.format(*row) for row in data])
 
@@ -69,7 +69,7 @@ def generate_docs():
         else:
             levels = ''
 
-        data = (metric + '[%s] (%s)' %  (metadata.unit, metadata.type), 
+        data = (metric + ' [%s] (%s)' %  (str(metadata.unit), str(metadata.type)), 
                 metadata.help, metadata.source, levels)
 
         if metadata.granularity == MetricGranurality.INTERNAL:
