@@ -90,9 +90,12 @@ class TestMetric(object):
     def __enter__(self):
         MetricName.TEST_METRIC = 'test_metric'
         METRICS_METADATA['test_metric'] = MetricMetadata('Non existing metric for unit test.',
-                                                         MetricType.COUNTER, MetricUnit.NUMERIC,
+                                                         MetricType.COUNTER,
+                                                         MetricUnit.NUMERIC,
                                                          MetricSource.GENERIC,
-                                                         MetricGranurality.PLATFORM)
+                                                         MetricGranurality.PLATFORM,
+                                                         levels=[],
+                                                         )
         METRICS_LEVELS['test_metric'] = ['numa_node', 'container']  # two levels
 
     def __exit__(self, type, value, traceback):
