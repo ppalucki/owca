@@ -76,8 +76,12 @@ def generate_docs():
             else:
                 return str(v)
 
-        data = (metric + ' [%s/%s]' % (value_or_str(metadata.unit), value_or_str(metadata.type)), 
-                metadata.help, metadata.source, levels)
+        data = (
+            metric,
+            metadata.help + ' [%s/%s]' % (value_or_str(metadata.unit),
+                                          value_or_str(metadata.type)),
+            metadata.source, levels
+        )
 
         if metadata.granularity == MetricGranurality.INTERNAL:
             internal_data.append(data)
