@@ -17,39 +17,39 @@ Task's metrics
 ==============
 
 .. csv-table::
-	:header: "Name", "Help", "Unit", "Type", "Source", "Levels"
-	:widths: 15, 20, 15, 15, 15, 20
+	:header: "Name", "Help", "Source", "Levels"
+	:widths: auto
 
-	"instructions", "Linux Perf counter for instructions per container.", "numeric", "counter", "perf event", "cpu"
-	"cycles", "Linux Perf counter for cycles per container.", "numeric", "counter", "perf event", "cpu"
-	"cache_misses", "Linux Perf counter for cache-misses per container.", "numeric", "counter", "perf event", "cpu"
-	"cpu_usage_per_cpu", "Logical CPU usage in 1/USER_HZ (usually 10ms).Calculated using values based on /proc/stat.", "10ms", "counter", "/proc", "cpu"
-	"cpu_usage_per_task", "cpuacct.usage (total kernel and user space).", "numeric", "counter", "cgroup", ""
-	"memory_bandwidth", "Total memory bandwidth using Memory Bandwidth Monitoring.", "bytes", "counter", "resctrl", ""
-	"memory_usage_per_task_bytes", "Memory usage_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge", "cgroup", ""
-	"memory_max_usage_per_task_bytes", "Memory max_usage_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge", "cgroup", ""
-	"memory_limit_per_task_bytes", "Memory limit_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge", "cgroup", ""
-	"memory_soft_limit_per_task_bytes", "Memory soft_limit_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge", "cgroup", ""
-	"llc_occupancy", "LLC occupancy.", "bytes", "gauge", "resctrl", ""
-	"stalls_mem_load", "Mem stalled loads.", "numeric", "counter", "perf event", "cpu"
-	"cache_references", "Cache references.", "numeric", "counter", "perf event", "cpu"
-	"memory_numa_stat", "NUMA Stat TODO!", "numeric", "gauge", "cgroup", "numa_node"
-	"memory_bandwidth_local", "Total local memory bandwidth using Memory Bandwidth Monitoring.", "bytes", "counter", "resctrl", ""
-	"memory_bandwidth_remote", "Total remote memory bandwidth using Memory Bandwidth Monitoring.", "bytes", "counter", "resctrl", ""
-	"offcore_requests_l3_miss_demand_data_rd", "Increment each cycle of the number of offcore outstanding demand data read requests from SQ that missed L3.", "numeric", "counter", "perf event", ""
-	"offcore_requests_outstanding_l3_miss_demand_data_rd", "Demand data read requests that missed L3.", "numeric", "counter", "perf event", ""
-	"cpus", "Tasks resources cpus initial requests.", "numeric", "gauge", "generic", ""
-	"mem", "Tasks resources memory initial requests.", "numeric", "gauge", "generic", ""
-	"last_seen", "Time the task was last seen.", "numeric", "counter", "generic", ""
-	"ipc", "Instructions per cycle.", "numeric", "gauge", "derived", ""
-	"ips", "Instructions per second.", "numeric", "gauge", "derived", ""
-	"cache_hit_ratio", "Cache hit ratio, based on cache-misses and cache-references.", "numeric", "gauge", "derived", ""
-	"cache_misses_per_kilo_instructions", "Cache misses per kilo instructions.", "numeric", "gauge", "derived", ""
-	"memstalls__ra310", "Memory stalls...", "numeric", "counter", "perf event", "cpu"
-	"mem_load_retired_local_pmm__rd180", "mem_load_retired_local_pmm__rd180", "numeric", "counter", "perf event", "cpu"
-	"mem_inst_retired_all_loads__rd081", "mem_load_retired_local_pmm__rd180", "numeric", "counter", "perf event", "cpu"
-	"mem_inst_retired_all_stores__rd082", "TODO:", "numeric", "counter", "perf event", "cpu"
-	"dtlb_load_misses__r080e", "TBD", "numeric", "counter", "perf event", "cpu"
+	"instructions[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Linux Perf counter for instructions per container.", "perf event", "cpu"
+	"cycles[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Linux Perf counter for cycles per container.", "perf event", "cpu"
+	"cache_misses[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Linux Perf counter for cache-misses per container.", "perf event", "cpu"
+	"cpu_usage_per_cpu[MetricUnit.TEN_MILLISECOND] (MetricType.COUNTER)", "Logical CPU usage in 1/USER_HZ (usually 10ms).Calculated using values based on /proc/stat.", "/proc", "cpu"
+	"cpu_usage_per_task[MetricUnit.NUMERIC] (MetricType.COUNTER)", "cpuacct.usage (total kernel and user space).", "cgroup", ""
+	"memory_bandwidth[MetricUnit.BYTES] (MetricType.COUNTER)", "Total memory bandwidth using Memory Bandwidth Monitoring.", "resctrl", ""
+	"memory_usage_per_task_bytes[MetricUnit.BYTES] (MetricType.GAUGE)", "Memory usage_in_bytes per tasks returned from cgroup memory subsystem.", "cgroup", ""
+	"memory_max_usage_per_task_bytes[MetricUnit.BYTES] (MetricType.GAUGE)", "Memory max_usage_in_bytes per tasks returned from cgroup memory subsystem.", "cgroup", ""
+	"memory_limit_per_task_bytes[MetricUnit.BYTES] (MetricType.GAUGE)", "Memory limit_in_bytes per tasks returned from cgroup memory subsystem.", "cgroup", ""
+	"memory_soft_limit_per_task_bytes[MetricUnit.BYTES] (MetricType.GAUGE)", "Memory soft_limit_in_bytes per tasks returned from cgroup memory subsystem.", "cgroup", ""
+	"llc_occupancy[MetricUnit.BYTES] (MetricType.GAUGE)", "LLC occupancy.", "resctrl", ""
+	"stalls_mem_load[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Mem stalled loads.", "perf event", "cpu"
+	"cache_references[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Cache references.", "perf event", "cpu"
+	"memory_numa_stat[MetricUnit.NUMERIC] (MetricType.GAUGE)", "NUMA Stat TODO!", "cgroup", "numa_node"
+	"memory_bandwidth_local[MetricUnit.BYTES] (MetricType.COUNTER)", "Total local memory bandwidth using Memory Bandwidth Monitoring.", "resctrl", ""
+	"memory_bandwidth_remote[MetricUnit.BYTES] (MetricType.COUNTER)", "Total remote memory bandwidth using Memory Bandwidth Monitoring.", "resctrl", ""
+	"offcore_requests_l3_miss_demand_data_rd[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Increment each cycle of the number of offcore outstanding demand data read requests from SQ that missed L3.", "perf event", ""
+	"offcore_requests_outstanding_l3_miss_demand_data_rd[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Demand data read requests that missed L3.", "perf event", ""
+	"cpus[MetricUnit.NUMERIC] (MetricType.GAUGE)", "Tasks resources cpus initial requests.", "generic", ""
+	"mem[MetricUnit.NUMERIC] (MetricType.GAUGE)", "Tasks resources memory initial requests.", "generic", ""
+	"last_seen[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Time the task was last seen.", "generic", ""
+	"ipc[MetricUnit.NUMERIC] (MetricType.GAUGE)", "Instructions per cycle.", "derived", ""
+	"ips[MetricUnit.NUMERIC] (MetricType.GAUGE)", "Instructions per second.", "derived", ""
+	"cache_hit_ratio[MetricUnit.NUMERIC] (MetricType.GAUGE)", "Cache hit ratio, based on cache-misses and cache-references.", "derived", ""
+	"cache_misses_per_kilo_instructions[MetricUnit.NUMERIC] (MetricType.GAUGE)", "Cache misses per kilo instructions.", "derived", ""
+	"memstalls__ra310[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Memory stalls...", "perf event", "cpu"
+	"mem_load_retired_local_pmm__rd180[MetricUnit.NUMERIC] (MetricType.COUNTER)", "mem_load_retired_local_pmm__rd180", "perf event", "cpu"
+	"mem_inst_retired_all_loads__rd081[MetricUnit.NUMERIC] (MetricType.COUNTER)", "mem_load_retired_local_pmm__rd180", "perf event", "cpu"
+	"mem_inst_retired_all_stores__rd082[MetricUnit.NUMERIC] (MetricType.COUNTER)", "TODO:", "perf event", "cpu"
+	"dtlb_load_misses__r080e[MetricUnit.NUMERIC] (MetricType.COUNTER)", "TBD", "perf event", "cpu"
 
 
 
@@ -57,29 +57,29 @@ Platform's metrics
 ==================
 
 .. csv-table::
-	:header: "Name", "Help", "Unit", "Type", "Source", "Levels"
-	:widths: 15, 20, 15, 15, 15, 20
+	:header: "Name", "Help", "Source", "Levels"
+	:widths: auto
 
-	"memory_usage", "Total memory used by platform in bytes based on /proc/meminfo and uses heuristic based on linux free tool (total - free - buffers - cache).", "bytes", "gauge", "/proc", ""
-	"scaling_factor_max", "Perf metric scaling factor, MAX value.", "numeric", "gauge", "perf event", ""
-	"scaling_factor_avg", "Perf metric scaling factor, average from all CPUs.", "numeric", "gauge", "perf event", ""
-	"memory_stat_page_faults", "Page faults", "numeric", "counter", "cgroup", ""
-	"memory_numa_free", "NUMA memory free per numa node TODO!", "numeric", "gauge", "/proc", "numa_node"
-	"memory_numa_used", "NUMA memory used per numa node TODO!", "numeric", "gauge", "/proc", "numa_node"
-	"pmm_bandwidth_read", "Persistent memory module number of reads.", "numeric", "counter", "perf event", "cpu pmu"
-	"pmm_bandwidth_write", "Persistent memory module number of writes.", "numeric", "counter", "perf event", "cpu pmu"
-	"cas_count_read", "Column adress select number of reads", "numeric", "counter", "perf event", "cpu pmu"
-	"cas_count_write", "Column adress select number of writes", "numeric", "counter", "perf event", "cpu pmu"
-	"pmm_reads_mb_per_second", "TBD", "numeric", "gauge", "derived", "cpu pmu"
-	"pmm_writes_mb_per_second", "TBD", "numeric", "gauge", "derived", "cpu pmu"
-	"pmm_total_mb_per_second", "TBD", "numeric", "gauge", "derived", "cpu pmu"
-	"dram_reads_mb_per_second", "TBD", "numeric", "gauge", "derived", "cpu pmu"
-	"dram_writes_mb_per_second", "TBD", "numeric", "gauge", "derived", "cpu pmu"
-	"dram_total_mb_per_second", "TBD", "numeric", "gauge", "perf event", "cpu pmu"
-	"dram_hit", "TBD", "numeric", "gauge", "derived", "cpu pmu"
-	"upi_txl_flits", "TBD", "numeric", "counter", "perf event", "cpu pmu"
-	"upi_rxl_flits", "TBD", "numeric", "counter", "perf event", "cpu pmu"
-	"upi_bandwidth_mb_per_second", "TBD", "numeric", "counter", "derived", "cpu pmu"
+	"memory_usage[MetricUnit.BYTES] (MetricType.GAUGE)", "Total memory used by platform in bytes based on /proc/meminfo and uses heuristic based on linux free tool (total - free - buffers - cache).", "/proc", ""
+	"scaling_factor_max[MetricUnit.NUMERIC] (MetricType.GAUGE)", "Perf metric scaling factor, MAX value.", "perf event", ""
+	"scaling_factor_avg[MetricUnit.NUMERIC] (MetricType.GAUGE)", "Perf metric scaling factor, average from all CPUs.", "perf event", ""
+	"memory_stat_page_faults[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Page faults", "cgroup", ""
+	"memory_numa_free[MetricUnit.NUMERIC] (MetricType.GAUGE)", "NUMA memory free per numa node TODO!", "/proc", "numa_node"
+	"memory_numa_used[MetricUnit.NUMERIC] (MetricType.GAUGE)", "NUMA memory used per numa node TODO!", "/proc", "numa_node"
+	"pmm_bandwidth_read[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Persistent memory module number of reads.", "perf event", "cpu pmu"
+	"pmm_bandwidth_write[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Persistent memory module number of writes.", "perf event", "cpu pmu"
+	"cas_count_read[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Column adress select number of reads", "perf event", "cpu pmu"
+	"cas_count_write[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Column adress select number of writes", "perf event", "cpu pmu"
+	"pmm_reads_mb_per_second[MetricUnit.NUMERIC] (MetricType.GAUGE)", "TBD", "derived", "cpu pmu"
+	"pmm_writes_mb_per_second[MetricUnit.NUMERIC] (MetricType.GAUGE)", "TBD", "derived", "cpu pmu"
+	"pmm_total_mb_per_second[MetricUnit.NUMERIC] (MetricType.GAUGE)", "TBD", "derived", "cpu pmu"
+	"dram_reads_mb_per_second[MetricUnit.NUMERIC] (MetricType.GAUGE)", "TBD", "derived", "cpu pmu"
+	"dram_writes_mb_per_second[MetricUnit.NUMERIC] (MetricType.GAUGE)", "TBD", "derived", "cpu pmu"
+	"dram_total_mb_per_second[MetricUnit.NUMERIC] (MetricType.GAUGE)", "TBD", "perf event", "cpu pmu"
+	"dram_hit[MetricUnit.NUMERIC] (MetricType.GAUGE)", "TBD", "derived", "cpu pmu"
+	"upi_txl_flits[MetricUnit.NUMERIC] (MetricType.COUNTER)", "TBD", "perf event", "cpu pmu"
+	"upi_rxl_flits[MetricUnit.NUMERIC] (MetricType.COUNTER)", "TBD", "perf event", "cpu pmu"
+	"upi_bandwidth_mb_per_second[MetricUnit.NUMERIC] (MetricType.COUNTER)", "TBD", "derived", "cpu pmu"
 
 
 
@@ -87,9 +87,9 @@ Internal metrics
 ================
 
 .. csv-table::
-	:header: "Name", "Help", "Unit", "Type", "Source", "Levels"
-	:widths: 15, 20, 15, 15, 15, 20
+	:header: "Name", "Help", "Source", "Levels"
+	:widths: auto
 
-	"up", "Time the WCA was last seen.", "numeric", "counter", "internal", ""
-	"up", "Time the WCA was last seen.", "numeric", "counter", "internal", ""
+	"up[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Time the WCA was last seen.", "internal", ""
+	"up[MetricUnit.NUMERIC] (MetricType.COUNTER)", "Time the WCA was last seen.", "internal", ""
 
