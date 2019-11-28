@@ -78,7 +78,7 @@ def generate_docs():
 
         data = (
             metric,
-            metadata.help + ' [%s/%s]' % (value_or_str(metadata.unit),
+            metadata.help + ' [%s](%s)' % (value_or_str(metadata.unit),
                                           value_or_str(metadata.type)),
             metadata.source, levels
         )
