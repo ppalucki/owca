@@ -17,7 +17,7 @@ Task's metrics
 ==============
 
 .. csv-table::
-	:header: "Name", "Help", "Source", "Levels"
+	:header: "Name", "Help", "Source", "Levels/Labels"
 	:widths: 5, 5, 5, 5 
 
 	"instructions", "Linux Perf counter for instructions per container. [numeric](counter)", "perf event", "cpu"
@@ -57,7 +57,7 @@ Platform's metrics
 ==================
 
 .. csv-table::
-	:header: "Name", "Help", "Source", "Levels"
+	:header: "Name", "Help", "Source", "Levels/Labels"
 	:widths: 5, 5, 5, 5 
 
 	"memory_usage", "Total memory used by platform in bytes based on /proc/meminfo and uses heuristic based on linux free tool (total - free - buffers - cache). [bytes](gauge)", "/proc", ""
@@ -87,7 +87,7 @@ Internal metrics
 ================
 
 .. csv-table::
-	:header: "Name", "Help", "Source", "Levels"
+	:header: "Name", "Help", "Source", "Levels/Labels"
 	:widths: 5, 5, 5, 5 
 
 	"up", "Time the WCA was last seen. [numeric](counter)", "internal", ""
