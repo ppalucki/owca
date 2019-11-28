@@ -23,8 +23,8 @@ log = logging.getLogger(__name__)
 
 
 class MetricName(str, Enum):
+    # --- Task ---
     # Perf events based.
-    # Per task
     INSTRUCTIONS = 'instructions'
     CYCLES = 'cycles'
     CACHE_MISSES = 'cache_misses'
@@ -33,6 +33,22 @@ class MetricName(str, Enum):
     OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD = \
         'offcore_requests_outstanding_l3_miss_demand_data_rd'
     OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD = 'offcore_requests_l3_miss_demand_data_rd'
+
+    # Perf event raw metrics
+    MEM_LOAD = 'mem_load_retired_local_pmm__rd180'
+    MEM_INST_RD081 = 'mem_inst_retired_all_loads__rd081'
+    MEM_INST_RD082 = 'mem_inst_retired_all_stores__rd082'
+    DTLB_LOAD_MISSES_R080e = 'dtlb_load_misses__r080e'
+
+    # Perf event task based derived
+    # instructions/second
+    IPS = 'ips'
+    # instructions/cycle
+    IPC = 'ipc'
+    # (cache-references - cache_misses) / cache_references
+    CACHE_HIT_RATIO = 'cache_hit_ratio'
+    # (cache-references - cache_misses) / cache_references
+    CACHE_MISSES_PER_KILO_INSTRUCTIONS = 'cache_misses_per_kilo_instructions'
 
     # Extra perf based.
     SCALING_FACTOR_AVG = 'scaling_factor_avg'
@@ -51,10 +67,12 @@ class MetricName(str, Enum):
     MEM_NUMA_FREE = 'memory_numa_free'
     MEM_NUMA_USED = 'memory_numa_used'
 
-    # Generic per task.
-    LAST_SEEN = 'last_seen'
+    # From Kubernetes/Mesos or other orchestrator system.
     CPUS = 'cpus'  # From Kubernetes or Mesos
     MEM = 'mem'  # From Kubernetes or Mesos
+
+    # Generic
+    LAST_SEEN = 'last_seen'
 
     # Resctrl based.
     MEM_BW = 'memory_bandwidth'
@@ -62,46 +80,22 @@ class MetricName(str, Enum):
     MEMORY_BANDWIDTH_LOCAL = 'memory_bandwidth_local'
     MEMORY_BANDWIDTH_REMOTE = 'memory_bandwidth_remote'
 
+    # ----------------- Platform ----------------------
     # /proc based (platform scope).
-    #
-    # Utilization (usage):
-    # counter like, sum of all modes based on /proc/stat
+    # Utilization (usage): counter like, sum of all modes based on /proc/stat
     # "cpu line" with 10ms resolution expressed in [ms]
     CPU_USAGE_PER_CPU = 'cpu_usage_per_cpu'
     # [bytes] based on /proc/meminfo (gauge like)
     # difference between MemTotal and MemAvail (or MemFree)
     MEM_USAGE = 'memory_usage'
 
-    # Generic for WCA.
-    UP = 'up'
-
-
-class UncoreMetricName(str, Enum):
+    # Perf event based from uncore PMU and derived
     PMM_BANDWIDTH_READ = 'pmm_bandwidth_read'
     PMM_BANDWIDTH_WRITE = 'pmm_bandwidth_write'
     CAS_COUNT_READ = 'cas_count_read'
     CAS_COUNT_WRITE = 'cas_count_write'
     UPI_RxL_FLITS = 'upi_rxl_flits'
     UPI_TxL_FLITS = 'upi_txl_flits'
-
-
-class PerfMetricName(str, Enum):
-    MEMSTALLS = 'memstalls__ra310'
-    MEM_LOAD = 'mem_load_retired_local_pmm__rd180'
-    MEM_INST_RD081 = 'mem_inst_retired_all_loads__rd081'
-    MEM_INST_RD082 = 'mem_inst_retired_all_stores__rd082'
-    DTLB_LOAD_MISSES_R080e = 'dtlb_load_misses__r080e'
-
-
-class DerivedMetricName(str, Enum):
-    # instructions/second
-    IPS = 'ips'
-    # instructions/cycle
-    IPC = 'ipc'
-    # (cache-references - cache_misses) / cache_references
-    CACHE_HIT_RATIO = 'cache_hit_ratio'
-    # (cache-references - cache_misses) / cache_references
-    CACHE_MISSES_PER_KILO_INSTRUCTIONS = 'cache_misses_per_kilo_instructions'
     PMM_READS_MB_PER_SECOND = 'pmm_reads_mb_per_second'
     PMM_WRITES_MB_PER_SECOND = 'pmm_writes_mb_per_second'
     PMM_TOTAL_MB_PER_SECOND = 'pmm_total_mb_per_second'
@@ -110,6 +104,12 @@ class DerivedMetricName(str, Enum):
     DRAM_TOTAL_MB_PER_SECOND = 'dram_total_mb_per_second'
     DRAM_HIT = 'dram_hit'
     UPI_BANDWIDTH_MB_PER_SECOND = 'upi_bandwidth_mb_per_second'  # Based on UPI Flits
+
+    # ---------------- Internal -------------------------
+    # Generic for WCA.
+    WCA_UP = 'wca_up'
+    WCA_DURATION_SECONDS = 'wca_duration_seconds'
+    WCA_DURATION_SECONDS_AVG = 'wca_duration_seconds_avg'
 
 
 class MetricType(str, Enum):
@@ -134,6 +134,7 @@ class MetricGranurality(str, Enum):
 
 class MetricUnit(str, Enum):
     BYTES = 'bytes'
+    SECONDS = 'seconds'
     NUMERIC = 'numeric'
     TEN_MILLISECOND = '10ms'
 
@@ -169,38 +170,6 @@ class MetricMetadata:
     merge_operation: Optional[Callable[[List[Union[float, int]]], Union[float, int]]] = sum
 
 
-# Structure linking a metric with description of hierarchy how it is kept.
-METRICS_LEVELS = {
-    MetricName.MEM_NUMA_STAT_PER_TASK: ["numa_node"],
-    MetricName.MEM_NUMA_FREE: ["numa_node"],
-    MetricName.MEM_NUMA_USED: ["numa_node"],
-    MetricName.CACHE_REFERENCES: ["cpu"],
-    MetricName.CPU_USAGE_PER_CPU: ["cpu"],
-    MetricName.MEMSTALL: ["cpu"],
-    UncoreMetricName.PMM_BANDWIDTH_READ: ["cpu", "pmu"],
-    UncoreMetricName.PMM_BANDWIDTH_WRITE: ["cpu", "pmu"],
-    UncoreMetricName.CAS_COUNT_READ: ["cpu", "pmu"],
-    UncoreMetricName.CAS_COUNT_WRITE: ["cpu", "pmu"],
-    MetricName.CYCLES: ["cpu"],
-    MetricName.INSTRUCTIONS: ["cpu"],
-    MetricName.CACHE_MISSES: ["cpu"],
-    PerfMetricName.MEMSTALLS: ["cpu"],
-    PerfMetricName.MEM_LOAD: ["cpu"],
-    PerfMetricName.MEM_INST_RD081: ["cpu"],
-    PerfMetricName.MEM_INST_RD082: ["cpu"],
-    PerfMetricName.DTLB_LOAD_MISSES_R080e: ["cpu"],
-    DerivedMetricName.PMM_READS_MB_PER_SECOND: ["cpu", "pmu"],
-    DerivedMetricName.PMM_WRITES_MB_PER_SECOND: ["cpu", "pmu"],
-    DerivedMetricName.PMM_TOTAL_MB_PER_SECOND: ["cpu", "pmu"],
-    DerivedMetricName.DRAM_READS_MB_PER_SECOND: ["cpu", "pmu"],
-    DerivedMetricName.DRAM_WRITES_MB_PER_SECOND: ["cpu", "pmu"],
-    DerivedMetricName.DRAM_TOTAL_MB_PER_SECOND: ["cpu", "pmu"],
-    DerivedMetricName.DRAM_HIT: ["cpu", "pmu"],
-    UncoreMetricName.UPI_RxL_FLITS: ["cpu", "pmu"],
-    UncoreMetricName.UPI_TxL_FLITS: ["cpu", "pmu"],
-    DerivedMetricName.UPI_BANDWIDTH_MB_PER_SECOND: ["cpu", "pmu"]
-}
-
 # Structure linking a metric with its type and help.
 METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
     MetricName.INSTRUCTIONS:
@@ -209,30 +178,38 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            ['cpu']
+        ),
     MetricName.CYCLES:
         MetricMetadata(
             'Linux Perf counter for cycles per container.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
-MetricName.CACHE_MISSES:
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
+    MetricName.CACHE_MISSES:
         MetricMetadata(
             'Linux Perf counter for cache-misses per container.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
-MetricName.CPU_USAGE_PER_CPU:
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
+    MetricName.CPU_USAGE_PER_CPU:
         MetricMetadata(
             'Logical CPU usage in 1/USER_HZ (usually 10ms).'
             'Calculated using values based on /proc/stat.',
             MetricType.COUNTER,
             MetricUnit.TEN_MILLISECOND,
             MetricSource.PROC,
-            MetricGranurality.TASK),
-MetricName.CPU_USAGE_PER_TASK:
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
+    MetricName.CPU_USAGE_PER_TASK:
         MetricMetadata(
             'cpuacct.usage (total kernel and user space).',
             MetricType.COUNTER,
@@ -295,14 +272,18 @@ MetricName.CPU_USAGE_PER_TASK:
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
     MetricName.CACHE_REFERENCES:
         MetricMetadata(
             'Cache references.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
     MetricName.SCALING_FACTOR_MAX:
         MetricMetadata(
             'Perf metric scaling factor, MAX value.',
@@ -323,21 +304,27 @@ MetricName.CPU_USAGE_PER_TASK:
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.CGROUP,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            ['numa_node'],
+        ),
     MetricName.MEM_PAGE_FAULTS:
         MetricMetadata(
             'Page faults',  # TODO: fix me!
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.CGROUP,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            ['numa_node'],
+        ),
     MetricName.MEM_NUMA_FREE:
         MetricMetadata(
             'NUMA memory free per numa node TODO!',  # TODO: fix me!
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.PROC,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            ['numa_node'],
+        ),
     MetricName.MEM_NUMA_USED:
         MetricMetadata(
             'NUMA memory used per numa node TODO!',  # TODO: fix me!
@@ -395,181 +382,221 @@ MetricName.CPU_USAGE_PER_TASK:
             MetricUnit.NUMERIC,
             MetricSource.GENERIC,
             MetricGranurality.TASK),
-    MetricName.UP:
-        MetricMetadata(
-            'Time the WCA was last seen.',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.INTERNAL,
-            MetricGranurality.INTERNAL),
-    DerivedMetricName.IPC:
+    MetricName.IPC:
         MetricMetadata(
             'Instructions per cycle.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.TASK),
-    DerivedMetricName.IPS:
+    MetricName.IPS:
         MetricMetadata(
             'Instructions per second.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.TASK),
-    DerivedMetricName.CACHE_HIT_RATIO:
+    MetricName.CACHE_HIT_RATIO:
         MetricMetadata(
             'Cache hit ratio, based on cache-misses and cache-references.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.TASK),
-    DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS:
+    MetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS:
         MetricMetadata(
             'Cache misses per kilo instructions.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.TASK),
-    UncoreMetricName.PMM_BANDWIDTH_READ:
+    MetricName.PMM_BANDWIDTH_READ:
         MetricMetadata(
             'Persistent memory module number of reads.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
-    UncoreMetricName.PMM_BANDWIDTH_WRITE:
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.PMM_BANDWIDTH_WRITE:
         MetricMetadata(
             'Persistent memory module number of writes.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
-    UncoreMetricName.CAS_COUNT_READ:
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.CAS_COUNT_READ:
         MetricMetadata(
             'Column adress select number of reads',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
-    UncoreMetricName.CAS_COUNT_WRITE:
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.CAS_COUNT_WRITE:
         MetricMetadata(
             'Column adress select number of writes',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
-    PerfMetricName.MEMSTALLS:
-        MetricMetadata(
-            # TODO
-            'Memory stalls...',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
-    PerfMetricName.MEM_LOAD:
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.MEM_LOAD:
         MetricMetadata(
             # TODO
             'mem_load_retired_local_pmm__rd180',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
-    PerfMetricName.MEM_INST_RD081:
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
+    MetricName.MEM_INST_RD081:
         MetricMetadata(
             # TODO
             'mem_load_retired_local_pmm__rd180',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
-    PerfMetricName.MEM_INST_RD082:
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
+    MetricName.MEM_INST_RD082:
         MetricMetadata(
             'TODO:',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
+    MetricName.DTLB_LOAD_MISSES_R080e:
+        MetricMetadata(
+            'TBD',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_EVENT,
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
+    MetricName.PMM_READS_MB_PER_SECOND:
+        MetricMetadata(
+            'TBD',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.DERIVED,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.PMM_WRITES_MB_PER_SECOND:
+        MetricMetadata(
+            'TBD',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.DERIVED,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.PMM_TOTAL_MB_PER_SECOND:
+        MetricMetadata(
+            'TBD',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.DERIVED,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.DRAM_READS_MB_PER_SECOND:
+        MetricMetadata(
+            'TBD',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.DERIVED,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.DRAM_WRITES_MB_PER_SECOND:
+        MetricMetadata(
+            'TBD',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.DERIVED,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.DRAM_TOTAL_MB_PER_SECOND:
+        MetricMetadata(
+            'TBD',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_EVENT,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pjmu'],
+        ),
+    MetricName.DRAM_HIT:
+        MetricMetadata(
+            'TBD',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.DERIVED,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.UPI_TxL_FLITS:
+        MetricMetadata(
+            'TBD',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_EVENT,
+            MetricGranurality.PLATFORM,
+            ['jcpu', 'pmu'],
+        ),
+    MetricName.UPI_RxL_FLITS:
+        MetricMetadata(
+            'TBD',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_EVENT,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.UPI_BANDWIDTH_MB_PER_SECOND:
+        MetricMetadata(
+            'TBD',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.DERIVED,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.WCA_UP:
+        MetricMetadata(
+            'Always returns 1',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
             MetricGranurality.TASK),
-    PerfMetricName.DTLB_LOAD_MISSES_R080e:
+    MetricName.WCA_DURATION_SECONDS:
         MetricMetadata(
-            'TBD',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PERF_EVENT,
-            MetricGranurality.TASK),
-    DerivedMetricName.PMM_READS_MB_PER_SECOND:
-        MetricMetadata(
-            'TBD',
+            'Interal WCA function call duration metric for profiling',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
-            MetricSource.DERIVED,
-            MetricGranurality.PLATFORM),
-    DerivedMetricName.PMM_WRITES_MB_PER_SECOND:
+            MetricSource.INTERNAL,
+            MetricGranurality.INTERNAL),
+    MetricName.WCA_DURATION_SECONDS_AVG:
         MetricMetadata(
-            'TBD',
+            'Interal WCA function call duration metric for profiling (average from last restart)',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
-            MetricSource.DERIVED,
-            MetricGranurality.PLATFORM),
-    DerivedMetricName.PMM_TOTAL_MB_PER_SECOND:
-        MetricMetadata(
-            'TBD',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.DERIVED,
-            MetricGranurality.PLATFORM),
-    DerivedMetricName.DRAM_READS_MB_PER_SECOND:
-        MetricMetadata(
-            'TBD',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.DERIVED,
-            MetricGranurality.PLATFORM),
-    DerivedMetricName.DRAM_WRITES_MB_PER_SECOND:
-        MetricMetadata(
-            'TBD',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.DERIVED,
-            MetricGranurality.PLATFORM),
-    DerivedMetricName.DRAM_TOTAL_MB_PER_SECOND:
-        MetricMetadata(
-            'TBD',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
-    DerivedMetricName.DRAM_HIT:
-        MetricMetadata(
-            'TBD',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.DERIVED,
-            MetricGranurality.PLATFORM),
-    UncoreMetricName.UPI_TxL_FLITS:
-        MetricMetadata(
-            'TBD',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
-    UncoreMetricName.UPI_RxL_FLITS:
-        MetricMetadata(
-            'TBD',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
-    DerivedMetricName.UPI_BANDWIDTH_MB_PER_SECOND:
-        MetricMetadata(
-            'TBD',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.DERIVED,
-            MetricGranurality.PLATFORM),
+            MetricSource.INTERNAL,
+            MetricGranurality.INTERNAL),
 }
 
-for metric_name, levels in METRICS_LEVELS.items():
-    METRICS_METADATA[metric_name].levels = levels
 
 @dataclass
 class Metric:
@@ -628,7 +655,7 @@ def merge_measurements(measurements_list: List[Measurements]) -> \
             log.debug('By default, unknown metric %r uses "sum" as merge operation.', metric_name)
             operation = sum
 
-        if metric_name not in METRICS_LEVELS:
+        if metric_name not in METRICS_METADATA or not METRICS_METADATA[metric_name].levels:
             try:
                 summed_metrics[metric_name] = operation(
                     [measurements[metric_name] for measurements in measurements_list
@@ -638,7 +665,7 @@ def merge_measurements(measurements_list: List[Measurements]) -> \
                               "not specified.".format(metric_name))
                 raise
         else:
-            max_depth = len(METRICS_LEVELS[metric_name])
+            max_depth = len(METRICS_METADATA[metric_name].levels)
             summed = dict()
             for measurements in measurements_list:
                 if metric_name in measurements:
@@ -728,8 +755,8 @@ class BaseDerivedMetricsGenerator:
 
             calculated_delta = []
             for metric_name in names:
-                if metric_name in METRICS_LEVELS:
-                    max_depth = len(METRICS_LEVELS[metric_name])
+                if metric_name in METRICS_METADATA and METRICS_METADATA[metric_name].levels:
+                    max_depth = len(METRICS_METADATA[metric_name].levels)
                     calculated_delta.append(
                         _operation_on_leveled_dicts(measurements[metric_name],
                                                     self._prev_measurements[metric_name],
@@ -763,33 +790,33 @@ class DefaultDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
 
         if available(MetricName.INSTRUCTIONS, MetricName.CYCLES):
             inst_delta, cycles_delta = delta(MetricName.INSTRUCTIONS, MetricName.CYCLES)
-            max_depth = len(METRICS_LEVELS[MetricName.INSTRUCTIONS])
+            max_depth = len(METRICS_METADATA[MetricName.INSTRUCTIONS].levels)
             ipc = _operation_on_leveled_dicts(inst_delta, cycles_delta, truediv, max_depth)
-            measurements[DerivedMetricName.IPC] = ipc
+            measurements[MetricName.IPC] = ipc
 
             if time_delta > 0:
                 _operation_on_leveled_metric(inst_delta, rate, max_depth)
-                measurements[DerivedMetricName.IPS] = inst_delta
+                measurements[MetricName.IPS] = inst_delta
 
         if available(MetricName.INSTRUCTIONS, MetricName.CACHE_MISSES):
             inst_delta, cache_misses_delta = delta(MetricName.INSTRUCTIONS, MetricName.CACHE_MISSES)
 
-            max_depth = len(METRICS_LEVELS[MetricName.CACHE_MISSES])
+            max_depth = len(METRICS_METADATA[MetricName.CACHE_MISSES].levels)
             divided = _operation_on_leveled_dicts(
                 cache_misses_delta, inst_delta, truediv, max_depth)
 
             _operation_on_leveled_metric(divided, lambda v: v * 1000, max_depth)
-            measurements[DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS] = divided
+            measurements[MetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS] = divided
 
         if available(MetricName.CACHE_REFERENCES, MetricName.CACHE_MISSES):
             cache_ref_delta, cache_misses_delta = delta(MetricName.CACHE_REFERENCES,
                                                         MetricName.CACHE_MISSES)
-            max_depth = len(METRICS_LEVELS[MetricName.CACHE_MISSES])
+            max_depth = len(METRICS_METADATA[MetricName.CACHE_MISSES].levels)
             cache_hits_count = _operation_on_leveled_dicts(
                 cache_ref_delta, cache_misses_delta, sub, max_depth)
             cache_hit_ratio = _operation_on_leveled_dicts(cache_hits_count, cache_ref_delta,
                                                           truediv, max_depth)
-            measurements[DerivedMetricName.CACHE_HIT_RATIO] = cache_hit_ratio
+            measurements[MetricName.CACHE_HIT_RATIO] = cache_hit_ratio
 
 
 class BaseGeneratorFactory:
@@ -806,8 +833,8 @@ def export_metrics_from_measurements(name_prefix: str,
                                      measurements: Measurements) -> List[Metric]:
     all_metrics = []
     for metric_name, metric_node in measurements.items():
-        if metric_name in METRICS_LEVELS:
-            levels = METRICS_LEVELS[metric_name]
+        if metric_name in METRICS_METADATA and METRICS_METADATA[metric_name].levels:
+            levels = METRICS_METADATA[metric_name].levels
             max_depth = len(levels)
 
             def is_leaf(depth):

@@ -413,7 +413,7 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
                         '(because {})'.format(container, e))
             raise
         # Extra metrics
-        task_measurements[MetricName.UP.value] = 1
+        task_measurements[MetricName.WCA_UP.value] = 1
         task_measurements[MetricName.LAST_SEEN.value] = time.time()
         #
         if TaskResource.CPUS in task.resources:

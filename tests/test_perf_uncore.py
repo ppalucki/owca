@@ -13,20 +13,20 @@
 # limitations under the License.
 from unittest.mock import patch, MagicMock, mock_open
 
-from wca.perf_uncore import Event, UncorePerfCounters, UncoreMetricName
+from wca.perf_uncore import Event, UncorePerfCounters, MetricName
 
 @patch('wca.perf_uncore._parse_event_groups', return_value={
-    UncoreMetricName.PMM_BANDWIDTH_READ: 0.0})
+    MetricName.PMM_BANDWIDTH_READ: 0.0})
 @patch('wca.perf_uncore.UncorePerfCounters._open_for_cpu')
 @patch('wca.perf._create_file_from_fd')
 def test_get_measurements(*args):
     upc = UncorePerfCounters(
         [0, 18], {17: [Event(event=227,
-                             name=UncoreMetricName.PMM_BANDWIDTH_READ,
+                             name=MetricName.PMM_BANDWIDTH_READ,
                              umask=0, config1=0)
                        ]})
     upc._group_event_leader_files_per_pmu[17] = {0: mock_open(), 18: mock_open()}
-    expected_measurements = {UncoreMetricName.PMM_BANDWIDTH_READ: {0: {17: 0.0}, 18: {17: 0.0}}}
+    expected_measurements = {MetricName.PMM_BANDWIDTH_READ: {0: {17: 0.0}, 18: {17: 0.0}}}
 
     assert upc.get_measurements() == expected_measurements
 
@@ -36,7 +36,7 @@ def test_get_measurements(*args):
 @patch('os.fdopen')
 def test_open_for_cpu(*args):
     event = Event(event=227,
-                  name=UncoreMetricName.PMM_BANDWIDTH_READ,
+                  name=MetricName.PMM_BANDWIDTH_READ,
                   umask=0, config1=0)
 
     upc = UncorePerfCounters(cpus=[], pmu_events={})
@@ -59,7 +59,7 @@ def test_cleanup(*args):
         event_files.append(MagicMock())
 
     event = Event(event=227,
-                  name=UncoreMetricName.PMM_BANDWIDTH_READ,
+                  name=MetricName.PMM_BANDWIDTH_READ,
                   umask=0, config1=0)
     upc = UncorePerfCounters([0, 18], {17: [event]})
     upc._group_event_leader_files_per_pmu = {17: (None, {0: reader})}

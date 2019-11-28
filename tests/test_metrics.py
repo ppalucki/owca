@@ -22,7 +22,7 @@ from wca.mesos import create_metrics, sanitize_label
 from wca.metrics import (Metric, merge_measurements, MetricName,
                          METRICS_METADATA, MetricGranurality,
                          export_metrics_from_measurements, MetricMetadata,
-                         MetricType, METRICS_LEVELS, MetricUnit, MetricSource,
+                         MetricType, MetricUnit, MetricSource,
                          _list_leveled_metrics,
                          _operation_on_leveled_metric,
                          _operation_on_leveled_dicts)
@@ -94,19 +94,17 @@ class TestMetric(object):
                                                          MetricUnit.NUMERIC,
                                                          MetricSource.GENERIC,
                                                          MetricGranurality.PLATFORM,
-                                                         levels=[],
+                                                         levels=['numa_node', 'container'],
                                                          )
-        METRICS_LEVELS['test_metric'] = ['numa_node', 'container']  # two levels
 
     def __exit__(self, type, value, traceback):
         """if exception was raised the metrics structeres will be cleaned up."""
         del METRICS_METADATA['test_metric']
-        del METRICS_LEVELS['test_metric']
         del MetricName.TEST_METRIC
 
 
 def test_export_metrics_from_measurements_artifical_metric():
-    """We currently do not have a metric which len(METRICS_LEVELS[X]) > 1,
+    """We currently do not have a metric which len(METRICS_METADATA[X].levels) > 1,
         so the need to add such metric in metrics structures for the test."""
     with TestMetric():
         measurements = {'test_metric': {'id0': {'stress': 0, 'dbmango': 1},

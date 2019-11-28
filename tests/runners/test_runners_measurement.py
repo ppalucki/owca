@@ -130,7 +130,7 @@ def test_prepare_tasks_data(*mocks):
                           TaskData(
                               t.name, t.task_id, t.cgroup_path, t.subcgroups_paths,
                               t.labels, t.resources,
-                              {'last_seen': 12345.6, 'task__cpu_usage': 13, 'up': 1})}
+                              {'last_seen': 12345.6, 'task__cpu_usage': 13, 'wca_up': 1})}
 
 
 @patch('wca.cgroups.Cgroup')

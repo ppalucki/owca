@@ -23,7 +23,7 @@ import pytest
 from wca import metrics
 from wca import perf
 from wca import perf_const as pc
-from wca.metrics import MetricName, DerivedMetricName, DefaultDerivedMetricsGenerator
+from wca.metrics import MetricName, MetricName, DefaultDerivedMetricsGenerator
 from wca.perf import _parse_raw_event_name, _get_event_config
 from wca.platforms import CPUCodeName, Platform
 from wca.runners.measurement import _filter_out_event_names_for_cpu
@@ -333,10 +333,10 @@ def test_derived_metrics():
 
     with patch('time.time', return_value=1):
         measurements = derived_metrics_generator.get_measurements()
-    assert DerivedMetricName.IPC not in measurements
-    assert DerivedMetricName.IPS not in measurements
-    assert DerivedMetricName.CACHE_HIT_RATIO not in measurements
-    assert DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS not in measurements
+    assert MetricName.IPC not in measurements
+    assert MetricName.IPS not in measurements
+    assert MetricName.CACHE_HIT_RATIO not in measurements
+    assert MetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS not in measurements
 
     # 5 seconds later
     def gm_func_2():
@@ -350,20 +350,20 @@ def test_derived_metrics():
     derived_metrics_generator.get_measurements_func = gm_func_2
     with patch('time.time', return_value=6):
         measurements = derived_metrics_generator.get_measurements()
-    assert DerivedMetricName.IPC in measurements
-    assert DerivedMetricName.IPS in measurements
-    assert DerivedMetricName.CACHE_HIT_RATIO in measurements
-    assert DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS in measurements
+    assert MetricName.IPC in measurements
+    assert MetricName.IPS in measurements
+    assert MetricName.CACHE_HIT_RATIO in measurements
+    assert MetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS in measurements
 
-    assert measurements[DerivedMetricName.IPC] == ({0: 10000 / 10})
-    assert measurements[DerivedMetricName.IPS] == ({0: 10000 / 5})
+    assert measurements[MetricName.IPC] == ({0: 10000 / 10})
+    assert measurements[MetricName.IPS] == ({0: 10000 / 5})
 
     # Assuming cache misses increase is 10k over all 50k cache references
     # Cache hit ratio should be 40k / 50k = 80%
-    assert measurements[DerivedMetricName.CACHE_HIT_RATIO] == {0: 0.8}
+    assert measurements[MetricName.CACHE_HIT_RATIO] == {0: 0.8}
 
     # 10k misses per 10k instructions / 1000 = 10k / 10
-    assert measurements[DerivedMetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS] == {0: 1000}
+    assert measurements[MetricName.CACHE_MISSES_PER_KILO_INSTRUCTIONS] == {0: 1000}
 
 
 @pytest.mark.parametrize('event_names, cpu_codename, expected', [
