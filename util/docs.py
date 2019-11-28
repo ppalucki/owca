@@ -18,7 +18,7 @@ from wca.metrics import METRICS_METADATA, MetricGranurality
 
 def prepare_csv_table(data):
     table = '.. csv-table::\n'
-    table += '\t:header: "Name", "Help", "Source", "Levels"\n'
+    table += '\t:header: "Name", "Help", "Source", "Levels/Labels"\n'
     table += '\t:widths: 5, 5, 5, 5 \n\n\t'
 
     table += '\n\t'.join(['"{}", "{}", "{}", "{}"'.format(*row) for row in data])
