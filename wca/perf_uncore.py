@@ -22,7 +22,7 @@ from operator import truediv, add
 
 from wca import perf_const as pc
 from wca.metrics import Measurements, BaseDerivedMetricsGenerator, \
-    MetricName, _operation_on_leveled_metric, \
+    _operation_on_leveled_metric, \
     MetricName, _operation_on_leveled_dicts, METRICS_METADATA
 from wca.perf import _perf_event_open, _create_file_from_fd, \
     _parse_event_groups, LIBC

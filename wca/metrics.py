@@ -117,6 +117,7 @@ class MetricName(str, Enum):
     def __repr__(self):
         return repr(self.value)
 
+
 class MetricType(str, Enum):
     GAUGE = 'gauge'  # arbitrary value (can go up and down)
     COUNTER = 'counter'  # monotonically increasing counter

@@ -127,11 +127,14 @@ def test_prepare_tasks_data(*mocks):
 
     tasks_data = _prepare_tasks_data(containers)
 
-    assert tasks_data == {'t1_task_id':
-        TaskData(
-            t.name, t.task_id, t.cgroup_path, t.subcgroups_paths,
-            t.labels, t.resources,
-            {'task_last_seen': 12345.6, 'task_cpu_usage': 13, 'wca_up': 1})}
+    assert tasks_data == {
+        't1_task_id':
+            TaskData(
+                t.name, t.task_id, t.cgroup_path, t.subcgroups_paths,
+                t.labels, t.resources,
+                {'task_last_seen': 12345.6, 'task_cpu_usage': 13, 'wca_up': 1}
+            )
+    }
 
 
 @patch('wca.cgroups.Cgroup')

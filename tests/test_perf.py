@@ -13,17 +13,17 @@
 # limitations under the License.
 
 
-import os
-from io import BytesIO
 from unittest import mock
 from unittest.mock import Mock, patch, mock_open
 
+import os
 import pytest
+from io import BytesIO
 
 from wca import metrics
 from wca import perf
 from wca import perf_const as pc
-from wca.metrics import MetricName, MetricName, DefaultDerivedMetricsGenerator
+from wca.metrics import MetricName, DefaultDerivedMetricsGenerator
 from wca.perf import _parse_raw_event_name, _get_event_config
 from wca.platforms import CPUCodeName, Platform
 from wca.runners.measurement import _filter_out_event_names_for_cpu
@@ -134,7 +134,7 @@ def test_get_online_cpus(_parse_online_cpu_string_mock, open_mock):
 
 
 @patch('wca.perf._parse_event_groups', return_value={
-    metrics.MetricName.CYCLES:  0,
+    metrics.MetricName.CYCLES: 0,
     metrics.MetricName.SCALING_FACTOR_MAX: 0,
     metrics.MetricName.SCALING_FACTOR_AVG: 0})
 @patch('wca.perf._get_cgroup_fd')
@@ -390,8 +390,12 @@ def test_parse_event_names(event_names, cpu_codename, expected):
 
 
 @pytest.mark.parametrize('event_names, cpu_codename', [
-    (['task_cycles', 'task_instructions', 'task_cache_misses', 'false_metric'], CPUCodeName.SKYLAKE),
-    (['__r1234', 'task_instructions', 'false_metric', 'task_cache_references'], CPUCodeName.SKYLAKE),
+    (
+            ['task_cycles', 'task_instructions', 'task_cache_misses', 'false_metric'],
+            CPUCodeName.SKYLAKE),
+    (
+            ['__r1234', 'task_instructions', 'false_metric', 'task_cache_references'],
+            CPUCodeName.SKYLAKE),
     (['task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions',
       'false_metric', 'task_cache_references'], CPUCodeName.SKYLAKE),
     (['offcore_requests_outstanding_l3_miss_demand_data_rd', 'false_metric',

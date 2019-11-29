@@ -14,9 +14,9 @@
 
 
 from itertools import chain
-from operator import truediv, add, sub
 
 import pytest
+from operator import truediv, add, sub
 
 from wca.mesos import create_metrics, sanitize_label
 from wca.metrics import (Metric, merge_measurements, MetricName,
@@ -60,7 +60,8 @@ def test_create_metrics(task_measurements, expected_metrics):
         ([{'m1': 8, 'm2': 3}, {'m1': 3, 'm2': 7}, {'m1': 3}], {'m1': 14, 'm2': 10}),
         ([{'ipc': 2}, {'ipc': 4}], {'ipc': 6}),
         ([{'ipc': 2}, {'ipc': 4}, {'m1': 2}, {'m1': 3}], {'ipc': 6, 'm1': 5}),
-        ([{'task_cycles': {0: 2, 1: 5}}, {'task_cycles': {0: 4, 1: 7}}], {'task_cycles': {0: 6, 1: 12}}),
+        ([{'task_cycles': {0: 2, 1: 5}}, {'task_cycles': {0: 4, 1: 7}}],
+         {'task_cycles': {0: 6, 1: 12}}),
         ([{'task_cycles': {0: 2, 1: 5}}, {'task_cycles': {0: 4, 1: 7}}, {'m1': 8}],
          {'task_cycles': {0: 6, 1: 12}, 'm1': 8})
 ))
