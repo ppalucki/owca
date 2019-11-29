@@ -543,7 +543,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pjmu'],
+            ['cpu', 'pmu'],
         ),
     MetricName.DRAM_HIT:
         MetricMetadata(
@@ -561,7 +561,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
             MetricGranurality.PLATFORM,
-            ['jcpu', 'pmu'],
+            ['cpu', 'pmu'],
         ),
     MetricName.UPI_RxL_FLITS:
         MetricMetadata(
