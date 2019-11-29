@@ -31,7 +31,7 @@ from wca.nodes import Node, Task, TaskId, TaskSynchronizationException
 from wca.resources import calculate_pod_resources
 from wca.security import SSL, HTTPSAdapter
 
-DEFAULT_EVENTS = (MetricName.INSTRUCTIONS, MetricName.CYCLES, MetricName.CACHE_MISSES)
+DEFAULT_EVENTS = (MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CYCLES, MetricName.TASK_CACHE_MISSES)
 
 log = logging.getLogger(__name__)
 

@@ -63,18 +63,18 @@ def test_measurements_runner(subcgroups):
 
     # Measurements metrics about tasks, based on get_measurements mocks.
     cpu_usage = TASK_CPU_USAGE * (len(subcgroups) if subcgroups else 1)
-    assert_metric(got_metrics, MetricName.CPU_USAGE_PER_TASK, dict(task_id=t1.task_id),
+    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE, dict(task_id=t1.task_id),
                   expected_metric_value=cpu_usage)
-    assert_metric(got_metrics, MetricName.CPU_USAGE_PER_TASK, dict(task_id=t2.task_id),
+    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE, dict(task_id=t2.task_id),
                   expected_metric_value=cpu_usage)
 
     # Test whether application and application_version_name were properly generated using
     #   default runner._task_label_generators defined in constructor of MeasurementsRunner.
-    assert_metric(got_metrics, MetricName.CPU_USAGE_PER_TASK,
+    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE,
                   {'application': t1.name, 'application_version_name': ''})
 
     # Test whether `initial_task_cpu_assignment` label is attached to task metrics.
-    assert_metric(got_metrics, MetricName.CPU_USAGE_PER_TASK,
+    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE,
                   {'initial_task_cpu_assignment': '8.0'})
 
 

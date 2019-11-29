@@ -46,8 +46,8 @@ log = logging.getLogger(__name__)
 _INITIALIZE_FAILURE_ERROR_CODE = 1
 
 
-DEFAULT_EVENTS = [MetricName.INSTRUCTIONS, MetricName.CYCLES,
-                  MetricName.CACHE_MISSES, MetricName.CACHE_REFERENCES,
+DEFAULT_EVENTS = [MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CYCLES,
+                  MetricName.TASK_CACHE_MISSES, MetricName.TASK_CACHE_REFERENCES,
                   MetricName.TASK_STALLED_MEMORY_LOADS]
 
 

@@ -365,7 +365,9 @@ def get_numa_nodes_count() -> int:
 
 
 def parse_node_meminfo() -> (Dict[NodeId, int], Dict[NodeId, int]):
-    """Parses /sys/devices/system/node/node*/meminfo and returns free/used"""
+    """Parses /sys/devices/system/node/node*/meminfo and returns free/used
+    return values are in bytes.
+    """
     node_free = {}
     node_used = {}
     for nodedir in os.listdir(BASE_SYSFS_NODES_PATH):
@@ -602,8 +604,8 @@ def collect_platform_information(rdt_enabled: bool = True,
     platform_measurements[MetricName.CPU_USAGE_PER_CPU] = parse_proc_stat(read_proc_stat())
     platform_measurements[MetricName.MEM_USAGE] = parse_proc_meminfo(read_proc_meminfo())
     node_free, node_used = parse_node_meminfo()
-    platform_measurements[MetricName.MEM_NUMA_FREE] = node_free
-    platform_measurements[MetricName.MEM_NUMA_USED] = node_used
+    platform_measurements[MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES] = node_free
+    platform_measurements[MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES] = node_used
 
     # Merge local platform measurements with passed extra_platform_measurements
     platform_measurements.update(extra_platform_measurements

@@ -130,7 +130,7 @@ class NUMAAllocator(Allocator):
             best_memory_node = _get_best_memory_node(memory, balanced_memory)
             most_free_memory_node = \
                 _get_most_free_memory_node(memory,
-                                           platform.measurements[MetricName.MEM_NUMA_FREE])
+                                           platform.measurements[MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES])
 
             data: TaskData = tasks_data[task]
 
@@ -256,7 +256,7 @@ class NUMAAllocator(Allocator):
         # 5. Memory migragtion
         # If nessesary migrate pages to least used node, for task that are still not there.
         least_used_node = sorted(
-            platform.measurements[MetricName.MEM_NUMA_FREE].items(), reverse=True,
+            platform.measurements[MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES].items(), reverse=True,
             key=lambda x: x[1])[0][0]
         log.log(TRACE, 'Least used node: %s', least_used_node)
         log.log(TRACE, 'Tasks to balance: %s', tasks_to_balance)
@@ -294,7 +294,7 @@ def get_pages_to_move(task, tasks_data, target_node, reason):
     data: TaskData = tasks_data[task]
     pages_to_move = sum(
         v for node, v
-        in data.measurements[MetricName.MEM_NUMA_STAT_PER_TASK].items()
+        in data.measurements[MetricName.TASK_MEMORY_NUMA_PAGES].items()
         if node != target_node)
     log.debug('Task: %s Moving %s MB to node %s reason %s', task,
               (pages_to_move * 4096) / 1024**2, target_node, reason)
@@ -302,8 +302,8 @@ def get_pages_to_move(task, tasks_data, target_node, reason):
 
 
 def _platform_total_memory(platform):
-    return sum(platform.measurements[MetricName.MEM_NUMA_FREE].values()) + \
-           sum(platform.measurements[MetricName.MEM_NUMA_USED].values())
+    return sum(platform.measurements[MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES].values()) + \
+           sum(platform.measurements[MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES].values())
 
 
 def _get_task_memory_limit(task_measurements, total, task, task_resources):
@@ -315,10 +315,10 @@ def _get_task_memory_limit(task_measurements, total, task, task_resources):
         return mems
 
     limits_order = [
-        MetricName.MEM_LIMIT_PER_TASK,
-        MetricName.MEM_SOFT_LIMIT_PER_TASK,
-        MetricName.MEM_MAX_USAGE_PER_TASK,
-        MetricName.MEM_USAGE_PER_TASK, ]
+        MetricName.TASK_MEMORY_LIMIT_BYTES,
+        MetricName.TASK_MEMORY_SOFT_LIMIT_BYTES,
+        MetricName.TASK_MEMORY_MAX_USAGE_BYTES,
+        MetricName.TASK_MEMORY_USAGE_BYTES, ]
     for limit in limits_order:
         if limit not in task_measurements:
             continue
@@ -332,12 +332,12 @@ def _get_task_memory_limit(task_measurements, total, task, task_resources):
 
 def _get_numa_node_preferences(task_measurements, platform: Platform) -> Dict[int, float]:
     ret = {node_id: 0 for node_id in range(0, platform.numa_nodes)}
-    if MetricName.MEM_NUMA_STAT_PER_TASK in task_measurements:
-        metrics_val_sum = sum(task_measurements[MetricName.MEM_NUMA_STAT_PER_TASK].values())
-        for node_id, metric_val in task_measurements[MetricName.MEM_NUMA_STAT_PER_TASK].items():
+    if MetricName.TASK_MEMORY_NUMA_PAGES in task_measurements:
+        metrics_val_sum = sum(task_measurements[MetricName.TASK_MEMORY_NUMA_PAGES].values())
+        for node_id, metric_val in task_measurements[MetricName.TASK_MEMORY_NUMA_PAGES].items():
             ret[int(node_id)] = round(metric_val / max(1, metrics_val_sum), 4)
     else:
-        log.warning('{} metric not available'.format(MetricName.MEM_NUMA_STAT_PER_TASK))
+        log.warning('{} metric not available'.format(MetricName.TASK_MEMORY_NUMA_PAGES))
     return ret
 
 

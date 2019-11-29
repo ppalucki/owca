@@ -92,10 +92,10 @@ def test_detection_runner(subcgroups):
     # Check any metrics for t2
     cpu_usage = TASK_CPU_USAGE * (len(subcgroups) if subcgroups else 1)
 
-    assert_subdict(tasks_data[t1.task_id].measurements, {MetricName.CPU_USAGE_PER_TASK: cpu_usage})
+    assert_subdict(tasks_data[t1.task_id].measurements, {MetricName.TASK_CPU_USAGE: cpu_usage})
     assert_subdict(tasks_data[t1.task_id].labels,
                    {LABEL_WORKLOAD_INSTANCE: 'redis_6792_t1', 'load_generator': 'rpc-perf-t1'})
 
     assert_subdict(tasks_data[t1.task_id].resources, t1.resources)
 
-    assert_subdict(tasks_data[t1.task_id].measurements, {MetricName.CPU_USAGE_PER_TASK: cpu_usage})
+    assert_subdict(tasks_data[t1.task_id].measurements, {MetricName.TASK_CPU_USAGE: cpu_usage})

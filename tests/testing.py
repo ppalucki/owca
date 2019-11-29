@@ -319,7 +319,7 @@ def prepare_runner_patches(func):
              patch('wca.cgroups.Cgroup.set_quota'), \
              patch('wca.cgroups.Cgroup.set_shares'), \
              patch('wca.cgroups.Cgroup.get_measurements',
-                   return_value={MetricName.CPU_USAGE_PER_TASK: TASK_CPU_USAGE}), \
+                   return_value={MetricName.TASK_CPU_USAGE: TASK_CPU_USAGE}), \
              patch('wca.resctrl.ResGroup.add_pids'), \
              patch('wca.resctrl.ResGroup.get_measurements'), \
              patch('wca.resctrl.ResGroup.get_mon_groups'), \
