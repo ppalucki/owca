@@ -51,7 +51,6 @@ Task's metrics
 	"task_llc_occupancy", "LLC occupancy. [bytes](gauge)", "resctrl", ""
 	"task_memory_bandwidth_local", "Total local memory bandwidth using Memory Bandwidth Monitoring. [bytes](counter)", "resctrl", ""
 	"task_memory_bandwidth_remote", "Total remote memory bandwidth using Memory Bandwidth Monitoring. [bytes](counter)", "resctrl", ""
-	"wca_up", "Always returns 1 [numeric](counter)", "internal", ""
 
 
 
@@ -94,6 +93,7 @@ Internal metrics
 	:header: "Name", "Help", "Source", "Levels/Labels"
 	:widths: 5, 5, 5, 5 
 
+	"wca_up", "Always returns 1 [numeric](counter)", "internal", ""
 	"wca_duration_seconds", "Interal WCA function call duration metric for profiling [numeric](gauge)", "internal", ""
 	"wca_duration_seconds_avg", "Interal WCA function call duration metric for profiling (average from last restart) [numeric](gauge)", "internal", ""
 

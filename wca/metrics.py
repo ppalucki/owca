@@ -63,7 +63,6 @@ class MetricName(str, Enum):
     MEM_NUMA_STAT_PER_TASK = 'task_memory_numa_stat'
     TASK_PAGE_FAULTS = 'task_memory_stat_page_faults'
 
-
     # From Kubernetes/Mesos or other orchestrator system.
     CPUS = 'task_cpus'  # From Kubernetes or Mesos
     MEM = 'task_mem'  # From Kubernetes or Mesos
@@ -587,7 +586,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
-            MetricGranurality.TASK),
+            MetricGranurality.INTERNAL),
     MetricName.WCA_DURATION_SECONDS:
         MetricMetadata(
             'Interal WCA function call duration metric for profiling',
