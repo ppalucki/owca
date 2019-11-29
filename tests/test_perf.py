@@ -390,12 +390,12 @@ def test_parse_event_names(event_names, cpu_codename, expected):
 
 
 @pytest.mark.parametrize('event_names, cpu_codename', [
-    (['cycles', 'instructions', 'cache_misses', 'false_metric'], CPUCodeName.SKYLAKE),
-    (['__r1234', 'instructions', 'false_metric', 'cache_references'], CPUCodeName.SKYLAKE),
-    (['offcore_requests_outstanding_l3_miss_demand_data_rd', 'instructions',
-      'false_metric', 'cache_references'], CPUCodeName.SKYLAKE),
+    (['task_cycles', 'task_instructions', 'task_cache_misses', 'false_metric'], CPUCodeName.SKYLAKE),
+    (['__r1234', 'task_instructions', 'false_metric', 'task_cache_references'], CPUCodeName.SKYLAKE),
+    (['task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions',
+      'false_metric', 'task_cache_references'], CPUCodeName.SKYLAKE),
     (['offcore_requests_outstanding_l3_miss_demand_data_rd', 'false_metric',
-      'cache_misses', 'offcore_requests_l3_miss_demand_data_rd'], CPUCodeName.SKYLAKE)])
+      'task_cache_misses', 'offcore_requests_l3_miss_demand_data_rd'], CPUCodeName.SKYLAKE)])
 def test_exception_parse_event_names(event_names, cpu_codename):
     with pytest.raises(Exception):
         _filter_out_event_names_for_cpu(event_names, cpu_codename)

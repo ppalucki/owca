@@ -667,7 +667,7 @@ Measurements = Union[
     # recursive hierarchical type  (levels may be represented by str or int)
     # e.g. for levels cpu, pmu
     # measurements = {
-    #   "instructions": {0: 1234, 1: 2452},
+    #   "task_instructions": {0: 1234, 1: 2452},
     # }
     Dict[MetricName, LevelMeasurements]
 ]
