@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import enum
-from wca.metrics import METRICS_METADATA, MetricGranurality
+from wca.metrics import METRICS_METADATA, MetricGranurality, MetricName, MetricMetadata
 
 
 def prepare_csv_table(data):
@@ -64,7 +64,14 @@ def generate_docs():
 
     internal_data = []
 
-    for metric, metadata in METRICS_METADATA.items():
+    for metric in MetricName.__members__.values():
+
+        metadata = METRICS_METADATA.get(metric)
+        if not metadata:
+            print('Warning no metadata for metric! %s' % metric)
+        continue
+
+
         if metadata.levels is not None:
             levels = ', '.join(metadata.levels)
         else:
