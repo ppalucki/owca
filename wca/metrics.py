@@ -29,7 +29,8 @@ class MetricName(str, Enum):
     CYCLES = 'task_cycles'
     CACHE_MISSES = 'task_cache_misses'
     CACHE_REFERENCES = 'task_cache_references'
-    MEMSTALL = 'task_stalls_mem_load'
+    TASK_STALLED_MEMORY_LOADS = 'task_stalled_memory_loads'
+    # offcore_requests_outstanding_l3_miss_demand_data_rd
     OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD = \
         'task_offcore_requests_outstanding_l3_miss_demand_data_rd'
     OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD = 'task_offcore_requests_l3_miss_demand_data_rd'
@@ -273,7 +274,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.BYTES,
             MetricSource.PROC,
             MetricGranurality.PLATFORM),
-    MetricName.MEMSTALL:
+    MetricName.TASK_STALLED_MEMORY_LOADS:
         MetricMetadata(
             'Mem stalled loads.',
             MetricType.COUNTER,

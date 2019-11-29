@@ -47,7 +47,8 @@ _INITIALIZE_FAILURE_ERROR_CODE = 1
 
 
 DEFAULT_EVENTS = [MetricName.INSTRUCTIONS, MetricName.CYCLES,
-                  MetricName.CACHE_MISSES, MetricName.CACHE_REFERENCES, MetricName.MEMSTALL]
+                  MetricName.CACHE_MISSES, MetricName.CACHE_REFERENCES,
+                  MetricName.TASK_STALLED_MEMORY_LOADS]
 
 
 class TaskLabelGenerator:

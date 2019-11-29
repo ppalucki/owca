@@ -307,8 +307,8 @@ def test_parse_raw_event_name_invalid(event_name, expected_match):
 
 
 @pytest.mark.parametrize('cpu, event_name, expected_config', [
-    (CPUCodeName.SKYLAKE, MetricName.MEMSTALL, 0x140014A3),
-    (CPUCodeName.BROADWELL, MetricName.MEMSTALL, 0x60006A3),
+    (CPUCodeName.SKYLAKE, MetricName.TASK_STALLED_MEMORY_LOADS, 0x140014A3),
+    (CPUCodeName.BROADWELL, MetricName.TASK_STALLED_MEMORY_LOADS, 0x60006A3),
     (CPUCodeName.SKYLAKE, MetricName.OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD, 0x00001060),
     (CPUCodeName.SKYLAKE,
      MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 0x000010B0),
@@ -373,16 +373,16 @@ def test_derived_metrics():
     (['__r1234', 'task_instructions', 'task_cycles', 'task_cache_references'],
      CPUCodeName.SKYLAKE,
      ['task_instructions', 'task_cache_references', 'task_cycles', '__r1234']),
-    (['task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions',
+    ([MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 'task_instructions',
       'task_cache_misses', 'task_cache_references'],
      CPUCodeName.SKYLAKE,
      ['task_cache_misses', 'task_cache_references',
-      'task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions']),
-    (['task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions',
-      'task_cache_misses', 'task_offcore_requests_l3_miss_demand_data_rd'],
+      MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 'task_instructions']),
+    ([MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 'task_instructions',
+      'task_cache_misses', MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD],
      CPUCodeName.SKYLAKE,
-     ['task_cache_misses', 'task_offcore_requests_l3_miss_demand_data_rd',
-      'task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions']),
+     ['task_cache_misses', MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD,
+      MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 'task_instructions']),
 ])
 def test_parse_event_names(event_names, cpu_codename, expected):
     parsed_event_names = _filter_out_event_names_for_cpu(event_names, cpu_codename)
@@ -396,10 +396,11 @@ def test_parse_event_names(event_names, cpu_codename, expected):
     (
             ['__r1234', 'task_instructions', 'false_metric', 'task_cache_references'],
             CPUCodeName.SKYLAKE),
-    (['task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions',
+    ([MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 'task_instructions',
       'false_metric', 'task_cache_references'], CPUCodeName.SKYLAKE),
-    (['offcore_requests_outstanding_l3_miss_demand_data_rd', 'false_metric',
-      'task_cache_misses', 'offcore_requests_l3_miss_demand_data_rd'], CPUCodeName.SKYLAKE)])
+    ([MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 'false_metric',
+      'task_cache_misses', MetricName.OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD],
+     CPUCodeName.SKYLAKE)])
 def test_exception_parse_event_names(event_names, cpu_codename):
     with pytest.raises(Exception):
         _filter_out_event_names_for_cpu(event_names, cpu_codename)
