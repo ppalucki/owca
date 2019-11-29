@@ -25,85 +25,89 @@ log = logging.getLogger(__name__)
 class MetricName(str, Enum):
     # --- Task ---
     # Perf events based.
-    INSTRUCTIONS = 'instructions'
-    CYCLES = 'cycles'
-    CACHE_MISSES = 'cache_misses'
-    CACHE_REFERENCES = 'cache_references'
-    MEMSTALL = 'stalls_mem_load'
+    INSTRUCTIONS = 'task_instructions'
+    CYCLES = 'task_cycles'
+    CACHE_MISSES = 'task_cache_misses'
+    CACHE_REFERENCES = 'task_cache_references'
+    MEMSTALL = 'task_stalls_mem_load'
     OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD = \
-        'offcore_requests_outstanding_l3_miss_demand_data_rd'
-    OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD = 'offcore_requests_l3_miss_demand_data_rd'
+        'task_offcore_requests_outstanding_l3_miss_demand_data_rd'
+    OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD = 'task_offcore_requests_l3_miss_demand_data_rd'
 
     # Perf event raw metrics
-    MEM_LOAD = 'mem_load_retired_local_pmm__rd180'
-    MEM_INST_RD081 = 'mem_inst_retired_all_loads__rd081'
-    MEM_INST_RD082 = 'mem_inst_retired_all_stores__rd082'
-    DTLB_LOAD_MISSES_R080e = 'dtlb_load_misses__r080e'
+    MEM_LOAD = 'task_mem_load_retired_local_pmm__rd180'
+    MEM_INST_RD081 = 'task_mem_inst_retired_all_loads__rd081'
+    MEM_INST_RD082 = 'task_mem_inst_retired_all_stores__rd082'
+    DTLB_LOAD_MISSES_R080e = 'task_dtlb_load_misses__r080e'
 
     # Perf event task based derived
     # instructions/second
-    IPS = 'ips'
+    IPS = 'task_ips'
     # instructions/cycle
-    IPC = 'ipc'
+    IPC = 'task_ipc'
     # (cache-references - cache_misses) / cache_references
-    CACHE_HIT_RATIO = 'cache_hit_ratio'
+    CACHE_HIT_RATIO = 'task_cache_hit_ratio'
     # (cache-references - cache_misses) / cache_references
-    CACHE_MISSES_PER_KILO_INSTRUCTIONS = 'cache_misses_per_kilo_instructions'
+    CACHE_MISSES_PER_KILO_INSTRUCTIONS = 'task_cache_misses_per_kilo_instructions'
 
     # Extra perf based.
-    SCALING_FACTOR_AVG = 'scaling_factor_avg'
-    SCALING_FACTOR_MAX = 'scaling_factor_max'
+    SCALING_FACTOR_AVG = 'task_scaling_factor_avg'
+    SCALING_FACTOR_MAX = 'task_scaling_factor_max'
 
     # Cgroup based.
-    CPU_USAGE_PER_TASK = 'cpu_usage_per_task'
-    MEM_USAGE_PER_TASK = 'memory_usage_per_task_bytes'
-    MEM_MAX_USAGE_PER_TASK = 'memory_max_usage_per_task_bytes'
-    MEM_LIMIT_PER_TASK = 'memory_limit_per_task_bytes'
-    MEM_SOFT_LIMIT_PER_TASK = 'memory_soft_limit_per_task_bytes'
-    MEM_NUMA_STAT_PER_TASK = 'memory_numa_stat'
-    MEM_PAGE_FAULTS = 'memory_stat_page_faults'
+    CPU_USAGE_PER_TASK = 'task_cpu_usage_per_task'
+    MEM_USAGE_PER_TASK = 'task_memory_usage_per_task_bytes'
+    MEM_MAX_USAGE_PER_TASK = 'task_memory_max_usage_per_task_bytes'
+    MEM_LIMIT_PER_TASK = 'task_memory_limit_per_task_bytes'
+    MEM_SOFT_LIMIT_PER_TASK = 'task_memory_soft_limit_per_task_bytes'
+    MEM_NUMA_STAT_PER_TASK = 'task_memory_numa_stat'
+    MEM_PAGE_FAULTS = 'task_memory_stat_page_faults'
 
-    # NUMA for whole platform
-    MEM_NUMA_FREE = 'memory_numa_free'
-    MEM_NUMA_USED = 'memory_numa_used'
 
     # From Kubernetes/Mesos or other orchestrator system.
-    CPUS = 'cpus'  # From Kubernetes or Mesos
-    MEM = 'mem'  # From Kubernetes or Mesos
+    CPUS = 'task_cpus'  # From Kubernetes or Mesos
+    MEM = 'task_mem'  # From Kubernetes or Mesos
 
     # Generic
-    LAST_SEEN = 'last_seen'
+    LAST_SEEN = 'task_last_seen'
 
     # Resctrl based.
-    MEM_BW = 'memory_bandwidth'
-    LLC_OCCUPANCY = 'llc_occupancy'
-    MEMORY_BANDWIDTH_LOCAL = 'memory_bandwidth_local'
-    MEMORY_BANDWIDTH_REMOTE = 'memory_bandwidth_remote'
+    MEM_BW = 'task_memory_bandwidth'
+    LLC_OCCUPANCY = 'task_llc_occupancy'
+    MEMORY_BANDWIDTH_LOCAL = 'task_memory_bandwidth_local'
+    MEMORY_BANDWIDTH_REMOTE = 'task_memory_bandwidth_remote'
 
     # ----------------- Platform ----------------------
+    PLATFORM_TOPOLOGY_CORES = 'platform_topology_cores'
+    PLATFORM_TOPOLOGY_CPUS = 'platform_topology_cpus'
+    PLATFORM_TOPOLOGY_SOCKETS = 'platform_topology_sockets'
+    PLATFORM_LAST_SEEN = 'platform_last_seen'
+    # NUMA for whole platform
+    MEM_NUMA_FREE = 'platform_memory_numa_free'
+    MEM_NUMA_USED = 'platform_memory_numa_used'
     # /proc based (platform scope).
     # Utilization (usage): counter like, sum of all modes based on /proc/stat
     # "cpu line" with 10ms resolution expressed in [ms]
-    CPU_USAGE_PER_CPU = 'cpu_usage_per_cpu'
+    CPU_USAGE_PER_CPU = 'platform_cpu_usage_per_cpu'
     # [bytes] based on /proc/meminfo (gauge like)
     # difference between MemTotal and MemAvail (or MemFree)
-    MEM_USAGE = 'memory_usage'
+    MEM_USAGE = 'platform_memory_usage'
 
     # Perf event based from uncore PMU and derived
-    PMM_BANDWIDTH_READ = 'pmm_bandwidth_read'
-    PMM_BANDWIDTH_WRITE = 'pmm_bandwidth_write'
-    CAS_COUNT_READ = 'cas_count_read'
-    CAS_COUNT_WRITE = 'cas_count_write'
-    UPI_RxL_FLITS = 'upi_rxl_flits'
-    UPI_TxL_FLITS = 'upi_txl_flits'
-    PMM_READS_MB_PER_SECOND = 'pmm_reads_mb_per_second'
-    PMM_WRITES_MB_PER_SECOND = 'pmm_writes_mb_per_second'
-    PMM_TOTAL_MB_PER_SECOND = 'pmm_total_mb_per_second'
-    DRAM_READS_MB_PER_SECOND = 'dram_reads_mb_per_second'
-    DRAM_WRITES_MB_PER_SECOND = 'dram_writes_mb_per_second'
-    DRAM_TOTAL_MB_PER_SECOND = 'dram_total_mb_per_second'
-    DRAM_HIT = 'dram_hit'
-    UPI_BANDWIDTH_MB_PER_SECOND = 'upi_bandwidth_mb_per_second'  # Based on UPI Flits
+    PMM_BANDWIDTH_READ = 'platform_pmm_bandwidth_read'
+    PMM_BANDWIDTH_WRITE = 'platform_pmm_bandwidth_write'
+    CAS_COUNT_READ = 'platform_cas_count_read'
+    CAS_COUNT_WRITE = 'platform_cas_count_write'
+    UPI_RxL_FLITS = 'platform_upi_rxl_flits'
+    UPI_TxL_FLITS = 'platform_upi_txl_flits'
+    PMM_READS_MB_PER_SECOND = 'platform_pmm_reads_mb_per_second'
+    PMM_WRITES_MB_PER_SECOND = 'platform_pmm_writes_mb_per_second'
+    PMM_TOTAL_MB_PER_SECOND = 'platform_pmm_total_mb_per_second'
+    DRAM_READS_MB_PER_SECOND = 'platform_dram_reads_mb_per_second'
+    DRAM_WRITES_MB_PER_SECOND = 'platform_dram_writes_mb_per_second'
+    DRAM_TOTAL_MB_PER_SECOND = 'platform_dram_total_mb_per_second'
+    DRAM_HIT = 'platform_dram_hit'
+    UPI_BANDWIDTH_MB_PER_SECOND = 'platform_upi_bandwidth_mb_per_second'  # Based on UPI Flits
 
     # ---------------- Internal -------------------------
     # Generic for WCA.
@@ -111,6 +115,8 @@ class MetricName(str, Enum):
     WCA_DURATION_SECONDS = 'wca_duration_seconds'
     WCA_DURATION_SECONDS_AVG = 'wca_duration_seconds_avg'
 
+    def __repr__(self):
+        return repr(self.value)
 
 class MetricType(str, Enum):
     GAUGE = 'gauge'  # arbitrary value (can go up and down)
@@ -136,6 +142,7 @@ class MetricUnit(str, Enum):
     BYTES = 'bytes'
     SECONDS = 'seconds'
     NUMERIC = 'numeric'
+    TIMESTAMP = 'timestamp'
     TEN_MILLISECOND = '10ms'
 
     def __repr__(self):
@@ -595,6 +602,34 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
             MetricGranurality.INTERNAL),
+    MetricName.PLATFORM_TOPOLOGY_CORES:
+        MetricMetadata(
+            'Platform information about number of physical cores',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_TOPOLOGY_CPUS:
+        MetricMetadata(
+            'Platform information about number of logical cpus',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_TOPOLOGY_SOCKETS:
+        MetricMetadata(
+            'Platform information about number of sockets',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_LAST_SEEN:
+        MetricMetadata(
+            'Timestamp the information about platform was last collected',
+            MetricType.COUNTER,
+            MetricUnit.TIMESTAMP,
+            MetricSource.INTERNAL,
+            MetricGranurality.PLATFORM),
 }
 
 
@@ -655,6 +690,7 @@ def merge_measurements(measurements_list: List[Measurements]) -> \
             log.debug('By default, unknown metric %r uses "sum" as merge operation.', metric_name)
             operation = sum
 
+        # Unknown metric or has no levels.
         if metric_name not in METRICS_METADATA or not METRICS_METADATA[metric_name].levels:
             try:
                 summed_metrics[metric_name] = operation(
@@ -829,8 +865,7 @@ class MissingMeasurementException(Exception):
     pass
 
 
-def export_metrics_from_measurements(name_prefix: str,
-                                     measurements: Measurements) -> List[Metric]:
+def export_metrics_from_measurements(measurements: Measurements) -> List[Metric]:
     all_metrics = []
     for metric_name, metric_node in measurements.items():
         if metric_name in METRICS_METADATA and METRICS_METADATA[metric_name].levels:
@@ -842,7 +877,7 @@ def export_metrics_from_measurements(name_prefix: str,
 
             def create_metric(node, labels):
                 return [Metric.create_metric_with_metadata(
-                    name=name_prefix + metric_name,
+                    name=metric_name,
                     value=node,
                     labels=labels
                 )]
@@ -862,7 +897,7 @@ def export_metrics_from_measurements(name_prefix: str,
         else:
             metric_value = metric_node
             all_metrics.append(Metric.create_metric_with_metadata(
-                name=name_prefix + metric_name,
+                name=metric_name,
                 value=metric_value,
             ))
     return all_metrics

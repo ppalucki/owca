@@ -27,7 +27,7 @@ from wca.allocators import AllocationConfiguration
 from wca.containers import Container, ContainerSet, ContainerInterface
 from wca.detectors import ContendedResource, ContentionAnomaly, LABEL_WORKLOAD_INSTANCE, \
     _create_uuid_from_tasks_ids, TaskData
-from wca.metrics import Metric, MetricType
+from wca.metrics import Metric, MetricType, MetricName
 from wca.nodes import TaskId, Task
 from wca.platforms import CPUCodeName, Platform, RDTInformation
 from wca.resctrl import ResGroup
@@ -319,7 +319,7 @@ def prepare_runner_patches(func):
              patch('wca.cgroups.Cgroup.set_quota'), \
              patch('wca.cgroups.Cgroup.set_shares'), \
              patch('wca.cgroups.Cgroup.get_measurements',
-                   return_value=dict(cpu_usage=TASK_CPU_USAGE)), \
+                   return_value={MetricName.CPU_USAGE_PER_TASK: TASK_CPU_USAGE}), \
              patch('wca.resctrl.ResGroup.add_pids'), \
              patch('wca.resctrl.ResGroup.get_measurements'), \
              patch('wca.resctrl.ResGroup.get_mon_groups'), \

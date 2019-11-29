@@ -174,11 +174,10 @@ def test_collect_platform_information(*mocks):
         static_information={}
     )
 
-    print(got_metrics)
-    assert_metric(got_metrics, 'platform__memory_usage', expected_metric_value=1337)
-    assert_metric(got_metrics, 'platform__cpu_usage_per_cpu', {'cpu': '0'},
+    assert_metric(got_metrics, 'platform_memory_usage', expected_metric_value=1337)
+    assert_metric(got_metrics, 'platform_cpu_usage_per_cpu', {'cpu': '0'},
                   expected_metric_value=100)
-    assert_metric(got_metrics, 'platform__topology_cores', expected_metric_value=1)
+    assert_metric(got_metrics, 'platform_topology_cores', expected_metric_value=1)
     assert got_labels == {"sockets": "1", "cores": "1", "cpus": "2", "host": "test_host",
                           "wca_version": "0.1", "cpu_model": "intel xeon"}
 

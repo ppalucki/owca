@@ -438,11 +438,8 @@ def _build_tasks_metrics(tasks_data: TasksData) -> List[Metric]:
     """TODO:  TBD ALSO ADDS PREFIX for name!"""
     tasks_metrics: List[Metric] = []
 
-    TASK_METRICS_PREFIX = 'task__'
-
     for task, data in tasks_data.items():
-        task_metrics = export_metrics_from_measurements(
-                TASK_METRICS_PREFIX, data.measurements)
+        task_metrics = export_metrics_from_measurements(data.measurements)
 
         # Decorate metrics with task specific labels.
         for task_metric in task_metrics:

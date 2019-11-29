@@ -367,22 +367,22 @@ def test_derived_metrics():
 
 
 @pytest.mark.parametrize('event_names, cpu_codename, expected', [
-    (['cycles', 'instructions', 'cache_misses', 'cache_references'],
+    (['task_cycles', 'task_instructions', 'task_cache_misses', 'task_cache_references'],
      CPUCodeName.SKYLAKE,
-     ['cache_misses', 'cache_references', 'cycles', 'instructions']),
-    (['__r1234', 'instructions', 'cycles', 'cache_references'],
+     ['task_cache_misses', 'task_cache_references', 'task_cycles', 'task_instructions']),
+    (['__r1234', 'task_instructions', 'task_cycles', 'task_cache_references'],
      CPUCodeName.SKYLAKE,
-     ['instructions', 'cache_references', 'cycles', '__r1234']),
-    (['offcore_requests_outstanding_l3_miss_demand_data_rd', 'instructions',
-      'cache_misses', 'cache_references'],
+     ['task_instructions', 'task_cache_references', 'task_cycles', '__r1234']),
+    (['task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions',
+      'task_cache_misses', 'task_cache_references'],
      CPUCodeName.SKYLAKE,
-     ['cache_misses', 'cache_references',
-      'offcore_requests_outstanding_l3_miss_demand_data_rd', 'instructions']),
-    (['offcore_requests_outstanding_l3_miss_demand_data_rd', 'instructions',
-      'cache_misses', 'offcore_requests_l3_miss_demand_data_rd'],
+     ['task_cache_misses', 'task_cache_references',
+      'task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions']),
+    (['task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions',
+      'task_cache_misses', 'task_offcore_requests_l3_miss_demand_data_rd'],
      CPUCodeName.SKYLAKE,
-     ['cache_misses', 'offcore_requests_l3_miss_demand_data_rd',
-      'offcore_requests_outstanding_l3_miss_demand_data_rd', 'instructions']),
+     ['task_cache_misses', 'task_offcore_requests_l3_miss_demand_data_rd',
+      'task_offcore_requests_outstanding_l3_miss_demand_data_rd', 'task_instructions']),
 ])
 def test_parse_event_names(event_names, cpu_codename, expected):
     parsed_event_names = _filter_out_event_names_for_cpu(event_names, cpu_codename)

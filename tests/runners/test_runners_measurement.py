@@ -23,7 +23,7 @@ from wca import storage
 from wca.containers import Container
 from wca.detectors import TaskData
 from wca.mesos import MesosNode
-from wca.metrics import MissingMeasurementException
+from wca.metrics import MissingMeasurementException, MetricName
 from wca.resctrl import ResGroup
 from wca.runners.measurement import (MeasurementRunner, _build_tasks_metrics,
                                      _prepare_tasks_data, TaskLabelRegexGenerator,
@@ -38,12 +38,12 @@ def test_measurements_runner(subcgroups):
     t2 = redis_task_with_default_labels('t2', subcgroups)
 
     runner = MeasurementRunner(
-                node=Mock(spec=MesosNode,
-                          get_tasks=Mock(return_value=[t1, t2])),
-                metrics_storage=Mock(spec=storage.Storage, store=Mock()),
-                rdt_enabled=False,
-                gather_hw_mm_topology=False,
-                extra_labels=dict(extra_label='extra_value')
+        node=Mock(spec=MesosNode,
+                  get_tasks=Mock(return_value=[t1, t2])),
+        metrics_storage=Mock(spec=storage.Storage, store=Mock()),
+        rdt_enabled=False,
+        gather_hw_mm_topology=False,
+        extra_labels=dict(extra_label='extra_value')
     )
     runner._wait = Mock()
     # Mock to finish after one iteration.
@@ -63,18 +63,19 @@ def test_measurements_runner(subcgroups):
 
     # Measurements metrics about tasks, based on get_measurements mocks.
     cpu_usage = TASK_CPU_USAGE * (len(subcgroups) if subcgroups else 1)
-    assert_metric(got_metrics, 'task__cpu_usage', dict(task_id=t1.task_id),
+    assert_metric(got_metrics, MetricName.CPU_USAGE_PER_TASK, dict(task_id=t1.task_id),
                   expected_metric_value=cpu_usage)
-    assert_metric(got_metrics, 'task__cpu_usage', dict(task_id=t2.task_id),
+    assert_metric(got_metrics, MetricName.CPU_USAGE_PER_TASK, dict(task_id=t2.task_id),
                   expected_metric_value=cpu_usage)
 
     # Test whether application and application_version_name were properly generated using
     #   default runner._task_label_generators defined in constructor of MeasurementsRunner.
-    assert_metric(got_metrics, 'task__cpu_usage',
+    assert_metric(got_metrics, MetricName.CPU_USAGE_PER_TASK,
                   {'application': t1.name, 'application_version_name': ''})
 
     # Test whether `initial_task_cpu_assignment` label is attached to task metrics.
-    assert_metric(got_metrics, 'task__cpu_usage', {'initial_task_cpu_assignment': '8.0'})
+    assert_metric(got_metrics, MetricName.CPU_USAGE_PER_TASK,
+                  {'initial_task_cpu_assignment': '8.0'})
 
 
 @prepare_runner_patches
@@ -82,11 +83,11 @@ def test_measurements_runner(subcgroups):
 def test_measurements_wait(sleep_mock):
     with patch('time.time', return_value=1):
         runner = MeasurementRunner(
-                    node=Mock(spec=MesosNode,
-                              get_tasks=Mock(return_value=[])),
-                    metrics_storage=Mock(spec=storage.Storage, store=Mock()),
-                    rdt_enabled=False,
-                    extra_labels={}
+            node=Mock(spec=MesosNode,
+                      get_tasks=Mock(return_value=[])),
+            metrics_storage=Mock(spec=storage.Storage, store=Mock()),
+            rdt_enabled=False,
+            extra_labels={}
         )
 
         runner._initialize()
@@ -107,8 +108,8 @@ def test_measurements_wait(sleep_mock):
     ({}, []),
     ({'t1_task_id': task_data('/t1', labels={'app': 'redis'})}, []),
     ({'t1_task_id': task_data('/t1', labels={'app': 'redis'},
-      measurements={'cpu_usage': DEFAULT_METRIC_VALUE})},
-        [metric('task__cpu_usage', {'app': 'redis'})])
+                              measurements={'task_cpu_usage': DEFAULT_METRIC_VALUE})},
+     [metric('task_cpu_usage', {'app': 'redis'})])
 ])
 def test_build_tasks_metrics(tasks_data, expected_metrics):
     assert expected_metrics == _build_tasks_metrics(tasks_data)
@@ -117,7 +118,7 @@ def test_build_tasks_metrics(tasks_data, expected_metrics):
 @patch('wca.cgroups.Cgroup')
 @patch('wca.perf.PerfCounters')
 @patch('time.time', return_value=12345.6)
-@patch('wca.containers.Container.get_measurements', Mock(return_value={'task__cpu_usage': 13}))
+@patch('wca.containers.Container.get_measurements', Mock(return_value={'task_cpu_usage': 13}))
 def test_prepare_tasks_data(*mocks):
     t = task('/t1', labels={'label_key': 'label_value'}, resources={'cpu': 3})
     containers = {
@@ -127,10 +128,10 @@ def test_prepare_tasks_data(*mocks):
     tasks_data = _prepare_tasks_data(containers)
 
     assert tasks_data == {'t1_task_id':
-                          TaskData(
-                              t.name, t.task_id, t.cgroup_path, t.subcgroups_paths,
-                              t.labels, t.resources,
-                              {'last_seen': 12345.6, 'task__cpu_usage': 13, 'wca_up': 1})}
+        TaskData(
+            t.name, t.task_id, t.cgroup_path, t.subcgroups_paths,
+            t.labels, t.resources,
+            {'task_last_seen': 12345.6, 'task_cpu_usage': 13, 'wca_up': 1})}
 
 
 @patch('wca.cgroups.Cgroup')

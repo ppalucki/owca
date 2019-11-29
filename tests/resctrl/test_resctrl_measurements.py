@@ -64,10 +64,10 @@ def test_resgroup_sync_no_space_left_on_device(makedirs_mock, exists_mock, log_w
 @patch('os.listdir', return_value=['1', '2'])
 def test_get_measurements(*mock):
     resgroup = ResGroup(name=RESCTRL_ROOT_NAME)
-    assert {'memory_bandwidth': 6,
-            'llc_occupancy': 2,
-            'memory_bandwidth_local': 4,
-            'memory_bandwidth_remote': 2} == \
+    assert {'task_memory_bandwidth': 6,
+            'task_llc_occupancy': 2,
+            'task_memory_bandwidth_local': 4,
+            'task_memory_bandwidth_remote': 2} == \
         resgroup.get_measurements('best_efforts', True, True)
 
 

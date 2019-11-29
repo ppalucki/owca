@@ -60,9 +60,9 @@ def test_create_metrics(task_measurements, expected_metrics):
         ([{'m1': 8, 'm2': 3}, {'m1': 3, 'm2': 7}, {'m1': 3}], {'m1': 14, 'm2': 10}),
         ([{'ipc': 2}, {'ipc': 4}], {'ipc': 6}),
         ([{'ipc': 2}, {'ipc': 4}, {'m1': 2}, {'m1': 3}], {'ipc': 6, 'm1': 5}),
-        ([{'cycles': {0: 2, 1: 5}}, {'cycles': {0: 4, 1: 7}}], {'cycles': {0: 6, 1: 12}}),
-        ([{'cycles': {0: 2, 1: 5}}, {'cycles': {0: 4, 1: 7}}, {'m1': 8}],
-         {'cycles': {0: 6, 1: 12}, 'm1': 8})
+        ([{'task_cycles': {0: 2, 1: 5}}, {'task_cycles': {0: 4, 1: 7}}], {'task_cycles': {0: 6, 1: 12}}),
+        ([{'task_cycles': {0: 2, 1: 5}}, {'task_cycles': {0: 4, 1: 7}}, {'m1': 8}],
+         {'task_cycles': {0: 6, 1: 12}, 'm1': 8})
 ))
 def test_merge_measurements(measurements_list, expected_merge):
     assert merge_measurements(measurements_list) == expected_merge
@@ -80,7 +80,7 @@ def test_metric_meta_exists():
         ({}, 0)
     ])
 def test_export_metrics_from_measurements(measurements, expected):
-    result = export_metrics_from_measurements('PLATFORM__', measurements)
+    result = export_metrics_from_measurements(measurements)
     assert len(result) == expected
 
 
@@ -109,9 +109,9 @@ def test_export_metrics_from_measurements_artifical_metric():
     with TestMetric():
         measurements = {'test_metric': {'id0': {'stress': 0, 'dbmango': 1},
                                         'id1': {'stress': 10, 'dbmango': 20}}}
-        result = export_metrics_from_measurements('PLATFORM__', measurements)
+        result = export_metrics_from_measurements(measurements)
         assert len(result) == 4
-        assert result[0].name == 'PLATFORM__test_metric'
+        assert result[0].name == 'test_metric'
         assert 'numa_node' in result[0].labels and 'container' in result[0].labels
         assert sorted([item.value for item in result]) == [0, 1, 10, 20]  # values for metrics
 
