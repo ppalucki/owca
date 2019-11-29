@@ -129,7 +129,7 @@ class Cgroup:
                 for line in resource_file.readlines():
                     if line.startswith('pgfault'):
                         _, value = line.split()
-                        measurements[MetricName.MEM_PAGE_FAULTS] = int(value)
+                        measurements[MetricName.TASK_PAGE_FAULTS] = int(value)
                         break
         except FileNotFoundError as e:
             raise MissingMeasurementException(

@@ -49,7 +49,7 @@ def test_get_measurements():
                             MetricName.MEM_MAX_USAGE_PER_TASK: 999,
                             MetricName.MEM_LIMIT_PER_TASK: 2000,
                             MetricName.MEM_SOFT_LIMIT_PER_TASK: 1500,
-                            MetricName.MEM_PAGE_FAULTS: 2730362811,
+                            MetricName.TASK_PAGE_FAULTS: 2730362811,
                             MetricName.MEM_NUMA_STAT_PER_TASK: {'0': 123, '1': 234}}
 
 

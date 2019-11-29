@@ -61,7 +61,7 @@ class MetricName(str, Enum):
     MEM_LIMIT_PER_TASK = 'task_memory_limit_per_task_bytes'
     MEM_SOFT_LIMIT_PER_TASK = 'task_memory_soft_limit_per_task_bytes'
     MEM_NUMA_STAT_PER_TASK = 'task_memory_numa_stat'
-    MEM_PAGE_FAULTS = 'task_memory_stat_page_faults'
+    TASK_PAGE_FAULTS = 'task_memory_stat_page_faults'
 
 
     # From Kubernetes/Mesos or other orchestrator system.
@@ -213,7 +213,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.TEN_MILLISECOND,
             MetricSource.PROC,
-            MetricGranurality.TASK,
+            MetricGranurality.PLATFORM,
             ['cpu'],
         ),
     MetricName.CPU_USAGE_PER_TASK:
@@ -297,14 +297,14 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.TASK),
     MetricName.SCALING_FACTOR_AVG:
         MetricMetadata(
             'Perf metric scaling factor, average from all CPUs.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.PERF_EVENT,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.TASK),
     MetricName.MEM_NUMA_STAT_PER_TASK:
         MetricMetadata(
             'NUMA Stat TODO!',  # TODO: fix me!
@@ -314,13 +314,13 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.TASK,
             ['numa_node'],
         ),
-    MetricName.MEM_PAGE_FAULTS:
+    MetricName.TASK_PAGE_FAULTS:
         MetricMetadata(
-            'Page faults',  # TODO: fix me!
+            'Number of page faults for task.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.CGROUP,
-            MetricGranurality.PLATFORM,
+            MetricGranurality.TASK,
             ['numa_node'],
         ),
     MetricName.MEM_NUMA_FREE:
