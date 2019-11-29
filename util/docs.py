@@ -69,7 +69,7 @@ def generate_docs():
         metadata = METRICS_METADATA.get(metric)
         if not metadata:
             print('Warning no metadata for metric! %s' % metric)
-        continue
+            continue
 
 
         if metadata.levels is not None:
