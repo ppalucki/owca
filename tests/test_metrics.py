@@ -96,6 +96,7 @@ class TestMetric(object):
                                                          MetricSource.GENERIC,
                                                          MetricGranurality.PLATFORM,
                                                          levels=['numa_node', 'container'],
+                                                         enabled='no'
                                                          )
 
     def __exit__(self, type, value, traceback):

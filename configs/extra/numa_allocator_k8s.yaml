@@ -20,7 +20,7 @@ runner: !AllocationRunner
     enable_derived_metrics: true
     gather_hw_mm_topology: true
     rdt_enabled: false
-    event_names: []  # if uncommented disables metrics from perf event subsystem
+#    event_names: []  # if uncommented disables metrics from perf event subsystem
     wss_reset_interval: 1
     #event_names:  # if uncommented disables metrics from perf event subsystem
     #- instructions

@@ -199,7 +199,8 @@ class MetricMetadata:
     unit: MetricUnit
     source: MetricSource
     granularity: MetricGranurality
-    levels: Optional[List[str]] = None
+    levels: Optional[List[str]]
+    enabled: str
     # function used to merge measurements across many cgroups for ContainerSet
     # default behavior is sum (to cover both counters and resources like memory bandwidth, memory
     # usage or cache usage)
@@ -217,7 +218,8 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
-            ['cpu']
+            ['cpu'],
+            'yes (event_names)',
         ),
     MetricName.TASK_CYCLES:
         MetricMetadata(
@@ -227,6 +229,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'yes (event_names)',
         ),
     MetricName.TASK_CACHE_MISSES:
         MetricMetadata(
@@ -236,6 +239,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'yes (event_names)',
         ),
     MetricName.TASK_CACHE_REFERENCES:
         MetricMetadata(
@@ -245,6 +249,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'yes (event_names)',
         ),
     MetricName.TASK_STALLED_MEM_LOADS:
         MetricMetadata(
@@ -254,6 +259,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'yes (event_names)',
         ),
     MetricName.TASK_OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD:
         MetricMetadata(
@@ -264,6 +270,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'no (event_names)',
         ),
     MetricName.TASK_OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD:
         MetricMetadata(
@@ -273,6 +280,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'no (event_names)',
         ),
     MetricName.TASK_MEM_LOAD_RETIRED_LOCAL_PMM:
         MetricMetadata(
@@ -282,6 +290,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'no (event_names)',
         ),
     MetricName.TASK_MEM_INST_RETIRED_LOADS:
         MetricMetadata(
@@ -291,6 +300,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'no (event_names)',
         ),
     MetricName.TASK_MEM_INST_RETIRED_STORES:
         MetricMetadata(
@@ -300,6 +310,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'no (event_names)',
         ),
     MetricName.TASK_DTLB_LOAD_MISSES:
         MetricMetadata(
@@ -309,6 +320,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK,
             ['cpu'],
+            'no (event_names)',
         ),
     # Perf subsystem meta metrics (errors)
     MetricName.TASK_SCALING_FACTOR_AVG:
@@ -317,14 +329,20 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.TASK),  # TODO: check levels
+            MetricGranurality.TASK,
+            [],  # TODO: check levels
+            'yes',
+        ),
     MetricName.TASK_SCALING_FACTOR_MAX:
         MetricMetadata(
             'Perf subsystem metric scaling factor, max value of all perf per task metrics.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.TASK),  # TODO: check levels
+            MetricGranurality.TASK,
+            [],  # TODO: check levels
+            'yes',
+        ),
     # perf per task derived
     MetricName.TASK_IPS:
         MetricMetadata(
@@ -332,28 +350,41 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'no (enable_derived_metrics)',
+        ),
     MetricName.TASK_IPC:
         MetricMetadata(
             'Instructions per cycle.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'no (enable_derived_metrics)',
+        ),
     MetricName.TASK_CACHE_HIT_RATIO:
         MetricMetadata(
             'Cache hit ratio, based on cache-misses and cache-references.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'enable_derived_metrics',
+            'no (enable_derived_metrics)',
+        ),
     MetricName.TASK_CACHE_MISSES_PER_KILO_INSTRUCTIONS:
         MetricMetadata(
             'Cache misses per kilo instructions.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'no (enable_derived_metrics)',
+        ),
 
     # --- resctrl/RDT
     MetricName.TASK_LLC_OCCUPANCY_BYTES:
@@ -362,28 +393,40 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.RESCTRL,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'auto (rdt_enabled)',
+        ),
     MetricName.TASK_MEM_BANDWIDTH_BYTES:
         MetricMetadata(
             'Total memory bandwidth using Memory Bandwidth Monitoring.',
             MetricType.COUNTER,
             MetricUnit.BYTES,
             MetricSource.RESCTRL,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'auto (rdt_enabled)',
+        ),
     MetricName.TASK_MEM_BANDWIDTH_LOCAL_BYTES:
         MetricMetadata(
             'Total local memory bandwidth using Memory Bandwidth Monitoring.',
             MetricType.COUNTER,
             MetricUnit.BYTES,
             MetricSource.RESCTRL,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'auto (rdt_enabled)',
+        ),
     MetricName.TASK_MEM_BANDWIDTH_REMOTE_BYTES:
         MetricMetadata(
             'Total remote memory bandwidth using Memory Bandwidth Monitoring.',
             MetricType.COUNTER,
             MetricUnit.BYTES,
             MetricSource.RESCTRL,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'auto (rdt_enabled)',
+        ),
 
     # --- cgroup per tasks
     MetricName.TASK_CPU_USAGE_SECONDS:
@@ -392,35 +435,50 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.SECONDS,
             MetricSource.CGROUP,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'yes',
+        ),
     MetricName.TASK_MEM_USAGE_BYTES:
         MetricMetadata(
             'Memory usage_in_bytes per tasks returned from cgroup memory subsystem.',
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.CGROUP,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'yes',
+        ),
     MetricName.TASK_MEM_MAX_USAGE_BYTES:
         MetricMetadata(
             'Memory max_usage_in_bytes per tasks returned from cgroup memory subsystem.',
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.CGROUP,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'yes',
+        ),
     MetricName.TASK_MEM_LIMIT_BYTES:
         MetricMetadata(
             'Memory limit_in_bytes per tasks returned from cgroup memory subsystem.',
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.CGROUP,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'yes',
+        ),
     MetricName.TASK_MEM_SOFT_LIMIT_BYTES:
         MetricMetadata(
             'Memory soft_limit_in_bytes per tasks returned from cgroup memory subsystem.',
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.CGROUP,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'yes',
+        ),
     MetricName.TASK_MEM_NUMA_PAGES:
         MetricMetadata(
             'Number of used pages per NUMA node'
@@ -431,6 +489,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.CGROUP,
             MetricGranurality.TASK,
             ['numa_node'],
+            'yes',
         ),
     MetricName.TASK_MEM_PAGE_FAULTS:
         MetricMetadata(
@@ -440,6 +499,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.CGROUP,
             MetricGranurality.TASK,
             [],
+            'yes',
         ),
     MetricName.TASK_WSS_REFERENCED_BYTES:
         MetricMetadata(
@@ -454,6 +514,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             '/procs/PIDS/smaps',
             MetricGranurality.TASK,
             [],
+            'yes',
         ),
 
     # Generic or from orchestration
@@ -463,21 +524,30 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.ORCHESTRATOR,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'yes',
+        ),
     MetricName.TASK_REQUESTED_MEM_BYTES:
         MetricMetadata(
             'Tasks resources memory initial requests.',
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.ORCHESTRATOR,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'yes',
+        ),
     MetricName.TASK_LAST_SEEN:
         MetricMetadata(
             'Time the task was last seen.',
             MetricType.COUNTER,
             MetricUnit.TIMESTAMP,
             MetricSource.INTERNAL,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            [],
+            'yes',
+        ),
     # ----------------------- Platform ---------------------------------
     MetricName.PLATFORM_TOPOLOGY_CORES:
         MetricMetadata(
@@ -485,21 +555,30 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes'
+        ),
     MetricName.PLATFORM_TOPOLOGY_CPUS:
         MetricMetadata(
             'Platform information about number of logical cpus',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes',
+        ),
     MetricName.PLATFORM_TOPOLOGY_SOCKETS:
         MetricMetadata(
             'Platform information about number of sockets',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes',
+        ),
     # RAM topology
     MetricName.PLATFORM_DIMM_COUNT:
         MetricMetadata(
@@ -509,6 +588,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'lshw binary output',
             MetricGranurality.PLATFORM,
             ['dimm_type'],
+            'no (gather_hw_mm_topology)'
         ),
     MetricName.PLATFORM_DIMM_TOTAL_SIZE_BYTES:
         MetricMetadata(
@@ -518,6 +598,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'lshw binary output',
             MetricGranurality.PLATFORM,
             ['dimm_type'],
+            'no (gather_hw_mm_topology)',
         ),
     MetricName.PLATFORM_MEM_MODE_SIZE_BYTES:
         MetricMetadata(
@@ -525,7 +606,10 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             'ipmctl binary output',
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'no (gather_hw_mm_topology)',
+        ),
     # /proc fs based
     MetricName.PLATFORM_CPU_USAGE:
         MetricMetadata(
@@ -536,6 +620,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PROCFS,
             MetricGranurality.PLATFORM,
             ['cpu'],
+            'yes'
         ),
     MetricName.PLATFORM_MEM_USAGE_BYTES:
         MetricMetadata(
@@ -544,7 +629,10 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.PROCFS,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes'
+        ),
 
     # VM Stat based
     MetricName.PLATFORM_MEM_NUMA_FREE_BYTES:
@@ -555,6 +643,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.SYSFS,
             MetricGranurality.PLATFORM,
             ['numa_node'],
+            'yes'
         ),
     MetricName.PLATFORM_MEM_NUMA_USED_BYTES:
         MetricMetadata(
@@ -563,7 +652,8 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.BYTES,
             MetricSource.PROCFS,
             MetricGranurality.PLATFORM,
-            ['numa_node']
+            ['numa_node'],
+            'yes',
         ),
     # VMStat
     MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED:
@@ -572,42 +662,60 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes',
+        ),
     MetricName.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat for number of migrates pages (succeed)',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes',
+        ),
     MetricName.PLATFORM_VMSTAT_PGMIGRATE_FAIL:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat for number of migrates pages (failed)',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes',
+        ),
     MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat for pgfaults for migration hints',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes'
+        ),
     MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat: pgfaults for migration hints (local)',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes'
+        ),
     MetricName.PLATFORM_VMSTAT_PGFAULTS:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat:number of page faults',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes'
+        ),
     # Perf uncore
     MetricName.PLATFORM_PMM_BANDWIDTH_READS:
         MetricMetadata(
@@ -617,6 +725,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore)',
         ),
     MetricName.PLATFORM_PMM_BANDWIDTH_WRITES:
         MetricMetadata(
@@ -626,6 +735,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore)',
         ),
     MetricName.PLATFORM_CAS_COUNT_READS:
         MetricMetadata(
@@ -635,6 +745,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore)',
         ),
     MetricName.PLATFORM_CAS_COUNT_WRITES:
         MetricMetadata(
@@ -644,6 +755,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore)',
         ),
     MetricName.PLATFORM_UPI_RXL_FLITS:
         MetricMetadata(
@@ -653,6 +765,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore)',
         ),
     MetricName.PLATFORM_UPI_TXL_FLITS:
         MetricMetadata(
@@ -662,6 +775,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore)',
         ),
     # Perf uncore derived
     MetricName.PLATFORM_PMM_READS_BYTES_PER_SECOND:
@@ -672,6 +786,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore, enable_derived_metrics)',
         ),
     MetricName.PLATFORM_PMM_WRITES_BYTES_PER_SECOND:
         MetricMetadata(
@@ -681,6 +796,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore, enable_derived_metrics)',
         ),
     MetricName.PLATFORM_PMM_TOTAL_BYTES_PER_SECOND:
         MetricMetadata(
@@ -690,6 +806,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore, enable_derived_metrics)',
         ),
     MetricName.PLATFORM_DRAM_READS_BYTES_PER_SECOND:
         MetricMetadata(
@@ -699,6 +816,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore, enable_derived_metrics)',
         ),
     MetricName.PLATFORM_DRAM_WRITES_BYTES_PER_SECOND:
         MetricMetadata(
@@ -708,15 +826,17 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore, enable_derived_metrics)',
         ),
     MetricName.PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
-            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
+            MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore, enable_derived_metrics)',
         ),
     MetricName.PLATFORM_DRAM_HIT_RATIO:
         MetricMetadata(
@@ -726,6 +846,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore, enable_derived_metrics)',
         ),
     MetricName.PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND:
         MetricMetadata(
@@ -735,6 +856,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
             ['socket', 'pmu_type'],
+            'no (enable_perf_uncore, enable_derived_metrics)',
         ),
     MetricName.PLATFORM_LAST_SEEN:
         MetricMetadata(
@@ -742,7 +864,10 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.TIMESTAMP,
             MetricSource.INTERNAL,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            [],
+            'yes',
+        ),
 
     # ---------------------------- WCA internal ----------------------------
     MetricName.WCA_UP:
@@ -751,7 +876,10 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.TIMESTAMP,
             MetricSource.INTERNAL,
-            MetricGranurality.INTERNAL),
+            MetricGranurality.INTERNAL,
+            [],
+            'yes',
+        ),
     MetricName.WCA_INFORMATION:
         MetricMetadata(
             'Special metric to cover some meta information like wca_version or cpu_model '
@@ -759,35 +887,50 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
-            MetricGranurality.INTERNAL),
+            MetricGranurality.INTERNAL,
+            [],
+            'yes',
+        ),
     MetricName.WCA_TASKS:
         MetricMetadata(
             'Number of discovered tasks',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
-            MetricGranurality.INTERNAL),
+            MetricGranurality.INTERNAL,
+            [],
+            'yes',
+        ),
     MetricName.WCA_MEM_USAGE_BYTES:
         MetricMetadata(
             'Memory usage by WCA itself (getrusage for self and children).',
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.INTERNAL,
-            MetricGranurality.INTERNAL),
+            MetricGranurality.INTERNAL,
+            [],
+            'yes',
+        ),
     MetricName.WCA_DURATION_SECONDS:
         MetricMetadata(
             'Internal WCA function call duration metric for profiling',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
-            MetricGranurality.INTERNAL),
+            MetricGranurality.INTERNAL,
+            [],
+            'yes',
+        ),
     MetricName.WCA_DURATION_SECONDS_AVG:
         MetricMetadata(
             'Internal WCA function call duration metric for profiling (average from last restart)',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
-            MetricGranurality.INTERNAL),
+            MetricGranurality.INTERNAL,
+            [],
+            'yes',
+        ),
 }
 
 # Make sure the same order is used.
