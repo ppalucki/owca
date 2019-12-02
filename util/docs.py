@@ -116,3 +116,5 @@ if __name__ == '__main__':
         f.write(INTRO)
         f.write(METRICS_SOURCES)
         f.write(generate_docs())
+    with open(METRICS_DOC_PATH + '.csv', 'w') as f:
+        f.write(generate_docs())
