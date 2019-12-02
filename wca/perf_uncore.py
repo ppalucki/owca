@@ -108,7 +108,7 @@ class UncorePerfCounters:
                     measurements_per_socket[metric][socket][pmu] = \
                         measurements_per_cpu[cpu][metric]
 
-        return measurements_per_socket
+        return dict(measurements_per_socket)
 
     def cleanup(self):
         """Closes all opened file descriptors"""
