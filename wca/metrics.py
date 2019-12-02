@@ -253,14 +253,18 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
     MetricName.TASK_OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD:
         MetricMetadata(
             'Demand data read requests that missed L3.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK,
+            ['cpu'],
+        ),
     MetricName.TASK_MEM_LOAD_RETIRED_LOCAL_PMM:
         MetricMetadata(
             'TBD mem_load_retired_local_pmm__rd180',
