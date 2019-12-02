@@ -408,7 +408,7 @@ VMSTAT_METRICS = {
     MetricName.PLATFORM_VMSTAT_PGMIGRATE_FAIL: 'pgmigrate_fail',
     MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS: 'numa_hint_faults',
     MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL: 'numa_hint_faults_local',
-    MetricName.PLATFORM_VMSTAT_PGFAULT: 'pgfault',
+    MetricName.PLATFORM_VMSTAT_PGFAULTS: 'pgfault',
 }
 
 

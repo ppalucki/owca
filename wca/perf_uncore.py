@@ -174,8 +174,8 @@ UNCORE_IMC_EVENTS = [
 ]
 
 UNCORE_UPI_EVENTS = [
-    Event(name=MetricName.PLATFORM_UPI_RxL_FLITS, event=0x3, umask=0xf),
-    Event(name=MetricName.PLATFORM_UPI_TxL_FLITS, event=0x2, umask=0xf),
+    Event(name=MetricName.PLATFORM_UPI_RXL_FLITS, event=0x3, umask=0xf),
+    Event(name=MetricName.PLATFORM_UPI_TXL_FLITS, event=0x2, umask=0xf),
 ]
 
 
@@ -275,7 +275,7 @@ class UncoreDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
             log.warning('pmm metrics not available!')
 
         # UPI bandwidth
-        if available(MetricName.PLATFORM_UPI_RxL_FLITS, MetricName.PLATFORM_UPI_TxL_FLITS):
+        if available(MetricName.PLATFORM_UPI_RXL_FLITS, MetricName.PLATFORM_UPI_TXL_FLITS):
             """
             based on "2.6.3 Intel® UPI LL Performance Monitoring Events" chapter from
             "Intel® Xeon® Processor Scalable Memory Family Uncore Performance Monitoring"
@@ -293,13 +293,13 @@ class UncoreDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
             transmitted. When measuring the amount of bandwidth consumed by transmission of
             the data (i.e. NOT including the header), it should be .ALL_DATA / 9 * 64B. .
             """
-            rxl_flits, txl_flits = delta(MetricName.PLATFORM_UPI_RxL_FLITS,
-                                         MetricName.PLATFORM_UPI_TxL_FLITS)
+            rxl_flits, txl_flits = delta(MetricName.PLATFORM_UPI_RXL_FLITS,
+                                         MetricName.PLATFORM_UPI_TXL_FLITS)
 
             def rate_for_upi(value):
                 return (value / time_delta / 9 * 64)
 
-            max_depth = len(METRICS_METADATA[MetricName.PLATFORM_UPI_TxL_FLITS].levels)
+            max_depth = len(METRICS_METADATA[MetricName.PLATFORM_UPI_TXL_FLITS].levels)
             bandwidth = _operation_on_leveled_dicts(rxl_flits, txl_flits, lambda x, y: x + y,
                                                     max_depth)
             _operation_on_leveled_metric(bandwidth, rate_for_upi, max_depth)

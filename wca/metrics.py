@@ -36,8 +36,8 @@ class MetricName(str, Enum):
         'task_offcore_requests_outstanding_l3_miss_demand_data_rd'
     TASK_OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD = 'task_offcore_requests_l3_miss_demand_data_rd'
     TASK_MEM_LOAD_RETIRED_LOCAL_PMM = 'task_mem_load_retired_local_pmm'
-    TASK_MEM_INST_RETIRED_LOADS = 'task_mem_inst_retired_all_loads'
-    TASK_MEM_INST_RETIRED_STORES = 'task_mem_inst_retired_all_stores'
+    TASK_MEM_INST_RETIRED_LOADS = 'task_mem_inst_retired_loads'
+    TASK_MEM_INST_RETIRED_STORES = 'task_mem_inst_retired_stores'
     TASK_DTLB_LOAD_MISSES = 'task_dtlb_load_misses'
     # Extra perf based.
     TASK_SCALING_FACTOR_AVG = 'task_scaling_factor_avg'
@@ -59,7 +59,7 @@ class MetricName(str, Enum):
     TASK_MEM_LIMIT_BYTES = 'task_mem_limit_bytes'
     TASK_MEM_SOFT_LIMIT_BYTES = 'task_mem_soft_limit_bytes'
     TASK_MEM_NUMA_PAGES = 'task_mem_numa_pages'
-    TASK_PAGE_FAULTS = 'task_mem_stat_page_faults'
+    TASK_MEM_PAGE_FAULTS = 'task_mem_page_faults'
 
     # Resctrl based.
     TASK_MEM_BANDWIDTH = 'task_mem_bandwidth'
@@ -91,12 +91,12 @@ class MetricName(str, Enum):
     PLATFORM_MEM_USAGE = 'platform_mem_usage'
 
     # /proc/vmstat
-    PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED = 'platform_vmstate_numa_pages_migrated'
-    PLATFORM_VMSTAT_PGMIGRATE_SUCCESS = 'platform_vmstate_pgmigrate_success'
-    PLATFORM_VMSTAT_PGMIGRATE_FAIL = 'platform_vmstate_pgmigrate_fail'
-    PLATFORM_VMSTAT_NUMA_HINT_FAULTS = 'platform_vmstate_numa_hint_faults'
-    PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL = 'platform_vmstate_numa_hint_faults_local'
-    PLATFORM_VMSTAT_PGFAULT = 'platform_vmstate_pgfault'
+    PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED = 'platform_vmstat_numa_pages_migrated'
+    PLATFORM_VMSTAT_PGMIGRATE_SUCCESS = 'platform_vmstat_pgmigrate_success'
+    PLATFORM_VMSTAT_PGMIGRATE_FAIL = 'platform_vmstat_pgmigrate_fail'
+    PLATFORM_VMSTAT_NUMA_HINT_FAULTS = 'platform_vmstat_numa_hint_faults'
+    PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL = 'platform_vmstat_numa_hint_faults_local'
+    PLATFORM_VMSTAT_PGFAULTS = 'platform_vmstat_pgfaults'
 
     # NUMA for whole platform
     PLATFORM_MEM_NUMA_FREE_BYTES = 'platform_mem_numa_free_bytes'
@@ -107,8 +107,8 @@ class MetricName(str, Enum):
     PLATFORM_PMM_BANDWIDTH_WRITE = 'platform_pmm_bandwidth_write'
     PLATFORM_CAS_COUNT_READ = 'platform_cas_count_read'
     PLATFORM_CAS_COUNT_WRITE = 'platform_cas_count_write'
-    PLATFORM_UPI_RxL_FLITS = 'platform_upi_rxl_flits'
-    PLATFORM_UPI_TxL_FLITS = 'platform_upi_txl_flits'
+    PLATFORM_UPI_RXL_FLITS = 'platform_upi_rxl_flits'
+    PLATFORM_UPI_TXL_FLITS = 'platform_upi_txl_flits'
     # Derived
     PLATFORM_PMM_READS_BYTES_PER_SECOND = 'platform_pmm_reads_bytes_per_second'
     PLATFORM_PMM_WRITES_BYTES_PER_SECOND = 'platform_pmm_writes_bytes_per_second'
@@ -130,6 +130,9 @@ class MetricName(str, Enum):
     def __repr__(self):
         return repr(self.value)
 
+
+for key_name, value_name in MetricName.__members__.items():
+    assert key_name == value_name.upper(), 'metric name mismatch %s' % key_name
 
 class MetricType(str, Enum):
     GAUGE = 'gauge'  # arbitrary value (can go up and down)
@@ -412,7 +415,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.TASK,
             ['numa_node'],
         ),
-    MetricName.TASK_PAGE_FAULTS:
+    MetricName.TASK_MEM_PAGE_FAULTS:
         MetricMetadata(
             'Number of page faults for task.',
             MetricType.COUNTER,
@@ -591,7 +594,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PLATFORM_UPI_TxL_FLITS:
+    MetricName.PLATFORM_UPI_TXL_FLITS:
         MetricMetadata(
             'TBD',
             MetricType.COUNTER,
@@ -600,7 +603,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PLATFORM_UPI_RxL_FLITS:
+    MetricName.PLATFORM_UPI_RXL_FLITS:
         MetricMetadata(
             'TBD',
             MetricType.COUNTER,
@@ -702,7 +705,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PROC,
             MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_VMSTAT_PGFAULT:
+    MetricName.PLATFORM_VMSTAT_PGFAULTS:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat:number of page faults',
             MetricType.COUNTER,
