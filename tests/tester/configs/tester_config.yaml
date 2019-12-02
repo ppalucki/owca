@@ -52,35 +52,35 @@ tests:
         name: anomaly_count
         value: 0
       - !MetricCheck
-        name: task__memory_bandwidth
+        name: task_mem_bandwidth_bytes
         labels:
           task_id: wcatask1
       - !MetricCheck
-        name: task__memory_bandwidth
+        name: task_mem_bandwidth_bytes
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__memory_bandwidth_local
+        name: task_mem_bandwidth_local_bytes
         labels:
           task_id: wcatask1
       - !MetricCheck
-        name: task__memory_bandwidth_local
+        name: task_mem_bandwidth_local_bytes
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__memory_bandwidth_remote
+        name: task_mem_bandwidth_remote_bytes
         labels:
           task_id: wcatask1
       - !MetricCheck
-        name: task__memory_bandwidth_remote
+        name: task_mem_bandwidth_remote_bytes
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__wss_referenced_mb
+        name: task_wss_referenced_bytes
         labels:
           task_id: wcatask1
       - !MetricCheck
-        name: task__wss_referenced_mb
+        name: task_wss_referenced_bytes
         labels:
           task_id: wcatask2
       - !FileCheck
@@ -119,35 +119,35 @@ tests:
           task: wcatask2
         value: 10
       - !MetricCheck
-        name: task__cycles
+        name: task_cycles
         labels:
           task_id: wcatask1
       - !MetricCheck
-        name: task__instructions
+        name: task_instructions
         labels:
           task_id: wcatask1
       - !MetricCheck
-        name: task__cache_misses
+        name: task_cache_misses
         labels:
           task_id: wcatask1
       - !MetricCheck
-        name: task__cache_references
+        name: task_cache_references
         labels:
           task_id: wcatask1
       - !MetricCheck
-        name: task__cycles
+        name: task_cycles
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__instructions
+        name: task_instructions
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__cache_misses
+        name: task_cache_misses
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__cache_references
+        name: task_cache_references
         labels:
           task_id: wcatask2
   - test_case_name2:
@@ -176,67 +176,67 @@ tests:
       - !MetricCheck
         name: anomaly_count
       - !MetricCheck
-        name: task__cycles
+        name: task_cycles
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__instructions
+        name: task_instructions
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__cache_misses
+        name: task_cache_misses
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__cache_references
+        name: task_cache_references
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__cycles
+        name: task_cycles
         labels:
           task_id: wcatask4
       - !MetricCheck
-        name: task__instructions
+        name: task_instructions
         labels:
           task_id: wcatask4
       - !MetricCheck
-        name: task__cache_misses
+        name: task_cache_misses
         labels:
           task_id: wcatask4
       - !MetricCheck
-        name: task__cache_references
+        name: task_cache_references
         labels:
           task_id: wcatask4
       - !MetricCheck
-        name: task__memory_bandwidth
+        name: task_mem_bandwidth_bytes
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__memory_bandwidth
+        name: task_mem_bandwidth_bytes
         labels:
           task_id: wcatask4
       - !MetricCheck
-        name: task__memory_bandwidth_local
+        name: task_mem_bandwidth_local_bytes
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__memory_bandwidth_local
+        name: task_mem_bandwidth_local_bytes
         labels:
           task_id: wcatask4
       - !MetricCheck
-        name: task__memory_bandwidth_remote
+        name: task_mem_bandwidth_remote_bytes
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__memory_bandwidth_remote
+        name: task_memory_bandwidth_remote_bytes
         labels:
           task_id: wcatask4
       - !MetricCheck
-        name: task__wss_referenced_mb
+        name: task_wss_referenced_bytes
         labels:
           task_id: wcatask2
       - !MetricCheck
-        name: task__wss_referenced_mb
+        name: task_wss_referenced_bytes
         labels:
           task_id: wcatask4
       - !MetricCheck
