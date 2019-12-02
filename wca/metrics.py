@@ -414,7 +414,8 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.TASK),
     MetricName.TASK_MEM_NUMA_PAGES:
         MetricMetadata(
-            'Number of used pages per NUMA node (key: hierarchical_total is used if available or just'
+            'Number of used pages per NUMA node'
+            '(key: hierarchical_total is used if available or just'
             'total with warning), from cgroup memory controller from memory.numa_stat file.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
