@@ -234,7 +234,7 @@ def _migrate_pages(task_pids, to_node, number_of_nodes):
             start = time.time()
             _migrate_page_call(pid, number_of_nodes, mask_without_to_node, mask_to_node)
             duration = time.time() - start
-            log.debug('Moving duration %0.2fs', duration)
+            log.log(TRACE, 'Moving pages syscall duration %0.2fs', duration)
         except subprocess.CalledProcessError as e:
             log.warning('cannot migrate pages for pid=%s: %s (ignored)', pid, e)
 

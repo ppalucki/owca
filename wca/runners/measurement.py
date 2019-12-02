@@ -232,7 +232,11 @@ class MeasurementRunner(Runner):
                     return 1
 
         log.debug('rdt_enabled: %s', self._rdt_enabled)
-        platform, _, _ = platforms.collect_platform_information(self._rdt_enabled)
+        log.debug('gather_hw_mm_topology: %s', self._gather_hw_mm_topology)
+        platform, _, _ = platforms.collect_platform_information(
+            self._rdt_enabled,
+            gather_hw_mm_topology=self._gather_hw_mm_topology
+        )
         rdt_information = platform.rdt_information
 
         self._event_names = _filter_out_event_names_for_cpu(

@@ -83,6 +83,11 @@ class MetricName(str, Enum):
     PLATFORM_TOPOLOGY_CORES = 'platform_topology_cores'
     PLATFORM_TOPOLOGY_CPUS = 'platform_topology_cpus'
     PLATFORM_TOPOLOGY_SOCKETS = 'platform_topology_sockets'
+    # RAM topology
+    PLATFORM_DIMM_COUNT = 'platform_dimm_count'
+    PLATFORM_DIMM_TOTAL_SIZE_BYTES = 'platform_dimm_total_size_bytes'
+    PLATFORM_MEM_MODE_SIZE_BYTES = 'platform_mem_mode_size_bytes'
+
     # /proc based (platform scope).
     # Utilization (usage): counter like, sum of all modes based on /proc/stat
     # "cpu line" with 10ms resolution expressed in [ms]
@@ -493,6 +498,32 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
             MetricGranurality.PLATFORM),
+    # RAM topology
+    MetricName.PLATFORM_DIMM_COUNT:
+        MetricMetadata(
+            'Number of RAM DIMM (all types memory modules)',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            'lshw binary output',
+            MetricGranurality.PLATFORM,
+            ['dimm_type'],
+        ),
+    MetricName.PLATFORM_DIMM_TOTAL_SIZE_BYTES:
+        MetricMetadata(
+            'Total RAM size (all types memory modules)',
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            'lshw binary output',
+            MetricGranurality.PLATFORM,
+            ['dimm_type'],
+        ),
+    MetricName.PLATFORM_MEM_MODE_SIZE_BYTES:
+        MetricMetadata(
+            'Size of RAM (Persistent memory) configured in memory mode.',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            'ipmctl binary output',
+            MetricGranurality.PLATFORM),
     # /proc fs based
     MetricName.PLATFORM_CPU_USAGE:
         MetricMetadata(
@@ -714,9 +745,9 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
     # ---------------------------- WCA internal ----------------------------
     MetricName.WCA_UP:
         MetricMetadata(
-            'Always returns 1',
+            'Health check for WCA returning timestamps of last iteration',
             MetricType.COUNTER,
-            MetricUnit.NUMERIC,
+            MetricUnit.TIMESTAMP,
             MetricSource.INTERNAL,
             MetricGranurality.INTERNAL),
     MetricName.WCA_TASKS:

@@ -26,8 +26,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 
-from wca.metrics import Metric, MetricName, Measurements, MetricType, \
-    export_metrics_from_measurements
+from wca.metrics import Metric, MetricName, Measurements, export_metrics_from_measurements
 from wca.profiling import profiler
 
 try:
@@ -167,8 +166,6 @@ class Platform:
 
     measurements: Measurements
 
-    static_information: Optional[Dict]
-
     swap_enabled: bool
 
 
@@ -176,16 +173,23 @@ class MissingPlatformStaticInformation(Exception):
     pass
 
 
+_platform_static_information_initialized = False
 _platform_static_information = {}
 
 
-def get_platform_static_information(strict_mode: bool):
-    """"""
+def get_platform_static_information(strict_mode: bool) -> Measurements:
+    """Time-consuming gathering information function that calles external binaries e.g.
+    lshw and ipmctl. Assumption is that this information is not changing over life of WCA
+    application and should be called only once upon WCA starting.
+    :param strict_mode: raise expection if collection
+                        is not possible e.g. required binaries is missing
+    :return: cached platform information
+    """
     # RETURN MEMORY DIMM DETAILS based on lshw
     global _platform_static_information
+    global _platform_static_information_initialized
     # TODO: PoC to be replaced with ACPI/HMAT table parsing if possible
-    if 'initialized' in _platform_static_information and \
-            _platform_static_information['initialized']:
+    if not _platform_static_information_initialized:
 
         try:
             # nosec: B603. We deliberately use 'subprocess'. There is a permanent input.
@@ -195,7 +199,8 @@ def get_platform_static_information(strict_mode: bool):
             for line in ipmctl_output.splitlines():
                 if 'MemoryCapacity' in line:
                     memorymode_size = line.split('=')[1].split(' ')[0]
-            _platform_static_information['memorymode_size'] = int(memorymode_size)
+            _platform_static_information[MetricName.PLATFORM_MEM_MODE_SIZE_BYTES] = int(
+                memorymode_size)
         except FileNotFoundError:
             log.warning('ipmctl unavailable, cannot read memory mode size')
             if strict_mode:
@@ -227,10 +232,16 @@ def get_platform_static_information(strict_mode: bool):
                             nvm_dimm_count += 1
                             nvm_dimm_size += bank['size']
 
-            _platform_static_information['ram_dimm_count'] = int(ram_dimm_count)
-            _platform_static_information['nvm_dimm_count'] = int(nvm_dimm_count)
-            _platform_static_information['ram_dimm_size'] = int(ram_dimm_size)
-            _platform_static_information['nvm_dimm_size'] = int(nvm_dimm_size)
+            _platform_static_information[MetricName.PLATFORM_DIMM_COUNT] = {}
+            _platform_static_information[MetricName.PLATFORM_DIMM_COUNT]['ram'] = int(
+                ram_dimm_count)
+            _platform_static_information[MetricName.PLATFORM_DIMM_COUNT]['nvm'] = int(
+                nvm_dimm_count)
+            _platform_static_information[MetricName.PLATFORM_DIMM_TOTAL_SIZE_BYTES] = {}
+            _platform_static_information[MetricName.PLATFORM_DIMM_TOTAL_SIZE_BYTES]['ram'] = int(
+                ram_dimm_size)
+            _platform_static_information[MetricName.PLATFORM_DIMM_TOTAL_SIZE_BYTES]['nvm'] = int(
+                nvm_dimm_size)
         except FileNotFoundError:
             log.warning('lshw unavailable, cannot read memory topology size!')
             if strict_mode:
@@ -242,7 +253,8 @@ def get_platform_static_information(strict_mode: bool):
             if strict_mode:
                 raise MissingPlatformStaticInformation
 
-        _platform_static_information['initialized'] = True
+        _platform_static_information_initialized = True
+        log.debug('platform static information: %r', _platform_static_information)
 
     return _platform_static_information
 
@@ -252,46 +264,15 @@ def create_metrics(platform: Platform) -> List[Metric]:
     platform_metrics = []
 
     platform_metrics.extend([
-        Metric(name=MetricName.PLATFORM_TOPOLOGY_CORES,
-               value=platform.cores, type=MetricType.GAUGE, help=""),
-        Metric(name=MetricName.PLATFORM_TOPOLOGY_CPUS,
-               value=platform.cpus, type=MetricType.GAUGE, help=""),
-        Metric(name=MetricName.PLATFORM_TOPOLOGY_SOCKETS,
-               value=platform.sockets, type=MetricType.GAUGE, help=""),
-        Metric(name=MetricName.PLATFORM_LAST_SEEN, value=time.time(),
-               type=MetricType.GAUGE, help=""),
+        Metric.create_metric_with_metadata(MetricName.PLATFORM_TOPOLOGY_CORES,
+                                           value=platform.cores),
+        Metric.create_metric_with_metadata(MetricName.PLATFORM_TOPOLOGY_CPUS,
+                                           value=platform.cpus),
+        Metric.create_metric_with_metadata(MetricName.PLATFORM_TOPOLOGY_SOCKETS,
+                                           value=platform.sockets),
+        Metric.create_metric_with_metadata(MetricName.PLATFORM_LAST_SEEN,
+                                           value=time.time()),
     ])
-
-    # PMEM HW info r
-    if 'ram_dimm_count' in platform.static_information:
-        platform_metrics.extend([
-            # RAM
-            Metric(name='dimm_count',
-                   value=platform.static_information['ram_dimm_count'],
-                   labels={'type': 'ram'},
-                   type=MetricType.GAUGE, help=""),
-            Metric(name='dimm_total_size_bytes',
-                   value=platform.static_information['ram_dimm_size'],
-                   labels={'type': 'ram'},
-                   type=MetricType.GAUGE, help=""),
-            # NVM
-            Metric(name='dimm_count',
-                   value=platform.static_information['nvm_dimm_count'],
-                   labels={'type': 'nvm'},
-                   type=MetricType.GAUGE, help=""),
-            Metric(name='dimm_total_size_bytes',
-                   value=platform.static_information['nvm_dimm_size'],
-                   labels={'type': 'nvm'},
-                   type=MetricType.GAUGE, help=""),
-        ])
-
-    # PMEM HW configuration
-    if 'memorymode_size' in platform.static_information:
-        platform_metrics.extend([
-            Metric(name='memory_mode_size_bytes',
-                   value=platform.static_information['memorymode_size'],
-                   type=MetricType.GAUGE, help=""),
-        ])
 
     # Exporting measurements into metrics.
     platform_metrics.extend(export_metrics_from_measurements(platform.measurements))
@@ -625,6 +606,7 @@ def collect_platform_information(rdt_enabled: bool = True,
         platform_static_information = get_platform_static_information(strict_mode=True)
     else:
         platform_static_information = {}
+    platform_measurements.update(platform_static_information)
 
     platform_measurements.update(parse_proc_vmstat())
 
@@ -642,7 +624,6 @@ def collect_platform_information(rdt_enabled: bool = True,
         node_cpus=parse_node_cpus(),
         node_distances=parse_node_distances(),
         measurements=platform_measurements,
-        static_information=platform_static_information,
         swap_enabled=is_swap_enabled()
     )
     assert len(platform_measurements[MetricName.PLATFORM_CPU_USAGE]) == platform.cpus, \

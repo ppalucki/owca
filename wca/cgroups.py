@@ -156,7 +156,9 @@ class Cgroup:
             get_metric("hierarchical_total=")
             if not has_hierarchical_metrics:
                 import warnings
-                warnings.warn("Warning. No hierarchical mem stat for tasks in cgroup. Use ")
+                warnings.warn(
+                    "No hierarchical_total in NUMA memory stat for tasks in cgroup. Using total=."
+                )
                 get_metric("total=")
 
         except FileNotFoundError as e:
