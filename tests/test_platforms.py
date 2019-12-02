@@ -183,7 +183,7 @@ def test_collect_platform_information(*mocks):
         node_distances={},
         rdt_information=RDTInformation(True, True, True, True, 'fffff', '2', 8, 10, 20),
         measurements={MetricName.PLATFORM_CPU_USAGE: {0: 100, 1: 200},
-                      MetricName.PLATFORM_MEM_USAGE: 1337,
+                      MetricName.PLATFORM_MEM_USAGE_BYTES: 1337,
                       MetricName.PLATFORM_MEM_NUMA_FREE_BYTES: {0: 1},
                       MetricName.PLATFORM_MEM_NUMA_USED_BYTES: {0: 2},
                       MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED: 5,
@@ -192,10 +192,10 @@ def test_collect_platform_information(*mocks):
         swap_enabled=False
     )
 
-    assert_metric(got_metrics, 'platform_mem_usage', expected_metric_value=1337)
-    assert_metric(got_metrics, 'platform_cpu_usage', {'cpu': '0'},
+    assert_metric(got_metrics, MetricName.PLATFORM_MEM_USAGE_BYTES, expected_metric_value=1337)
+    assert_metric(got_metrics, MetricName.PLATFORM_CPU_USAGE, {'cpu': '0'},
                   expected_metric_value=100)
-    assert_metric(got_metrics, 'platform_topology_cores', expected_metric_value=1)
+    assert_metric(got_metrics, MetricName.PLATFORM_TOPOLOGY_CORES, expected_metric_value=1)
     assert_metric(got_metrics, MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED,
                   expected_metric_value=5)
     assert got_labels == {"sockets": "1", "cores": "1", "cpus": "2", "host": "test_host",

@@ -90,7 +90,7 @@ class MetricName(str, Enum):
     PLATFORM_CPU_USAGE = 'platform_cpu_usage'
     # [bytes] based on /proc/meminfo (gauge like)
     # difference between MemTotal and MemAvail (or MemFree)
-    PLATFORM_MEM_USAGE = 'platform_mem_usage'
+    PLATFORM_MEM_USAGE_BYTES = 'platform_mem_usage_bytes'
 
     # NUMA for whole platform
     PLATFORM_MEM_NUMA_FREE_BYTES = 'platform_mem_numa_free_bytes'
@@ -162,7 +162,6 @@ class MetricUnit(str, Enum):
     SECONDS = 'seconds'
     NUMERIC = 'numeric'
     TIMESTAMP = 'timestamp'
-    TEN_MILLISECOND = '10ms'
 
     def __repr__(self):
         return repr(self.value)
@@ -493,12 +492,12 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'Logical CPU usage in 1/USER_HZ (usually 10ms).'
             'Calculated using values based on /proc/stat.',
             MetricType.COUNTER,
-            MetricUnit.TEN_MILLISECOND,
+            MetricUnit.NUMERIC,
             MetricSource.PROC,
             MetricGranurality.PLATFORM,
             ['cpu'],
         ),
-    MetricName.PLATFORM_MEM_USAGE:
+    MetricName.PLATFORM_MEM_USAGE_BYTES:
         MetricMetadata(
             'Total memory used by platform in bytes based on /proc/meminfo '
             'and uses heuristic based on linux free tool (total - free - buffers - cache).',
