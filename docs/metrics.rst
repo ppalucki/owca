@@ -51,9 +51,9 @@ Task's metrics
 	"task_mem_numa_pages", "NUMA Stat TODO!", "numeric", "gauge",  "cgroup", "numa_node"
 	"task_mem_page_faults", "Number of page faults for task.", "numeric", "counter",  "cgroup", "numa_node"
 	"task_wss_referenced_bytes", "Task referenced bytes during last measurements cycle based on /proc/smaps Referenced field, with /proc/PIDs/clear_refs set to 1 accordinn wss_reset_interval.Warning: this is intrusive collection, because can influence kernel page reclaim policy and add latency.Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more details.", "bytes", "gauge",  "/procs/PIDS/smaps", ""
-	"task_cpus", "Tasks resources cpus initial requests.", "numeric", "gauge",  "generic", ""
-	"task_mem", "Tasks resources memory initial requests.", "numeric", "gauge",  "generic", ""
-	"task_last_seen", "Time the task was last seen.", "numeric", "counter",  "generic", ""
+	"task_requested_cpus", "Tasks resources cpus initial requests.", "numeric", "gauge",  "orchestrator", ""
+	"task_requested_mem_bytes", "Tasks resources memory initial requests.", "bytes", "gauge",  "orchestrator", ""
+	"task_last_seen", "Time the task was last seen.", "timestamp", "counter",  "internal", ""
 
 
 
