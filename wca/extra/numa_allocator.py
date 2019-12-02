@@ -1,21 +1,21 @@
 import logging
 from typing import List, Dict
-# from pprint import pprint
 
 from dataclasses import dataclass
 
 from wca.allocators import Allocator, TasksAllocations, AllocationType
 from wca.detectors import Anomaly, TaskData, TasksData
-from wca.metrics import Metric, MetricName
 from wca.logger import TRACE
+from wca.metrics import Metric, MetricName
 from wca.platforms import Platform, encode_listformat, decode_listformat
+
+# from pprint import pprint
 
 log = logging.getLogger(__name__)
 
 
 @dataclass
 class NUMAAllocator(Allocator):
-
     # minimal value of task_balance so the task is not skipped during rebalancing analysis
     # by default turn off, none of tasks are skipped due to this reason
     loop_min_task_balance: float = 0.0
@@ -103,7 +103,7 @@ class NUMAAllocator(Allocator):
 
         log.log(TRACE, "Current state of the system: %s" % balanced_memory)
         log.log(TRACE, "Current state of the system per node: %s" % {
-            node: sum(t[1] for t in tasks)/2**10 for node, tasks in balanced_memory.items()})
+            node: sum(t[1] for t in tasks) / 2 ** 10 for node, tasks in balanced_memory.items()})
         log.debug("Current task assigments: %s" % {
             node: len(tasks) for node, tasks in balanced_memory.items()})
 
@@ -130,7 +130,8 @@ class NUMAAllocator(Allocator):
             best_memory_node = _get_best_memory_node(memory, balanced_memory)
             most_free_memory_node = \
                 _get_most_free_memory_node(memory,
-                                           platform.measurements[MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES])
+                                           platform.measurements[
+                                               MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES])
 
             data: TaskData = tasks_data[task]
 
@@ -167,7 +168,7 @@ class NUMAAllocator(Allocator):
 
             log.log(TRACE, "Analysing task %r: Most used node: %d,"
                            " Best free node: %d, Best memory node: %d" %
-                           (task, most_used_node, most_free_memory_node, best_memory_node))
+                    (task, most_used_node, most_free_memory_node, best_memory_node))
 
             # if not yet task found for balancing
             if balance_task is None and balance_task_node is None:
@@ -178,8 +179,8 @@ class NUMAAllocator(Allocator):
                     continue
 
                 if self.double_match and \
-                    (most_used_node == best_memory_node
-                     or most_used_node == most_free_memory_node):
+                        (most_used_node == best_memory_node
+                         or most_used_node == most_free_memory_node):
                     log.log(TRACE, "   OK: found task for balancing: %s", task)
                     balance_task = task
                     balance_task_node = most_used_node
@@ -266,7 +267,7 @@ class NUMAAllocator(Allocator):
                 if tasks_current_nodes[task] == least_used_node:
                     current_node = tasks_current_nodes[task]
                     self._pages_to_move[task] += get_pages_to_move(
-                            task, tasks_data, current_node, 'unbalanced')
+                        task, tasks_data, current_node, 'unbalanced')
 
                     allocations.setdefault(task, {})
 
@@ -297,7 +298,7 @@ def get_pages_to_move(task, tasks_data, target_node, reason):
         in data.measurements[MetricName.TASK_MEMORY_NUMA_PAGES].items()
         if node != target_node)
     log.debug('Task: %s Moving %s MB to node %s reason %s', task,
-              (pages_to_move * 4096) / 1024**2, target_node, reason)
+              (pages_to_move * 4096) / 1024 ** 2, target_node, reason)
     return pages_to_move
 
 

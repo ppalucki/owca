@@ -109,6 +109,14 @@ class MetricName(str, Enum):
     DRAM_HIT = 'platform_dram_hit'
     UPI_BANDWIDTH_MB_PER_SECOND = 'platform_upi_bandwidth_mb_per_second'  # Based on UPI Flits
 
+    # /proc/vmstat
+    PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED = 'platform_vmstate_numa_pages_migrated'
+    PLATFORM_VMSTAT_PGMIGRATE_SUCCESS = 'platform_vmstate_pgmigrate_success'
+    PLATFORM_VMSTAT_PGMIGRATE_FAIL = 'platform_vmstate_pgmigrate_fail'
+    PLATFORM_VMSTAT_NUMA_HINT_FAULTS = 'platform_vmstate_numa_hint_faults'
+    PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL = 'platform_vmstate_numa_hint_faults_local'
+    PLATFORM_VMSTAT_PGFAULT = 'platform_vmstate_pgfault'
+
     # ---------------- Internal -------------------------
     # Generic for WCA.
     WCA_UP = 'wca_up'
@@ -631,6 +639,48 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.TIMESTAMP,
             MetricSource.INTERNAL,
             MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (autonuma)',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (succeded)',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_PGMIGRATE_FAIL:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (failed)',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat for pgfaults for migration hints',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat: pgfaults for migration hints (local)',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_PGFAULT:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat:number of page faults',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
 }
 
 
@@ -656,7 +706,7 @@ class Metric:
             metric.type = METRICS_METADATA[name].type
             metric.help = METRICS_METADATA[name].help
             metric.unit = METRICS_METADATA[name].unit
-        # TODO: add else, cannot be None type and help
+            metric.granularity = METRICS_METADATA[name].granularity
         return metric
 
 
@@ -836,7 +886,8 @@ class DefaultDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
                 measurements[MetricName.TASK_IPS] = inst_delta
 
         if available(MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CACHE_MISSES):
-            inst_delta, cache_misses_delta = delta(MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CACHE_MISSES)
+            inst_delta, cache_misses_delta = delta(MetricName.TASK_INSTRUCTIONS,
+                                                   MetricName.TASK_CACHE_MISSES)
 
             max_depth = len(METRICS_METADATA[MetricName.TASK_CACHE_MISSES].levels)
             divided = _operation_on_leveled_dicts(

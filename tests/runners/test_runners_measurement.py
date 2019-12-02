@@ -18,12 +18,12 @@ import pytest
 
 from tests.testing import (assert_metric, redis_task_with_default_labels,
                            prepare_runner_patches, TASK_CPU_USAGE, WCA_MEMORY_USAGE,
-                           metric, DEFAULT_METRIC_VALUE, task, task_data, platform_mock)
+                           DEFAULT_METRIC_VALUE, task, task_data, platform_mock)
 from wca import storage
 from wca.containers import Container
 from wca.detectors import TaskData
 from wca.mesos import MesosNode
-from wca.metrics import MissingMeasurementException, MetricName
+from wca.metrics import MissingMeasurementException, MetricName, Metric, METRICS_METADATA
 from wca.resctrl import ResGroup
 from wca.runners.measurement import (MeasurementRunner, _build_tasks_metrics,
                                      _prepare_tasks_data, TaskLabelRegexGenerator,
@@ -104,15 +104,24 @@ def test_measurements_wait(sleep_mock):
         sleep_mock.assert_called_with(0)
 
 
+_task_cpu_usage_metadata = METRICS_METADATA[MetricName.TASK_CPU_USAGE]
+
+
 @pytest.mark.parametrize('tasks_data, expected_metrics', [
     ({}, []),
     ({'t1_task_id': task_data('/t1', labels={'app': 'redis'})}, []),
     ({'t1_task_id': task_data('/t1', labels={'app': 'redis'},
                               measurements={'task_cpu_usage': DEFAULT_METRIC_VALUE})},
-     [metric('task_cpu_usage', {'app': 'redis'})])
+     [Metric(MetricName.TASK_CPU_USAGE, labels={'app': 'redis'},
+             value=DEFAULT_METRIC_VALUE, unit=_task_cpu_usage_metadata.unit,
+             granularity=_task_cpu_usage_metadata.granularity, help=_task_cpu_usage_metadata.help,
+             type=_task_cpu_usage_metadata.type
+             )
+      ])
 ])
 def test_build_tasks_metrics(tasks_data, expected_metrics):
-    assert expected_metrics == _build_tasks_metrics(tasks_data)
+    got_metrics = _build_tasks_metrics(tasks_data)
+    assert expected_metrics == got_metrics
 
 
 @patch('wca.cgroups.Cgroup')

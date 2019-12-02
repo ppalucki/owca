@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import os
-from enum import Enum
 from typing import Optional, List, Union, Dict, Set
 
+import os
 from dataclasses import dataclass
+from enum import Enum
 
 from wca import logger
 from wca import platforms
@@ -137,7 +137,7 @@ class Cgroup:
 
         def get_metric(metric):
             with open(os.path.join(
-                        self.cgroup_memory_fullpath, CgroupResource.NUMA_STAT)) as resource_file:
+                    self.cgroup_memory_fullpath, CgroupResource.NUMA_STAT)) as resource_file:
                 for line in resource_file.readlines():
                     # Requires mem.use_hierarchy = 1
                     if line.startswith(metric):
@@ -163,9 +163,9 @@ class Cgroup:
                 'File {} is missing. Metric unavailable.'.format(e.filename))
 
         # Check whether consecutive keys.
-        assert MetricName.TASK_MEMORY_NUMA_PAGES not in measurements or \
-               list(measurements[MetricName.TASK_MEMORY_NUMA_PAGES].keys()) == \
-               [str(el) for el in range(0, self.platform.numa_nodes)]
+        assert (MetricName.TASK_MEMORY_NUMA_PAGES not in measurements or
+                list(measurements[MetricName.TASK_MEMORY_NUMA_PAGES].keys()) ==
+                [str(el) for el in range(0, self.platform.numa_nodes)])
 
         return measurements
 

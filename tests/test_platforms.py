@@ -20,7 +20,7 @@ import pytest
 from tests.testing import create_open_mock, relative_module_path, _is_dict_match, assert_metric
 from wca.metrics import MetricName
 from wca.platforms import Platform, CPUCodeName, parse_proc_stat, \
-    parse_proc_meminfo, _parse_cpuinfo
+    parse_proc_meminfo, _parse_cpuinfo, parse_proc_vmstat
 from wca.platforms import collect_topology_information, collect_platform_information, \
     RDTInformation, decode_listformat, parse_node_cpus, parse_node_meminfo, encode_listformat, \
     parse_node_distances
@@ -41,6 +41,20 @@ from wca.platforms import collect_topology_information, collect_platform_informa
 ])
 def test_parse_proc_meminfo(raw_meminfo_output, expected):
     assert parse_proc_meminfo(raw_meminfo_output) == expected
+
+
+@patch('builtins.open', new=create_open_mock({
+    "/proc/vmstat": open(relative_module_path(__file__, 'fixtures/proc-vmstat.txt')).read(),
+}))
+def test_parse_proc_vmstat(*mocks):
+    assert parse_proc_vmstat() == {
+        MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS: 97909,
+        MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL: 97909,
+        MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED: 14266,
+        MetricName.PLATFORM_VMSTAT_PGFAULT: 2911936,
+        MetricName.PLATFORM_VMSTAT_PGMIGRATE_FAIL: 5633,
+        MetricName.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS: 14266
+    }
 
 
 @pytest.mark.parametrize("raw_proc_state_output,expected", [
@@ -140,7 +154,8 @@ def test_parse_node_distances(*mocks):
 @patch('wca.platforms.read_proc_meminfo', return_value='does not matter, because parse is mocked')
 @patch('wca.platforms.parse_proc_stat', return_value={0: 100, 1: 200})
 @patch('wca.platforms.parse_node_cpus', return_value={})
-@patch('wca.platforms.parse_proc_vmstat', return_value={})
+@patch('wca.platforms.parse_proc_vmstat',
+       return_value={MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED: 5})
 @patch('wca.platforms.parse_node_distances', return_value={})
 @patch('wca.platforms.parse_node_meminfo', return_value=[{0: 1}, {0: 2}])
 @patch('wca.platforms.get_numa_nodes_count', return_value=1)
@@ -170,7 +185,9 @@ def test_collect_platform_information(*mocks):
         measurements={MetricName.CPU_USAGE_PER_CPU: {0: 100, 1: 200},
                       MetricName.MEM_USAGE: 1337,
                       MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES: {0: 1},
-                      MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES: {0: 2}},
+                      MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES: {0: 2},
+                      MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED: 5,
+                      },
         static_information={},
         swap_enabled=False
     )
@@ -179,6 +196,8 @@ def test_collect_platform_information(*mocks):
     assert_metric(got_metrics, 'platform_cpu_usage_per_cpu', {'cpu': '0'},
                   expected_metric_value=100)
     assert_metric(got_metrics, 'platform_topology_cores', expected_metric_value=1)
+    assert_metric(got_metrics, MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED,
+                  expected_metric_value=5)
     assert got_labels == {"sockets": "1", "cores": "1", "cpus": "2", "host": "test_host",
                           "wca_version": "0.1", "cpu_model": "intel xeon"}
 

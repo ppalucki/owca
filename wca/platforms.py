@@ -30,7 +30,6 @@ from wca.metrics import Metric, MetricName, Measurements, MetricType, \
     export_metrics_from_measurements
 from wca.profiling import profiler
 
-
 try:
     from pkg_resources import get_distribution, DistributionNotFound
 except ImportError:
@@ -186,7 +185,7 @@ def get_platform_static_information(strict_mode: bool):
     global _platform_static_information
     # TODO: PoC to be replaced with ACPI/HMAT table parsing if possible
     if 'initialized' in _platform_static_information and \
-       _platform_static_information['initialized']:
+            _platform_static_information['initialized']:
 
         try:
             # nosec: B603. We deliberately use 'subprocess'. There is a permanent input.
@@ -403,20 +402,25 @@ def parse_node_cpus() -> Dict[NodeId, Set[int]]:
     return node_cpus
 
 
-VMSTAT_METRICS = ["numa_pages_migrated", "pgmigrate_success", "pgmigrate_fail",
-                  "numa_hint_faults", "numa_hint_faults_local", "pgfault"]
+VMSTAT_METRICS = {
+    MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED: 'numa_pages_migrated',
+    MetricName.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS: 'pgmigrate_success',
+    MetricName.PLATFORM_VMSTAT_PGMIGRATE_FAIL: 'pgmigrate_fail',
+    MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS: 'numa_hint_faults',
+    MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL: 'numa_hint_faults_local',
+    MetricName.PLATFORM_VMSTAT_PGFAULT: 'pgfault',
+}
 
 
 def parse_proc_vmstat() -> Measurements:
-    """
-    """
-    d = {}
+    """Read/parse and return measurements based on /proc/vmstat/"""
+    measurements = {}
     with open('/proc/vmstat') as f:
-        for line in f:
-            for metric in VMSTAT_METRICS:
-                if line.startswith(metric):
-                    d['vmstat_'+metric] = int(line.split()[1])
-    return d
+        for line in f.readlines():
+            for metric_name, key in VMSTAT_METRICS.items():
+                if line.startswith(key):
+                    measurements[metric_name] = int(line.split()[1])
+    return measurements
 
 
 def parse_node_distances() -> Dict[int, Dict[int, int]]:
