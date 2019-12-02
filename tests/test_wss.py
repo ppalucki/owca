@@ -1,4 +1,4 @@
-from wca.metrics import Metric, MetricName
+from wca.metrics import MetricName
 from wca.wss import WSS
 from tests.testing import create_open_mock
 from unittest.mock import Mock, patch, call
