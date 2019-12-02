@@ -19,8 +19,8 @@ Task's metrics
 ==============
 
 .. csv-table::
-	:header: "Name", "Help", "Unit", "Type", "Source", "Levels/Labels"
-	:widths: 5, 5, 5, 5, 5, 5 
+	:header: "Name", "Help", "Enabled", "Unit", "Type", "Source", "Levels/Labels"
+	:widths: 5, 5, 5, 5, 5, 5, 5 
 
 	"task_instructions", "Hardware PMU counter for number of instructions.", "numeric", "counter",  "perf subsystem with cgroups", "cpu"
 	"task_cycles", "Hardware PMU counter for number of cycles.", "numeric", "counter",  "perf subsystem with cgroups", "cpu"
@@ -61,8 +61,8 @@ Platform's metrics
 ==================
 
 .. csv-table::
-	:header: "Name", "Help", "Unit", "Type", "Source", "Levels/Labels"
-	:widths: 5, 5, 5, 5, 5, 5 
+	:header: "Name", "Help", "Enabled", "Unit", "Type", "Source", "Levels/Labels"
+	:widths: 5, 5, 5, 5, 5, 5, 5 
 
 	"platform_topology_cores", "Platform information about number of physical cores", "numeric", "gauge",  "internal", ""
 	"platform_topology_cpus", "Platform information about number of logical cpus", "numeric", "gauge",  "internal", ""
@@ -91,7 +91,7 @@ Platform's metrics
 	"platform_pmm_total_bytes_per_second", "TBD", "numeric", "gauge",  "derived", "socket, pmu_type"
 	"platform_dram_reads_bytes_per_second", "TBD", "numeric", "gauge",  "derived", "socket, pmu_type"
 	"platform_dram_writes_bytes_per_second", "TBD", "numeric", "gauge",  "derived", "socket, pmu_type"
-	"platform_dram_total_bytes_per_second", "TBD", "numeric", "gauge",  "perf subsystem with cgroups", "socket, pmu_type"
+	"platform_dram_total_bytes_per_second", "TBD", "numeric", "gauge",  "derived", "socket, pmu_type"
 	"platform_dram_hit_ratio", "TBD", "numeric", "gauge",  "derived", "socket, pmu_type"
 	"platform_upi_bandwidth_bytes_per_second", "TBD", "numeric", "counter",  "derived", "socket, pmu_type"
 	"platform_last_seen", "Timestamp the information about platform was last collected", "timestamp", "counter",  "internal", ""
@@ -102,8 +102,8 @@ Internal metrics
 ================
 
 .. csv-table::
-	:header: "Name", "Help", "Unit", "Type", "Source", "Levels/Labels"
-	:widths: 5, 5, 5, 5, 5, 5 
+	:header: "Name", "Help", "Enabled", "Unit", "Type", "Source", "Levels/Labels"
+	:widths: 5, 5, 5, 5, 5, 5, 5 
 
 	"wca_up", "Health check for WCA returning timestamps of last iteration", "timestamp", "counter",  "internal", ""
 	"wca_information", "Special metric to cover some meta information like wca_version or cpu_model or platform topology (to be used instead of include_optional_labels)", "numeric", "gauge",  "internal", ""

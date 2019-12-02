@@ -19,10 +19,10 @@ from wca.metrics import METRICS_METADATA, MetricGranurality, MetricName, MetricM
 def prepare_csv_table(data, header=True, csv_header=False):
     if header:
         table = '.. csv-table::\n'
-        table += '\t:header: "Name", "Help", "Unit", "Type", "Source", "Levels/Labels"\n'
-        table += '\t:widths: 5, 5, 5, 5, 5, 5 \n\n\t'
+        table += '\t:header: "Name", "Help", "Enabled", "Unit", "Type", "Source", "Levels/Labels"\n'
+        table += '\t:widths: 5, 5, 5, 5, 5, 5, 5 \n\n\t'
     elif csv_header:
-        table = '"Name", "Help", "Unit", "Type", "Source", "Levels/Labels"\n'
+        table = '"Name", "Help", "Enabled", "Unit", "Type", "Source", "Levels/Labels"\n'
     else:
         table = ''
 
