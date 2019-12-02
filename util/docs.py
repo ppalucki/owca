@@ -84,7 +84,7 @@ def generate_docs(csv=False):
             print('Warning no metadata for metric! %s' % metric)
             continue
 
-        if metadata.levels is not None:
+        if metadata.levels:
             levels = ', '.join(metadata.levels)
         else:
             levels = ''
