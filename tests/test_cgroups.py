@@ -32,7 +32,7 @@ def test_get_measurements_not_found_cgroup(mock_file, mock_log_warning):
 
 
 @patch('builtins.open', create_open_mock({
-    '/sys/fs/cgroup/cpu/some/foo1/cpuacct.usage': '1000000000',  #nanoseconds
+    '/sys/fs/cgroup/cpu/some/foo1/cpuacct.usage': '1000000000',  # nanoseconds
     '/sys/fs/cgroup/memory/some/foo1/memory.usage_in_bytes': '101',
     '/sys/fs/cgroup/memory/some/foo1/memory.max_usage_in_bytes': '999',
     '/sys/fs/cgroup/memory/some/foo1/memory.limit_in_bytes': '2000',

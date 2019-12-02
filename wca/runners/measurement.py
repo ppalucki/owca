@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import abstractmethod
 import logging
 import time
 from typing import Dict, List, Optional
 
 import re
 import resource
+from abc import abstractmethod
 from dataclasses import dataclass
 
 from wca import platforms, profiling, perf_const as pc
@@ -44,7 +44,6 @@ from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
 log = logging.getLogger(__name__)
 
 _INITIALIZE_FAILURE_ERROR_CODE = 1
-
 
 DEFAULT_EVENTS = [MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CYCLES,
                   MetricName.TASK_CACHE_MISSES, MetricName.TASK_CACHE_REFERENCES,
@@ -133,7 +132,7 @@ class MeasurementRunner(Runner):
             task_label_generators: Optional[Dict[str, TaskLabelGenerator]] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
             wss_reset_interval: int = 0
-            ):
+    ):
 
         self._node = node
         self._metrics_storage = metrics_storage
@@ -418,19 +417,21 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
         task_measurements[MetricName.TASK_LAST_SEEN.value] = time.time()
         #
         if TaskResource.CPUS in task.resources:
-            task_measurements[MetricName.TASK_REQUESTED_CPUS.value] = task.resources[TaskResource.CPUS.value]
+            task_measurements[MetricName.TASK_REQUESTED_CPUS.value] = task.resources[
+                TaskResource.CPUS.value]
         if TaskResource.MEM in task.resources:
-            task_measurements[MetricName.TASK_REQUESTED_MEM_BYTES.value] = task.resources[TaskResource.MEM.value]
+            task_measurements[MetricName.TASK_REQUESTED_MEM_BYTES.value] = task.resources[
+                TaskResource.MEM.value]
 
         tasks_data[task.task_id] = TaskData(
-                    name=task.name,
-                    task_id=task.task_id,
-                    cgroup_path=task.cgroup_path,
-                    subcgroups_paths=task.subcgroups_paths,
-                    labels=task.labels,
-                    resources=task.resources,
-                    measurements=task_measurements
-                )
+            name=task.name,
+            task_id=task.task_id,
+            cgroup_path=task.cgroup_path,
+            subcgroups_paths=task.subcgroups_paths,
+            labels=task.labels,
+            resources=task.resources,
+            measurements=task_measurements
+        )
 
     return tasks_data
 

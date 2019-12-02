@@ -67,7 +67,6 @@ class MetricName(str, Enum):
     TASK_MEM_NUMA_PAGES = 'task_mem_numa_pages'
     TASK_MEM_PAGE_FAULTS = 'task_mem_page_faults'
 
-
     # /proc/PID/based
     TASK_WSS_REFERENCED_BYTES = 'task_wss_referenced_bytes'
 
@@ -135,6 +134,7 @@ class MetricName(str, Enum):
 
 for key_name, value_name in MetricName.__members__.items():
     assert key_name == value_name.upper(), 'metric name mismatch %s' % key_name
+
 
 class MetricType(str, Enum):
     GAUGE = 'gauge'  # arbitrary value (can go up and down)
@@ -733,7 +733,6 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
 # Make sure the same order is used.
 for key1, key2 in zip(MetricName.__members__.values(), METRICS_METADATA.keys()):
     assert key1 == key2, 'order mismatch %s' % key1
-
 
 
 @dataclass

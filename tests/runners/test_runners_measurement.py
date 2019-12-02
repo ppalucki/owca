@@ -127,7 +127,8 @@ def test_build_tasks_metrics(tasks_data, expected_metrics):
 @patch('wca.cgroups.Cgroup')
 @patch('wca.perf.PerfCounters')
 @patch('time.time', return_value=12345.6)
-@patch('wca.containers.Container.get_measurements', Mock(return_value={'task_cpu_usage_seconds': 13}))
+@patch('wca.containers.Container.get_measurements',
+       Mock(return_value={'task_cpu_usage_seconds': 13}))
 def test_prepare_tasks_data(*mocks):
     t = task('/t1', labels={'label_key': 'label_value'}, resources={'cpu': 3})
     containers = {
