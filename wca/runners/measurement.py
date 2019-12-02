@@ -162,14 +162,6 @@ class MeasurementRunner(Runner):
             }
         else:
             self._task_label_generators = task_label_generators
-        # Generate label value with cpu initial assignment, to simplify
-        #   management of distributed model system for plugin:
-        #   https://github.com/intel/platform-resource-manager/tree/master/prm"""
-        #
-        # To not risk subtle bugs in 1.0.x do not add it to _task_label_generators as default,
-        #   but make it hardcoded here and possible do be removed.
-        self._task_label_generators['initial_task_cpu_assignment'] = \
-            TaskLabelResourceGenerator('cpus')
 
         self._wss_reset_interval = wss_reset_interval
 
