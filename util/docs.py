@@ -54,6 +54,8 @@ Available metrics
 
 **This software is pre-production and should not be deployed to production servers.**
 
+For searchable list of metrics `metrics as csv file <metrics.csv>`_ .
+
 .. contents:: Table of Contents
 
 """
