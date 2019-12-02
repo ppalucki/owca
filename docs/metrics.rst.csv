@@ -33,7 +33,7 @@
 "platform_topology_cores", "Platform information about number of physical cores", "numeric", "gauge",  "internal", ""
 "platform_topology_cpus", "Platform information about number of logical cpus", "numeric", "gauge",  "internal", ""
 "platform_topology_sockets", "Platform information about number of sockets", "numeric", "gauge",  "internal", ""
-"platform_cpu_usage", "Logical CPU usage in 1/USER_HZ (usually 10ms).Calculated using values based on /proc/stat.", "10ms", "counter",  "proc sys filesystems", "cpu"
+"platform_cpu_usage", "Logical CPU usage in 1/USER_HZ (usually 10ms).\rCalculated using values based on /proc/stat.", "10ms", "counter",  "proc sys filesystems", "cpu"
 "platform_mem_usage", "Total memory used by platform in bytes based on /proc/meminfo and uses heuristic based on linux free tool (total - free - buffers - cache).", "bytes", "gauge",  "proc sys filesystems", ""
 "platform_vmstat_numa_pages_migrated", "Virtual Memory stats based on /proc/vmstat for number of migrates pages (autonuma)", "numeric", "counter",  "proc sys filesystems", ""
 "platform_vmstat_pgmigrate_success", "Virtual Memory stats based on /proc/vmstat for number of migrates pages (succeded)", "numeric", "counter",  "proc sys filesystems", ""
