@@ -98,6 +98,7 @@ def generate_docs(csv=False):
         data = (
             metric,
             metadata.help,
+            metadata.enabled,
             value_or_str(metadata.unit),
             value_or_str(metadata.type),
             metadata.source,
