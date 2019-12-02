@@ -78,13 +78,10 @@ class MetricName(str, Enum):
     TASK_LAST_SEEN = 'task_last_seen'
 
     # ----------------- Platform ----------------------
+    # Static information
     PLATFORM_TOPOLOGY_CORES = 'platform_topology_cores'
     PLATFORM_TOPOLOGY_CPUS = 'platform_topology_cpus'
     PLATFORM_TOPOLOGY_SOCKETS = 'platform_topology_sockets'
-    PLATFORM_LAST_SEEN = 'platform_last_seen'
-    # NUMA for whole platform
-    PLATFORM_MEM_NUMA_FREE_BYTES = 'platform_mem_numa_free_bytes'
-    PLATFORM_MEM_NUMA_USED_BYTES = 'platform_mem_numa_used_bytes'
     # /proc based (platform scope).
     # Utilization (usage): counter like, sum of all modes based on /proc/stat
     # "cpu line" with 10ms resolution expressed in [ms]
@@ -92,6 +89,18 @@ class MetricName(str, Enum):
     # [bytes] based on /proc/meminfo (gauge like)
     # difference between MemTotal and MemAvail (or MemFree)
     PLATFORM_MEM_USAGE = 'platform_mem_usage'
+
+    # /proc/vmstat
+    PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED = 'platform_vmstate_numa_pages_migrated'
+    PLATFORM_VMSTAT_PGMIGRATE_SUCCESS = 'platform_vmstate_pgmigrate_success'
+    PLATFORM_VMSTAT_PGMIGRATE_FAIL = 'platform_vmstate_pgmigrate_fail'
+    PLATFORM_VMSTAT_NUMA_HINT_FAULTS = 'platform_vmstate_numa_hint_faults'
+    PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL = 'platform_vmstate_numa_hint_faults_local'
+    PLATFORM_VMSTAT_PGFAULT = 'platform_vmstate_pgfault'
+
+    # NUMA for whole platform
+    PLATFORM_MEM_NUMA_FREE_BYTES = 'platform_mem_numa_free_bytes'
+    PLATFORM_MEM_NUMA_USED_BYTES = 'platform_mem_numa_used_bytes'
 
     # Perf event based from uncore PMU and derived
     PLATFORM_PMM_BANDWIDTH_READ = 'platform_pmm_bandwidth_read'
@@ -111,14 +120,7 @@ class MetricName(str, Enum):
     # Based on UPI Flits
     PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND = 'platform_upi_bandwidth_bytes_per_second'
 
-    # /proc/vmstat
-    PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED = 'platform_vmstate_numa_pages_migrated'
-    PLATFORM_VMSTAT_PGMIGRATE_SUCCESS = 'platform_vmstate_pgmigrate_success'
-    PLATFORM_VMSTAT_PGMIGRATE_FAIL = 'platform_vmstate_pgmigrate_fail'
-    PLATFORM_VMSTAT_NUMA_HINT_FAULTS = 'platform_vmstate_numa_hint_faults'
-    PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL = 'platform_vmstate_numa_hint_faults_local'
-    PLATFORM_VMSTAT_PGFAULT = 'platform_vmstate_pgfault'
-
+    PLATFORM_LAST_SEEN = 'platform_last_seen'
     # ---------------- Internal -------------------------
     # Generic for WCA.
     WCA_UP = 'wca_up'
@@ -401,14 +403,6 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.BYTES,
             MetricSource.RESCTRL,
             MetricGranurality.TASK),
-    MetricName.PLATFORM_MEM_USAGE:
-        MetricMetadata(
-            'Total memory used by platform in bytes based on /proc/meminfo '
-            'and uses heuristic based on linux free tool (total - free - buffers - cache).',
-            MetricType.GAUGE,
-            MetricUnit.BYTES,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
     MetricName.TASK_MEM_NUMA_PAGES:
         MetricMetadata(
             'NUMA Stat TODO!',  # TODO: fix me!
@@ -427,8 +421,30 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.TASK,
             ['numa_node'],
         ),
+    MetricName.TASK_WSS_REFERENCED_BYTES:
+        MetricMetadata(
+            'Task referenced bytes during last measurements cycle based on /proc/smaps '
+            '"Referenced" field, with /proc/PIDs/clear_refs set to 1 accordinn wss_reset_interval.'
+            'Warning: this is intrusive collection, '
+            'because can influence kernel page reclaim policy and add latency.'
+            'Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more '
+            'details.',
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            '/procs/PIDS/smaps',
+            MetricGranurality.TASK,
+            [],
+        ),
     # ----------------------- Platform ---------------------------------
     # /proc fs based
+    MetricName.PLATFORM_MEM_USAGE:
+        MetricMetadata(
+            'Total memory used by platform in bytes based on /proc/meminfo '
+            'and uses heuristic based on linux free tool (total - free - buffers - cache).',
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
     MetricName.PLATFORM_CPU_USAGE:
         MetricMetadata(
             'Logical CPU usage in 1/USER_HZ (usually 10ms).'
