@@ -83,6 +83,12 @@ Platform's metrics
 	"platform_dram_total_mb_per_second", "TBD [numeric](gauge)", "perf event", "cpu, pmu"
 	"platform_dram_hit", "TBD [numeric](gauge)", "derived", "cpu, pmu"
 	"platform_upi_bandwidth_mb_per_second", "TBD [numeric](counter)", "derived", "cpu, pmu"
+	"platform_vmstate_numa_pages_migrated", "Virtual Memory stats based on /proc/vmstat for number of migrates pages (autonuma) [numeric](counter)", "/proc", ""
+	"platform_vmstate_pgmigrate_success", "Virtual Memory stats based on /proc/vmstat for number of migrates pages (succeded) [numeric](counter)", "/proc", ""
+	"platform_vmstate_pgmigrate_fail", "Virtual Memory stats based on /proc/vmstat for number of migrates pages (failed) [numeric](counter)", "/proc", ""
+	"platform_vmstate_numa_hint_faults", "Virtual Memory stats based on /proc/vmstat for pgfaults for migration hints [numeric](counter)", "/proc", ""
+	"platform_vmstate_numa_hint_faults_local", "Virtual Memory stats based on /proc/vmstat: pgfaults for migration hints (local) [numeric](counter)", "/proc", ""
+	"platform_vmstate_pgfault", "Virtual Memory stats based on /proc/vmstat:number of page faults [numeric](counter)", "/proc", ""
 
 
 
