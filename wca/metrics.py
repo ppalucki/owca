@@ -32,9 +32,9 @@ class MetricName(str, Enum):
     TASK_STALLED_MEM_LOADS = 'task_stalled_mem_loads'
     # Perf event platform specifc metrics
     # offcore_requests_outstanding_l3_miss_demand_data_rd
+    TASK_OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD = 'task_offcore_requests_l3_miss_demand_data_rd'
     TASK_OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD = \
         'task_offcore_requests_outstanding_l3_miss_demand_data_rd'
-    TASK_OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD = 'task_offcore_requests_l3_miss_demand_data_rd'
     TASK_MEM_LOAD_RETIRED_LOCAL_PMM = 'task_mem_load_retired_local_pmm'
     TASK_MEM_INST_RETIRED_LOADS = 'task_mem_inst_retired_loads'
     TASK_MEM_INST_RETIRED_STORES = 'task_mem_inst_retired_stores'
@@ -52,6 +52,12 @@ class MetricName(str, Enum):
     # (cache-references - cache_misses) / cache_references
     TASK_CACHE_MISSES_PER_KILO_INSTRUCTIONS = 'task_cache_misses_per_kilo_instructions'
 
+    # Resctrl based.
+    TASK_LLC_OCCUPANCY_BYTES = 'task_llc_occupancy_bytes'
+    TASK_MEM_BANDWIDTH_BYTES = 'task_mem_bandwidth_bytes'
+    TASK_MEM_BANDWIDTH_LOCAL_BYTES = 'task_mem_bandwidth_local_bytes'
+    TASK_MEM_BANDWIDTH_REMOTE_BYTES = 'task_mem_bandwidth_remote_bytes'
+
     # Cgroup based.
     TASK_CPU_USAGE = 'task_cpu_usage'
     TASK_MEM_USAGE_BYTES = 'task_mem_usage_bytes'
@@ -61,11 +67,6 @@ class MetricName(str, Enum):
     TASK_MEM_NUMA_PAGES = 'task_mem_numa_pages'
     TASK_MEM_PAGE_FAULTS = 'task_mem_page_faults'
 
-    # Resctrl based.
-    TASK_MEM_BANDWIDTH = 'task_mem_bandwidth'
-    TASK_LLC_OCCUPANCY = 'task_llc_occupancy'
-    TASK_MEM_BANDWIDTH_LOCAL = 'task_mem_bandwidth_local'
-    TASK_MEM_BANDWIDTH_REMOTE = 'task_mem_bandwidth_remote'
 
     # /proc/PID/based
     TASK_WSS_REFERENCED_BYTES = 'task_wss_referenced_bytes'
@@ -90,6 +91,10 @@ class MetricName(str, Enum):
     # difference between MemTotal and MemAvail (or MemFree)
     PLATFORM_MEM_USAGE = 'platform_mem_usage'
 
+    # NUMA for whole platform
+    PLATFORM_MEM_NUMA_FREE_BYTES = 'platform_mem_numa_free_bytes'
+    PLATFORM_MEM_NUMA_USED_BYTES = 'platform_mem_numa_used_bytes'
+
     # /proc/vmstat
     PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED = 'platform_vmstat_numa_pages_migrated'
     PLATFORM_VMSTAT_PGMIGRATE_SUCCESS = 'platform_vmstat_pgmigrate_success'
@@ -97,10 +102,6 @@ class MetricName(str, Enum):
     PLATFORM_VMSTAT_NUMA_HINT_FAULTS = 'platform_vmstat_numa_hint_faults'
     PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL = 'platform_vmstat_numa_hint_faults_local'
     PLATFORM_VMSTAT_PGFAULTS = 'platform_vmstat_pgfaults'
-
-    # NUMA for whole platform
-    PLATFORM_MEM_NUMA_FREE_BYTES = 'platform_mem_numa_free_bytes'
-    PLATFORM_MEM_NUMA_USED_BYTES = 'platform_mem_numa_used_bytes'
 
     # Perf event based from uncore PMU and derived
     PLATFORM_PMM_BANDWIDTH_READ = 'platform_pmm_bandwidth_read'
@@ -112,9 +113,9 @@ class MetricName(str, Enum):
     # Derived
     PLATFORM_PMM_READS_BYTES_PER_SECOND = 'platform_pmm_reads_bytes_per_second'
     PLATFORM_PMM_WRITES_BYTES_PER_SECOND = 'platform_pmm_writes_bytes_per_second'
+    PLATFORM_PMM_TOTAL_BYTES_PER_SECOND = 'platform_pmm_total_bytes_per_second'
     PLATFORM_DRAM_READS_BYTES_PER_SECOND = 'platform_dram_reads_bytes_per_second'
     PLATFORM_DRAM_WRITES_BYTES_PER_SECOND = 'platform_dram_writes_bytes_per_second'
-    PLATFORM_PMM_TOTAL_BYTES_PER_SECOND = 'platform_pmm_total_bytes_per_second'
     PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND = 'platform_dram_total_bytes_per_second'
     PLATFORM_DRAM_HIT = 'platform_dram_hit'
     # Based on UPI Flits
@@ -297,13 +298,6 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             ['cpu'],
         ),
     # Perf subsystem meta metrics (errors)
-    MetricName.TASK_SCALING_FACTOR_MAX:
-        MetricMetadata(
-            'Perf subsystem metric scaling factor, max value of all perf per task metrics.',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.TASK),
     MetricName.TASK_SCALING_FACTOR_AVG:
         MetricMetadata(
             'Perf subsystem metric scaling factor, max value of all perf per task metrics.',
@@ -311,17 +305,24 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.TASK),
-    # perf per task derived
-    MetricName.TASK_IPC:
+    MetricName.TASK_SCALING_FACTOR_MAX:
         MetricMetadata(
-            'Instructions per cycle.',
+            'Perf subsystem metric scaling factor, max value of all perf per task metrics.',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
+            MetricGranurality.TASK),
+    # perf per task derived
+    MetricName.TASK_IPS:
+        MetricMetadata(
+            'Instructions per second.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.TASK),
-    MetricName.TASK_IPS:
+    MetricName.TASK_IPC:
         MetricMetadata(
-            'Instructions per second.',
+            'Instructions per cycle.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
@@ -341,6 +342,36 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricSource.DERIVED,
             MetricGranurality.TASK),
 
+    # --- resctrl/RDT
+    MetricName.TASK_LLC_OCCUPANCY_BYTES:
+        MetricMetadata(
+            'LLC occupancy.',
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            MetricSource.RESCTRL,
+            MetricGranurality.TASK),
+    MetricName.TASK_MEM_BANDWIDTH_BYTES:
+        MetricMetadata(
+            'Total memory bandwidth using Memory Bandwidth Monitoring.',
+            MetricType.COUNTER,
+            MetricUnit.BYTES,
+            MetricSource.RESCTRL,
+            MetricGranurality.TASK),
+    MetricName.TASK_MEM_BANDWIDTH_LOCAL_BYTES:
+        MetricMetadata(
+            'Total local memory bandwidth using Memory Bandwidth Monitoring.',
+            MetricType.COUNTER,
+            MetricUnit.BYTES,
+            MetricSource.RESCTRL,
+            MetricGranurality.TASK),
+    MetricName.TASK_MEM_BANDWIDTH_REMOTE_BYTES:
+        MetricMetadata(
+            'Total remote memory bandwidth using Memory Bandwidth Monitoring.',
+            MetricType.COUNTER,
+            MetricUnit.BYTES,
+            MetricSource.RESCTRL,
+            MetricGranurality.TASK),
+
     # --- cgroup per tasks
     MetricName.TASK_CPU_USAGE:
         MetricMetadata(
@@ -348,28 +379,6 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.CGROUP,
-            MetricGranurality.TASK),
-    # --- resctrl/RDT
-    MetricName.TASK_MEM_BANDWIDTH:
-        MetricMetadata(
-            'Total memory bandwidth using Memory Bandwidth Monitoring.',
-            MetricType.COUNTER,
-            MetricUnit.BYTES,
-            MetricSource.RESCTRL,
-            MetricGranurality.TASK),
-    MetricName.TASK_MEM_BANDWIDTH_LOCAL:
-        MetricMetadata(
-            'Total local memory bandwidth using Memory Bandwidth Monitoring.',
-            MetricType.COUNTER,
-            MetricUnit.BYTES,
-            MetricSource.RESCTRL,
-            MetricGranurality.TASK),
-    MetricName.TASK_MEM_BANDWIDTH_REMOTE:
-        MetricMetadata(
-            'Total remote memory bandwidth using Memory Bandwidth Monitoring.',
-            MetricType.COUNTER,
-            MetricUnit.BYTES,
-            MetricSource.RESCTRL,
             MetricGranurality.TASK),
     MetricName.TASK_MEM_USAGE_BYTES:
         MetricMetadata(
@@ -398,13 +407,6 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.CGROUP,
-            MetricGranurality.TASK),
-    MetricName.TASK_LLC_OCCUPANCY:
-        MetricMetadata(
-            'LLC occupancy.',
-            MetricType.GAUGE,
-            MetricUnit.BYTES,
-            MetricSource.RESCTRL,
             MetricGranurality.TASK),
     MetricName.TASK_MEM_NUMA_PAGES:
         MetricMetadata(
@@ -438,42 +440,8 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.TASK,
             [],
         ),
-    # ----------------------- Platform ---------------------------------
-    # /proc fs based
-    MetricName.PLATFORM_MEM_USAGE:
-        MetricMetadata(
-            'Total memory used by platform in bytes based on /proc/meminfo '
-            'and uses heuristic based on linux free tool (total - free - buffers - cache).',
-            MetricType.GAUGE,
-            MetricUnit.BYTES,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_CPU_USAGE:
-        MetricMetadata(
-            'Logical CPU usage in 1/USER_HZ (usually 10ms).'
-            'Calculated using values based on /proc/stat.',
-            MetricType.COUNTER,
-            MetricUnit.TEN_MILLISECOND,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM,
-            ['cpu'],
-        ),
-    MetricName.PLATFORM_MEM_NUMA_FREE_BYTES:
-        MetricMetadata(
-            'NUMA memory free per numa node TODO!',  # TODO: fix me!
-            MetricType.GAUGE,
-            MetricUnit.BYTES,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM,
-            ['numa_node'],
-        ),
-    MetricName.PLATFORM_MEM_NUMA_USED_BYTES:
-        MetricMetadata(
-            'NUMA memory used per numa node TODO!',  # TODO: fix me!
-            MetricType.GAUGE,
-            MetricUnit.BYTES,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
+
+    # Generic or from orchestration
     MetricName.TASK_CPUS:
         MetricMetadata(
             'Tasks resources cpus initial requests.',
@@ -495,6 +463,109 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.GENERIC,
             MetricGranurality.TASK),
+    # ----------------------- Platform ---------------------------------
+    MetricName.PLATFORM_TOPOLOGY_CORES:
+        MetricMetadata(
+            'Platform information about number of physical cores',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_TOPOLOGY_CPUS:
+        MetricMetadata(
+            'Platform information about number of logical cpus',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_TOPOLOGY_SOCKETS:
+        MetricMetadata(
+            'Platform information about number of sockets',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranurality.PLATFORM),
+    # /proc fs based
+    MetricName.PLATFORM_CPU_USAGE:
+        MetricMetadata(
+            'Logical CPU usage in 1/USER_HZ (usually 10ms).'
+            'Calculated using values based on /proc/stat.',
+            MetricType.COUNTER,
+            MetricUnit.TEN_MILLISECOND,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM,
+            ['cpu'],
+        ),
+    MetricName.PLATFORM_MEM_USAGE:
+        MetricMetadata(
+            'Total memory used by platform in bytes based on /proc/meminfo '
+            'and uses heuristic based on linux free tool (total - free - buffers - cache).',
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+
+    # VM Stat based
+    MetricName.PLATFORM_MEM_NUMA_FREE_BYTES:
+        MetricMetadata(
+            'NUMA memory free per numa node TODO!',  # TODO: fix me!
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM,
+            ['numa_node'],
+        ),
+    MetricName.PLATFORM_MEM_NUMA_USED_BYTES:
+        MetricMetadata(
+            'NUMA memory used per numa node TODO!',  # TODO: fix me!
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    # VMStat
+    MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (autonuma)',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (succeded)',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_PGMIGRATE_FAIL:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (failed)',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat for pgfaults for migration hints',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat: pgfaults for migration hints (local)',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    MetricName.PLATFORM_VMSTAT_PGFAULTS:
+        MetricMetadata(
+            'Virtual Memory stats based on /proc/vmstat:number of page faults',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PROC,
+            MetricGranurality.PLATFORM),
+    # Perf uncore
     MetricName.PLATFORM_PMM_BANDWIDTH_READ:
         MetricMetadata(
             'Persistent memory module number of reads.',
@@ -531,6 +602,25 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
+    MetricName.PLATFORM_UPI_RXL_FLITS:
+        MetricMetadata(
+            'TBD',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    MetricName.PLATFORM_UPI_TXL_FLITS:
+        MetricMetadata(
+            'TBD',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
+            MetricGranurality.PLATFORM,
+            ['cpu', 'pmu'],
+        ),
+    # Perf uncore derived
     MetricName.PLATFORM_PMM_READS_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
@@ -594,24 +684,6 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PLATFORM_UPI_TXL_FLITS:
-        MetricMetadata(
-            'TBD',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
-        ),
-    MetricName.PLATFORM_UPI_RXL_FLITS:
-        MetricMetadata(
-            'TBD',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
-        ),
     MetricName.PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
@@ -621,6 +693,15 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
+    MetricName.PLATFORM_LAST_SEEN:
+        MetricMetadata(
+            'Timestamp the information about platform was last collected',
+            MetricType.COUNTER,
+            MetricUnit.TIMESTAMP,
+            MetricSource.INTERNAL,
+            MetricGranurality.PLATFORM),
+
+    # ---------------------------- WCA internal ----------------------------
     MetricName.WCA_UP:
         MetricMetadata(
             'Always returns 1',
@@ -642,77 +723,12 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
             MetricGranurality.INTERNAL),
-    MetricName.PLATFORM_TOPOLOGY_CORES:
-        MetricMetadata(
-            'Platform information about number of physical cores',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.INTERNAL,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_TOPOLOGY_CPUS:
-        MetricMetadata(
-            'Platform information about number of logical cpus',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.INTERNAL,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_TOPOLOGY_SOCKETS:
-        MetricMetadata(
-            'Platform information about number of sockets',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.INTERNAL,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_LAST_SEEN:
-        MetricMetadata(
-            'Timestamp the information about platform was last collected',
-            MetricType.COUNTER,
-            MetricUnit.TIMESTAMP,
-            MetricSource.INTERNAL,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED:
-        MetricMetadata(
-            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (autonuma)',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS:
-        MetricMetadata(
-            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (succeded)',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_VMSTAT_PGMIGRATE_FAIL:
-        MetricMetadata(
-            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (failed)',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS:
-        MetricMetadata(
-            'Virtual Memory stats based on /proc/vmstat for pgfaults for migration hints',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL:
-        MetricMetadata(
-            'Virtual Memory stats based on /proc/vmstat: pgfaults for migration hints (local)',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
-    MetricName.PLATFORM_VMSTAT_PGFAULTS:
-        MetricMetadata(
-            'Virtual Memory stats based on /proc/vmstat:number of page faults',
-            MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.PROC,
-            MetricGranurality.PLATFORM),
 }
+
+# Make sure the same order is used.
+for key1, key2 in zip(MetricName.__members__.values(), METRICS_METADATA.keys()):
+    assert key1 == key2, 'order mismatch %s' % key1
+
 
 
 @dataclass
