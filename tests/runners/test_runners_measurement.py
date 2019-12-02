@@ -63,18 +63,18 @@ def test_measurements_runner(subcgroups):
 
     # Measurements metrics about tasks, based on get_measurements mocks.
     cpu_usage = TASK_CPU_USAGE * (len(subcgroups) if subcgroups else 1)
-    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE, dict(task_id=t1.task_id),
+    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE_SECONDS, dict(task_id=t1.task_id),
                   expected_metric_value=cpu_usage)
-    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE, dict(task_id=t2.task_id),
+    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE_SECONDS, dict(task_id=t2.task_id),
                   expected_metric_value=cpu_usage)
 
     # Test whether application and application_version_name were properly generated using
     #   default runner._task_label_generators defined in constructor of MeasurementsRunner.
-    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE,
+    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE_SECONDS,
                   {'application': t1.name, 'application_version_name': ''})
 
     # Test whether `initial_task_cpu_assignment` label is attached to task metrics.
-    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE,
+    assert_metric(got_metrics, MetricName.TASK_CPU_USAGE_SECONDS,
                   {'initial_task_cpu_assignment': '8.0'})
 
 
@@ -104,15 +104,15 @@ def test_measurements_wait(sleep_mock):
         sleep_mock.assert_called_with(0)
 
 
-_task_cpu_usage_metadata = METRICS_METADATA[MetricName.TASK_CPU_USAGE]
+_task_cpu_usage_metadata = METRICS_METADATA[MetricName.TASK_CPU_USAGE_SECONDS]
 
 
 @pytest.mark.parametrize('tasks_data, expected_metrics', [
     ({}, []),
     ({'t1_task_id': task_data('/t1', labels={'app': 'redis'})}, []),
     ({'t1_task_id': task_data('/t1', labels={'app': 'redis'},
-                              measurements={'task_cpu_usage': DEFAULT_METRIC_VALUE})},
-     [Metric(MetricName.TASK_CPU_USAGE, labels={'app': 'redis'},
+                              measurements={'task_cpu_usage_seconds': DEFAULT_METRIC_VALUE})},
+     [Metric(MetricName.TASK_CPU_USAGE_SECONDS, labels={'app': 'redis'},
              value=DEFAULT_METRIC_VALUE, unit=_task_cpu_usage_metadata.unit,
              granularity=_task_cpu_usage_metadata.granularity, help=_task_cpu_usage_metadata.help,
              type=_task_cpu_usage_metadata.type
@@ -127,7 +127,7 @@ def test_build_tasks_metrics(tasks_data, expected_metrics):
 @patch('wca.cgroups.Cgroup')
 @patch('wca.perf.PerfCounters')
 @patch('time.time', return_value=12345.6)
-@patch('wca.containers.Container.get_measurements', Mock(return_value={'task_cpu_usage': 13}))
+@patch('wca.containers.Container.get_measurements', Mock(return_value={'task_cpu_usage_seconds': 13}))
 def test_prepare_tasks_data(*mocks):
     t = task('/t1', labels={'label_key': 'label_value'}, resources={'cpu': 3})
     containers = {
@@ -141,7 +141,7 @@ def test_prepare_tasks_data(*mocks):
             TaskData(
                 t.name, t.task_id, t.cgroup_path, t.subcgroups_paths,
                 t.labels, t.resources,
-                {'task_last_seen': 12345.6, 'task_cpu_usage': 13, 'wca_up': 1}
+                {'task_last_seen': 12345.6, 'task_cpu_usage_seconds': 13, 'wca_up': 1}
             )
     }
 

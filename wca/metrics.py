@@ -59,7 +59,7 @@ class MetricName(str, Enum):
     TASK_MEM_BANDWIDTH_REMOTE_BYTES = 'task_mem_bandwidth_remote_bytes'
 
     # Cgroup based.
-    TASK_CPU_USAGE = 'task_cpu_usage'
+    TASK_CPU_USAGE_SECONDS = 'task_cpu_usage_seconds'
     TASK_MEM_USAGE_BYTES = 'task_mem_usage_bytes'
     TASK_MEM_MAX_USAGE_BYTES = 'task_mem_max_usage_bytes'
     TASK_MEM_LIMIT_BYTES = 'task_mem_limit_bytes'
@@ -373,7 +373,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.TASK),
 
     # --- cgroup per tasks
-    MetricName.TASK_CPU_USAGE:
+    MetricName.TASK_CPU_USAGE_SECONDS:
         MetricMetadata(
             'cpuacct.usage (total kernel and user space).',
             MetricType.COUNTER,
