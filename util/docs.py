@@ -16,12 +16,22 @@ import enum
 from wca.metrics import METRICS_METADATA, MetricGranurality, MetricName, MetricMetadata
 
 
-def prepare_csv_table(data):
-    table = '.. csv-table::\n'
-    table += '\t:header: "Name", "Help", "Unit", "Type", "Source", "Levels/Labels"\n'
-    table += '\t:widths: 5, 5, 5, 5, 5, 5 \n\n\t'
+def prepare_csv_table(data, header=True, csv_header=False):
+    if header:
+        table = '.. csv-table::\n'
+        table += '\t:header: "Name", "Help", "Unit", "Type", "Source", "Levels/Labels"\n'
+        table += '\t:widths: 5, 5, 5, 5, 5, 5 \n\n\t'
+    elif csv_header:
+        table = '"Name", "Help", "Unit", "Type", "Source", "Levels/Labels"\n'
+    else:
+        table = ''
 
-    table += '\n\t'.join(['"{}", "{}", "{}", "{}",  "{}", "{}"'.format(*row) for row in data])
+    if header:
+        pref = '\t'
+    else:
+        pref = ''
+
+    table += ('\n%s'%(pref)).join(['"{}", "{}", "{}", "{}",  "{}", "{}"'.format(*row) for row in data])
 
     return table
 
@@ -35,6 +45,7 @@ def generate_subtitle(subtitle):
 
 
 METRICS_DOC_PATH = 'docs/metrics.rst'
+METRICS_CSV_PATH = 'docs/metrics.csv'
 
 INTRO = """
 ================================
@@ -42,6 +53,8 @@ Available metrics
 ================================
 
 **This software is pre-production and should not be deployed to production servers.**
+
+For searchable list of metrics `metrics as csv file <metrics.csv>`_ .
 
 .. contents:: Table of Contents
 
@@ -56,7 +69,7 @@ Check out `metrics sources documentation <metrics_sources.rst>`_  to learn how m
 """
 
 
-def generate_docs():
+def generate_docs(csv=False):
 
     task_data = []
 
@@ -70,7 +83,6 @@ def generate_docs():
         if not metadata:
             print('Warning no metadata for metric! %s' % metric)
             continue
-
 
         if metadata.levels is not None:
             levels = ', '.join(metadata.levels)
@@ -88,7 +100,7 @@ def generate_docs():
             metadata.help,
             value_or_str(metadata.unit),
             value_or_str(metadata.type),
-            metadata.source, 
+            metadata.source,
             levels
         )
 
@@ -99,14 +111,14 @@ def generate_docs():
         elif metadata.granularity == MetricGranurality.INTERNAL:
             internal_data.append(data)
 
-    tasks = generate_title("Task's metrics") + '\n\n'
-    tasks += prepare_csv_table(task_data) + '\n\n'
+    tasks = generate_title("Task's metrics") + '\n\n' if not csv else ''
+    tasks += prepare_csv_table(task_data, header=not csv, csv_header=csv) + '\n\n'
 
-    platforms = generate_title("Platform's metrics") + '\n\n'
-    platforms += prepare_csv_table(platform_data) + '\n\n'
+    platforms = generate_title("Platform's metrics") + '\n\n' if not csv else ''
+    platforms += prepare_csv_table(platform_data, header=not csv) + '\n\n'
 
-    internal = generate_title("Internal metrics") + '\n\n'
-    internal += prepare_csv_table(internal_data) + '\n\n'
+    internal = generate_title("Internal metrics") + '\n\n' if not csv else ''
+    internal += prepare_csv_table(internal_data, header=not csv) + '\n\n'
 
     return tasks + '\n\n' + platforms + '\n\n' + internal
 
@@ -116,5 +128,5 @@ if __name__ == '__main__':
         f.write(INTRO)
         f.write(METRICS_SOURCES)
         f.write(generate_docs())
-    with open(METRICS_DOC_PATH + '.csv', 'w') as f:
-        f.write(generate_docs())
+    with open(METRICS_CSV_PATH, 'w') as f:
+        f.write(generate_docs(csv=True))
