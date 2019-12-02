@@ -379,7 +379,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         MetricMetadata(
             'cpuacct.usage (total kernel and user space).',
             MetricType.COUNTER,
-            MetricUnit.NUMERIC,
+            MetricUnit.SECONDS,
             MetricSource.CGROUP,
             MetricGranurality.TASK),
     MetricName.TASK_MEM_USAGE_BYTES:

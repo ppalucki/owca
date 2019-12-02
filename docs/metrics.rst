@@ -43,7 +43,7 @@ Task's metrics
 	"task_mem_bandwidth_bytes", "Total memory bandwidth using Memory Bandwidth Monitoring.", "bytes", "counter",  "resctrl", ""
 	"task_mem_bandwidth_local_bytes", "Total local memory bandwidth using Memory Bandwidth Monitoring.", "bytes", "counter",  "resctrl", ""
 	"task_mem_bandwidth_remote_bytes", "Total remote memory bandwidth using Memory Bandwidth Monitoring.", "bytes", "counter",  "resctrl", ""
-	"task_cpu_usage", "cpuacct.usage (total kernel and user space).", "numeric", "counter",  "cgroup", ""
+	"task_cpu_usage_seconds", "cpuacct.usage (total kernel and user space).", "seconds", "counter",  "cgroup", ""
 	"task_mem_usage_bytes", "Memory usage_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge",  "cgroup", ""
 	"task_mem_max_usage_bytes", "Memory max_usage_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge",  "cgroup", ""
 	"task_mem_limit_bytes", "Memory limit_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge",  "cgroup", ""
