@@ -76,7 +76,7 @@ def test_metric_meta_exists():
 
 @pytest.mark.parametrize(
     'measurements, expected', [
-        ({MetricName.TASK_MEMORY_NUMA_PAGES: {'1': 10, '2': 20}, }, 2),
+        ({MetricName.TASK_MEM_NUMA_PAGES: {'1': 10, '2': 20}, }, 2),
         ({MetricName.TASK_CYCLES: {0: 1123}}, 1),
         ({}, 0)
     ])

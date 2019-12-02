@@ -182,7 +182,7 @@ def test_collect_platform_information(*mocks):
         node_cpus={},
         node_distances={},
         rdt_information=RDTInformation(True, True, True, True, 'fffff', '2', 8, 10, 20),
-        measurements={MetricName.CPU_USAGE_PER_CPU: {0: 100, 1: 200},
+        measurements={MetricName.PLATFORM_CPU_USAGE_PER_CPU: {0: 100, 1: 200},
                       MetricName.MEM_USAGE: 1337,
                       MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES: {0: 1},
                       MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES: {0: 2},

@@ -48,7 +48,7 @@ _INITIALIZE_FAILURE_ERROR_CODE = 1
 
 DEFAULT_EVENTS = [MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CYCLES,
                   MetricName.TASK_CACHE_MISSES, MetricName.TASK_CACHE_REFERENCES,
-                  MetricName.TASK_STALLED_MEMORY_LOADS]
+                  MetricName.TASK_STALLED_MEM_LOADS]
 
 
 class TaskLabelGenerator:
@@ -415,12 +415,12 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
             raise
         # Extra metrics
         task_measurements[MetricName.WCA_UP.value] = 1
-        task_measurements[MetricName.LAST_SEEN.value] = time.time()
+        task_measurements[MetricName.TASK_LAST_SEEN.value] = time.time()
         #
         if TaskResource.CPUS in task.resources:
-            task_measurements[MetricName.CPUS.value] = task.resources[TaskResource.CPUS.value]
+            task_measurements[MetricName.TASK_CPUS.value] = task.resources[TaskResource.CPUS.value]
         if TaskResource.MEM in task.resources:
-            task_measurements[MetricName.MEM.value] = task.resources[TaskResource.MEM.value]
+            task_measurements[MetricName.TASK_MEM.value] = task.resources[TaskResource.MEM.value]
 
         tasks_data[task.task_id] = TaskData(
                     name=task.name,

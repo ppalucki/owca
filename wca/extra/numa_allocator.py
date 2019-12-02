@@ -295,7 +295,7 @@ def get_pages_to_move(task, tasks_data, target_node, reason):
     data: TaskData = tasks_data[task]
     pages_to_move = sum(
         v for node, v
-        in data.measurements[MetricName.TASK_MEMORY_NUMA_PAGES].items()
+        in data.measurements[MetricName.TASK_MEM_NUMA_PAGES].items()
         if node != target_node)
     log.debug('Task: %s Moving %s MB to node %s reason %s', task,
               (pages_to_move * 4096) / 1024 ** 2, target_node, reason)
@@ -316,10 +316,10 @@ def _get_task_memory_limit(task_measurements, total, task, task_resources):
         return mems
 
     limits_order = [
-        MetricName.TASK_MEMORY_LIMIT_BYTES,
-        MetricName.TASK_MEMORY_SOFT_LIMIT_BYTES,
-        MetricName.TASK_MEMORY_MAX_USAGE_BYTES,
-        MetricName.TASK_MEMORY_USAGE_BYTES, ]
+        MetricName.TASK_MEM_LIMIT_BYTES,
+        MetricName.TASK_MEM_SOFT_LIMIT_BYTES,
+        MetricName.TASK_MEM_MAX_USAGE_BYTES,
+        MetricName.TASK_MEM_USAGE_BYTES, ]
     for limit in limits_order:
         if limit not in task_measurements:
             continue
@@ -333,12 +333,12 @@ def _get_task_memory_limit(task_measurements, total, task, task_resources):
 
 def _get_numa_node_preferences(task_measurements, platform: Platform) -> Dict[int, float]:
     ret = {node_id: 0 for node_id in range(0, platform.numa_nodes)}
-    if MetricName.TASK_MEMORY_NUMA_PAGES in task_measurements:
-        metrics_val_sum = sum(task_measurements[MetricName.TASK_MEMORY_NUMA_PAGES].values())
-        for node_id, metric_val in task_measurements[MetricName.TASK_MEMORY_NUMA_PAGES].items():
+    if MetricName.TASK_MEM_NUMA_PAGES in task_measurements:
+        metrics_val_sum = sum(task_measurements[MetricName.TASK_MEM_NUMA_PAGES].values())
+        for node_id, metric_val in task_measurements[MetricName.TASK_MEM_NUMA_PAGES].items():
             ret[int(node_id)] = round(metric_val / max(1, metrics_val_sum), 4)
     else:
-        log.warning('{} metric not available'.format(MetricName.TASK_MEMORY_NUMA_PAGES))
+        log.warning('{} metric not available'.format(MetricName.TASK_MEM_NUMA_PAGES))
     return ret
 
 

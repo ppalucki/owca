@@ -85,8 +85,8 @@ def test_parse_online_cpus_string(raw_string, expected):
              b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x4a\x16\x00\x00\x00\x00\x00\x00"),
      [metrics.MetricName.TASK_CYCLES],
      {metrics.MetricName.TASK_CYCLES: 0,
-      metrics.MetricName.SCALING_FACTOR_AVG: 0,
-      metrics.MetricName.SCALING_FACTOR_MAX: 0}
+      metrics.MetricName.TASK_SCALING_FACTOR_AVG: 0,
+      metrics.MetricName.TASK_SCALING_FACTOR_MAX: 0}
      ),
     # case with no scaling
     (BytesIO(b"\x03\x00\x00\x00\x00\x00\x00\x00\x26\xe7\xea\x29\x01\x00\x00\x00\x26\xe7\xea\x29"
@@ -98,8 +98,8 @@ def test_parse_online_cpus_string(raw_string, expected):
      {metrics.MetricName.TASK_INSTRUCTIONS: 36995493542,
       metrics.MetricName.TASK_CYCLES: 19462159816,
       metrics.MetricName.TASK_CACHE_MISSES: 4442136,
-      metrics.MetricName.SCALING_FACTOR_AVG: 1.0,
-      metrics.MetricName.SCALING_FACTOR_MAX: 1.0}
+      metrics.MetricName.TASK_SCALING_FACTOR_AVG: 1.0,
+      metrics.MetricName.TASK_SCALING_FACTOR_MAX: 1.0}
      ),
     # case with 50% scaling factor
     (BytesIO(b"\x03\x00\x00\x00\x00\x00\x00\x00\xb2\xef\xff\x29\x01\x00\x00\x00\x07\x13\x08\x95"
@@ -112,8 +112,8 @@ def test_parse_online_cpus_string(raw_string, expected):
       metrics.MetricName.TASK_CYCLES: 19436397211,
       metrics.MetricName.TASK_CACHE_MISSES: 2836869,
       # TODO: assert for 2.0 with some margin
-      metrics.MetricName.SCALING_FACTOR_AVG: 1.9995750600302817,
-      metrics.MetricName.SCALING_FACTOR_MAX: 1.9995750600302817}
+      metrics.MetricName.TASK_SCALING_FACTOR_AVG: 1.9995750600302817,
+      metrics.MetricName.TASK_SCALING_FACTOR_MAX: 1.9995750600302817}
      )
 ])
 def test_parse_event_groups(file, event_names, expected):
@@ -139,8 +139,8 @@ def test_get_online_cpus(_parse_online_cpu_string_mock, open_mock):
 
 @patch('wca.perf._parse_event_groups', return_value={
     metrics.MetricName.TASK_CYCLES: 0,
-    metrics.MetricName.SCALING_FACTOR_MAX: 0,
-    metrics.MetricName.SCALING_FACTOR_AVG: 0})
+    metrics.MetricName.TASK_SCALING_FACTOR_MAX: 0,
+    metrics.MetricName.TASK_SCALING_FACTOR_AVG: 0})
 @patch('wca.perf._get_cgroup_fd')
 @patch('wca.perf.PerfCounters._open')
 def test_read_metrics(*args):
@@ -148,8 +148,8 @@ def test_read_metrics(*args):
     prf = perf.PerfCounters('/mycgroup', [metrics.MetricName.TASK_CYCLES], platform_mock)
     prf._group_event_leader_files[0] = {0: mock_open()}
     assert prf.get_measurements() == {metrics.MetricName.TASK_CYCLES: {0: 0},
-                                      metrics.MetricName.SCALING_FACTOR_AVG: 0,
-                                      metrics.MetricName.SCALING_FACTOR_MAX: 0}
+                                      metrics.MetricName.TASK_SCALING_FACTOR_AVG: 0,
+                                      metrics.MetricName.TASK_SCALING_FACTOR_MAX: 0}
 
 
 @patch('wca.perf.LIBC.ioctl', return_value=1)
@@ -311,8 +311,8 @@ def test_parse_raw_event_name_invalid(event_name, expected_match):
 
 
 @pytest.mark.parametrize('cpu, event_name, expected_config', [
-    (CPUCodeName.SKYLAKE, MetricName.TASK_STALLED_MEMORY_LOADS, 0x140014A3),
-    (CPUCodeName.BROADWELL, MetricName.TASK_STALLED_MEMORY_LOADS, 0x60006A3),
+    (CPUCodeName.SKYLAKE, MetricName.TASK_STALLED_MEM_LOADS, 0x140014A3),
+    (CPUCodeName.BROADWELL, MetricName.TASK_STALLED_MEM_LOADS, 0x60006A3),
     (CPUCodeName.SKYLAKE, MetricName.TASK_OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD, 0x00001060),
     (CPUCodeName.SKYLAKE,
      MetricName.TASK_OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 0x000010B0),

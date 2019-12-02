@@ -108,10 +108,10 @@ class Cgroup:
         measurements = {MetricName.TASK_CPU_USAGE: cpu_usage}
 
         for cgroup_resource, metric_name in [
-            [CgroupResource.MEMORY_USAGE, MetricName.TASK_MEMORY_USAGE_BYTES],
-            [CgroupResource.MEMORY_MAX_USAGE, MetricName.TASK_MEMORY_MAX_USAGE_BYTES],
-            [CgroupResource.MEMORY_LIMIT, MetricName.TASK_MEMORY_LIMIT_BYTES],
-            [CgroupResource.MEMORY_SOFT_LIMIT, MetricName.TASK_MEMORY_SOFT_LIMIT_BYTES],
+            [CgroupResource.MEMORY_USAGE, MetricName.TASK_MEM_USAGE_BYTES],
+            [CgroupResource.MEMORY_MAX_USAGE, MetricName.TASK_MEM_MAX_USAGE_BYTES],
+            [CgroupResource.MEMORY_LIMIT, MetricName.TASK_MEM_LIMIT_BYTES],
+            [CgroupResource.MEMORY_SOFT_LIMIT, MetricName.TASK_MEM_SOFT_LIMIT_BYTES],
         ]:
             try:
                 with open(os.path.join(self.cgroup_memory_fullpath,
@@ -144,10 +144,10 @@ class Cgroup:
                         for stat in line.split()[1:]:
                             k, v = stat.split("=")
                             k, v = k[1:], int(v)
-                            if MetricName.TASK_MEMORY_NUMA_PAGES not in measurements:
-                                measurements[MetricName.TASK_MEMORY_NUMA_PAGES] = {k: v}
+                            if MetricName.TASK_MEM_NUMA_PAGES not in measurements:
+                                measurements[MetricName.TASK_MEM_NUMA_PAGES] = {k: v}
                             else:
-                                measurements[MetricName.TASK_MEMORY_NUMA_PAGES][k] = v
+                                measurements[MetricName.TASK_MEM_NUMA_PAGES][k] = v
                         break
 
         try:
@@ -163,8 +163,8 @@ class Cgroup:
                 'File {} is missing. Metric unavailable.'.format(e.filename))
 
         # Check whether consecutive keys.
-        assert (MetricName.TASK_MEMORY_NUMA_PAGES not in measurements or
-                list(measurements[MetricName.TASK_MEMORY_NUMA_PAGES].keys()) ==
+        assert (MetricName.TASK_MEM_NUMA_PAGES not in measurements or
+                list(measurements[MetricName.TASK_MEM_NUMA_PAGES].keys()) ==
                 [str(el) for el in range(0, self.platform.numa_nodes)])
 
         return measurements

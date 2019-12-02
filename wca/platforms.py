@@ -607,7 +607,7 @@ def collect_platform_information(rdt_enabled: bool = True,
 
     # Dynamic information
     platform_measurements = {}
-    platform_measurements[MetricName.CPU_USAGE_PER_CPU] = parse_proc_stat(read_proc_stat())
+    platform_measurements[MetricName.PLATFORM_CPU_USAGE_PER_CPU] = parse_proc_stat(read_proc_stat())
     platform_measurements[MetricName.MEM_USAGE] = parse_proc_meminfo(read_proc_meminfo())
     node_free, node_used = parse_node_meminfo()
     platform_measurements[MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES] = node_free
@@ -644,7 +644,7 @@ def collect_platform_information(rdt_enabled: bool = True,
         static_information=platform_static_information,
         swap_enabled=is_swap_enabled()
     )
-    assert len(platform_measurements[MetricName.CPU_USAGE_PER_CPU]) == platform.cpus, \
+    assert len(platform_measurements[MetricName.PLATFORM_CPU_USAGE_PER_CPU]) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
     return platform, create_metrics(platform), create_labels(platform)
 
