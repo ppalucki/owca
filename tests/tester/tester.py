@@ -253,16 +253,17 @@ class FileCheck(Check):
 
         with open(self.path) as f:
             for line in f:
+                line_stripped = line.rstrip('\n\r')
                 if self.line:
-                    if not line.rstrip('\n\r') == self.line:
+                    if line_stripped != self.line:
                         raise CheckFailed(
                                 'Expected value "{}" but got "{}"\n{}'.
-                                format(self.line, line, str(self)))
+                                format(self.line, line_stripped, str(self)))
                 if self.subvalue:
-                    if self.subvalue not in line:
+                    if self.subvalue not in line_stripped:
                         raise CheckFailed(
                                 'Expected subvalue "{}" in "{}"\n{}'.
-                                format(self.subvalue, line, str(self)))
+                                format(self.subvalue, line_stripped, str(self)))
 
 
 @dataclass

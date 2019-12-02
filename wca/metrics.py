@@ -430,7 +430,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.CGROUP,
             MetricGranurality.TASK,
-            ['numa_node'],
+            [],
         ),
     MetricName.TASK_WSS_REFERENCED_BYTES:
         MetricMetadata(
@@ -990,12 +990,20 @@ def export_metrics_from_measurements(measurements: Measurements) -> List[Metric]
                 if is_leaf(depth):
                     return create_metric(node, parent_labels)
                 else:
-                    metrics = []
-                    for parent_label_value, child in node.items():
-                        new_parent_labels = {} if parent_labels is None else dict(parent_labels)
-                        new_parent_labels[levels[depth]] = str(parent_label_value)
-                        metrics.extend(recursive_create_metric(child, new_parent_labels, depth + 1))
-                    return metrics
+                    try:
+                        metrics = []
+                        for parent_label_value, child in node.items():
+                            new_parent_labels = {} if parent_labels is None else dict(parent_labels)
+                            new_parent_labels[levels[depth]] = str(parent_label_value)
+                            metrics.extend(
+                                recursive_create_metric(child, new_parent_labels, depth + 1))
+                        return metrics
+                    except AttributeError as e:
+                        raise Exception(
+                            'found int or float when expecting hierarchy for metric for %s'
+                            '- check levels definition in METRIC_METADATA!'
+                            % metric_name
+                        ) from e
 
             all_metrics.extend(recursive_create_metric(metric_node, {}))
         else:
