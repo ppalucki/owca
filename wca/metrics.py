@@ -239,7 +239,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         ),
     MetricName.TASK_STALLED_MEM_LOADS:
         MetricMetadata(
-            'Mem stalled loads.',
+            'TBD: Mem stalled loads.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
@@ -263,8 +263,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.TASK),
     MetricName.TASK_MEM_LOAD_RETIRED_LOCAL_PMM:
         MetricMetadata(
-            # TODO
-            'mem_load_retired_local_pmm__rd180',
+            'TBD mem_load_retired_local_pmm__rd180',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
@@ -273,8 +272,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         ),
     MetricName.TASK_MEM_INST_RETIRED_LOADS:
         MetricMetadata(
-            # TODO
-            'mem_load_retired_local_pmm__rd180',
+            'TBD mem_load_retired_local_pmm__rd180',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
@@ -283,7 +281,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         ),
     MetricName.TASK_MEM_INST_RETIRED_STORES:
         MetricMetadata(
-            'TODO:',
+            'TBD',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
@@ -347,7 +345,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
     # --- resctrl/RDT
     MetricName.TASK_LLC_OCCUPANCY_BYTES:
         MetricMetadata(
-            'LLC occupancy.',
+            'LLC occupancy from resctrl filesystem based on Intel RDT technology.',
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.RESCTRL,
@@ -377,7 +375,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
     # --- cgroup per tasks
     MetricName.TASK_CPU_USAGE_SECONDS:
         MetricMetadata(
-            'cpuacct.usage (total kernel and user space).',
+            'Time taken by task based on cpuacct.usage (total kernel and user space).',
             MetricType.COUNTER,
             MetricUnit.SECONDS,
             MetricSource.CGROUP,
@@ -412,7 +410,8 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.TASK),
     MetricName.TASK_MEM_NUMA_PAGES:
         MetricMetadata(
-            'NUMA Stat TODO!',  # TODO: fix me!
+            'Number of used pages per NUMA node (key: hierarchical_total is used if available or just'
+            'total with warning), from cgroup memory controller from memory.numa_stat file.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.CGROUP,
@@ -713,14 +712,14 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.INTERNAL),
     MetricName.WCA_DURATION_SECONDS:
         MetricMetadata(
-            'Interal WCA function call duration metric for profiling',
+            'Internal WCA function call duration metric for profiling',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
             MetricGranurality.INTERNAL),
     MetricName.WCA_DURATION_SECONDS_AVG:
         MetricMetadata(
-            'Interal WCA function call duration metric for profiling (average from last restart)',
+            'Internal WCA function call duration metric for profiling (average from last restart)',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
