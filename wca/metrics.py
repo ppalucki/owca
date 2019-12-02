@@ -308,14 +308,14 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK),  # TODO: check levels
     MetricName.TASK_SCALING_FACTOR_MAX:
         MetricMetadata(
             'Perf subsystem metric scaling factor, max value of all perf per task metrics.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
-            MetricGranurality.TASK),
+            MetricGranurality.TASK),  # TODO: check levels
     # perf per task derived
     MetricName.TASK_IPS:
         MetricMetadata(
