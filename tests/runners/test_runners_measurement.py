@@ -55,10 +55,10 @@ def test_measurements_runner(subcgroups):
 
     # Internal wca metrics are generated (wca is running, number of task under control,
     # memory usage and profiling information)
-    assert_metric(got_metrics, 'wca_up', dict(extra_label='extra_value'))
-    assert_metric(got_metrics, 'wca_tasks', expected_metric_value=2)
+    assert_metric(got_metrics, MetricName.WCA_UP, dict(extra_label='extra_value'))
+    assert_metric(got_metrics, MetricName.WCA_TASKS, expected_metric_value=2)
     # wca & its children memory usage (in bytes)
-    assert_metric(got_metrics, 'wca_memory_usage_bytes',
+    assert_metric(got_metrics, MetricName.WCA_MEM_USAGE_BYTES,
                   expected_metric_value=WCA_MEMORY_USAGE * 2 * 1024)
 
     # Measurements metrics about tasks, based on get_measurements mocks.

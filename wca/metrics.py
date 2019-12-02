@@ -125,6 +125,8 @@ class MetricName(str, Enum):
     # ---------------- Internal -------------------------
     # Generic for WCA.
     WCA_UP = 'wca_up'
+    WCA_TASKS = 'wca_tasks'
+    WCA_MEM_USAGE_BYTES = 'wca_mem_usage_bytes'
     WCA_DURATION_SECONDS = 'wca_duration_seconds'
     WCA_DURATION_SECONDS_AVG = 'wca_duration_seconds_avg'
 
@@ -527,7 +529,9 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricType.GAUGE,
             MetricUnit.BYTES,
             MetricSource.PROCFS,
-            MetricGranurality.PLATFORM),
+            MetricGranurality.PLATFORM,
+            ['numa_node']
+        ),
     # VMStat
     MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED:
         MetricMetadata(
@@ -713,6 +717,20 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'Always returns 1',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranurality.INTERNAL),
+    MetricName.WCA_TASKS:
+        MetricMetadata(
+            'Number of discovered tasks',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranurality.INTERNAL),
+    MetricName.WCA_MEM_USAGE_BYTES:
+        MetricMetadata(
+            'Memory usage by WCA itself (getrusage for self and children).',
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
             MetricSource.INTERNAL,
             MetricGranurality.INTERNAL),
     MetricName.WCA_DURATION_SECONDS:

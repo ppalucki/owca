@@ -29,7 +29,7 @@ from wca.config import Numeric, Str
 from wca.containers import ContainerManager, Container
 from wca.detectors import TaskData, TasksData, TaskResource
 from wca.logger import trace, get_logging_metrics, TRACE
-from wca.metrics import Metric, MetricType, MetricName, MissingMeasurementException, \
+from wca.metrics import Metric, MetricName, MissingMeasurementException, \
     export_metrics_from_measurements
 from wca.nodes import Node, Task
 from wca.nodes import TaskSynchronizationException
@@ -461,10 +461,10 @@ def _get_internal_metrics(tasks: List[Task]) -> List[Metric]:
     memory_usage_rss = memory_usage_rss_self + memory_usage_rss_children
 
     metrics = [
-        Metric(name='wca_up', type=MetricType.COUNTER, value=time.time()),
-        Metric(name='wca_tasks', type=MetricType.GAUGE, value=len(tasks)),
-        Metric(name='wca_memory_usage_bytes', type=MetricType.GAUGE,
-               value=int(memory_usage_rss * 1024)),
+        Metric.create_metric_with_metadata(MetricName.WCA_UP, value=time.time()),
+        Metric.create_metric_with_metadata(MetricName.WCA_TASKS, value=len(tasks)),
+        Metric.create_metric_with_metadata(MetricName.WCA_MEM_USAGE_BYTES,
+                                           value=int(memory_usage_rss * 1024)),
     ]
 
     return metrics

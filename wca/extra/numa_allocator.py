@@ -25,6 +25,8 @@ class NUMAAllocator(Allocator):
     migrate_pages_min_task_balance: float = 0.95
 
     # Cgroups based memory migration and pinning
+    cgroups_cpus_binding: bool = True
+    # Cgroups based memory migration and pinning
     cgroups_memory_binding: bool = False
     # can be used only when cgroups_memory_binding is set to True
     cgroups_memory_migrate: bool = False
@@ -233,10 +235,10 @@ class NUMAAllocator(Allocator):
 
         if balance_task is not None and balance_task_node is not None:
             log.debug("Task %r: assiging to node %s." % (balance_task, balance_task_node))
-            allocations[balance_task] = {
-                AllocationType.CPUSET_CPUS: encode_listformat(
-                    platform.node_cpus[balance_task_node]),
-            }
+            allocations[balance_task] = {}
+            if self.cgroups_cpus_binding:
+                allocations[balance_task][AllocationType.CPUSET_CPUS] = \
+                    encode_listformat(platform.node_cpus[balance_task_node])
 
             if self.cgroups_memory_binding:
                 allocations[balance_task][
