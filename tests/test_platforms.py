@@ -188,7 +188,6 @@ def test_collect_platform_information(*mocks):
                       MetricName.PLATFORM_MEM_NUMA_USED_BYTES: {0: 2},
                       MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED: 5,
                       },
-        static_information={},
         swap_enabled=False
     )
 
