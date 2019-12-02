@@ -691,7 +691,7 @@ def is_swap_enabled() -> bool:
     mem_info = read_proc_meminfo()
     for line in mem_info.split('\n'):
         if line.startswith("SwapTotal"):
-            value = line.split(' ')[1]
+            value = line.split()[1]
             if value.startswith('0'):
                 return False
             return True

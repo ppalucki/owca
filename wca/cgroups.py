@@ -240,7 +240,7 @@ class Cgroup:
             AllocationType.SHARES: self._get_normalized_shares(),
             AllocationType.CPUSET_CPUS: self._get_cpuset_cpus(),
             AllocationType.CPUSET_MEMS: self._get_cpuset_mems(),
-            AllocationType.CPUSET_MEM_MIGRATE: self._get_memory_migrate(),
+            AllocationType.CPUSET_MEMORY_MIGRATE: self._get_memory_migrate(),
         }
 
     def get_pids(self, include_threads=True) -> List[str]:

@@ -141,114 +141,140 @@ tests:
           task_id: wcatask2
 
   # ----------------------------- Test case 2 ---------------------------
-#  - test_case_name2:
-#    tasks:
-#      - /wcatask2
-#      - /wcatask4
+  - test_case_name2:
+    tasks:
+      - /wcatask2
+      - /wcatask4
 
-#    allocator: !StaticAllocator
-#      rules:
-#        - name: Example second rule
-#          allocations:
-#            cpu_quota: 1.0
-#            cpu_shares: 20
-#            cpuset_cpus: '1,2,4-5'
-#    checks:
-#      - !FileCheck
-#        path: /sys/fs/cgroup/cpu/wcatask2/cpu.shares
-#        line: '20000'
-#        subvalue: '20'
-#      - !FileCheck
-#        path: /sys/fs/cgroup/cpuset/wcatask4/cpuset.cpus
-#        line: '1-2,4-5'
-#      - !FileCheck
-#        path: /sys/fs/cgroup/cpuset/wcatask4/cpuset.mems
-#        subvalue: '0'
-#      - !MetricCheck
-#        name: anomaly_count
-#      - !MetricCheck
-#        name: task_cycles
-#        labels:
-#          task_id: wcatask2
-#      - !MetricCheck
-#        name: task_instructions
-#        labels:
-#          task_id: wcatask2
-#      - !MetricCheck
-#        name: task_cache_misses
-#        labels:
-#          task_id: wcatask2
-#      - !MetricCheck
-#        name: task_cache_references
-#        labels:
-#          task_id: wcatask2
-#      - !MetricCheck
-#        name: task_cycles
-#        labels:
-#          task_id: wcatask4
-#      - !MetricCheck
-#        name: task_instructions
-#        labels:
-#          task_id: wcatask4
-#      - !MetricCheck
-#        name: task_cache_misses
-#        labels:
-#          task_id: wcatask4
-#      - !MetricCheck
-#        name: task_cache_references
-#        labels:
-#          task_id: wcatask4
-#      - !MetricCheck
-#        name: task_mem_bandwidth_bytes
-#        labels:
-#          task_id: wcatask2
-#      - !MetricCheck
-#        name: task_mem_bandwidth_bytes
-#        labels:
-#          task_id: wcatask4
-#      - !MetricCheck
-#        name: task_mem_bandwidth_local_bytes
-#        labels:
-#          task_id: wcatask2
-#      - !MetricCheck
-#        name: task_mem_bandwidth_local_bytes
-#        labels:
-#          task_id: wcatask4
-#      - !MetricCheck
-#        name: task_mem_bandwidth_remote_bytes
-#        labels:
-#          task_id: wcatask2
-#      - !MetricCheck
-#        name: task_memory_bandwidth_remote_bytes
-#        labels:
-#          task_id: wcatask4
-#      - !MetricCheck
-#        name: task_wss_referenced_bytes
-#        labels:
-#          task_id: wcatask2
-#      - !MetricCheck
-#        name: task_wss_referenced_bytes
-#        labels:
-#          task_id: wcatask4
-#      - !MetricCheck
-#        name: allocation_cpuset_cpus_number_of_cpus
-#        labels:
-#          task: wcatask2
-#        value: 4
-#      - !MetricCheck
-#        name: allocation_cpuset_cpus_number_of_cpus
-#        labels:
-#          task: wcatask4
-#        value: 4
+    allocator: !StaticAllocator
+      rules:
+        - name: Example second rule
+          allocations:
+            cpu_quota: 1.0
+            cpu_shares: 20
+            cpuset_cpus: '1,2,4-5'
+    checks:
+      - !FileCheck
+        path: /sys/fs/cgroup/cpu/wcatask2/cpu.shares
+        line: '20000'
+        subvalue: '20'
+      - !FileCheck
+        path: /sys/fs/cgroup/cpuset/wcatask4/cpuset.cpus
+        line: '1-2,4-5'
+      - !FileCheck
+        path: /sys/fs/cgroup/cpuset/wcatask4/cpuset.mems
+        subvalue: '0'
+      - !MetricCheck
+        name: anomaly_count
+      - !MetricCheck
+        name: task_cycles
+        labels:
+          task_id: wcatask2
+      - !MetricCheck
+        name: task_instructions
+        labels:
+          task_id: wcatask2
+      - !MetricCheck
+        name: task_cache_misses
+        labels:
+          task_id: wcatask2
+      - !MetricCheck
+        name: task_cache_references
+        labels:
+          task_id: wcatask2
+      - !MetricCheck
+        name: task_cycles
+        labels:
+          task_id: wcatask4
+      - !MetricCheck
+        name: task_instructions
+        labels:
+          task_id: wcatask4
+      - !MetricCheck
+        name: task_cache_misses
+        labels:
+          task_id: wcatask4
+      - !MetricCheck
+        name: task_cache_references
+        labels:
+          task_id: wcatask4
+      - !MetricCheck
+        name: task_mem_bandwidth_bytes
+        labels:
+          task_id: wcatask2
+      - !MetricCheck
+        name: task_mem_bandwidth_bytes
+        labels:
+          task_id: wcatask4
+      - !MetricCheck
+        name: task_mem_bandwidth_local_bytes
+        labels:
+          task_id: wcatask2
+      - !MetricCheck
+        name: task_mem_bandwidth_local_bytes
+        labels:
+          task_id: wcatask4
+      - !MetricCheck
+        name: task_mem_bandwidth_remote_bytes
+        labels:
+          task_id: wcatask2
+      - !MetricCheck
+        name: task_mem_bandwidth_remote_bytes
+        labels:
+          task_id: wcatask4
+      - !MetricCheck
+        name: task_wss_referenced_bytes
+        labels:
+          task_id: wcatask2
+      - !MetricCheck
+        name: task_wss_referenced_bytes
+        labels:
+          task_id: wcatask4
+      - !MetricCheck
+        name: allocation_cpuset_cpus_number_of_cpus
+        labels:
+          task: wcatask2
+        value: 4
+      - !MetricCheck
+        name: allocation_cpuset_cpus_number_of_cpus
+        labels:
+          task: wcatask4
+        value: 4
 
 
-#  # ----------------------------- Test case 3 ---------------------------
-#  - test_case_numa:
-#    tasks:
-#      - /wcatask1
-#      - /wcatask2
-#    allocator: !NUMAAllocator
-#    checks:
-#      - !MetricCheck
-#        name: numa__task_tasks_count
-#        value: 2
+  # ----------------------------- Test case 3 ---------------------------
+  - test_case_numa:
+    tasks:
+      - /wcatask1
+      - /wcatask2
+    allocator: !NUMAAllocator
+    checks:
+      - !MetricCheck
+        name: numa__task_tasks_count
+        value: 2
+
+  # ----------------------------- Test case 4: cgroups cpus ets/mems/memory_migrate/cgroup_migrate
+  - test_case_numa:
+    tasks:
+      - /wcatask5
+    allocator: !StaticAllocator
+      rules:
+        - name: Rule to set cpuset
+          allocations:
+            cpuset_cpus: '1'
+            cpuset_mems: '0'
+            cpuset_memory_migrate: 1
+            migrate_pages: 1
+    checks:
+      - !MetricCheck
+        name: allocation_cpuset_cpus_number_of_cpus
+        value: 1
+      - !MetricCheck
+        name: allocation_cpuset_mems_number_of_mems
+        value: 1
+      - !MetricCheck
+        name: allocation_cpuset_memory_migrate
+        value: 1
+      - !MetricCheck
+        name: allocation_migrate_pages
+        value: 1

@@ -246,7 +246,7 @@ class NUMAAllocator(Allocator):
                 if self.cgroups_memory_migrate:
                     log.debug("Assign task %s to node %s with memory migrate" %
                               (balance_task, balance_task_node))
-                    allocations[balance_task][AllocationType.CPUSET_MEM_MIGRATE] = 1
+                    allocations[balance_task][AllocationType.CPUSET_MEMORY_MIGRATE] = 1
 
             if self.migrate_pages:
                 self._pages_to_move[balance_task] += get_pages_to_move(

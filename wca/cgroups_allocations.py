@@ -175,8 +175,8 @@ class CPUSetMemoryMigrateAllocationValue(BoxedNumeric):
     def generate_metrics(self):
         metrics = super().generate_metrics()
         for metric in metrics:
-            metric.labels.update(allocation_type=AllocationType.CPUSET_MEM_MIGRATE)
-            metric.name = 'allocation_%s' % AllocationType.CPUSET_MEM_MIGRATE.value
+            metric.labels.update(allocation_type=AllocationType.CPUSET_MEMORY_MIGRATE)
+            metric.name = 'allocation_%s' % AllocationType.CPUSET_MEMORY_MIGRATE.value
         return metrics
 
     def perform_allocations(self):
@@ -249,5 +249,5 @@ def _migrate_page_call(pid, max_node, old_nodes, new_node) -> int:
     if result == -1:
         errno = ctypes.get_errno()
         log.warning('Migrate page. Error number %d. Problem: %s', errno, os.strerror(errno))
-    log.log(TRACE, 'No moved pages: %d', result)
+    log.log(TRACE, 'Number of not moved pages (return from migrate_pages syscall): %d', result)
     return result
