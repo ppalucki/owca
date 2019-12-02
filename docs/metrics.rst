@@ -48,7 +48,7 @@ Task's metrics
 	"task_mem_max_usage_bytes", "Memory max_usage_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge",  "cgroup", ""
 	"task_mem_limit_bytes", "Memory limit_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge",  "cgroup", ""
 	"task_mem_soft_limit_bytes", "Memory soft_limit_in_bytes per tasks returned from cgroup memory subsystem.", "bytes", "gauge",  "cgroup", ""
-	"task_mem_numa_pages", "Number of used pages per NUMA node (key: hierarchical_total is used if available or justtotal with warning), from cgroup memory controller from memory.numa_stat file.", "numeric", "gauge",  "cgroup", "numa_node"
+	"task_mem_numa_pages", "Number of used pages per NUMA node(key: hierarchical_total is used if available or justtotal with warning), from cgroup memory controller from memory.numa_stat file.", "numeric", "gauge",  "cgroup", "numa_node"
 	"task_mem_page_faults", "Number of page faults for task.", "numeric", "counter",  "cgroup", "numa_node"
 	"task_wss_referenced_bytes", "Task referenced bytes during last measurements cycle based on /proc/smaps Referenced field, with /proc/PIDs/clear_refs set to 1 accordinn wss_reset_interval.Warning: this is intrusive collection, because can influence kernel page reclaim policy and add latency.Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more details.", "bytes", "gauge",  "/procs/PIDS/smaps", ""
 	"task_requested_cpus", "Tasks resources cpus initial requests.", "numeric", "gauge",  "orchestrator", ""
