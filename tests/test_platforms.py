@@ -182,18 +182,18 @@ def test_collect_platform_information(*mocks):
         node_cpus={},
         node_distances={},
         rdt_information=RDTInformation(True, True, True, True, 'fffff', '2', 8, 10, 20),
-        measurements={MetricName.PLATFORM_CPU_USAGE_PER_CPU: {0: 100, 1: 200},
-                      MetricName.MEM_USAGE: 1337,
-                      MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES: {0: 1},
-                      MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES: {0: 2},
+        measurements={MetricName.PLATFORM_CPU_USAGE: {0: 100, 1: 200},
+                      MetricName.PLATFORM_MEM_USAGE: 1337,
+                      MetricName.PLATFORM_MEM_NUMA_FREE_BYTES: {0: 1},
+                      MetricName.PLATFORM_MEM_NUMA_USED_BYTES: {0: 2},
                       MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED: 5,
                       },
         static_information={},
         swap_enabled=False
     )
 
-    assert_metric(got_metrics, 'platform_memory_usage', expected_metric_value=1337)
-    assert_metric(got_metrics, 'platform_cpu_usage_per_cpu', {'cpu': '0'},
+    assert_metric(got_metrics, 'platform_mem_usage', expected_metric_value=1337)
+    assert_metric(got_metrics, 'platform_cpu_usage', {'cpu': '0'},
                   expected_metric_value=100)
     assert_metric(got_metrics, 'platform_topology_cores', expected_metric_value=1)
     assert_metric(got_metrics, MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED,

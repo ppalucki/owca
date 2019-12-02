@@ -67,6 +67,9 @@ class MetricName(str, Enum):
     TASK_MEM_BANDWIDTH_LOCAL = 'task_mem_bandwidth_local'
     TASK_MEM_BANDWIDTH_REMOTE = 'task_mem_bandwidth_remote'
 
+    # /proc/PID/based
+    TASK_WSS_REFERENCED_BYTES = 'task_wss_referenced_bytes'
+
     # From Kubernetes/Mesos or other orchestrator system.
     TASK_CPUS = 'task_cpus'  # From Kubernetes or Mesos
     TASK_MEM = 'task_mem'  # From Kubernetes or Mesos
@@ -80,31 +83,33 @@ class MetricName(str, Enum):
     PLATFORM_TOPOLOGY_SOCKETS = 'platform_topology_sockets'
     PLATFORM_LAST_SEEN = 'platform_last_seen'
     # NUMA for whole platform
-    PLATFORM_MEMORY_NUMA_FREE_BYTES = 'platform_memory_numa_free_bytes'
-    PLATFORM_MEMORY_NUMA_USED_BYTES = 'platform_memory_numa_used_bytes'
+    PLATFORM_MEM_NUMA_FREE_BYTES = 'platform_mem_numa_free_bytes'
+    PLATFORM_MEM_NUMA_USED_BYTES = 'platform_mem_numa_used_bytes'
     # /proc based (platform scope).
     # Utilization (usage): counter like, sum of all modes based on /proc/stat
     # "cpu line" with 10ms resolution expressed in [ms]
-    PLATFORM_CPU_USAGE_PER_CPU = 'platform_cpu_usage_per_cpu'
+    PLATFORM_CPU_USAGE = 'platform_cpu_usage'
     # [bytes] based on /proc/meminfo (gauge like)
     # difference between MemTotal and MemAvail (or MemFree)
-    MEM_USAGE = 'platform_memory_usage'
+    PLATFORM_MEM_USAGE = 'platform_mem_usage'
 
     # Perf event based from uncore PMU and derived
-    PMM_BANDWIDTH_READ = 'platform_pmm_bandwidth_read'
-    PMM_BANDWIDTH_WRITE = 'platform_pmm_bandwidth_write'
-    CAS_COUNT_READ = 'platform_cas_count_read'
-    CAS_COUNT_WRITE = 'platform_cas_count_write'
-    UPI_RxL_FLITS = 'platform_upi_rxl_flits'
-    UPI_TxL_FLITS = 'platform_upi_txl_flits'
-    PMM_READS_MB_PER_SECOND = 'platform_pmm_reads_mb_per_second'
-    PMM_WRITES_MB_PER_SECOND = 'platform_pmm_writes_mb_per_second'
-    PMM_TOTAL_MB_PER_SECOND = 'platform_pmm_total_mb_per_second'
-    DRAM_READS_MB_PER_SECOND = 'platform_dram_reads_mb_per_second'
-    DRAM_WRITES_MB_PER_SECOND = 'platform_dram_writes_mb_per_second'
-    DRAM_TOTAL_MB_PER_SECOND = 'platform_dram_total_mb_per_second'
-    DRAM_HIT = 'platform_dram_hit'
-    UPI_BANDWIDTH_MB_PER_SECOND = 'platform_upi_bandwidth_mb_per_second'  # Based on UPI Flits
+    PLATFORM_PMM_BANDWIDTH_READ = 'platform_pmm_bandwidth_read'
+    PLATFORM_PMM_BANDWIDTH_WRITE = 'platform_pmm_bandwidth_write'
+    PLATFORM_CAS_COUNT_READ = 'platform_cas_count_read'
+    PLATFORM_CAS_COUNT_WRITE = 'platform_cas_count_write'
+    PLATFORM_UPI_RxL_FLITS = 'platform_upi_rxl_flits'
+    PLATFORM_UPI_TxL_FLITS = 'platform_upi_txl_flits'
+    # Derived
+    PLATFORM_PMM_READS_BYTES_PER_SECOND = 'platform_pmm_reads_bytes_per_second'
+    PLATFORM_PMM_WRITES_BYTES_PER_SECOND = 'platform_pmm_writes_bytes_per_second'
+    PLATFORM_DRAM_READS_BYTES_PER_SECOND = 'platform_dram_reads_bytes_per_second'
+    PLATFORM_DRAM_WRITES_BYTES_PER_SECOND = 'platform_dram_writes_bytes_per_second'
+    PLATFORM_PMM_TOTAL_BYTES_PER_SECOND = 'platform_pmm_total_bytes_per_second'
+    PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND = 'platform_dram_total_bytes_per_second'
+    PLATFORM_DRAM_HIT = 'platform_dram_hit'
+    # Based on UPI Flits
+    PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND = 'platform_upi_bandwidth_bytes_per_second'
 
     # /proc/vmstat
     PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED = 'platform_vmstate_numa_pages_migrated'
@@ -146,6 +151,7 @@ class MetricGranurality(str, Enum):
 
 class MetricUnit(str, Enum):
     BYTES = 'bytes'
+    BYTES_PER_SECOND = 'bytes_per_second'
     SECONDS = 'seconds'
     NUMERIC = 'numeric'
     TIMESTAMP = 'timestamp'
@@ -395,7 +401,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.BYTES,
             MetricSource.RESCTRL,
             MetricGranurality.TASK),
-    MetricName.MEM_USAGE:
+    MetricName.PLATFORM_MEM_USAGE:
         MetricMetadata(
             'Total memory used by platform in bytes based on /proc/meminfo '
             'and uses heuristic based on linux free tool (total - free - buffers - cache).',
@@ -423,7 +429,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         ),
     # ----------------------- Platform ---------------------------------
     # /proc fs based
-    MetricName.PLATFORM_CPU_USAGE_PER_CPU:
+    MetricName.PLATFORM_CPU_USAGE:
         MetricMetadata(
             'Logical CPU usage in 1/USER_HZ (usually 10ms).'
             'Calculated using values based on /proc/stat.',
@@ -433,7 +439,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu'],
         ),
-    MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES:
+    MetricName.PLATFORM_MEM_NUMA_FREE_BYTES:
         MetricMetadata(
             'NUMA memory free per numa node TODO!',  # TODO: fix me!
             MetricType.GAUGE,
@@ -442,7 +448,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['numa_node'],
         ),
-    MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES:
+    MetricName.PLATFORM_MEM_NUMA_USED_BYTES:
         MetricMetadata(
             'NUMA memory used per numa node TODO!',  # TODO: fix me!
             MetricType.GAUGE,
@@ -470,7 +476,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.GENERIC,
             MetricGranurality.TASK),
-    MetricName.PMM_BANDWIDTH_READ:
+    MetricName.PLATFORM_PMM_BANDWIDTH_READ:
         MetricMetadata(
             'Persistent memory module number of reads.',
             MetricType.COUNTER,
@@ -479,7 +485,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PMM_BANDWIDTH_WRITE:
+    MetricName.PLATFORM_PMM_BANDWIDTH_WRITE:
         MetricMetadata(
             'Persistent memory module number of writes.',
             MetricType.COUNTER,
@@ -488,7 +494,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.CAS_COUNT_READ:
+    MetricName.PLATFORM_CAS_COUNT_READ:
         MetricMetadata(
             'Column adress select number of reads',
             MetricType.COUNTER,
@@ -497,7 +503,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.CAS_COUNT_WRITE:
+    MetricName.PLATFORM_CAS_COUNT_WRITE:
         MetricMetadata(
             'Column adress select number of writes',
             MetricType.COUNTER,
@@ -506,7 +512,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PMM_READS_MB_PER_SECOND:
+    MetricName.PLATFORM_PMM_READS_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,
@@ -515,7 +521,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PMM_WRITES_MB_PER_SECOND:
+    MetricName.PLATFORM_PMM_WRITES_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,
@@ -524,7 +530,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PMM_TOTAL_MB_PER_SECOND:
+    MetricName.PLATFORM_PMM_TOTAL_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,
@@ -533,7 +539,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.DRAM_READS_MB_PER_SECOND:
+    MetricName.PLATFORM_DRAM_READS_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,
@@ -542,7 +548,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.DRAM_WRITES_MB_PER_SECOND:
+    MetricName.PLATFORM_DRAM_WRITES_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,
@@ -551,7 +557,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.DRAM_TOTAL_MB_PER_SECOND:
+    MetricName.PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,
@@ -560,7 +566,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.DRAM_HIT:
+    MetricName.PLATFORM_DRAM_HIT:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,
@@ -569,7 +575,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.UPI_TxL_FLITS:
+    MetricName.PLATFORM_UPI_TxL_FLITS:
         MetricMetadata(
             'TBD',
             MetricType.COUNTER,
@@ -578,7 +584,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.UPI_RxL_FLITS:
+    MetricName.PLATFORM_UPI_RxL_FLITS:
         MetricMetadata(
             'TBD',
             MetricType.COUNTER,
@@ -587,7 +593,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.UPI_BANDWIDTH_MB_PER_SECOND:
+    MetricName.PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND:
         MetricMetadata(
             'TBD',
             MetricType.COUNTER,

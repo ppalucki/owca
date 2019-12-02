@@ -131,7 +131,7 @@ class NUMAAllocator(Allocator):
             most_free_memory_node = \
                 _get_most_free_memory_node(memory,
                                            platform.measurements[
-                                               MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES])
+                                               MetricName.PLATFORM_MEM_NUMA_FREE_BYTES])
 
             data: TaskData = tasks_data[task]
 
@@ -257,7 +257,7 @@ class NUMAAllocator(Allocator):
         # 5. Memory migragtion
         # If nessesary migrate pages to least used node, for task that are still not there.
         least_used_node = sorted(
-            platform.measurements[MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES].items(), reverse=True,
+            platform.measurements[MetricName.PLATFORM_MEM_NUMA_FREE_BYTES].items(), reverse=True,
             key=lambda x: x[1])[0][0]
         log.log(TRACE, 'Least used node: %s', least_used_node)
         log.log(TRACE, 'Tasks to balance: %s', tasks_to_balance)
@@ -303,8 +303,8 @@ def get_pages_to_move(task, tasks_data, target_node, reason):
 
 
 def _platform_total_memory(platform):
-    return sum(platform.measurements[MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES].values()) + \
-           sum(platform.measurements[MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES].values())
+    return sum(platform.measurements[MetricName.PLATFORM_MEM_NUMA_FREE_BYTES].values()) + \
+           sum(platform.measurements[MetricName.PLATFORM_MEM_NUMA_USED_BYTES].values())
 
 
 def _get_task_memory_limit(task_measurements, total, task, task_resources):

@@ -167,15 +167,15 @@ class UncorePerfCounters:
 
 UNCORE_IMC_EVENTS = [
     # https://github.com/opcm/pcm/blob/816dec444453c0e1253029e7faecfe1e024a071c/cpucounters.cpp#L3549
-    Event(name=MetricName.PMM_BANDWIDTH_READ, event=0xe3),
-    Event(name=MetricName.PMM_BANDWIDTH_WRITE, event=0xe7),
-    Event(name=MetricName.CAS_COUNT_READ, event=0x04, umask=0x3),  # * 64 to get bytes
-    Event(name=MetricName.CAS_COUNT_WRITE, event=0x04, umask=0xc),  # * 64 to get bytes
+    Event(name=MetricName.PLATFORM_PMM_BANDWIDTH_READ, event=0xe3),
+    Event(name=MetricName.PLATFORM_PMM_BANDWIDTH_WRITE, event=0xe7),
+    Event(name=MetricName.PLATFORM_CAS_COUNT_READ, event=0x04, umask=0x3),  # * 64 to get bytes
+    Event(name=MetricName.PLATFORM_CAS_COUNT_WRITE, event=0x04, umask=0xc),  # * 64 to get bytes
 ]
 
 UNCORE_UPI_EVENTS = [
-    Event(name=MetricName.UPI_RxL_FLITS, event=0x3, umask=0xf),
-    Event(name=MetricName.UPI_TxL_FLITS, event=0x2, umask=0xf),
+    Event(name=MetricName.PLATFORM_UPI_RxL_FLITS, event=0x3, umask=0xf),
+    Event(name=MetricName.PLATFORM_UPI_TxL_FLITS, event=0x2, umask=0xf),
 ]
 
 
@@ -208,72 +208,74 @@ def _discover_pmu_uncore_config(events, dir_prefix):
 class UncoreDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
 
     def _derive(self, measurements, delta, available, time_delta):
-        # each CAS opreration is 64bytes long and converted to MB
-        SCALE = 64 / 1e6
+        # each CAS opreration is 64bytes long
+        SCALE = 64
 
         def rate(value):
             return value * SCALE / time_delta
 
-        max_depth = len(METRICS_METADATA[MetricName.PMM_BANDWIDTH_WRITE].levels)
+        max_depth = len(METRICS_METADATA[MetricName.PLATFORM_PMM_BANDWIDTH_WRITE].levels)
         # both CAS and PMM should have the same level and it dervied metrics
         # levels are cpu and pmu
-        assert max_depth == len(METRICS_METADATA[MetricName.CAS_COUNT_READ].levels)
-        assert max_depth == len(METRICS_METADATA[MetricName.PMM_TOTAL_MB_PER_SECOND].levels)
+        assert max_depth == len(METRICS_METADATA[MetricName.PLATFORM_CAS_COUNT_READ].levels)
+        assert max_depth == len(
+            METRICS_METADATA[MetricName.PLATFORM_PMM_TOTAL_BYTES_PER_SECOND].levels)
 
         # DRAM
-        dram_read, dram_write = delta(MetricName.CAS_COUNT_READ,
-                                      MetricName.CAS_COUNT_WRITE)
+        dram_read, dram_write = delta(MetricName.PLATFORM_CAS_COUNT_READ,
+                                      MetricName.PLATFORM_CAS_COUNT_WRITE)
 
-        # DRAM R/W mbps
+        # DRAM R/W bps
         _operation_on_leveled_metric(dram_read, rate, max_depth)
-        measurements[MetricName.DRAM_READS_MB_PER_SECOND] = dram_read
+        measurements[MetricName.PLATFORM_DRAM_READS_BYTES_PER_SECOND] = dram_read
 
         _operation_on_leveled_metric(dram_write, rate, max_depth)
-        measurements[MetricName.DRAM_WRITES_MB_PER_SECOND] = dram_write
+        measurements[MetricName.PLATFORM_DRAM_WRITES_BYTES_PER_SECOND] = dram_write
 
-        # DRAM total mbps
-        total_dram_mb_per_second = _operation_on_leveled_dicts(
+        # DRAM total bps
+        total_dram_bps = _operation_on_leveled_dicts(
             dram_read,
             dram_write,
             add, max_depth)
-        measurements[MetricName.DRAM_TOTAL_MB_PER_SECOND] = total_dram_mb_per_second
+        measurements[MetricName.PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND] = total_dram_bps
 
         # PMM
-        if available(MetricName.PMM_BANDWIDTH_WRITE, MetricName.PMM_BANDWIDTH_READ):
-            pmm_read, pmm_write = delta(MetricName.PMM_BANDWIDTH_READ,
-                                        MetricName.PMM_BANDWIDTH_WRITE)
+        if available(MetricName.PLATFORM_PMM_BANDWIDTH_WRITE,
+                     MetricName.PLATFORM_PMM_BANDWIDTH_READ):
+            pmm_read, pmm_write = delta(MetricName.PLATFORM_PMM_BANDWIDTH_READ,
+                                        MetricName.PLATFORM_PMM_BANDWIDTH_WRITE)
 
-            # PMM R/W mbps
+            # PMM R/W bps
             _operation_on_leveled_metric(pmm_read, rate, max_depth)
-            measurements[MetricName.PMM_READS_MB_PER_SECOND] = pmm_read
+            measurements[MetricName.PLATFORM_PMM_READS_BYTES_PER_SECOND] = pmm_read
 
             _operation_on_leveled_metric(pmm_write, rate, max_depth)
-            measurements[MetricName.PMM_WRITES_MB_PER_SECOND] = pmm_write
+            measurements[MetricName.PLATFORM_PMM_WRITES_BYTES_PER_SECOND] = pmm_write
 
-            # PMM total mbps
-            total_pmm_mb_per_second = _operation_on_leveled_dicts(
+            # PMM total bps
+            total_pmm_bps = _operation_on_leveled_dicts(
                 pmm_read,
                 pmm_write,
                 add,
                 max_depth)
-            measurements[MetricName.PMM_TOTAL_MB_PER_SECOND] = total_pmm_mb_per_second
+            measurements[MetricName.PLATFORM_PMM_TOTAL_BYTES_PER_SECOND] = total_pmm_bps
 
-            # DRAM HIT = dram_mbps / total_dram_and_pmm_mbps
-            total_dram_and_pmm_mbps = _operation_on_leveled_dicts(
-                total_pmm_mb_per_second,
-                total_dram_mb_per_second,
+            # DRAM HIT = dram_bps / total_dram_and_pmm_bps
+            total_dram_and_pmm_bps = _operation_on_leveled_dicts(
+                total_pmm_bps,
+                total_dram_bps,
                 add,
                 max_depth)
             dram_hit = _operation_on_leveled_dicts(
-                measurements[MetricName.DRAM_TOTAL_MB_PER_SECOND],
-                total_dram_and_pmm_mbps,
+                measurements[MetricName.PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND],
+                total_dram_and_pmm_bps,
                 truediv, max_depth)
-            measurements[MetricName.DRAM_HIT] = dram_hit
+            measurements[MetricName.PLATFORM_DRAM_HIT] = dram_hit
         else:
             log.warning('pmm metrics not available!')
 
         # UPI bandwidth
-        if available(MetricName.UPI_RxL_FLITS, MetricName.UPI_TxL_FLITS):
+        if available(MetricName.PLATFORM_UPI_RxL_FLITS, MetricName.PLATFORM_UPI_TxL_FLITS):
             """
             based on "2.6.3 Intel® UPI LL Performance Monitoring Events" chapter from
             "Intel® Xeon® Processor Scalable Memory Family Uncore Performance Monitoring"
@@ -291,14 +293,14 @@ class UncoreDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
             transmitted. When measuring the amount of bandwidth consumed by transmission of
             the data (i.e. NOT including the header), it should be .ALL_DATA / 9 * 64B. .
             """
-            rxl_flits, txl_flits = delta(MetricName.UPI_RxL_FLITS,
-                                         MetricName.UPI_TxL_FLITS)
+            rxl_flits, txl_flits = delta(MetricName.PLATFORM_UPI_RxL_FLITS,
+                                         MetricName.PLATFORM_UPI_TxL_FLITS)
 
             def rate_for_upi(value):
-                return (value / time_delta / 9 * 64) / 1e6
+                return (value / time_delta / 9 * 64)
 
-            max_depth = len(METRICS_METADATA[MetricName.UPI_TxL_FLITS].levels)
+            max_depth = len(METRICS_METADATA[MetricName.PLATFORM_UPI_TxL_FLITS].levels)
             bandwidth = _operation_on_leveled_dicts(rxl_flits, txl_flits, lambda x, y: x + y,
                                                     max_depth)
             _operation_on_leveled_metric(bandwidth, rate_for_upi, max_depth)
-            measurements[MetricName.UPI_BANDWIDTH_MB_PER_SECOND] = bandwidth
+            measurements[MetricName.PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND] = bandwidth
