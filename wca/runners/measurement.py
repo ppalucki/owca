@@ -418,9 +418,9 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
         task_measurements[MetricName.TASK_LAST_SEEN.value] = time.time()
         #
         if TaskResource.CPUS in task.resources:
-            task_measurements[MetricName.TASK_CPUS.value] = task.resources[TaskResource.CPUS.value]
+            task_measurements[MetricName.TASK_REQUESTED_CPUS.value] = task.resources[TaskResource.CPUS.value]
         if TaskResource.MEM in task.resources:
-            task_measurements[MetricName.TASK_MEM.value] = task.resources[TaskResource.MEM.value]
+            task_measurements[MetricName.TASK_REQUESTED_MEM_BYTES.value] = task.resources[TaskResource.MEM.value]
 
         tasks_data[task.task_id] = TaskData(
                     name=task.name,

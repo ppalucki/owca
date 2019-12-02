@@ -72,8 +72,9 @@ class MetricName(str, Enum):
     TASK_WSS_REFERENCED_BYTES = 'task_wss_referenced_bytes'
 
     # From Kubernetes/Mesos or other orchestrator system.
-    TASK_CPUS = 'task_cpus'  # From Kubernetes or Mesos
-    TASK_MEM = 'task_mem'  # From Kubernetes or Mesos
+    # From Kubernetes (requested) or Mesos (resources)
+    TASK_REQUESTED_CPUS = 'task_requested_cpus'
+    TASK_REQUESTED_MEM_BYTES = 'task_requested_mem_bytes'
 
     # Generic
     TASK_LAST_SEEN = 'task_last_seen'
@@ -175,6 +176,7 @@ class MetricSource(str, Enum):
     PROC = 'proc sys filesystems'
     INTERNAL = 'internal'
     DERIVED = 'derived'
+    ORCHESTRATOR = 'orchestrator'
 
     def __repr__(self):
         return repr(self.value)
@@ -442,26 +444,26 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         ),
 
     # Generic or from orchestration
-    MetricName.TASK_CPUS:
+    MetricName.TASK_REQUESTED_CPUS:
         MetricMetadata(
             'Tasks resources cpus initial requests.',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
-            MetricSource.GENERIC,
+            MetricSource.ORCHESTRATOR,
             MetricGranurality.TASK),
-    MetricName.TASK_MEM:
+    MetricName.TASK_REQUESTED_MEM_BYTES:
         MetricMetadata(
             'Tasks resources memory initial requests.',
             MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.GENERIC,
+            MetricUnit.BYTES,
+            MetricSource.ORCHESTRATOR,
             MetricGranurality.TASK),
     MetricName.TASK_LAST_SEEN:
         MetricMetadata(
             'Time the task was last seen.',
             MetricType.COUNTER,
-            MetricUnit.NUMERIC,
-            MetricSource.GENERIC,
+            MetricUnit.TIMESTAMP,
+            MetricSource.INTERNAL,
             MetricGranurality.TASK),
     # ----------------------- Platform ---------------------------------
     MetricName.PLATFORM_TOPOLOGY_CORES:
