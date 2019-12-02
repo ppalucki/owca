@@ -424,7 +424,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
     MetricName.TASK_WSS_REFERENCED_BYTES:
         MetricMetadata(
             'Task referenced bytes during last measurements cycle based on /proc/smaps '
-            '"Referenced" field, with /proc/PIDs/clear_refs set to 1 accordinn wss_reset_interval.'
+            'Referenced field, with /proc/PIDs/clear_refs set to 1 accordinn wss_reset_interval.'
             'Warning: this is intrusive collection, '
             'because can influence kernel page reclaim policy and add latency.'
             'Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more '
