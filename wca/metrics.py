@@ -105,10 +105,10 @@ class MetricName(str, Enum):
     PLATFORM_VMSTAT_PGFAULTS = 'platform_vmstat_pgfaults'
 
     # Perf event based from uncore PMU and derived
-    PLATFORM_PMM_BANDWIDTH_READ = 'platform_pmm_bandwidth_read'
-    PLATFORM_PMM_BANDWIDTH_WRITE = 'platform_pmm_bandwidth_write'
-    PLATFORM_CAS_COUNT_READ = 'platform_cas_count_read'
-    PLATFORM_CAS_COUNT_WRITE = 'platform_cas_count_write'
+    PLATFORM_PMM_BANDWIDTH_READS = 'platform_pmm_bandwidth_reads'
+    PLATFORM_PMM_BANDWIDTH_WRITES = 'platform_pmm_bandwidth_writes'
+    PLATFORM_CAS_COUNT_READS = 'platform_cas_count_reads'
+    PLATFORM_CAS_COUNT_WRITES = 'platform_cas_count_writes'
     PLATFORM_UPI_RXL_FLITS = 'platform_upi_rxl_flits'
     PLATFORM_UPI_TXL_FLITS = 'platform_upi_txl_flits'
     # Derived
@@ -118,7 +118,7 @@ class MetricName(str, Enum):
     PLATFORM_DRAM_READS_BYTES_PER_SECOND = 'platform_dram_reads_bytes_per_second'
     PLATFORM_DRAM_WRITES_BYTES_PER_SECOND = 'platform_dram_writes_bytes_per_second'
     PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND = 'platform_dram_total_bytes_per_second'
-    PLATFORM_DRAM_HIT = 'platform_dram_hit'
+    PLATFORM_DRAM_HIT_RATIO = 'platform_dram_hit_ratio'
     # Based on UPI Flits
     PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND = 'platform_upi_bandwidth_bytes_per_second'
 
@@ -172,7 +172,8 @@ class MetricSource(str, Enum):
     RESCTRL = 'resctrl'
     CGROUP = 'cgroup'
     GENERIC = 'generic'
-    PROC = 'proc sys filesystems'
+    PROCFS = '/proc filesystems'
+    SYSFS = '/sys filesystems'
     INTERNAL = 'internal'
     DERIVED = 'derived'
     ORCHESTRATOR = 'orchestrator'
@@ -493,7 +494,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'Calculated using values based on /proc/stat.',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM,
             ['cpu'],
         ),
@@ -503,25 +504,25 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'and uses heuristic based on linux free tool (total - free - buffers - cache).',
             MetricType.GAUGE,
             MetricUnit.BYTES,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM),
 
     # VM Stat based
     MetricName.PLATFORM_MEM_NUMA_FREE_BYTES:
         MetricMetadata(
-            'NUMA memory free per numa node TODO!',  # TODO: fix me!
+            'NUMA memory free per NUMA node based on /sys/devices/system/node/* (MemFree:)',
             MetricType.GAUGE,
             MetricUnit.BYTES,
-            MetricSource.PROC,
+            MetricSource.SYSFS,
             MetricGranurality.PLATFORM,
             ['numa_node'],
         ),
     MetricName.PLATFORM_MEM_NUMA_USED_BYTES:
         MetricMetadata(
-            'NUMA memory used per numa node TODO!',  # TODO: fix me!
+            'NUMA memory free per NUMA used based on /sys/devices/system/node/* (MemUsed:)',
             MetricType.GAUGE,
             MetricUnit.BYTES,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM),
     # VMStat
     MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED:
@@ -529,45 +530,45 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'Virtual Memory stats based on /proc/vmstat for number of migrates pages (autonuma)',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM),
     MetricName.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS:
         MetricMetadata(
-            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (succeded)',
+            'Virtual Memory stats based on /proc/vmstat for number of migrates pages (succeed)',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM),
     MetricName.PLATFORM_VMSTAT_PGMIGRATE_FAIL:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat for number of migrates pages (failed)',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM),
     MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat for pgfaults for migration hints',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM),
     MetricName.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat: pgfaults for migration hints (local)',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM),
     MetricName.PLATFORM_VMSTAT_PGFAULTS:
         MetricMetadata(
             'Virtual Memory stats based on /proc/vmstat:number of page faults',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
-            MetricSource.PROC,
+            MetricSource.PROCFS,
             MetricGranurality.PLATFORM),
     # Perf uncore
-    MetricName.PLATFORM_PMM_BANDWIDTH_READ:
+    MetricName.PLATFORM_PMM_BANDWIDTH_READS:
         MetricMetadata(
             'Persistent memory module number of reads.',
             MetricType.COUNTER,
@@ -576,7 +577,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PLATFORM_PMM_BANDWIDTH_WRITE:
+    MetricName.PLATFORM_PMM_BANDWIDTH_WRITES:
         MetricMetadata(
             'Persistent memory module number of writes.',
             MetricType.COUNTER,
@@ -585,7 +586,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PLATFORM_CAS_COUNT_READ:
+    MetricName.PLATFORM_CAS_COUNT_READS:
         MetricMetadata(
             'Column adress select number of reads',
             MetricType.COUNTER,
@@ -594,7 +595,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PLATFORM_CAS_COUNT_WRITE:
+    MetricName.PLATFORM_CAS_COUNT_WRITES:
         MetricMetadata(
             'Column adress select number of writes',
             MetricType.COUNTER,
@@ -676,7 +677,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranurality.PLATFORM,
             ['cpu', 'pmu'],
         ),
-    MetricName.PLATFORM_DRAM_HIT:
+    MetricName.PLATFORM_DRAM_HIT_RATIO:
         MetricMetadata(
             'TBD',
             MetricType.GAUGE,

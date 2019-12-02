@@ -167,10 +167,10 @@ class UncorePerfCounters:
 
 UNCORE_IMC_EVENTS = [
     # https://github.com/opcm/pcm/blob/816dec444453c0e1253029e7faecfe1e024a071c/cpucounters.cpp#L3549
-    Event(name=MetricName.PLATFORM_PMM_BANDWIDTH_READ, event=0xe3),
-    Event(name=MetricName.PLATFORM_PMM_BANDWIDTH_WRITE, event=0xe7),
-    Event(name=MetricName.PLATFORM_CAS_COUNT_READ, event=0x04, umask=0x3),  # * 64 to get bytes
-    Event(name=MetricName.PLATFORM_CAS_COUNT_WRITE, event=0x04, umask=0xc),  # * 64 to get bytes
+    Event(name=MetricName.PLATFORM_PMM_BANDWIDTH_READS, event=0xe3),
+    Event(name=MetricName.PLATFORM_PMM_BANDWIDTH_WRITES, event=0xe7),
+    Event(name=MetricName.PLATFORM_CAS_COUNT_READS, event=0x04, umask=0x3),  # * 64 to get bytes
+    Event(name=MetricName.PLATFORM_CAS_COUNT_WRITES, event=0x04, umask=0xc),  # * 64 to get bytes
 ]
 
 UNCORE_UPI_EVENTS = [
@@ -214,16 +214,16 @@ class UncoreDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
         def rate(value):
             return value * SCALE / time_delta
 
-        max_depth = len(METRICS_METADATA[MetricName.PLATFORM_PMM_BANDWIDTH_WRITE].levels)
+        max_depth = len(METRICS_METADATA[MetricName.PLATFORM_PMM_BANDWIDTH_WRITES].levels)
         # both CAS and PMM should have the same level and it dervied metrics
         # levels are cpu and pmu
-        assert max_depth == len(METRICS_METADATA[MetricName.PLATFORM_CAS_COUNT_READ].levels)
+        assert max_depth == len(METRICS_METADATA[MetricName.PLATFORM_CAS_COUNT_READS].levels)
         assert max_depth == len(
             METRICS_METADATA[MetricName.PLATFORM_PMM_TOTAL_BYTES_PER_SECOND].levels)
 
         # DRAM
-        dram_read, dram_write = delta(MetricName.PLATFORM_CAS_COUNT_READ,
-                                      MetricName.PLATFORM_CAS_COUNT_WRITE)
+        dram_read, dram_write = delta(MetricName.PLATFORM_CAS_COUNT_READS,
+                                      MetricName.PLATFORM_CAS_COUNT_WRITES)
 
         # DRAM R/W bps
         _operation_on_leveled_metric(dram_read, rate, max_depth)
@@ -240,10 +240,10 @@ class UncoreDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
         measurements[MetricName.PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND] = total_dram_bps
 
         # PMM
-        if available(MetricName.PLATFORM_PMM_BANDWIDTH_WRITE,
-                     MetricName.PLATFORM_PMM_BANDWIDTH_READ):
-            pmm_read, pmm_write = delta(MetricName.PLATFORM_PMM_BANDWIDTH_READ,
-                                        MetricName.PLATFORM_PMM_BANDWIDTH_WRITE)
+        if available(MetricName.PLATFORM_PMM_BANDWIDTH_WRITES,
+                     MetricName.PLATFORM_PMM_BANDWIDTH_READS):
+            pmm_read, pmm_write = delta(MetricName.PLATFORM_PMM_BANDWIDTH_READS,
+                                        MetricName.PLATFORM_PMM_BANDWIDTH_WRITES)
 
             # PMM R/W bps
             _operation_on_leveled_metric(pmm_read, rate, max_depth)
@@ -270,7 +270,7 @@ class UncoreDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
                 measurements[MetricName.PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND],
                 total_dram_and_pmm_bps,
                 truediv, max_depth)
-            measurements[MetricName.PLATFORM_DRAM_HIT] = dram_hit
+            measurements[MetricName.PLATFORM_DRAM_HIT_RATIO] = dram_hit
         else:
             log.warning('pmm metrics not available!')
 
