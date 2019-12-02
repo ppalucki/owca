@@ -185,7 +185,8 @@ def container(cgroup_path, subcgroups_paths=None, with_config=False,
                 node_cpus={0: {0, 1}},
                 node_distances={0: [10]},
                 measurements={},
-                static_information={}
+                static_information={},
+                swap_enabled=False
             )
             return ContainerSet(
                 cgroup_path=cgroup_path,
@@ -210,7 +211,8 @@ def container(cgroup_path, subcgroups_paths=None, with_config=False,
                 node_cpus={0: {0, 1}},
                 node_distances={0: [10]},
                 measurements={},
-                static_information={}
+                static_information={},
+                swap_enabled=False
             )
             return Container(
                 cgroup_path=cgroup_path,

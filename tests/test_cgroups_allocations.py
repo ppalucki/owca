@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from unittest.mock import patch, call, Mock
 
 from tests.testing import allocation_metric
 from wca.allocators import AllocationConfiguration, AllocationType
-from wca.cgroups_allocations import QuotaAllocationValue, SharesAllocationValue, \
-    CPUSetCPUSAllocationValue, CPUSetMEMSAllocationValue
+from wca.allocations import InvalidAllocations
+from wca.cgroups_allocations import (QuotaAllocationValue, SharesAllocationValue,
+                                     CPUSetCPUSAllocationValue, CPUSetMEMSAllocationValue,
+                                     MigratePagesAllocationValue)
 from wca.containers import Container
 from wca.metrics import Metric, MetricType
 from wca.platforms import Platform, RDTInformation
@@ -78,3 +82,32 @@ def test_cgroup_allocations(Cgroup_mock, PerfCounters_mock):
         call().set_cpuset_cpus({0, 1, 2, 4, 6, 7, 8}),
         call().set_cpuset_mems({0, 1})
     ], True)
+
+
+@patch('wca.platforms.read_proc_meminfo',
+       return_value='SwapCached: 3000kB \nSwapTotal: 123000kB\nSwapFree: 20000kB')
+@patch('wca.cgroups.Cgroup')
+def test_migrate_pages_raise_exception_when_swap_is_enabled(*mocks):
+    rdt_information = RDTInformation(True, True, True, True, '0', '0', 0, 0, 0)
+
+    platform_mock = Mock(
+        spec=Platform,
+        cpus=10,
+        sockets=1,
+        rdt_information=rdt_information,
+        node_cpus={0: [0, 1], 1: [2, 3]},
+        numa_nodes=2,
+        swap_enabled=True
+    )
+
+    foo_container = Container(
+        '/somepath', platform=platform_mock)
+
+    foo_container._cgroup.platform = platform_mock
+
+    migrate_pages = MigratePagesAllocationValue(0, foo_container, dict(foo='bar'))
+
+    with pytest.raises(
+            InvalidAllocations,
+            match="Swap should be disabled due to possibility of OOM killer occurrence!"):
+        migrate_pages.validate()

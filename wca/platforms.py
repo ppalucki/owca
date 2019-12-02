@@ -170,6 +170,8 @@ class Platform:
 
     static_information: Optional[Dict]
 
+    swap_enabled: bool
+
 
 class MissingPlatformStaticInformation(Exception):
     pass
@@ -636,6 +638,7 @@ def collect_platform_information(rdt_enabled: bool = True,
         node_distances=parse_node_distances(),
         measurements=platform_measurements,
         static_information=platform_static_information,
+        swap_enabled=is_swap_enabled()
     )
     assert len(platform_measurements[MetricName.CPU_USAGE_PER_CPU]) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
@@ -677,3 +680,14 @@ def encode_listformat(ints: Set[int]) -> str:
     """
     assert all(isinstance(i, int) for i in ints), 'simple type check'
     return ','.join(map(str, sorted(ints)))
+
+
+def is_swap_enabled() -> bool:
+    mem_info = read_proc_meminfo()
+    for line in mem_info.split('\n'):
+        if line.startswith("SwapTotal"):
+            value = line.split(' ')[1]
+            if value.startswith('0'):
+                return False
+            return True
+    return False

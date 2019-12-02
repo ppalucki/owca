@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ctypes
 import time
 import subprocess  # nosec
 import logging
+import os
 from typing import Dict, Tuple, Optional, List
 
 from wca.allocations import AllocationValue, BoxedNumeric, InvalidAllocations, LabelsUpdater
@@ -25,7 +27,12 @@ from wca.metrics import Metric, MetricType
 from wca.platforms import decode_listformat
 from wca.logger import TRACE
 
+LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
+
 log = logging.getLogger(__name__)
+
+# https://filippo.io/linux-syscall-table/
+NR_MIGRATE_PAGES = 256
 
 
 class QuotaAllocationValue(BoxedNumeric):
@@ -200,19 +207,47 @@ class MigratePagesAllocationValue(BoxedNumeric):
             self.platform.numa_nodes,
         )
 
+    def validate(self):
+        super().validate()
+        if self.platform.swap_enabled:
+            raise InvalidAllocations(
+                    "Swap should be disabled due to possibility of OOM killer occurrence!")
+
 
 def _migrate_pages(task_pids, to_node, number_of_nodes):
     # if not all pages yet on place force them to move
-    from_node = ','.join([str(i) for i in range(number_of_nodes) if i != to_node])
-    to_node = str(to_node)
+
+    # set 1 in mask for all numa nodes without to_node
+    mask_all_nodes = 2 ** number_of_nodes - 1
+    mask_without_to_node = mask_all_nodes - 2 ** to_node
+
+    # set 1 in mask for to_node
+    mask_to_node = 2 ** to_node
+
     for pid in task_pids:
-        pid = str(pid)
-        cmd = ['migratepages', pid, from_node, to_node]
-        log.log(TRACE, 'migrate pages cmd: %s', ' '.join(cmd))
+        log.log(TRACE, 'migrate pages pid %s to node %d', pid, to_node)
         try:
             start = time.time()
-            subprocess.check_output(cmd)  # nosec - input is already validated
+            _migrate_page_call(pid, number_of_nodes, mask_without_to_node, mask_to_node)
             duration = time.time() - start
             log.debug('Moving duration %0.2fs', duration)
         except subprocess.CalledProcessError as e:
-            log.warn('cannot migrate pages for pid=%s: %s (ignored)', pid, e)
+            log.warning('cannot migrate pages for pid=%s: %s (ignored)', pid, e)
+
+
+def _migrate_page_call(pid, max_node, old_nodes, new_node) -> int:
+    """Wrapper on migrate_pages function using libc syscall"""
+
+    pid = int(pid)
+    max = ctypes.c_ulong(max_node + 1)
+    old = ctypes.pointer(ctypes.c_ulong(old_nodes))
+    new = ctypes.pointer(ctypes.c_ulong(new_node))
+
+    # Example memory_migrate(256, pid, 5, 13 -> b'1101', 2 -> b'0010')
+    result = LIBC.syscall(NR_MIGRATE_PAGES, pid, max, old, new)
+
+    if result == -1:
+        errno = ctypes.get_errno()
+        log.warning('Migrate page. Error number %d. Problem: %s', errno, os.strerror(errno))
+    log.log(TRACE, 'No moved pages: %d', result)
+    return result

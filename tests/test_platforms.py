@@ -171,7 +171,8 @@ def test_collect_platform_information(*mocks):
                       MetricName.MEM_USAGE: 1337,
                       MetricName.PLATFORM_MEMORY_NUMA_FREE_BYTES: {0: 1},
                       MetricName.PLATFORM_MEMORY_NUMA_USED_BYTES: {0: 2}},
-        static_information={}
+        static_information={},
+        swap_enabled=False
     )
 
     assert_metric(got_metrics, 'platform_memory_usage', expected_metric_value=1337)

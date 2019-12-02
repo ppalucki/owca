@@ -153,6 +153,10 @@ def _create_dumb_process(cgroup_path, command: str):
 
     with open(os.path.join(paths[CgroupType.CPU], 'tasks'), 'a') as f:
         f.write(str(p.pid))
+    with open(os.path.join(paths[CgroupType.MEMORY], 'tasks'), 'a') as f:
+        f.write(str(p.pid))
+    with open(os.path.join(paths[CgroupType.CPUSET], 'tasks'), 'a') as f:
+        f.write(str(p.pid))
     with open(os.path.join(paths[CgroupType.PERF_EVENT], 'tasks'), 'a') as f:
         f.write(str(p.pid))
     return p
@@ -178,7 +182,7 @@ def _create_cgroup(cgroup_path):
     try:
         os.makedirs(paths[CgroupType.MEMORY])
     except FileExistsError:
-        log.warning('cpu cgroup "{}" already exists'.format(cgroup_path))
+        log.warning('memory cgroup "{}" already exists'.format(cgroup_path))
 
     try:
         os.makedirs(paths[CgroupType.CPUSET])
@@ -212,7 +216,7 @@ def _delete_cgroup(cgroup_path):
     try:
         os.rmdir(paths[CgroupType.MEMORY])
     except FileNotFoundError:
-        log.warning('cpu cgroup "{}" not found'.format(cgroup_path))
+        log.warning('memory cgroup "{}" not found'.format(cgroup_path))
 
     try:
         os.rmdir(paths[CgroupType.CPUSET])

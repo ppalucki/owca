@@ -135,12 +135,12 @@ class Cgroup:
             raise MissingMeasurementException(
                 'File {} is missing. Metric unavailable.'.format(e.filename))
 
-        try:
+        def get_metric(metric):
             with open(os.path.join(
-                    self.cgroup_memory_fullpath, CgroupResource.NUMA_STAT)) as resource_file:
+                        self.cgroup_memory_fullpath, CgroupResource.NUMA_STAT)) as resource_file:
                 for line in resource_file.readlines():
                     # Requires mem.use_hierarchy = 1
-                    if line.startswith("hierarchical_total="):
+                    if line.startswith(metric):
                         for stat in line.split()[1:]:
                             k, v = stat.split("=")
                             k, v = k[1:], int(v)
@@ -149,9 +149,19 @@ class Cgroup:
                             else:
                                 measurements[MetricName.TASK_MEMORY_NUMA_PAGES][k] = v
                         break
+
+        try:
+            has_hierarchical_metrics = False
+            get_metric("hierarchical_total=")
+            if not has_hierarchical_metrics:
+                import warnings
+                warnings.warn("Warning. No hierarchical mem stat for tasks in cgroup. Use ")
+                get_metric("total=")
+
         except FileNotFoundError as e:
             raise MissingMeasurementException(
                 'File {} is missing. Metric unavailable.'.format(e.filename))
+
         # Check whether consecutive keys.
         assert MetricName.TASK_MEMORY_NUMA_PAGES not in measurements or \
                list(measurements[MetricName.TASK_MEMORY_NUMA_PAGES].keys()) == \

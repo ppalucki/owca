@@ -354,6 +354,9 @@ def _get_current_node(cpus, nodes):
 
 def _get_best_memory_node(memory, balanced_memory):
     """for equal task memory, choose node with less allocated memory by WCA"""
+    if memory == 0:
+        return balanced_memory[0]
+
     d = {}
     for node in balanced_memory:
         d[node] = round(memory / (sum([k[1] for k in balanced_memory[node]]) + memory), 4)
