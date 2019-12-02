@@ -115,8 +115,9 @@ class MeasurementRunner(Runner):
         allocation_configuration: Allows fine grained control over allocations.
             (defaults to AllocationConfiguration() instance)
         wss_reset_interval: Interval of reseting wss.
-            (defaults to 0, every iteration)
+            (defaults to 0, not measured)
         include_optional_labels: Include optional labels like: sockets, cpus, cpu_model
+            (defaults to False)
     """
 
     def __init__(
