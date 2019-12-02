@@ -13,19 +13,20 @@
 # limitations under the License.
 
 import ctypes
-import time
-import subprocess  # nosec
 import logging
-import os
+import subprocess  # nosec
+import time
 from typing import Dict, Tuple, Optional, List
+
+import os
 
 from wca.allocations import AllocationValue, BoxedNumeric, InvalidAllocations, LabelsUpdater
 from wca.allocators import AllocationType
 from wca.cgroups import QUOTA_NORMALIZED_MAX
 from wca.containers import ContainerInterface
+from wca.logger import TRACE
 from wca.metrics import Metric, MetricType
 from wca.platforms import decode_listformat
-from wca.logger import TRACE
 
 LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
 
@@ -121,6 +122,9 @@ class ListFormatBasedAllocationValue(AllocationValue):
             raise InvalidAllocations(
                 '{} is invalid argument! No data provided!'.format(self.value))
 
+    def __repr__(self):
+        return self.value
+
 
 class CPUSetCPUSAllocationValue(ListFormatBasedAllocationValue):
 
@@ -191,7 +195,7 @@ class MigratePagesAllocationValue(BoxedNumeric):
         self.container = container
         self.platform = self.container.get_cgroup().platform
         super().__init__(value=value, common_labels=common_labels,
-                         min_value=0, max_value=self.platform.numa_nodes-1)
+                         min_value=0, max_value=self.platform.numa_nodes - 1)
 
     def generate_metrics(self):
         metrics = super().generate_metrics()
@@ -211,7 +215,7 @@ class MigratePagesAllocationValue(BoxedNumeric):
         super().validate()
         if self.platform.swap_enabled:
             raise InvalidAllocations(
-                    "Swap should be disabled due to possibility of OOM killer occurrence!")
+                "Swap should be disabled due to possibility of OOM killer occurrence!")
 
 
 def _migrate_pages(task_pids, to_node, number_of_nodes):
