@@ -157,8 +157,7 @@ class Platform:
     # mapping from numa node id to CPU (to support SNC), based on /sys/devices/system/numa
     node_cpus: Dict[int, Set[int]]
     # Distance based on /sys/devices/system/node/node*/distance
-    node_distances: Dict[int, List[int]]
-
+    node_distances: Dict[int, Dict[int, int]]
     # [unix timestamp] Recorded timestamp of finishing data gathering (as returned from time.time)
     timestamp: float
 
