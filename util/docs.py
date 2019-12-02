@@ -31,7 +31,7 @@ def prepare_csv_table(data, header=True, csv_header=False):
     else:
         pref = ''
 
-    table += ('\n%s'%(pref)).join(['"{}", "{}", "{}", "{}",  "{}", "{}"'.format(*row) for row in data])
+    table += ('\n%s'%(pref)).join(['"{}", "{}", "{}", "{}",  "{}", "{}", "{}"'.format(*row) for row in data])
 
     return table
 
