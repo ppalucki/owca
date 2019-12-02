@@ -276,20 +276,41 @@ def create_metrics(platform: Platform) -> List[Metric]:
     # Exporting measurements into metrics.
     platform_metrics.extend(export_metrics_from_measurements(platform.measurements))
 
+    platform_metrics.append(
+        Metric.create_metric_with_metadata(
+            MetricName.WCA_INFORMATION,
+            value=1,
+            labels=dict(
+                sockets=str(platform.sockets),
+                cores=str(platform.cores),
+                cpus=str(platform.cpus),
+                cpu_model=platform.cpu_model,
+                wca_version=get_wca_version(),
+            )
+        )
+    )
+
     return platform_metrics
 
 
-def create_labels(platform: Platform) -> Dict[str, str]:
-    """Returns dict of topology and hostname labels"""
+def create_labels(platform: Platform, include_optional_labels: bool) -> Dict[str, str]:
+    """Returns dict of topology and hostname labels
+    Note: Those will will assigned to every returned metric.
+    """
     labels = dict()
-    # Topology labels
-    labels["sockets"] = str(platform.sockets)
-    labels["cores"] = str(platform.cores)
-    labels["cpus"] = str(platform.cpus)
-    # Additional labels
+
+    # REQUIRED (for host identification)
     labels["host"] = socket.gethostname()
-    labels["wca_version"] = get_wca_version()
-    labels["cpu_model"] = platform.cpu_model
+
+    # OPTIONAL (for further metrics analysis)
+    if include_optional_labels:
+        # Topology labels
+        labels["sockets"] = str(platform.sockets)
+        labels["cores"] = str(platform.cores)
+        labels["cpus"] = str(platform.cpus)
+        # Additional labels
+        labels["cpu_model"] = platform.cpu_model
+        labels["wca_version"] = get_wca_version()
 
     return labels
 
@@ -558,7 +579,8 @@ def _collect_rdt_information() -> RDTInformation:
 @profiler.profile_duration(name='collect_platform_information')
 def collect_platform_information(rdt_enabled: bool = True,
                                  gather_hw_mm_topology: bool = False,
-                                 extra_platform_measurements: Optional[Measurements] = None) -> (
+                                 extra_platform_measurements: Optional[Measurements] = None,
+                                 include_optional_labels: bool = False) -> (
         Platform, List[Metric], Dict[str, str]):
     """Returns Platform information, metrics and common labels.
 
@@ -627,7 +649,7 @@ def collect_platform_information(rdt_enabled: bool = True,
     )
     assert len(platform_measurements[MetricName.PLATFORM_CPU_USAGE]) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
-    return platform, create_metrics(platform), create_labels(platform)
+    return platform, create_metrics(platform), create_labels(platform, include_optional_labels)
 
 
 def decode_listformat(value: str) -> Set[int]:

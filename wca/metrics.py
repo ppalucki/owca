@@ -126,10 +126,12 @@ class MetricName(str, Enum):
     # Based on UPI Flits
     PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND = 'platform_upi_bandwidth_bytes_per_second'
 
+    # Generic
     PLATFORM_LAST_SEEN = 'platform_last_seen'
     # ---------------- Internal -------------------------
     # Generic for WCA.
     WCA_UP = 'wca_up'
+    WCA_INFORMATION = 'wca_information'
     WCA_TASKS = 'wca_tasks'
     WCA_MEM_USAGE_BYTES = 'wca_mem_usage_bytes'
     WCA_DURATION_SECONDS = 'wca_duration_seconds'
@@ -614,7 +616,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_PMM_BANDWIDTH_WRITES:
         MetricMetadata(
@@ -623,7 +625,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_CAS_COUNT_READS:
         MetricMetadata(
@@ -632,7 +634,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_CAS_COUNT_WRITES:
         MetricMetadata(
@@ -641,7 +643,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_UPI_RXL_FLITS:
         MetricMetadata(
@@ -650,7 +652,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_UPI_TXL_FLITS:
         MetricMetadata(
@@ -659,7 +661,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     # Perf uncore derived
     MetricName.PLATFORM_PMM_READS_BYTES_PER_SECOND:
@@ -669,7 +671,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_PMM_WRITES_BYTES_PER_SECOND:
         MetricMetadata(
@@ -678,7 +680,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_PMM_TOTAL_BYTES_PER_SECOND:
         MetricMetadata(
@@ -687,7 +689,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_DRAM_READS_BYTES_PER_SECOND:
         MetricMetadata(
@@ -696,7 +698,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_DRAM_WRITES_BYTES_PER_SECOND:
         MetricMetadata(
@@ -705,7 +707,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_DRAM_TOTAL_BYTES_PER_SECOND:
         MetricMetadata(
@@ -714,7 +716,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_DRAM_HIT_RATIO:
         MetricMetadata(
@@ -723,7 +725,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND:
         MetricMetadata(
@@ -732,7 +734,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricUnit.NUMERIC,
             MetricSource.DERIVED,
             MetricGranurality.PLATFORM,
-            ['cpu', 'pmu'],
+            ['socket', 'pmu_type'],
         ),
     MetricName.PLATFORM_LAST_SEEN:
         MetricMetadata(
@@ -748,6 +750,14 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'Health check for WCA returning timestamps of last iteration',
             MetricType.COUNTER,
             MetricUnit.TIMESTAMP,
+            MetricSource.INTERNAL,
+            MetricGranurality.INTERNAL),
+    MetricName.WCA_INFORMATION:
+        MetricMetadata(
+            'Special metric to cover some meta information like wca_version or cpu_model '
+            'or platform topology (to be used instead of include_optional_labels)',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
             MetricGranurality.INTERNAL),
     MetricName.WCA_TASKS:

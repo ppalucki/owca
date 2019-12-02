@@ -116,6 +116,7 @@ class MeasurementRunner(Runner):
             (defaults to AllocationConfiguration() instance)
         wss_reset_interval: Interval of reseting wss.
             (defaults to 0, every iteration)
+        include_optional_labels: Include optional labels like: sockets, cpus, cpu_model
     """
 
     def __init__(
@@ -131,7 +132,8 @@ class MeasurementRunner(Runner):
             enable_perf_uncore: bool = True,
             task_label_generators: Optional[Dict[str, TaskLabelGenerator]] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
-            wss_reset_interval: int = 0
+            wss_reset_interval: int = 0,
+            include_optional_labels: bool = False
     ):
 
         self._node = node
@@ -139,6 +141,7 @@ class MeasurementRunner(Runner):
         self._action_delay = action_delay
         self._rdt_enabled = rdt_enabled
         self._gather_hw_mm_topology = gather_hw_mm_topology
+        self._include_optional_labels = include_optional_labels
 
         # QUICK FIX for Str from ENV TODO: fix me
         self._extra_labels = {k: str(v) for k, v in
@@ -248,11 +251,12 @@ class MeasurementRunner(Runner):
             wss_reset_interval=self._wss_reset_interval,
         )
 
-        self._init_uncore_pmu(self._enable_derived_metrics, self._enable_perf_uncore)
+        self._init_uncore_pmu(self._enable_derived_metrics, self._enable_perf_uncore, platform)
 
         return None
 
-    def _init_uncore_pmu(self, enable_derived_metrics, enable_perf_uncore):
+    def _init_uncore_pmu(self, enable_derived_metrics, enable_perf_uncore,
+                         platform: platforms.Platform):
         self._uncore_pmu = None
         self._uncore_get_measurements = lambda: {}
         if enable_perf_uncore:
@@ -280,7 +284,8 @@ class MeasurementRunner(Runner):
             # Prepare uncore object
             self._uncore_pmu = UncorePerfCounters(
                 cpus=cpus,
-                pmu_events=pmu_events
+                pmu_events=pmu_events,
+                platform=platform,
             )
 
             # Wrap with derived..
@@ -317,7 +322,9 @@ class MeasurementRunner(Runner):
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(
             self._rdt_enabled, self._gather_hw_mm_topology,
-            extra_platform_measurements=extra_platform_measurements)
+            extra_platform_measurements=extra_platform_measurements,
+            include_optional_labels=False,
+        )
 
         # Common labels
         common_labels = dict(platform_labels, **self._extra_labels)

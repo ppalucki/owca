@@ -20,7 +20,7 @@ import os
 from dataclasses import dataclass
 from operator import truediv, add
 
-from wca import perf_const as pc
+from wca import perf_const as pc, platforms
 from wca.metrics import Measurements, BaseDerivedMetricsGenerator, \
     _operation_on_leveled_metric, \
     MetricName, _operation_on_leveled_dicts, METRICS_METADATA
@@ -76,6 +76,7 @@ class UncorePerfCounters:
     """Perf facade on perf_event_open system call to deal with uncore counters"""
     cpus: List[int]
     pmu_events: Dict[int, List[Event]]  # pmu_type to event_config
+    platform: platforms.Platform  # required for cpu to socket/numa_node mapping
 
     def __post_init__(self):
         # all perf file descriptors, except leaders
@@ -89,18 +90,25 @@ class UncorePerfCounters:
     def get_measurements(self) -> Measurements:
         """Reads, scales and aggregates event measurements"""
         measurements_per_cpu: Dict[int, Measurements] = {}
+        # reversed topology (flatten the topology)
+        cpu_to_socket = {}
+        for socket_id, socket in self.platform.topology.items():
+            for _, cpu_ids in socket.items():
+                for cpu_id in cpu_ids:
+                    cpu_to_socket[cpu_id] = socket_id
 
-        measurements = defaultdict(lambda: defaultdict(dict))
+        measurements_per_socket = defaultdict(lambda: defaultdict(dict))
         for pmu, events in self.pmu_events.items():
             event_names = [e.name for e in events]
             for cpu, event_leader_file in self._group_event_leader_files_per_pmu[pmu].items():
                 measurements_per_cpu[cpu] = _parse_event_groups(
                     event_leader_file, event_names, include_scaling_info=False)
                 for metric in measurements_per_cpu[cpu]:
-                    measurements[metric][cpu][pmu] = \
+                    socket = cpu_to_socket[cpu]
+                    measurements_per_socket[metric][socket][pmu] = \
                         measurements_per_cpu[cpu][metric]
 
-        return measurements
+        return measurements_per_socket
 
     def cleanup(self):
         """Closes all opened file descriptors"""

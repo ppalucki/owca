@@ -167,7 +167,9 @@ def test_parse_node_distances(*mocks):
 @patch('wca.platforms.get_platform_static_information', return_value={})
 @patch('time.time', return_value=1536071557.123456)
 def test_collect_platform_information(*mocks):
-    got_platform, got_metrics, got_labels = collect_platform_information()
+    got_platform, got_metrics, got_labels = collect_platform_information(
+        include_optional_labels=True
+    )
 
     assert got_platform == Platform(
         sockets=1,
