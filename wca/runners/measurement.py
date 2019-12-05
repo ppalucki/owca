@@ -408,6 +408,7 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
     """
     # Prepare empty structure for return all the information.
     tasks_data: TasksData = {}
+    now = time.time()
 
     for task, container in containers.items():
         # Task measurements and measurements based metrics.
@@ -418,9 +419,11 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
                         'for container {} - ignoring! '
                         '(because {})'.format(container, e))
             raise
-        # Extra metrics
-        task_measurements[MetricName.TASK_LAST_SEEN.value] = time.time()
-        #
+        # Extra internal metrics
+        task_measurements[MetricName.TASK_UP.value] = 1
+        task_measurements[MetricName.TASK_LAST_SEEN.value] = now
+
+        # Extra metrics from orchestrator about resources
         if TaskResource.CPUS in task.resources:
             task_measurements[MetricName.TASK_REQUESTED_CPUS.value] = task.resources[
                 TaskResource.CPUS.value]
@@ -442,7 +445,7 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
 
 
 def _build_tasks_metrics(tasks_data: TasksData) -> List[Metric]:
-    """TODO:  TBD ALSO ADDS PREFIX for name!"""
+    """Build metrics for all tasks."""
     tasks_metrics: List[Metric] = []
 
     for task, data in tasks_data.items():

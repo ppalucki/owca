@@ -78,6 +78,7 @@ class MetricName(str, Enum):
 
     # Generic
     TASK_LAST_SEEN = 'task_last_seen'
+    TASK_UP = 'task_up'
 
     # ----------------- Platform ----------------------
     # Static information
@@ -555,6 +556,16 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'Time the task was last seen.',
             MetricType.COUNTER,
             MetricUnit.TIMESTAMP,
+            MetricSource.INTERNAL,
+            MetricGranularity.TASK,
+            [],
+            'yes',
+        ),
+    MetricName.TASK_UP:
+        MetricMetadata(
+            'Always returns 1.',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
             MetricSource.INTERNAL,
             MetricGranularity.TASK,
             [],
