@@ -51,9 +51,8 @@ WCA is targeted at and tested on Centos 7.6.
 
     # Install required software.
     sudo yum install epel-release -y
-    sudo yum install git python3 make which -y
-    python3.6 -m ensurepip --user
-    python3.6 -m pip install --user pipenv
+    sudo yum install git python3 make which python3-pip -y
+    python3 -mpip install --user pipenv
     export PATH=$PATH:~/.local/bin
 
     # Clone the repository & build.
@@ -65,13 +64,16 @@ WCA is targeted at and tested on Centos 7.6.
     make wca_package
 
     # Prepare tasks manually (only cgroups are required)
-    sudo mkdir /sys/fs/cgroup/{cpu,cpuacct,perf_event}/task1
+    sudo mkdir -p /sys/fs/cgroup/{cpu,cpuset,cpuacct,memory,perf_event}/task1
 
     # Example of running agent in measurements-only mode with predefined static list of tasks
     sudo dist/wca.pex --config $PWD/configs/extra/static_measurements.yaml --root
 
     # Example of static allocation with predefined rules on predefined list of tasks.
     sudo dist/wca.pex --config $PWD/configs/extra/static_allocator.yaml --root
+
+    # For development purposes can be also run from sources (requires venv create by pipenv)
+    sudo env PYTHONPATH=. `pipenv --py` wca/main.py --config $PWD/configs/extra/static_allocator.yaml --root
 
 
 Running those commands outputs metrics in Prometheus format to standard error like this:
