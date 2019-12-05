@@ -73,6 +73,7 @@ pipeline {
             when {expression{return params.BUILD_WCA_IMAGE}}
             steps {
                 sh '''
+                echo GIT_COMMIT=${GIT_COMMIT}
                 export WCA_IMAGE=${DOCKER_REPOSITORY_URL}/wca
                 export WCA_TAG=${GIT_COMMIT}
                 echo $WCA_IMAGE
@@ -317,6 +318,8 @@ pipeline {
 /* Helper function */
 /*----------------------------------------------------------------------------------------------------------*/
 def wca_and_workloads_check() {
+    print('-wca_and_workloads_check-')
+    sh "echo GIT_COMMIT=$GIT_COMMIT"
     images_check()
     sh "make venv"
     sh "make wca_package_in_docker_with_kafka"
@@ -341,6 +344,8 @@ def wca_and_workloads_check() {
 }
 
 def kustomize_wca_and_workloads_check() {
+    print('-kustomize_wca_and_workloads_check-')
+    sh "echo GIT_COMMIT=$GIT_COMMIT"
     print('Configure wca and workloads...')
     kustomize_replace_commit()
     kustomize_add_labels("redis-memtier")
@@ -413,7 +418,7 @@ def test_wca_metrics_kustomize() {
 }
 
 def images_check() {
-    print('Check if docker images build for this PR')
+    print('Check if docker images build for this PR ${GIT_COMMIT}')
     /* Checking only for rpc_perf */
     check_image = sh(script: 'curl ${DOCKER_REPOSITORY_URL}/v2/wca/rpc_perf/manifests/${BUILD_COMMIT} | jq .name', returnStdout: true).trim()
     if (check_image == 'null') {
