@@ -97,7 +97,7 @@ class LogStorage(Storage):
             self._output = sys.stderr
 
     def store(self, metrics):
-        log.debug('Storing %d metrics to %s.', len(metrics), self.output_filename)
+        log.debug('Storing %d metrics to %s.', len(metrics), self.output_filename or 'None(stderr)')
         log.log(logger.TRACE, 'Dump of metrics: %r', metrics)
 
         is_convertable, error_message = is_convertable_to_prometheus_exposition_format(metrics)
