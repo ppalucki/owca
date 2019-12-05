@@ -25,7 +25,7 @@ pipeline {
             when {expression{return params.PRECHECKS}}
             steps {
                 sh '''
-                  make venv junit
+                  make junit
                 '''
             }
             post {
@@ -60,7 +60,9 @@ pipeline {
             when {expression{return params.BUILD_IMAGES}}
             steps {
                 sh '''
-                  make venv wrapper_package
+                  # speed up pex wrapper build time
+                  export PEX_OPTIONS='--no-index --cache-ttl=604800'
+                  make wrapper_package
                 '''
                 archiveArtifacts(artifacts: "dist/**")
             }
