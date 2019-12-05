@@ -58,7 +58,8 @@ def test_default_parse_no_source_separator():
                                      ""), regexp=DEFAULT_REGEXP, separator="---")
 
 
-def test_readline_with_check():
+@patch('builtins.print')
+def test_readline_with_check(*print_mock):
     with pytest.raises(StopIteration):
         readline_with_check(input=StringIO(""))
     line = "content_of_line"

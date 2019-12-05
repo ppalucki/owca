@@ -14,12 +14,14 @@
 
 
 from io import StringIO
+from unittest.mock import patch
 
 from wca.metrics import Metric, MetricType
 from wrapper.parser_stress_ng import parse
 
 
-def test_parse():
+@patch('builtins.print')
+def test_parse(mock_print):
     data = """
         stress-ng: info:  [99] Time 1546433449, counter 173, diff 33
         stress-ng: info:  [96] Time 1546433449, counter 210, diff 37

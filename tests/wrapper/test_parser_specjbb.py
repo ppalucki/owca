@@ -14,12 +14,14 @@
 
 
 import os
+from unittest.mock import patch
 
 from wca.metrics import Metric, MetricType
 from wrapper.parser_specjbb import parse
 
 
-def test_parse():
+@patch('builtins.print')
+def test_parse(mock_print):
     """Reads textfile with sample output from specjbb."""
     expected = [Metric("specjbb_p99_total_purchase", value=0,
                        type=MetricType.GAUGE,
