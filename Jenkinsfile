@@ -5,8 +5,8 @@ pipeline {
       booleanParam defaultValue: true, description: 'Build WCA image.', name: 'BUILD_WCA_IMAGE'
       booleanParam defaultValue: true, description: 'Build wrappers and workload images.', name: 'BUILD_IMAGES'
       booleanParam defaultValue: true, description: 'E2E for Mesos.', name: 'E2E_MESOS'
-      booleanParam defaultValue: false, description: 'E2E for Kubernetes.', name: 'E2E_K8S'
-      booleanParam defaultValue: false, description: 'E2E for Kubernetes as Daemonset.', name: 'E2E_K8S_DS'
+      booleanParam defaultValue: true, description: 'E2E for Kubernetes.', name: 'E2E_K8S'
+      booleanParam defaultValue: true, description: 'E2E for Kubernetes as Daemonset.', name: 'E2E_K8S_DS'
       string defaultValue: '600', description: 'Sleep time for E2E tests', name: 'SLEEP_TIME'
     }
     environment {
@@ -238,7 +238,10 @@ pipeline {
                 LABELS="{additional_labels: {build_number: \"${BUILD_NUMBER}\", build_node_name: \"${NODE_NAME}\", build_commit: \"${GIT_COMMIT}\"}}"
                 RUN_WORKLOADS_SLEEP_TIME = "${params.SLEEP_TIME}"
                 INVENTORY="tests/e2e/demo_scenarios/common/inventory.yaml"
-                TAGS = "redis_rpc_perf,cassandra_stress,cassandra_ycsb,twemcache_rpc_perf,specjbb,stress_ng"
+                // JUST ONE WORKLOAD
+                TAGS = "stress_ng"
+                // ALL SET OF WORKLOADS
+                // TAGS = "redis_rpc_perf,cassandra_stress,cassandra_ycsb,twemcache_rpc_perf,twemcache_mutilate,specjbb,stress_ng"
             }
             failFast true
             parallel {
@@ -342,14 +345,17 @@ def kustomize_wca_and_workloads_check() {
     sh "echo GIT_COMMIT=$GIT_COMMIT"
     print('Configure wca and workloads...')
     kustomize_replace_commit()
+    kustomize_add_labels("memcached-mutilate")
     kustomize_add_labels("redis-memtier")
     kustomize_add_labels("stress")
     kustomize_add_labels("sysbench-memory")
 
     print('Configure images...')
+    kustomize_set_docker_image("memcached-mutilate", "mutilate")
     kustomize_set_docker_image("redis-memtier", "memtier_benchmark")
     kustomize_set_docker_image("stress", "stress_ng")
     kustomize_set_docker_image("sysbench-memory", "sysbench")
+
 
     print('Starting wca...')
     sh "kubectl apply -k ${WORKSPACE}/${KUSTOMIZATION_MONITORING}"
@@ -358,7 +364,10 @@ def kustomize_wca_and_workloads_check() {
     sh "kubectl apply -k ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD}"
 
     print('Scale up workloads...')
-    def list = ["stress-stream-small","redis-small","memtier-small","sysbench-memory-small"]
+    // JUST ONE WORKLOAD
+    def list = ["stress-stream-small"]
+    // FULL SET OF WORKLOADS
+    //def list = ["stress-stream-small","redis-small","memtier-small","sysbench-memory-small"]
     for(item in list){
         sh "kubectl scale --replicas=1 statefulset $item"
     }
