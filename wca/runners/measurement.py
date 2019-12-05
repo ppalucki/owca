@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import logging
+import re
 import time
+from abc import abstractmethod
 from typing import Dict, List, Optional
 
-import re
 import resource
-from abc import abstractmethod
 from dataclasses import dataclass
 
 from wca import platforms, profiling, perf_const as pc
@@ -44,10 +44,6 @@ from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
 log = logging.getLogger(__name__)
 
 _INITIALIZE_FAILURE_ERROR_CODE = 1
-
-DEFAULT_EVENTS = [MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CYCLES,
-                  MetricName.TASK_CACHE_MISSES, MetricName.TASK_CACHE_REFERENCES,
-                  MetricName.TASK_STALLED_MEM_LOADS]
 
 
 class TaskLabelGenerator:
@@ -129,7 +125,7 @@ class MeasurementRunner(Runner):
             rdt_enabled: Optional[bool] = None,
             gather_hw_mm_topology: bool = False,
             extra_labels: Optional[Dict[Str, Str]] = None,
-            event_names: List[str] = DEFAULT_EVENTS,
+            event_names: List[str] = [],
             enable_derived_metrics: bool = False,
             enable_perf_uncore: bool = None,
             task_label_generators: Optional[Dict[str, TaskLabelGenerator]] = None,
