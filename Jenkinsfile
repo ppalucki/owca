@@ -3,7 +3,7 @@ pipeline {
     parameters {
       booleanParam defaultValue: true, description: 'Run all pre-checks.', name: 'PRECHECKS'
       booleanParam defaultValue: true, description: 'Build WCA image.', name: 'BUILD_WCA_IMAGE'
-      booleanParam defaultValue: true, description: 'Build workload images.', name: 'BUILD_IMAGES'
+      booleanParam defaultValue: true, description: 'Build wrappers and workload images.', name: 'BUILD_IMAGES'
       booleanParam defaultValue: true, description: 'E2E for Mesos.', name: 'E2E_MESOS'
       booleanParam defaultValue: true, description: 'E2E for Kubernetes.', name: 'E2E_K8S'
       booleanParam defaultValue: true, description: 'E2E for Kubernetes as Daemonset.', name: 'E2E_K8S_DS'
@@ -42,17 +42,22 @@ pipeline {
                 '''
             }
         }
-        stage("Build WCA pex") {
+        stage("Build WCA pex (in docker and images)") {
             when {expression{return params.BUILD_WCA_IMAGE}}
             steps {
                 sh '''
+                  echo GIT_COMMIT=${GIT_COMMIT}
+                  export WCA_IMAGE=${DOCKER_REPOSITORY_URL}/wca
+                  export WCA_TAG=${GIT_COMMIT}
                   make wca_package_in_docker
+                  docker push $WCA_IMAGE:$WCA_TAG
+                  # Just for completeness (not used later)
                   make wca_docker_devel
                 '''
             }
         }
         stage("Build pex files") {
-            when {expression{return params.BUILD_WCA_IMAGE}}
+            when {expression{return params.BUILD_IMAGES}}
             steps {
                 sh '''
                   make venv wrapper_package
@@ -68,20 +73,6 @@ pipeline {
              '''
              archiveArtifacts(artifacts: "wca-bandit.html, wca-pex-bandit.html")
            }
-        }
-        stage("Build and push Workload Collocation Agent Docker image") {
-            when {expression{return params.BUILD_WCA_IMAGE}}
-            steps {
-                sh '''
-                echo GIT_COMMIT=${GIT_COMMIT}
-                export WCA_IMAGE=${DOCKER_REPOSITORY_URL}/wca
-                export WCA_TAG=${GIT_COMMIT}
-                echo $WCA_IMAGE
-                echo $WCA_TAG
-                make wca_package_in_docker
-                docker push $WCA_IMAGE:$WCA_TAG
-                '''
-            }
         }
         stage("Building Docker images and do tests in parallel") {
             parallel {
