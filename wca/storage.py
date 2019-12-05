@@ -17,16 +17,16 @@
 Module is responsible for exposing functionality of storing labeled metrics
 in durable external storage.
 """
-import abc
 import itertools
 import logging
-import os
 import pathlib
-import re
 import sys
 import time
 from typing import List, Tuple, Dict, Optional
 
+import abc
+import os
+import re
 from dataclasses import dataclass, field
 
 from wca import logger
@@ -494,6 +494,7 @@ class MetricPackage:
         if common_labels:
             for metric in self.metrics:
                 metric.labels.update(common_labels)
+        log.debug('storing %s metrics using %r' % (len(self.metrics), self.storage))
         self.storage.store(self.metrics)
 
 
