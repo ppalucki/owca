@@ -7,7 +7,7 @@ pipeline {
       booleanParam defaultValue: true, description: 'E2E for Mesos.', name: 'E2E_MESOS'
       booleanParam defaultValue: true, description: 'E2E for Kubernetes.', name: 'E2E_K8S'
       booleanParam defaultValue: true, description: 'E2E for Kubernetes as Daemonset.', name: 'E2E_K8S_DS'
-      string defaultValue: '120', description: 'Sleep time for E2E tests', name: 'SLEEP_TIME'
+      string defaultValue: '121', description: 'Sleep time for E2E tests', name: 'SLEEP_TIME'
     }
     environment {
         DOCKER_REPOSITORY_URL = '100.64.176.12:80'
