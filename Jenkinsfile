@@ -328,11 +328,15 @@ def wca_and_workloads_check() {
     copy_files("${WORKSPACE}/dist/wca.pex", "/usr/bin/wca.pex", true)
     copy_files("${WORKSPACE}/tests/e2e/demo_scenarios/common/wca.service", "/etc/systemd/system/wca.service", true)
     sh "sudo systemctl daemon-reload"
+    print('Start wca...')
     start_wca()
     copy_files("${WORKSPACE}/${HOST_INVENTORY}", "${WORKSPACE}/${INVENTORY}")
     replace_commit()
+    print('Run workloads...')
     run_workloads("${EXTRA_ANSIBLE_PARAMS}", "${LABELS}")
+    print('Sleeping...')
     sleep RUN_WORKLOADS_SLEEP_TIME
+    print('Test E2E metrics...')
     test_wca_metrics()
 }
 
@@ -343,6 +347,7 @@ def kustomize_wca_and_workloads_check() {
     kustomize_add_labels("stress")
     kustomize_add_labels("sysbench-memory")
 
+    print('Configure images...')
     kustomize_set_docker_image("redis-memtier", "memtier_benchmark")
     kustomize_set_docker_image("stress", "stress_ng")
     kustomize_set_docker_image("sysbench-memory", "sysbench")
@@ -350,9 +355,10 @@ def kustomize_wca_and_workloads_check() {
     print('Starting wca...')
     sh "kubectl apply -k ${WORKSPACE}/${KUSTOMIZATION_MONITORING}"
 
-    print('Starting workloads...')
+    print('Deploy workloads...')
     sh "kubectl apply -k ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD}"
 
+    print('Scale up workloads...')
     def list = ["stress-stream-small","redis-small","memtier-small","sysbench-memory-small"]
     for(item in list){
         sh "kubectl scale --replicas=1 statefulset $item"
@@ -360,6 +366,7 @@ def kustomize_wca_and_workloads_check() {
 
     print('Sleep while workloads are running...')
     sleep RUN_WORKLOADS_SLEEP_TIME
+    print('Test kustomize metrics...')
     test_wca_metrics_kustomize()
 }
 
