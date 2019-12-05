@@ -10,6 +10,7 @@ runner: !AllocationRunner
       kubelet_enabled: True
       monitored_namespaces: ["default"]
     action_delay: 10.
+    event_names: ['task_cycles']
     metrics_storage: !KafkaStorage
       brokers_ips: ['100.64.176.12:9092']
       topic: "wca_metrics"

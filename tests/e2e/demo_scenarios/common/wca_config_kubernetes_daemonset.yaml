@@ -12,7 +12,7 @@ runner: !AllocationRunner
       brokers_ips: ['100.64.176.12:9092']
       topic: "wca_metrics"
       max_timeout_in_seconds: 5.
-
+    event_names: ['task_cycles']
     extra_labels:
       env_uniq_id: "32"
       own_ip: "100.64.176.32"
