@@ -61,7 +61,8 @@ pipeline {
             steps {
                 sh '''
                   # speed up pex wrapper build time
-                  export ADDITIONAL_PEX_OPTIONS='--no-index --cache-ttl=604800'
+                  # requieres .pex-build already filled with requirments
+                  #export ADDITIONAL_PEX_OPTIONS='--no-index --cache-ttl=604800'
                   make wrapper_package
                 '''
                 archiveArtifacts(artifacts: "dist/**")
