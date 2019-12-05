@@ -383,8 +383,8 @@ class ContainerManager:
         return container
 
     @profiler.profile_duration('sync_containers_state')
-    def sync_containers_state(self, tasks: List[Task]) -> Dict[
-        Task, ContainerInterface]:
+    def sync_containers_state(
+            self, tasks: List[Task]) -> Dict[Task, ContainerInterface]:
         """Syncs state of ContainerManager with a system by removing orphaned containers,
         and creating containers for newly arrived tasks, and synchronizing containers' state.
 
