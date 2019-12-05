@@ -145,9 +145,9 @@ class MeasurementRunner(Runner):
         self._gather_hw_mm_topology = gather_hw_mm_topology
         self._include_optional_labels = include_optional_labels
 
-        # QUICK FIX for Str from ENV TODO: fix me
         self._extra_labels = {k: str(v) for k, v in
                               extra_labels.items()} if extra_labels else dict()
+        log.debug('Extra labels: %r', self._extra_labels)
         self._finish = False  # Guard to stop iterations.
         self._last_iteration = time.time()  # Used internally by wait function.
         self._allocation_configuration = allocation_configuration
