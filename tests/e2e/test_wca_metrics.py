@@ -56,6 +56,7 @@ def _build_prometheus_url(prometheus, name, tags=None, window_size=None, event_t
 
     # Build final URL from all the components.
     url = ''.join([url, "{", query_tags_str, "}", time_range])
+    logging.info('Prometheus query: %s', ''.join([url, "{", query_tags_str, "}"]))
 
     return url
 
