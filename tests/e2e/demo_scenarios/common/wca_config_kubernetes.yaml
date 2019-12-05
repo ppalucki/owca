@@ -19,9 +19,12 @@ runner: !AllocationRunner
       own_ip: "100.64.176.17"
       build_commit: "BUILD_COMMIT"
       build_number: "BUILD_NUMBER"
-
   anomalies_storage: !KafkaStorage
     brokers_ips: ['100.64.176.12:9092']
     topic: "wca_anomalies"
     max_timeout_in_seconds: 5.
   allocator: !NOPAllocator
+  allocations_storage: !KafkaStorage
+    brokers_ips: ['100.64.176.12:9092']
+    topic: "wca_allocations"
+    max_timeout_in_seconds: 5.
