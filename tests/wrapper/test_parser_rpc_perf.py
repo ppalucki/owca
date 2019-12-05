@@ -14,12 +14,14 @@
 
 
 from io import StringIO
+from unittest.mock import patch
 
 from wca.metrics import Metric, MetricType
 from wrapper.parser_rpc_perf import parse
 
 
-def test_parse():
+@patch('builtins.print')
+def test_parse(mock_print):
     input_ = StringIO(
         "2018-09-13 08:15:43.404 INFO  [rpc-perf] -----"
         "2018-09-13 08:15:43.404 INFO  [rpc-perf] Window: 155"
