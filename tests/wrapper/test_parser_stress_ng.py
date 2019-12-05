@@ -13,8 +13,9 @@
 # limitations under the License.
 
 
-from io import StringIO
 from unittest.mock import patch
+
+from io import StringIO
 
 from wca.metrics import Metric, MetricType
 from wrapper.parser_stress_ng import parse
@@ -73,7 +74,8 @@ def test_parse(mock_print):
     assert expected == got
 
 
-def test_parse_end_stress():
+@patch('builtins.print')
+def test_parse_end_stress(print_mock):
     data = """
         ---
         system-info:

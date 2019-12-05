@@ -13,8 +13,9 @@
 # limitations under the License.
 
 
-from io import StringIO
 from unittest.mock import patch
+
+from io import StringIO
 
 from wca.metrics import Metric, MetricType
 from wrapper.parser_mutilate import parse

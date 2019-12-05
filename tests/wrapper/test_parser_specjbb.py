@@ -13,8 +13,9 @@
 # limitations under the License.
 
 
-import os
 from unittest.mock import patch
+
+import os
 
 from wca.metrics import Metric, MetricType
 from wrapper.parser_specjbb import parse

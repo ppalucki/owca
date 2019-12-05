@@ -13,8 +13,9 @@
 # limitations under the License.
 
 
-import pytest
 from unittest.mock import patch, Mock, call
+
+import pytest
 from io import StringIO
 
 from wca.metrics import Metric
