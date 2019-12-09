@@ -14,7 +14,7 @@
 
 import os
 
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import Mock, mock_open, patch, call
 
 from wca import main
 
@@ -59,25 +59,23 @@ runner: !DummyRunner
 def test_main_unknown_field(mock_valid_config_file, mock_exit, perf_counters, mock_rmdir,
                             mock_argv, mock_log_error):
     main.main()
-    mock_log_error.assert_called_once_with('Error: Unknown field in '
-                                           'configuration file: unknownRunner.'
-                                           ' Possible fields are: \'loggers\', '
+    mock_log_error.assert_called_once_with('Error: Unknown fields in '
+                                           'configuration file!'
+                                           ' Possible are: \'loggers\', '
                                            '\'runner\'')
 
 
 @patch('wca.main.log.error')
 @patch('wca.main.exit')
-@patch('os.stat', return_value=Mock(st_size=35, st_uid=os.geteuid(), st_mode=384))
+@patch('wca.main.os.stat', return_value=Mock(st_size=35, st_uid=os.geteuid(), st_mode=384))
 def test_main_valid_config_file_not_absolute_path(os_stat, mock_exit, mock_log_error):
     main.valid_config_file('configs/see_yaml_config_variable_above.yaml')
 
-    mock_log_error.assert_called_with(
-            "Error: The config path 'configs/see_yaml_config_variable_above.yaml' is not valid. "
-            "The path must be absolute.(Hint: try adding $PWD in front like this: "
-            "'$PWD/configs/see_yaml_config_variable_above.yaml')")
+    assert call('Error: The config path is not valid. '
+                'The path must be absolute.') in mock_log_error.mock_calls
 
 
-TEST_USER_UID = 1005
+TEST_USER_UID = 1001
 
 
 @patch('wca.main.log.error')
@@ -87,9 +85,8 @@ TEST_USER_UID = 1005
 def test_main_valid_config_file_wrong_user(os_getuid, os_stat, mock_exit, mock_log_error):
     main.valid_config_file('/etc/configs/see_yaml_config_variable_above.yaml')
 
-    mock_log_error.assert_called_with(
-        'Error: The config \'/etc/configs/see_yaml_config_variable_above.yaml\' is not valid. '
-        'User is not owner of the config or is not root.')
+    assert call('Error: The config is not valid. '
+                'User is not owner of the config or is not root.') in mock_log_error.mock_calls
 
 
 @patch('wca.main.log.error')
@@ -102,8 +99,6 @@ def test_main_valid_config_file_wrong_acl(os_getuid, os_stat, mock_exit, mock_lo
     main.valid_config_file('/etc/configs/see_yaml_config_variable_above.yaml')
 
     mock_log_error.assert_called_with(
-        'Error: The config \'/etc/configs/see_yaml_config_variable_above.yaml\' is not valid. '
-        'It does not have correct ACLs. Only owner should be able to write.'
-        '(Hint: try \'chmod og-rw /etc/configs/see_yaml_config_variable_above.yaml\' '
-        'to fix the problem).'
+        'Error: The config is not valid. It does not have correct ACLs. '
+        'Only owner should be able to write (Hint: try chmod og-rwto fix the problem).'
     )

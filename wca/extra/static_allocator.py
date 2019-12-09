@@ -15,15 +15,14 @@ import logging
 import os
 import pprint
 import re
-from typing import List, Set, Dict
+from typing import List
 
 from dataclasses import dataclass
 
 from wca.allocators import Allocator, TasksAllocations, AllocationType, RDTAllocation
 from wca.config import load_config, Path
-from wca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
+from wca.detectors import Anomaly, TasksData
 from wca.metrics import Metric
-from wca.nodes import TaskId
 from wca.platforms import Platform
 from wca.logger import TRACE
 
@@ -42,8 +41,7 @@ def merge_rules(existing_tasks_allocations: TasksAllocations,
     return merged_tasks_allocations
 
 
-def _build_allocations_from_rules(all_tasks_ids: Set[TaskId],
-                                  tasks_labels: Dict[TaskId, Dict[str, str]], rules):
+def _build_allocations_from_rules(tasks_data: TasksData, rules):
     tasks_allocations = {}
 
     # Iterate over rules and apply one by one.
@@ -77,17 +75,18 @@ def _build_allocations_from_rules(all_tasks_ids: Set[TaskId],
             labels = rule['labels']
             # by labels
             match_task_ids = set()
-            for task_id, task_labels in tasks_labels.items():
-                matching_label_names = set(task_labels) & set(labels)
+            for task, data in tasks_data.items():
+                matching_label_names = set(data.labels) & set(labels)
                 for label_name in matching_label_names:
-                    if re.match(str(labels[label_name]), task_labels[label_name]):
-                        match_task_ids.add(task_id)
+                    if re.match(
+                            str(labels[label_name]), data.labels[label_name]):
+                        match_task_ids.add(task)
                         log.log(TRACE, 'StaticAllocator(%s):  match task %r by label=%s',
                                 rule_idx, task_id, label_name)
         else:
             # match everything
             log.log(TRACE, 'StaticAllocator(%s):  match all tasks', rule_idx)
-            match_task_ids = all_tasks_ids
+            match_task_ids = tasks_data.keys()
 
         # for matching tasks calculate and remember target_tasks_allocations
         log.log(TRACE, 'StaticAllocator(%s):  applying allocations for %i tasks', rule_idx,
@@ -107,7 +106,7 @@ def _build_allocations_from_rules(all_tasks_ids: Set[TaskId],
 
 @dataclass
 class StaticAllocator(Allocator):
-    """
+    """rst
     Simple allocator based on rules defining relation between task labels
     and allocation definition (set of concrete values).
 
@@ -117,6 +116,7 @@ class StaticAllocator(Allocator):
     input file for StaticAllocator.
 
     A rule is an object with three fields:
+
     - name,
     - labels (optional),
     - allocations.
@@ -129,6 +129,16 @@ class StaticAllocator(Allocator):
     matching tasks.
 
     If there are multiple matching rules then the rules' allocations are merged and applied.
+
+    Arguments:
+
+    - ``rules``: **List[dict]** = *None*
+
+        Direct way to pass rules.
+
+    - ``config``: **Path** = *None*
+
+        Filepath of yaml config file with rules.
     """
 
     # Direct way to pass rules.
@@ -140,10 +150,7 @@ class StaticAllocator(Allocator):
     def allocate(
             self,
             platform: Platform,
-            tasks_measurements: TasksMeasurements,
-            tasks_resources: TasksResources,
-            tasks_labels: TasksLabels,
-            tasks_allocations: TasksAllocations,
+            tasks_data: TasksData,
     ) -> (TasksAllocations, List[Anomaly], List[Metric]):
 
         rules = []
@@ -160,15 +167,13 @@ class StaticAllocator(Allocator):
             log.warning('StaticAllocator: no rules were provided!')
             return {}, [], []
 
-        # Merge all tasks ids.
-        all_tasks_ids = (set(tasks_labels.keys()) | set(tasks_resources.keys()) |
-                         set(tasks_allocations.keys()))
         log.log(TRACE,
-                'StaticAllocator: handling allocations for %i tasks. ', len(all_tasks_ids))
-        for task_id, labels in tasks_labels.items():
-            log.log(TRACE, '%s', ' '.join('%s=%s' % (k, v) for k, v in sorted(labels.items())))
+                'StaticAllocator: handling allocations for %i tasks. ', len(tasks_data))
+        for task, data in tasks_data.items():
+            log.log(TRACE, '%s', ' '.join(
+                '%s=%s' % (k, v) for k, v in sorted(data.labels.items())))
 
-        tasks_allocations = _build_allocations_from_rules(all_tasks_ids, tasks_labels, rules)
+        tasks_allocations = _build_allocations_from_rules(tasks_data, rules)
 
         log.debug('StaticAllocator: final tasks allocations: \n %s',
                   pprint.pformat(tasks_allocations))

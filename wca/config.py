@@ -25,26 +25,24 @@ It is connected with 'components' module which plays a role of registry of all c
 One additionally feature is builtin support for including other yaml files
 using special tag called !file (check _file_loader_constructor docs for detailed descriptor).
 """
-import enum
-import functools
 import inspect
-import io
 import ipaddress
 import logging
-import os
-import types
 import typing
-from collections import UserString
-from os.path import exists, isabs, split  # direct target import for mocking purposes in test_main
 from typing import Any, Optional
 from urllib.parse import urlparse
 
+import enum
+import functools
+import io
+import os
+import types
+from os.path import exists, isabs, split  # direct target import for mocking purposes in test_main
 from ruamel import yaml
 
 from wca import logger
 
 _yaml = yaml.YAML(typ='safe')
-
 
 log = logging.getLogger(__name__)
 
@@ -121,8 +119,8 @@ def assure_absolute_path(value):
 def assure_permission_path(value, permission):
     if not os.access(value, permission):
         raise ValidationError(
-                'file does not exist or cannot access to `{}` with permission `{}`'.format(
-                    value, permission))
+            'file does not exist or cannot access to `{}` with permission `{}`'.format(
+                value, permission))
 
 
 def assure_no_parent_directory_access(value):
@@ -179,7 +177,7 @@ class _StrType(type):
     @classmethod
     def assure(cls, value):
         """Validates str input"""
-        assure_base_types(value, [str, UserString])
+        assure_base_types(value, [str])
         assure_max_str_length(value, cls.max_size)
 
 
@@ -244,7 +242,6 @@ def Path(absolute: Optional[bool] = False,
          max_size: int = 400,
          mode: Optional[int] = None  # Permission mode
          ):
-
     return _PathType('Path', (_PathType, SemanticType),
                      dict(absolute=absolute, max_size=max_size, mode=mode))
 
@@ -289,7 +286,7 @@ def _assure_dict_type(value: dict, expected_type):
     """Validate that value is type of dict and recursively matches expected Dict type."""
     if not isinstance(value, dict):
         raise ValidationError('expected dict-like type %r, but got %r' % (expected_type,
-                              type(value)))
+                                                                          type(value)))
     else:
         expected_key_type, expected_value_type = expected_type.__args__
         for key, item_value in value.items():

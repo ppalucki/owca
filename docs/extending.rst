@@ -47,7 +47,6 @@ To illustrate that, when someone uses WCA with configuration file like this:
 .. code-block:: yaml
 
     runner: !MeasurementRunner
-      config: !MeasurementRunnerConfig
         node: !MesosNode                # subclass of Node
         metric_storage: !LogStorage     # subclass of Storage
             output_filename: /tmp/logs.txt
@@ -57,11 +56,9 @@ it effectively means running equivalent of Python code:
 .. code-block:: python
 
     runner = MeasurementRunner(
-        config = MeasurementRunnerConfig(
-           node = MesosNode()
-           metric_storage = LogStorage(
-           output_filename = '/tmp/logs.txt')
-        )
+       node = MesosNode()
+       metric_storage = LogStorage(
+       output_filename = '/tmp/logs.txt')
     )
     runner.run()
 

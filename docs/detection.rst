@@ -53,9 +53,7 @@ where ``ExampleAnomalyDetector`` class must implement following interface:
         @abstractmethod
         def detect(self,
                    platform: Platform,
-                   tasks_measurements: TasksMeasurements,
-                   tasks_resources: TasksResources,
-                   tasks_labels: TasksLabels
+                   tasks_data: TasksData
         ) -> (List[Anomaly], List[Metric]):
             ...
 
@@ -71,9 +69,7 @@ Example implementation:
             ...
 
         def detect(self, platform: Platform,
-                         tasks_measurements: TasksMeasurements,
-                         tasks_resources: TasksResources,
-                         tasks_labels: TasksLabels,
+                   tasks_data: TasksData
                          ) -> (List[Anomaly], List[Metric]):
             return [], []
 
@@ -197,44 +193,46 @@ This is example of how to ``Platform`` instance looks like on two sockets "Intel
     Measurements = Dict[MetricName, MetricValue]
 
 
-``TasksMeasurements`` and ``TaskResources`` types
-=================================================
+``TasksData`` and ``TaskData`` type
+===================================
 
-``TasksMeasurements`` is a nested mapping from task and metric name to value of metric. 
-``TasksResources`` is a nested mapping from task and resource name to value of resource allocated
-by task definition as defined in used orechstrator.
+``TasksData`` is a mapping from task_id to TaskData. 
+``TaskData`` inherits from Task and provides measurements and allocations mappings.
 
 .. code:: python
 
-    TaskId = str  # Mesos tasks id
-    TasksMeasurements = Dict[TaskId, Measurements]
-    TasksResources = Dict[str, Union[float int, str]]
+        TaskMeasurements = Measurements
+        TaskAllocations = Dict[str, str]
 
-    # Example:
-    tasks_measurements = {
-        'user-devel-cassandra-0-f096985b-1f1e-4f94-b0b7-4728f5b476b2': {
-            MetricName.INSTRUCTIONS: 12343141,
-            MetricName.CYCLES: 2310124321,
-            MetricName.LLC_MISSES: 21212312,
-            MetricName.CPU_USAGE: 21212312,
-            MetricName.MEM_BW: 21212312,
-        },
-        'user-devel-memcached-0-31db8f56-ea82-4404-8b58-baac8054900b': {
-            MetricName.INSTRUCTIONS: 24233234,
-            MetricName.CYCLES: 3110124321,
-            MetricName.LLC_MISSES: 3293314311,
-            MetricName.CPU_USAGE: 31212312,
-            MetricName.MEM_BW: 51212312,
-        },
-    }
 
-    tasks_resources = {
-        'cpus': 8.0,
-        'mems': 2000.0,
-        'disk': 8000.0,
-    }
-    # and example call of detect function
-    anomalies, detection_metrics = anomaly_detector.detect(platform, tasks_measurements, tasks_resources)
+        @dataclass
+        class TaskData(Task):
+            measurements: TaskMeasurements = field(default_factory=lambda: {})
+            allocations: Optional[TaskAllocations] = None
+
+
+        TasksData = Dict[TaskId, TaskData]
+
+        # Example:
+        tasks_data['user-devel-cassandra-0'] = TaskData(
+                name='cassandra-0',
+                task_id='user-devel-cassandra-0',
+                cgroup_path='/user-devel-cassandra-0',
+                subcgroups_path=[],
+                labels={'foo': 'bar'},
+                resources={
+                    'cpus': 8.0,
+                    'mems': 2000.0,
+                    'disk': 8000.0},
+                measurements={
+                    MetricName.INSTRUCTIONS: 12343141,
+                    MetricName.CYCLES: 2310124321,
+                    MetricName.LLC_MISSES: 21212312,
+                    MetricName.CPU_USAGE: 21212312,
+                    MetricName.MEM_BW: 21212312,})
+
+        # and example call of detect function
+        anomalies, detection_metrics = anomaly_detector.detect(platform, tasks_data)
 
 
 ``Anomaly`` type

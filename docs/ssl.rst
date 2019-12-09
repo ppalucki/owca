@@ -40,14 +40,13 @@ Example of minimal configuration that uses ``SSL``:
 
 .. code:: yaml
 
-    runner: !AllocationRunner
-      config: !AllocationRunnerConfig
-        node: !KubernetesNode
-          ssl: !SSL
-            server_verify: True
-            client_cert_path: "$PATH/apiserver-kubelet-client.crt"
-            client_key_path: "$PATH/apiserver-kubelet-client.key"
-          kubelet_endpoint: https://127.0.0.1:10250
+    runner: !MeasurementRunner
+      node: !KubernetesNode
+        ssl: !SSL
+          server_verify: True
+          client_cert_path: "$PATH/apiserver-kubelet-client.crt"
+          client_key_path: "$PATH/apiserver-kubelet-client.key"
+        kubelet_endpoint: https://127.0.0.1:10250
 
 
 ``SSL`` object has the following properties:

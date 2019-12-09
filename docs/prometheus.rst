@@ -21,13 +21,12 @@ A simple usage scenario
     
     # Content of configs/extra/static_measurements_for_node_exporter.yaml
     runner: !MeasurementRunner
-      config: !MeasurementRunnerConfig
-        node: !StaticNode
-          tasks:
-            - task1
-        metrics_storage: !LogStorage
-          output_filename: 'metrics.prom'
-          overwrite: true
+      node: !StaticNode
+        tasks:
+          - task1
+      metrics_storage: !LogStorage
+        output_filename: 'metrics.prom'
+        overwrite: true
 
 
 Run wca with below provided command:

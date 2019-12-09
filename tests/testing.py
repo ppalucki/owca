@@ -26,13 +26,12 @@ import os
 from wca.allocators import AllocationConfiguration
 from wca.containers import Container, ContainerSet, ContainerInterface
 from wca.detectors import ContendedResource, ContentionAnomaly, LABEL_WORKLOAD_INSTANCE, \
-    _create_uuid_from_tasks_ids
-from wca.metrics import Metric, MetricType
+    _create_uuid_from_tasks_ids, TaskData
+from wca.metrics import Metric, MetricType, MetricName
 from wca.nodes import TaskId, Task
 from wca.platforms import CPUCodeName, Platform, RDTInformation
 from wca.resctrl import ResGroup
 from wca.runners import Runner
-from wca.runners.measurement import DEFAULT_EVENTS
 
 
 def create_json_fixture_mock(name, path=__file__, status_code=200):
@@ -126,16 +125,32 @@ def anomaly(contended_task_id: TaskId, contending_task_ids: List[TaskId],
     )
 
 
-def task(cgroup_path, labels=None, resources=None, subcgroups_paths=None):
+def task(cgroup_path, subcgroups_paths=None, labels=None, resources=None):
     """Helper method to create task with default values."""
     prefix = cgroup_path.replace('/', '')
     return Task(
-        cgroup_path=cgroup_path,
         name=prefix + '_tasks_name',
         task_id=prefix + '_task_id',
+        cgroup_path=cgroup_path,
+        subcgroups_paths=subcgroups_paths or [],
         labels=labels or dict(),
         resources=resources or dict(),
-        subcgroups_paths=subcgroups_paths or []
+    )
+
+
+def task_data(cgroup_path, subcgroups_paths=None, labels=None,
+              resources=None, measurements=None, allocations=None):
+    """Helper method to create task with default values."""
+    prefix = cgroup_path.replace('/', '')
+    return TaskData(
+        name=prefix + '_tasks_name',
+        task_id=prefix + '_task_id',
+        cgroup_path=cgroup_path,
+        subcgroups_paths=subcgroups_paths or [],
+        labels=labels or {},
+        resources=resources or {},
+        measurements=measurements or {},
+        allocations=allocations or {}
     )
 
 
@@ -167,9 +182,9 @@ def container(cgroup_path, subcgroups_paths=None, with_config=False,
                     True, True, rdt_mb_control_enabled,
                     rdt_cache_control_enabled, '0', '0', 0, 0, 0),
                 node_cpus={0: {0, 1}},
-                node_distances={0: [10]},
+                node_distances={0: {0: 10}},
                 measurements={},
-                static_information={}
+                swap_enabled=False
             )
             return ContainerSet(
                 cgroup_path=cgroup_path,
@@ -177,7 +192,7 @@ def container(cgroup_path, subcgroups_paths=None, with_config=False,
                 platform=platform,
                 allocation_configuration=AllocationConfiguration() if with_config else None,
                 resgroup=ResGroup(name=resgroup_name) if rdt_enabled else None,
-                event_names=DEFAULT_EVENTS)
+                event_names=['task_cycles'])
         else:
             platform = Platform(
                 sockets=1,
@@ -192,16 +207,16 @@ def container(cgroup_path, subcgroups_paths=None, with_config=False,
                 rdt_information=RDTInformation(
                     True, True, True, True, '0', '0', 0, 0, 0),
                 node_cpus={0: {0, 1}},
-                node_distances={0: [10]},
+                node_distances={0: {0: 10}},
                 measurements={},
-                static_information={}
+                swap_enabled=False
             )
             return Container(
                 cgroup_path=cgroup_path,
                 platform=platform,
                 allocation_configuration=AllocationConfiguration() if with_config else None,
                 resgroup=ResGroup(name=resgroup_name) if rdt_enabled else None,
-                event_names=DEFAULT_EVENTS
+                event_names=['task_cycles'],
             )
 
     if should_patch:
@@ -303,7 +318,7 @@ def prepare_runner_patches(func):
              patch('wca.cgroups.Cgroup.set_quota'), \
              patch('wca.cgroups.Cgroup.set_shares'), \
              patch('wca.cgroups.Cgroup.get_measurements',
-                   return_value=dict(cpu_usage=TASK_CPU_USAGE)), \
+                   return_value={MetricName.TASK_CPU_USAGE_SECONDS: TASK_CPU_USAGE}), \
              patch('wca.resctrl.ResGroup.add_pids'), \
              patch('wca.resctrl.ResGroup.get_measurements'), \
              patch('wca.resctrl.ResGroup.get_mon_groups'), \
@@ -318,7 +333,9 @@ def prepare_runner_patches(func):
                    return_value=(platform_mock, [metric('platform-cpu-usage')], {})), \
              patch('wca.platforms.collect_topology_information', return_value=(1, 1, 1)), \
              patch('wca.security.are_privileges_sufficient', return_value=True), \
-             patch('resource.getrusage', return_value=Mock(ru_maxrss=WCA_MEMORY_USAGE)):
+             patch('resource.getrusage', return_value=Mock(ru_maxrss=WCA_MEMORY_USAGE)), \
+             patch('wca.perf_uncore.UncorePerfCounters._open'), \
+             patch('wca.perf.PerfCounters._open'):
             func(*args, **kwargs)
 
     return _decorated_function

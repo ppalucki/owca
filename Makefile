@@ -52,8 +52,8 @@ junit:
 	@echo Running unit tests.	
 	pipenv run env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --junitxml=unit_results.xml -vvv -s --ignore=tests/e2e/test_wca_metrics.py
 
-wca_package_in_docker: WCA_IMAGE := wca
-wca_package_in_docker: WCA_TAG := $(shell git rev-parse HEAD)
+wca_package_in_docker: WCA_IMAGE ?= wca
+wca_package_in_docker: WCA_TAG ?= $(shell git rev-parse HEAD)
 wca_package_in_docker:
 	@echo Building wca pex file inside docker and copying to ./dist/wca.pex
 	# target: standalone
@@ -68,8 +68,8 @@ wca_package_in_docker:
 	@echo WCA image name is: $(WCA_IMAGE):$(WCA_TAG)
 	@echo WCA pex file: dist/wca.pex
 
-wca_package_in_docker_with_kafka: WCA_IMAGE := wca
-wca_package_in_docker_with_kafka: WCA_TAG := $(shell git rev-parse HEAD)
+wca_package_in_docker_with_kafka: WCA_IMAGE ?= wca
+wca_package_in_docker_with_kafka: WCA_TAG ?= $(shell git rev-parse HEAD)
 wca_package_in_docker_with_kafka:
 	@echo "Building wca pex (version with Kafka) file inside docker and copying to ./dist/wca.pex"
 	# target: standalone
@@ -86,13 +86,12 @@ wca_package_in_docker_with_kafka:
 
 wca_docker_devel: WCA_IMAGE ?= wca
 wca_docker_devel: WCA_TAG ?= devel
-wca_docker_devel: REPO ?= 100.64.176.12:80/
 wca_docker_devel:
 	@echo "Preparing development WCA container (only source code without pex)"
-	sudo docker build --network host --target devel -f Dockerfile -t $(REPO)$(WCA_IMAGE):$(WCA_TAG) .
-	@echo WCA image name is: ${REPO}$(WCA_IMAGE):$(WCA_TAG)
-	@echo Push: sudo docker push ${REPO}$(WCA_IMAGE):$(WCA_TAG)
-	@echo Run: sudo docker run --privileged -ti --rm ${REPO}$(WCA_IMAGE):$(WCA_TAG) -0 -c /wca/configs/extra/static_measurements.yaml
+	sudo docker build --network host --target devel -f Dockerfile -t $(WCA_IMAGE):$(WCA_TAG) .
+	@echo WCA image name is: $(WCA_IMAGE):$(WCA_TAG)
+	@echo Push: sudo docker push $(WCA_IMAGE):$(WCA_TAG)
+	@echo Run: sudo docker run --privileged -ti --rm $(WCA_IMAGE):$(WCA_TAG) -0 -c /wca/configs/extra/static_measurements.yaml
 
 
 wca_package:
@@ -122,6 +121,7 @@ wrapper_package:
 	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/specjbb_wrapper.pex -m wrapper.parser_specjbb
 	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/ycsb_wrapper.pex -m wrapper.parser_ycsb
 	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/rpc_perf_wrapper.pex -m wrapper.parser_rpc_perf
+	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/mutilate_wrapper.pex -m wrapper.parser_mutilate
 	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/cassandra_stress_wrapper.pex -m wrapper.parser_cassandra_stress
 	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/stress_ng_wrapper.pex -m wrapper.parser_stress_ng
 	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/memtier_benchmark_wrapper.pex -m wrapper.parser_memtier
@@ -141,7 +141,7 @@ clean:
 tester:
 	@echo Integration tests.
 	sh -c 'sudo chmod 700 $$(pwd)/tests/tester/configs/tester_example.yaml'
-	sh -c 'PEX_INHERIT_PATH=fallback PYTHONPATH="$$(pwd):$$(pwd)/tests/tester" dist/wca.pex -c $$(pwd)/tests/tester/configs/tester_example.yaml -r tester:IntegrationTester -r tester:MetricCheck -r tester:FileCheck --log=debug --root'
+	sh -c 'sudo PEX_INHERIT_PATH=fallback PYTHONPATH="$$(pwd):$$(pwd)/tests/tester" dist/wca.pex -c $$(pwd)/tests/tester/configs/tester_example.yaml -r tester:IntegrationTester -r tester:MetricCheck -r tester:FileCheck --log=debug --root'
 
 generate_docs:
 	@echo Generate documentation.

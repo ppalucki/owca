@@ -20,34 +20,10 @@ RUN yum install -y wget git which && \
     yum makecache && \
     yum install -y python36 python3-distutils && \
     yum install -y scons gengetopt libzmq-dev && \
-#    yum install -y g++ zlib1g-dev build-essential && \
     yum install -y gcc-c++ libevent-devel
 
 RUN git clone https://github.com/leverich/mutilate.git
 WORKDIR mutilate
 RUN scons
 
-#FROM ubuntu:trusty
-#
-#RUN apt-get update && apt-get install -qy scons libevent-dev gengetopt libzmq-dev git g++
-#
-#RUN ln -sfn /usr/bin/python2 /usr/bin/python
-#RUN apt -y install wget
-#RUN apt-get -y install zlib1g-dev build-essential
-#
-#WORKDIR /opt
-#RUN wget https://www.python.org/ftp/python/3.6.6/Python-3.6.6.tgz
-#RUN tar -xvf Python-3.6.6.tgz
-#WORKDIR /opt/Python-3.6.6
-#RUN ./configure
-#RUN make
-#RUN make install
-#
-#WORKDIR /
-#RUN git clone https://github.com/Bplotka/mutilate.git
-#
-#WORKDIR mutilate
-#
-#RUN git checkout masterless && scons
-#
-#COPY /dist/mutilate_wrapper.pex /usr/bin/mutilate_wrapper.pex
+COPY /dist/mutilate_wrapper.pex /usr/bin/mutilate_wrapper.pex

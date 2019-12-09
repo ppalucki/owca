@@ -58,11 +58,21 @@ class AnomalyStatistics:
 
 
 class DetectionRunner(Runner):
-    """DetectionRunner extends MeasurementRunner with ability to callback Detector,
+    """rst
+    DetectionRunner extends MeasurementRunner with ability to callback Detector,
     serialize received anomalies and storing them in anomalies_storage.
 
-    Arguments:
-        config: Runner configuration object.
+    - ``measurement_runner``: **MeasurementRunner**
+
+        Measurement runner object.
+
+    - ``allocator``: **AnomalyDetector**
+
+        Component that provides allocation logic.
+
+    - ``anomalies_storages``: **Storage** = *DEFAULT_STORAGE*
+
+        Storage to store serialized anomalies.
     """
 
     def __init__(
@@ -83,21 +93,20 @@ class DetectionRunner(Runner):
     def run(self):
         self._measurement_runner._run()
 
-    def _iterate_body(self, containers, platform, tasks_measurements,
-                      tasks_resources, tasks_labels, common_labels):
+    def _iterate_body(self, containers, platform, tasks_data, common_labels):
         """Detector callback body."""
 
         # Call Detector's detect function.
         detection_start = time.time()
         anomalies, extra_metrics = self._detector.detect(
-            platform, tasks_measurements, tasks_resources, tasks_labels)
+            platform, tasks_data)
         detection_duration = time.time() - detection_start
         profiler.register_duration('detect', detection_duration)
         log.debug('Anomalies detected: %d', len(anomalies))
 
         # Prepare anomaly metrics
-        anomaly_metrics = convert_anomalies_to_metrics(anomalies, tasks_labels)
-        update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_labels)
+        anomaly_metrics = convert_anomalies_to_metrics(anomalies, tasks_data)
+        update_anomalies_metrics_with_task_information(anomaly_metrics, tasks_data)
 
         # Prepare and send all output (anomalies) metrics.
         anomalies_package = MetricPackage(self._anomalies_storage)

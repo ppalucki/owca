@@ -23,43 +23,41 @@ except ImportError:
 from wca.runners import detection
 from wca.runners import allocation
 from wca.runners import measurement
-from wca.extra import static_allocator, aep_detector
+from wca.extra import static_allocator
 from wca import config
 from wca import detectors
 from wca import allocators
 from wca import mesos
 from wca import kubernetes
 from wca import storage
-from wca import storage_http
 from wca.extra import static_node
 from wca.extra import numa_allocator
 from wca import security
-from wca.metrics import DefaultDerivedMetricsGenerator
-from wca.perf_uncore import UncoreDerivedMetricsGenerator
+
+REGISTERED_COMPONENTS = [
+    measurement.MeasurementRunner,
+    allocation.AllocationRunner,
+    detection.DetectionRunner,
+    mesos.MesosNode,
+    kubernetes.KubernetesNode,
+    storage.LogStorage,
+    storage.KafkaStorage,
+    storage.FilterStorage,
+    detectors.NOPAnomalyDetector,
+    allocators.NOPAllocator,
+    allocators.AllocationConfiguration,
+    kubernetes.CgroupDriverType,
+    static_node.StaticNode,
+    numa_allocator.NUMAAllocator,
+    static_allocator.StaticAllocator,
+    security.SSL,
+    measurement.TaskLabelRegexGenerator,
+]
 
 
 def register_components(extra_components: List[str]):
-    config.register(detection.DetectionRunner)
-    config.register(allocation.AllocationRunner)
-    config.register(measurement.MeasurementRunner)
-    config.register(mesos.MesosNode)
-    config.register(kubernetes.KubernetesNode)
-    config.register(storage.LogStorage)
-    config.register(storage.KafkaStorage)
-    config.register(storage.FilterStorage)
-    config.register(storage_http.HTTPStorage)
-    config.register(detectors.NOPAnomalyDetector)
-    config.register(allocators.NOPAllocator)
-    config.register(allocators.AllocationConfiguration)
-    config.register(kubernetes.CgroupDriverType)
-    config.register(static_node.StaticNode)
-    config.register(numa_allocator.NUMAAllocator)
-    config.register(static_allocator.StaticAllocator)
-    config.register(security.SSL)
-    config.register(measurement.TaskLabelRegexGenerator)
-    config.register(aep_detector.AEPDetector)
-    config.register(DefaultDerivedMetricsGenerator)
-    config.register(UncoreDerivedMetricsGenerator)
+    for component in REGISTERED_COMPONENTS:
+        config.register(component)
 
     for component in extra_components:
         # Load external class ignored its requirements.

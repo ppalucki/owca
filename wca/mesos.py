@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from wca.config import assure_type, Numeric, Url
 from wca.metrics import Measurements, Metric
-from wca.nodes import Node, Task, TaskId, TaskSynchronizationException, TasksResources
+from wca.nodes import Node, Task, TaskId, TaskSynchronizationException, TaskResources
 from wca.resources import calculate_scalar_resources
 from wca.security import SSL, HTTPSAdapter
 
@@ -51,7 +51,7 @@ class MesosTask(Task):
         assure_type(self.cgroup_path, str)
         assure_type(self.subcgroups_paths, List[str])
         assure_type(self.labels, Dict[str, str])
-        assure_type(self.resources, TasksResources)
+        assure_type(self.resources, TaskResources)
         assure_type(self.executor_pid, int)
         assure_type(self.container_id, str)
         assure_type(self.executor_id, str)
@@ -69,27 +69,49 @@ def find_cgroup(pid):
     """ Returns cgroup_path relative to 'cpu' subsystem based on /proc/{pid}/cgroup
     with leading '/'"""
     fname = f'/proc/{pid}/cgroup'
-    with open(fname) as f:
-        lines = f.readlines()
-        for line in lines:
-            _, subsystems, path = line.strip().split(':')
-            subsystems = subsystems.split(',')
-            if CGROUP_DEFAULT_SUBSYSTEM in subsystems:
-                if path == '/':
-                    raise MesosCgroupNotFoundException(
-                        'Mesos executor pid=%s found in root cgroup ("/") for %s subsystem in %r. '
-                        'Possible explanation: '
-                        ' cgroups/cpu isolator is missing, initialization races'
-                        ' or unsupported Mesos software stack'
-                        % (pid, CGROUP_DEFAULT_SUBSYSTEM, fname))
-                return path
+    try:
+        with open(fname) as f:
+            lines = f.readlines()
+            for line in lines:
+                _, subsystems, path = line.strip().split(':')
+                subsystems = subsystems.split(',')
+                if CGROUP_DEFAULT_SUBSYSTEM in subsystems:
+                    if path == '/':
+                        raise MesosCgroupNotFoundException(
+                            'Mesos executor pid=%s found in '
+                            'root cgroup ("/") for %s subsystem in %r. '
+                            'Possible explanation: '
+                            ' cgroups/cpu isolator is missing, initialization races'
+                            ' or unsupported Mesos software stack'
+                            % (pid, CGROUP_DEFAULT_SUBSYSTEM, fname))
+                    return path
 
+            raise MesosCgroupNotFoundException(
+                '%r controller not found for pid=%r in %s' % (CGROUP_DEFAULT_SUBSYSTEM, pid, fname))
+    except FileNotFoundError:
+        # in case of races between discovery and task removal
         raise MesosCgroupNotFoundException(
-            '%r controller not found for pid=%r in %s' % (CGROUP_DEFAULT_SUBSYSTEM, pid, fname))
+            'cgroup file %s for pid %s not found' % (fname, pid))
 
 
 @dataclass
 class MesosNode(Node):
+    """rst
+    Class to communicate with orchestrator: Mesos.
+    Derived from abstract Node class providing get_tasks interface.
+
+    - ``mesos_agent_endpoint``: **Url** = *'https://127.0.0.1:5051'*
+
+        By default localhost.
+
+    - ``timeout``: **Numeric(1, 60)** = *5*
+
+        Timeout to access kubernetes agent [seconds].
+
+    - ``ssl``: **Optional[SSL]** = *None*
+
+        ssl object used to communicate with kubernetes
+    """
     mesos_agent_endpoint: Url = 'https://127.0.0.1:5051'
 
     # Timeout to access mesos agent.

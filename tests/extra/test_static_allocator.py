@@ -17,6 +17,7 @@ import pytest
 
 from wca.allocators import RDTAllocation
 from wca.extra.static_allocator import StaticAllocator, _build_allocations_from_rules
+from tests.testing import task_data
 
 
 @patch('os.path.exists', Mock(return_value=True))
@@ -26,13 +27,11 @@ def test_static_allocator(allocate_according_rules_mock, load_config_mock):
     static_allocator = StaticAllocator(
         config='somefile', rules=[{'allocations': {'cpu_quota': 0.5}}])
     platform_mock = Mock()
-    measurements = {'task1': {}}
-    resources = {'task1': {}}
-    labels = {'task1': {'foo': 'bar'}}
-    allocations = {'task1': {'cpu_quota': 1.0}}
 
-    assert static_allocator.allocate(platform_mock, measurements,
-                                     resources, labels, allocations) == ({}, [], [])
+    tasks_data = {
+            't1_task_id': task_data('/t1', labels={'foo': 'bar'}, resources={'cpu_quota': 1.0})}
+
+    assert static_allocator.allocate(platform_mock, tasks_data) == ({}, [], [])
 
     allocate_according_rules_mock.assert_called_once()
     load_config_mock.assert_called_once()
@@ -42,25 +41,27 @@ def test_static_allocator(allocate_according_rules_mock, load_config_mock):
     ([], {}),
     # default rule match all tasks
     ([{'allocations': {'cpu_quota': 2}}],
-     {'task1': {'cpu_quota': 2}, 'task2': {'cpu_quota': 2}}),
-    # additional rule to match by task_id (for task2)
+     {'t1_task_id': {'cpu_quota': 2}, 't2_task_id': {'cpu_quota': 2}}),
+    # additional rule to match by task_id (for t2)
     ([{'allocations': {'cpu_quota': 2}},
-      {'task_id': 'task2', 'allocations': {'cpu_quota': 3}}],
-     {'task1': {'cpu_quota': 2}, 'task2': {'cpu_quota': 3}}),
-    # additional rule to match by labels (for task1)
+      {'task_id': 't2_task_id', 'allocations': {'cpu_quota': 3}}],
+     {'t1_task_id': {'cpu_quota': 2}, 't2_task_id': {'cpu_quota': 3}}),
+    # additional rule to match by labels (for t1)
     ([{'allocations': {'cpu_quota': 2}},
-      {'task_id': 'task2', 'allocations': {'cpu_quota': 3}},
+      {'task_id': 't2_task_id', 'allocations': {'cpu_quota': 3}},
       {'labels': {'foo': 'bar'}, 'allocations': {'cpu_quota': 1}}
       ],
-     {'task1': {'cpu_quota': 1}, 'task2': {'cpu_quota': 3}}),
+     {'t1_task_id': {'cpu_quota': 1}, 't2_task_id': {'cpu_quota': 3}}),
     # RDT are properly created for just first task
-    ([{'task_id': 'task1', 'allocations': {'rdt': {'l3': 'somevalue'}}}],
-     {'task1': {'rdt': RDTAllocation(l3='somevalue')}}),
+    ([{'task_id': 't1_task_id', 'allocations': {'rdt': {'l3': 'somevalue'}}}],
+     {'t1_task_id': {'rdt': RDTAllocation(l3='somevalue')}}),
     # RDT are properly created for just first task with explicit name
-    ([{'task_id': 'task1', 'allocations': {'rdt': {'name': 'foo', 'l3': 'somevalue'}}}],
-     {'task1': {'rdt': RDTAllocation(name='foo', l3='somevalue')}}),
+    ([{'task_id': 't1_task_id', 'allocations': {'rdt': {'name': 'foo', 'l3': 'somevalue'}}}],
+     {'t1_task_id': {'rdt': RDTAllocation(name='foo', l3='somevalue')}}),
 ])
 def test_build_allocations_from_rules(rules, expected_tasks_allocations):
-    all_tasks_ids = {'task1', 'task2'}
-    labels = {'task1': {'foo': 'bar'}}
-    assert _build_allocations_from_rules(all_tasks_ids, labels, rules) == expected_tasks_allocations
+    tasks_data = {
+            't1_task_id': task_data('/t1', labels={'foo': 'bar'}),
+            't2_task_id': task_data('/t1')}
+
+    assert _build_allocations_from_rules(tasks_data, rules) == expected_tasks_allocations

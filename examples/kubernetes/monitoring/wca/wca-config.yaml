@@ -6,7 +6,7 @@
 # - HOSTNAME - default provided by OS
 
 runner: !MeasurementRunner
-  action_delay: 5.0
+  interval: 5.0
   rdt_enabled: False
   enable_derived_metrics: True
   node: !KubernetesNode
@@ -22,14 +22,6 @@ runner: !MeasurementRunner
 
   extra_labels:
     node: !Env HOSTNAME
-
-  ### ---- Required for 2LM demo
   event_names:
-    - instructions
-    - cycles
-    - cache_misses
-    - mem_load_retired_local_pmm__rd180   # Retired load instructions with local Optane DC persistent memory as the data source  and the data request missed L3
-    - mem_inst_retired_all_loads__rd081
-    - mem_inst_retired_all_stores__rd082
-    #- dtlb_load_misses__r080e             # https://elixir.bootlin.com/linux/latest/source/arch/x86/events/intel/core.c#L469
+    - task_cycles # do not remove: USED BY E2E tests
   wss_reset_interval: 1

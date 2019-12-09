@@ -31,8 +31,12 @@ Example of minimal configuration that uses ``AllocationRunner``:
 
 ``measurement_runner`` is responsible for discovering tasks running on ``node``, provides this information to
 ``allocator`` and then reconfigures resources like cpu shares/quota, cache or memory bandwidth.
+
+For more information about ``MeasurementRunner`` please refer to `Measurement API <measurement.rst>`_.
+
 All information about existing allocations, detected anomalies or other metrics are stored in
 corresponding storage classes.
+
 
 ``AllocationRunner`` class has the following required and optional attributes:
 
@@ -109,10 +113,7 @@ corresponding storage classes.
         def allocate(
                 self,
                 platform: Platform,
-                tasks_measurements: TasksMeasurements,
-                tasks_resources: TasksResources,
-                tasks_labels: TasksLabels,
-                tasks_allocations: TasksAllocations,
+                tasks_data: TasksData
         ) -> (TasksAllocations, List[Anomaly], List[Metric]):
             ...
 
@@ -126,7 +127,10 @@ Both ``TaskAllocations`` and ``TasksAllocations`` structures are simple python d
         QUOTA = 'cpu_quota'
         SHARES = 'cpu_shares'
         RDT = 'rdt'
-        CPUSET = 'cpu_set'
+        CPUSET_CPUS = 'cpuset_cpus'
+        CPUSET_MEMS = 'cpuset_mems'
+        CPUSET_MEMORY_MIGRATE = 'cpuset_memory_migrate'
+        MIGRATE_PAGES = 'migrate_pages'
 
     TaskId = str
     TaskAllocations = Dict[AllocationType, Union[float, int, RDTAllocation]]
@@ -178,7 +182,10 @@ Following built-in allocations types are supported:
 - ``cpu_quota`` - CPU Bandwidth Control called quota (normalized),
 - ``cpu_shares`` - CPU shares for Linux CFS (normalized),
 - ``rdt`` - Intel RDT resources.
-- ``cpuset_cpus`` - **experimental** support for cpu pinning(requires specific isolator for Mesos)
+- ``cpuset_cpus`` - support for cpu pinning(requires specific isolator for Mesos)
+- ``cpuset_mems`` - support for memory pinning
+- ``cpuset_memory_migrate`` - cgroups based memory migration to NUMA nodes
+- ``migrate_pages`` - syscall based memory migration to NUMA node
 
 cpu_quota
 ^^^^^^^^^
@@ -280,18 +287,32 @@ Refer to `Kernel x86/intel_rdt_ui.txt <https://www.kernel.org/doc/Documentation/
 
 
 cpuset_cpus
-^^^^^^^
-**Experimental** support for cpu pinning:
+^^^^^^^^^^^
+Support for CPU pinning.
 
-- requires specific isolator `cpuset_cpus` enabled for Mesos,
-- may conflict with ``cpu manager`` feature in Kubernetes
+**Requires specific isolator** ``cgroups/cpuset`` **enabled for Mesos!**
 
+**May conflict with** ``CPU manager`` **feature in Kubernetes!**
 
-cpu_set_memory_migrate
-^^^^^^^^^^^^^^^^^^^^^^
+cpuset_mems
+^^^^^^^^^^^
+Support for memory pinning.
 
-Allowed value (int): **0** or **1**
+**Requires specific isolator** ``cgroups/cpuset`` **enabled for Mesos!**
 
+**May conflict with** ``CPU manager`` **feature in Kubernetes!**
+
+cpuset_memory_migrate
+^^^^^^^^^^^^^^^^^^^^^
+If set, moves task's memory pages in use to a NUMA node provided in ``cpuset_mems``.
+
+Refer to `Memory migration <http://man7.org/linux/man-pages/man7/cpuset.7.html>`_ for further description.
+
+migrate_pages
+^^^^^^^^^^^^^
+Attempts to immediately (blocking) move task's memory pages to a NUMA node provided as an argument.
+
+Possible values are target NUMA node from 0 to ( **number of memory NUMA nodes** - 1 ).
 
 Extended topology information
 -----------------------------

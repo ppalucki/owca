@@ -133,9 +133,8 @@ def test_privileges_failed_perf_event_paranoid_set(mock_read_paranoid, mock_get_
              'it is needed to have: "/proc/sys/kernel/perf_event_paranoid" set to (0 or -1).')
 
 
-def test_privileges_raise_value_error_if_no_argument_is_true():
-    with pytest.raises(ValueError):
-        wca.security.are_privileges_sufficient(False, False, False)
+def test_privileges_return_true_no_permissions_needed():
+    assert wca.security.are_privileges_sufficient(False, False, False)
 
 
 def test_ssl_error_only_client_key():

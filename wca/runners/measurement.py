@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import abstractmethod
 import logging
 import time
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 
 import re
 import resource
+from abc import abstractmethod
 from dataclasses import dataclass
 
 from wca import platforms, profiling, perf_const as pc
@@ -27,13 +27,16 @@ from wca import security
 from wca.allocators import AllocationConfiguration
 from wca.config import Numeric, Str
 from wca.containers import ContainerManager, Container
-from wca.detectors import TasksMeasurements, TasksResources, TasksLabels, TaskResource
+from wca.detectors import TaskData, TasksData, TaskResource
 from wca.logger import trace, get_logging_metrics, TRACE
-from wca.metrics import Metric, MetricType, MetricName, MissingMeasurementException, \
-    export_metrics_from_measurements
-from wca.nodes import Node, Task, TaskSynchronizationException
-from wca.perf_uncore import UncorePerfCounters, _discover_pmu_uncore_imc_config, \
-    UNCORE_IMC_EVENTS, PMUNotAvailable, UncoreDerivedMetricsGenerator
+from wca.metrics import Metric, MetricName, MissingMeasurementException, \
+    export_metrics_from_measurements, METRICS_METADATA, MetricSource, MetricType, MetricUnit, \
+    MetricGranularity, MetricMetadata
+from wca.nodes import Node, Task
+from wca.nodes import TaskSynchronizationException
+from wca.perf_uncore import UncorePerfCounters, _discover_pmu_uncore_config, \
+    UNCORE_IMC_EVENTS, PMUNotAvailable, UncoreDerivedMetricsGenerator, \
+    UNCORE_UPI_EVENTS
 from wca.platforms import CPUCodeName
 from wca.profiling import profiler
 from wca.runners import Runner
@@ -42,10 +45,6 @@ from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
 log = logging.getLogger(__name__)
 
 _INITIALIZE_FAILURE_ERROR_CODE = 1
-
-
-DEFAULT_EVENTS = [MetricName.INSTRUCTIONS, MetricName.CYCLES,
-                  MetricName.CACHE_MISSES, MetricName.CACHE_REFERENCES, MetricName.MEMSTALL]
 
 
 class TaskLabelGenerator:
@@ -59,7 +58,9 @@ class TaskLabelGenerator:
 
 @dataclass
 class TaskLabelRegexGenerator(TaskLabelGenerator):
-    """Generate new label value based on other label value."""
+    """
+    Generate new label value based on other label value.
+    """
     pattern: str
     repl: str
     source: str = 'task_name'  # by default use `task_name`
@@ -87,66 +88,139 @@ class TaskLabelResourceGenerator(TaskLabelGenerator):
 
 
 class MeasurementRunner(Runner):
-    """MeasurementRunner run iterations to collect platform, resource, task measurements
+    """rst
+
+    MeasurementRunner run iterations to collect platform, resource, task measurements
     and store them in metrics_storage component.
 
-    Arguments:
-        node: Component used for tasks discovery.
-        metrics_storage: Storage to store platform, internal, resource and task metrics.
-            (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
-        action_delay: Iteration duration in seconds (None disables wait and iterations).
-            (defaults to 1 second)
-        rdt_enabled: Enables or disabled support for RDT monitoring.
-            (defaults to None(auto) based on platform capabilities)
-        gather_hw_mm_topology: Gather hardware/memory topology based on lshw and ipmctl.
-            (defaults to False)
-        extra_labels: Additional labels attached to every metrics.
-            (defaults to empty dict)
-        event_names: Perf counters to monitor.
-            (defaults to instructions, cycles, cache-misses, memstalls)
-        enable_derived_metrics: Enable derived metrics ips, ipc and cache_hit_ratio.
-            (based on enabled_event names, default to False)
-        enable_perf_uncore: Enable perf event uncore metrics.
-            (defaults to True)
-        task_label_generators: Component to generate additional labels for tasks.
-            (optional)
-        allocation_configuration: Allows fine grained control over allocations.
-            (defaults to AllocationConfiguration() instance)
-        wss_reset_interval: Interval of reseting wss.
-            (defaults to 0, every iteration)
+    - `node`: **type**:
+
+        Component used for tasks discovery.
+
+    - ``metrics_storage``: **type** = `DEFAULT_STORAGE`
+
+        Storage to store platform, internal, resource and task metrics.
+        (defaults to DEFAULT_STORAGE/LogStorage to output for standard error)
+
+    - ``interval``: **Numeric(0,60)** = *1.*
+
+        Iteration duration in seconds (None disables wait and iterations).
+        (defaults to 1 second)
+
+    - ``rdt_enabled``: **Optional[bool]** = *None*
+
+        Enables or disabled support for RDT monitoring.
+        (defaults to None(auto) based on platform capabilities)
+
+    - ``gather_hw_mm_topology``: **bool** = *False*
+
+        Gather hardware/memory topology based on lshw and ipmctl.
+        (defaults to False)
+
+    - ``extra_labels``: **Optional[Dict[Str, Str]]** = *None*
+
+        Additional labels attached to every metrics.
+        (defaults to empty dict)
+
+    - ``event_names``: **List[str]** = `[]`
+
+        Perf counters to monitor.
+        (defaults to not collect perf counters - empty list of events)
+
+    - ``perf_aggregate_cpus``: **bool** = `True`,
+        Should perf events collected for cgroups be aggregated (sum) by CPUs.
+        (defaults to true, to limit number of exposed metrics)
+
+    - ``enable_derived_metrics``: **bool** = *False*
+
+        Enable derived metrics ips, ipc and cache_hit_ratio.
+        (based on enabled_event names, default to False)
+
+    - ``enable_perf_uncore``: **bool** = *None*
+
+        Enable perf event uncore metrics.
+        (defaults to None - automatic, if available enable)
+
+    - ``task_label_generators``: **Optional[Dict[str, TaskLabelGenerator]]** = *None*
+
+        Component to generate additional labels for tasks.
+        (optional)
+
+    - ``allocation_configuration``: **Optional[AllocationConfiguration]** = *None*
+
+        Allows fine grained control over allocations.
+        (defaults to AllocationConfiguration() instance)
+
+    - ``wss_reset_interval``: **int** = *0*
+
+        Interval of reseting wss.
+        (defaults to 0, not measured)
+
+    - ``include_optional_labels``: **bool** = *False*
+
+        Include optional labels like: sockets, cpus, cpu_model
+        (defaults to False)
     """
 
     def __init__(
             self,
             node: Node,
             metrics_storage: Storage = DEFAULT_STORAGE,
-            action_delay: Numeric(0, 60) = 1.,
+            interval: Numeric(0, 60) = 1.,
             rdt_enabled: Optional[bool] = None,
             gather_hw_mm_topology: bool = False,
             extra_labels: Optional[Dict[Str, Str]] = None,
-            event_names: List[str] = DEFAULT_EVENTS,
+            event_names: List[str] = [],
+            perf_aggregate_cpus: bool = True,
             enable_derived_metrics: bool = False,
-            enable_perf_uncore: bool = True,
+            enable_perf_uncore: Optional[bool] = None,
             task_label_generators: Optional[Dict[str, TaskLabelGenerator]] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
-            wss_reset_interval: int = 0
-            ):
+            wss_reset_interval: int = 0,
+            include_optional_labels: bool = False
+    ):
 
         self._node = node
         self._metrics_storage = metrics_storage
-        self._action_delay = action_delay
+        self._interval = interval
         self._rdt_enabled = rdt_enabled
         self._gather_hw_mm_topology = gather_hw_mm_topology
+        self._include_optional_labels = include_optional_labels
 
-        # QUICK FIX for Str from ENV TODO: fix me
         self._extra_labels = {k: str(v) for k, v in
                               extra_labels.items()} if extra_labels else dict()
+        log.debug('Extra labels: %r', self._extra_labels)
         self._finish = False  # Guard to stop iterations.
         self._last_iteration = time.time()  # Used internally by wait function.
         self._allocation_configuration = allocation_configuration
         self._event_names = event_names
         log.info('Enabling %i perf events: %s', len(self._event_names),
                  ', '.join(self._event_names))
+        self._perf_aggregate_cpus = perf_aggregate_cpus
+
+        # TODO: fix those workarounds for dynamic levels and dynamic perf event metrics.
+        # First add dynamic metrics
+        for event_name in event_names:
+            # is dynamic raw event
+            if '__r' in event_name:
+                log.debug('Creating metadata for dynamic metric: %r', event_name)
+                METRICS_METADATA[event_name] = MetricMetadata(
+                    'Hardware PMU counter (raw event)',
+                    MetricType.COUNTER,
+                    MetricUnit.NUMERIC,
+                    MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
+                    MetricGranularity.TASK,
+                    [],
+                    'no (event_names)',
+                )
+        # We had the modify levels for all metrics
+        # The set proper levels based on perf_aggregate_cpus value
+        if not perf_aggregate_cpus:
+            log.debug('Enabling "cpu" level for PERF_SUBSYSTEM_WITH_CGROUPS metrics.')
+            for metric_metadata in METRICS_METADATA.values():
+                if metric_metadata.source == MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS:
+                    metric_metadata.levels = ['cpu']
+
         self._enable_derived_metrics = enable_derived_metrics
         self._enable_perf_uncore = enable_perf_uncore
 
@@ -160,19 +234,10 @@ class MeasurementRunner(Runner):
             }
         else:
             self._task_label_generators = task_label_generators
-        # Generate label value with cpu initial assignment, to simplify
-        #   management of distributed model system for plugin:
-        #   https://github.com/intel/platform-resource-manager/tree/master/prm"""
-        #
-        # To not risk subtle bugs in 1.0.x do not add it to _task_label_generators as default,
-        #   but make it hardcoded here and possible do be removed.
-        self._task_label_generators['initial_task_cpu_assignment'] = \
-            TaskLabelResourceGenerator('cpus')
 
         self._wss_reset_interval = wss_reset_interval
 
         self._uncore_pmu = None
-        self._write_to_cgroup = False
 
         self._initialize_rdt_callback = None
         self._iterate_body_callback = None
@@ -191,7 +256,7 @@ class MeasurementRunner(Runner):
         now = time.time()
         iteration_duration = now - self._last_iteration
 
-        residual_time = max(0., self._action_delay - iteration_duration)
+        residual_time = max(0., self._interval - iteration_duration)
         time.sleep(residual_time)
         self._last_iteration = time.time()
 
@@ -209,11 +274,13 @@ class MeasurementRunner(Runner):
             log.error('RDT explicitly enabled but not available - exiting!')
             return 1
 
-        use_cgroup = self._write_to_cgroup
+        # _allocation_configuration is set in allocation mode (AllocationRunner)
+        # so we need access to write in cgroups.
+        write_to_cgroup = self._allocation_configuration is not None
         use_resctrl = self._rdt_enabled
         use_perf = len(self._event_names) > 0
 
-        if not security.are_privileges_sufficient(use_cgroup, use_resctrl, use_perf):
+        if not security.are_privileges_sufficient(write_to_cgroup, use_resctrl, use_perf):
             return 1
 
         if self._rdt_enabled:
@@ -229,7 +296,11 @@ class MeasurementRunner(Runner):
                     return 1
 
         log.debug('rdt_enabled: %s', self._rdt_enabled)
-        platform, _, _ = platforms.collect_platform_information(self._rdt_enabled)
+        log.debug('gather_hw_mm_topology: %s', self._gather_hw_mm_topology)
+        platform, _, _ = platforms.collect_platform_information(
+            self._rdt_enabled,
+            gather_hw_mm_topology=self._gather_hw_mm_topology
+        )
         rdt_information = platform.rdt_information
 
         self._event_names = _filter_out_event_names_for_cpu(
@@ -247,31 +318,49 @@ class MeasurementRunner(Runner):
             event_names=self._event_names,
             enable_derived_metrics=self._enable_derived_metrics,
             wss_reset_interval=self._wss_reset_interval,
+            perf_aggregate_cpus=self._perf_aggregate_cpus
         )
 
-        self._init_uncore_pmu(self._enable_derived_metrics, self._enable_perf_uncore)
+        self._init_uncore_pmu(self._enable_derived_metrics, self._enable_perf_uncore, platform)
 
         return None
 
-    def _init_uncore_pmu(self, enable_derived_metrics, enable_perf_uncore):
+    def _init_uncore_pmu(self, enable_derived_metrics, enable_perf_uncore,
+                         platform: platforms.Platform):
+        strict_mode = enable_perf_uncore is True
+        _enable_perf_uncore = enable_perf_uncore in (True, None)
         self._uncore_pmu = None
         self._uncore_get_measurements = lambda: {}
-        if enable_perf_uncore:
+        if _enable_perf_uncore:
+            pmu_events = {}
             try:
-                cpus, pmu_events = _discover_pmu_uncore_imc_config(
-                    UNCORE_IMC_EVENTS)
+                # Cpus and events for perf uncore imc
+                cpus_imc, pmu_events_imc = _discover_pmu_uncore_config(
+                    UNCORE_IMC_EVENTS, 'uncore_imc_')
+                pmu_events.update(pmu_events_imc)
+                # Cpus and events for perf uncore upi
+                cpus_upi, pmu_events_upi = _discover_pmu_uncore_config(
+                    UNCORE_UPI_EVENTS, 'uncore_upi_')
+                pmu_events.update(pmu_events_upi)
+
+                cpus = list(set(cpus_imc + cpus_upi))
+
             except PMUNotAvailable as e:
                 self._uncore_pmu = None
                 self._uncore_get_measurements = lambda: {}
-                log.warning('Perf pmu metrics requested, but not available. '
-                            'Not collecting perf pmu metrics! '
-                            'error={}'.format(e))
-                return
+                if strict_mode:
+                    raise
+                else:
+                    log.warning('Perf pmu metrics requested, but not available. '
+                                'Not collecting perf pmu metrics! '
+                                'error={}'.format(e))
+                    return
 
             # Prepare uncore object
             self._uncore_pmu = UncorePerfCounters(
                 cpus=cpus,
-                pmu_events=pmu_events
+                pmu_events=pmu_events,
+                platform=platform,
             )
 
             # Wrap with derived..
@@ -308,14 +397,15 @@ class MeasurementRunner(Runner):
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(
             self._rdt_enabled, self._gather_hw_mm_topology,
-            extra_platform_measurements=extra_platform_measurements)
+            extra_platform_measurements=extra_platform_measurements,
+            include_optional_labels=False,
+        )
 
         # Common labels
         common_labels = dict(platform_labels, **self._extra_labels)
 
         try:
-            # Tasks data
-            tasks_measurements, tasks_resources, tasks_labels = _prepare_tasks_data(containers)
+            tasks_data = _prepare_tasks_data(containers)
         except MissingMeasurementException as e:
             log.error('Cannot synchronize tasks measurements (error=%s) - skip this iteration!', e)
             self._wait()
@@ -323,8 +413,7 @@ class MeasurementRunner(Runner):
 
         # Inject other runners code.
         if self._iterate_body_callback is not None:
-            self._iterate_body_callback(containers, platform, tasks_measurements,
-                                        tasks_resources, tasks_labels, common_labels)
+            self._iterate_body_callback(containers, platform, tasks_data, common_labels)
 
         self._wait()
 
@@ -335,7 +424,7 @@ class MeasurementRunner(Runner):
         metrics_package = MetricPackage(self._metrics_storage)
         metrics_package.add_metrics(_get_internal_metrics(tasks))
         metrics_package.add_metrics(platform_metrics)
-        metrics_package.add_metrics(_build_tasks_metrics(tasks_labels, tasks_measurements))
+        metrics_package.add_metrics(_build_tasks_metrics(tasks_data))
         metrics_package.add_metrics(profiling.profiler.get_metrics())
         metrics_package.add_metrics(get_logging_metrics())
         metrics_package.send(common_labels)
@@ -385,15 +474,13 @@ def append_additional_labels_to_tasks(task_label_generators: Dict[str, TaskLabel
 
 @profiler.profile_duration('prepare_tasks_data')
 @trace(log, verbose=False)
-def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
-        Tuple[TasksMeasurements, TasksResources, TasksLabels]:
+def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
     """Prepare all resource usage and resource allocation information and
     creates container-specific labels for all the generated metrics.
     """
-    # Prepare empty structures for return all the information.
-    tasks_measurements: TasksMeasurements = {}
-    tasks_resources: TasksResources = {}
-    tasks_labels: TasksLabels = {}
+    # Prepare empty structure for return all the information.
+    tasks_data: TasksData = {}
+    now = time.time()
 
     for task, container in containers.items():
         # Task measurements and measurements based metrics.
@@ -404,39 +491,44 @@ def _prepare_tasks_data(containers: Dict[Task, Container]) -> \
                         'for container {} - ignoring! '
                         '(because {})'.format(container, e))
             raise
-        # Extra metrics
-        task_measurements[MetricName.UP.value] = 1
-        task_measurements[MetricName.LAST_SEEN.value] = time.time()
-        #
+        # Extra internal metrics
+        task_measurements[MetricName.TASK_UP.value] = 1
+        task_measurements[MetricName.TASK_LAST_SEEN.value] = now
+
+        # Extra metrics from orchestrator about resources
         if TaskResource.CPUS in task.resources:
-            task_measurements[MetricName.CPUS.value] = task.resources[TaskResource.CPUS.value]
+            task_measurements[MetricName.TASK_REQUESTED_CPUS.value] = task.resources[
+                TaskResource.CPUS.value]
         if TaskResource.MEM in task.resources:
-            task_measurements[MetricName.MEM.value] = task.resources[TaskResource.MEM.value]
+            task_measurements[MetricName.TASK_REQUESTED_MEM_BYTES.value] = task.resources[
+                TaskResource.MEM.value]
 
-        task_labels = task.labels.copy()
+        tasks_data[task.task_id] = TaskData(
+            name=task.name,
+            task_id=task.task_id,
+            cgroup_path=task.cgroup_path,
+            subcgroups_paths=task.subcgroups_paths,
+            labels=task.labels,
+            resources=task.resources,
+            measurements=task_measurements
+        )
 
-        # Aggregate over all tasks.
-        tasks_labels[task.task_id] = task_labels
-        tasks_measurements[task.task_id] = task_measurements
-        tasks_resources[task.task_id] = task.resources
-
-    return tasks_measurements, tasks_resources, tasks_labels
+    return tasks_data
 
 
-def _build_tasks_metrics(tasks_labels: TasksLabels,
-                         tasks_measurements: TasksMeasurements) -> List[Metric]:
-    """TODO:  TBD ALSO ADDS PREFIX for name!"""
+def _build_tasks_metrics(tasks_data: TasksData) -> List[Metric]:
+    """Build metrics for all tasks."""
     tasks_metrics: List[Metric] = []
 
-    TASK_METRICS_PREFIX = 'task__'
-
-    for task_id, task_measurements in tasks_measurements.items():
-        task_metrics = export_metrics_from_measurements(TASK_METRICS_PREFIX, task_measurements)
+    for task, data in tasks_data.items():
+        task_metrics = export_metrics_from_measurements(data.measurements)
 
         # Decorate metrics with task specific labels.
         for task_metric in task_metrics:
-            task_metric.labels.update(tasks_labels[task_id])
+            task_metric.labels.update(data.labels)
+
         tasks_metrics += task_metrics
+
     return tasks_metrics
 
 
@@ -449,10 +541,10 @@ def _get_internal_metrics(tasks: List[Task]) -> List[Metric]:
     memory_usage_rss = memory_usage_rss_self + memory_usage_rss_children
 
     metrics = [
-        Metric(name='wca_up', type=MetricType.COUNTER, value=time.time()),
-        Metric(name='wca_tasks', type=MetricType.GAUGE, value=len(tasks)),
-        Metric(name='wca_memory_usage_bytes', type=MetricType.GAUGE,
-               value=int(memory_usage_rss * 1024)),
+        Metric.create_metric_with_metadata(MetricName.WCA_UP, value=time.time()),
+        Metric.create_metric_with_metadata(MetricName.WCA_TASKS, value=len(tasks)),
+        Metric.create_metric_with_metadata(MetricName.WCA_MEM_USAGE_BYTES,
+                                           value=int(memory_usage_rss * 1024)),
     ]
 
     return metrics

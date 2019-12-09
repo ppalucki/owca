@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import List, Dict
-from wca.nodes import TasksResources
+from wca.nodes import TaskResources
 
 
 # https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-memory
@@ -27,7 +27,7 @@ _UNITS = {'memory': _MEMORY_UNITS, 'ephemeral-storage': _MEMORY_UNITS,
           'cpu': _CPU_UNITS}
 
 
-def calculate_scalar_resources(task_resources: List[Dict[str, str]]) -> TasksResources:
+def calculate_scalar_resources(task_resources: List[Dict[str, str]]) -> TaskResources:
     """Returns flat dictionary with keys created as resource_name,
        e.g. 'cpus': '8.0' """
 
@@ -42,12 +42,12 @@ def calculate_scalar_resources(task_resources: List[Dict[str, str]]) -> TasksRes
     # https://github.com/apache/mesos/blob/776b31c6658be234497218a9a33e3961075c83e6/include/mesos/mesos.proto#L1236
     # This resources should be converted to bytes to match k8s.
     for res in ['disk', 'mem']:
-        resources[res] = resources[res] * _MEMORY_UNITS['Mi']
+        resources[res] = resources[res] * _MEMORY_UNITS['M']
 
     return resources
 
 
-def calculate_pod_resources(containers_spec: List[Dict[str, str]]) -> TasksResources:
+def calculate_pod_resources(containers_spec: List[Dict[str, str]]) -> TaskResources:
     """Returns flat dictionary with keys created as resource_type + '_' + resource_name,
        e.g. 'cpu_limits': '0.25' """
 

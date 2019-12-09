@@ -16,8 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.testing import allocation_metric, task, container
-from tests.testing import platform_mock
+from tests.testing import allocation_metric, task, task_data, container, platform_mock
 from wca.allocations import InvalidAllocations
 from wca.allocators import (AllocationType, RDTAllocation,
                             AllocationConfiguration, Allocator)
@@ -31,7 +30,8 @@ from wca.runners.allocation import (TasksAllocationsValues,
                                     TaskAllocationsValues,
                                     AllocationRunner,
                                     validate_shares_allocation_for_kubernetes,
-                                    _get_tasks_allocations)
+                                    _get_tasks_allocations,
+                                    _update_tasks_data_with_allocations)
 from wca.runners.measurement import MeasurementRunner
 from wca.storage import Storage
 
@@ -289,7 +289,7 @@ def test_rdt_initialize(rdt_max_values_mock, cleanup_resctrl_mock,
     runner = AllocationRunner(
         measurement_runner=MeasurementRunner(
             node=Mock(spec=Node),
-            action_delay=1,
+            interval=1,
             rdt_enabled=True,
             metrics_storage=Mock(spec=Storage),
             allocation_configuration=allocation_configuration,
@@ -344,4 +344,22 @@ def test_get_tasks_allocations_fail(*mock):
                       allocation_configuration=AllocationConfiguration(
                           cpu_quota_period=1000))
     }
+
     assert {} == _get_tasks_allocations(containers)
+
+
+@pytest.mark.parametrize(
+        'allocations, tasks_data, expected',
+        (({'t1_task_id': {AllocationType.SHARES: 10}},
+            {'t1_task_id': task_data('/t1')},
+            {'t1_task_id': task_data('/t1', allocations={AllocationType.SHARES: 10})}),
+         ({'t1_task_id': {AllocationType.SHARES: 10},
+           't2_task_id': {AllocationType.SHARES: 20}},
+            {'t1_task_id': task_data('/t1')},
+            {'t1_task_id': task_data('/t1', allocations={AllocationType.SHARES: 10})}),
+         ({}, {'t1_task_id': task_data('/t1'), 't2_task_id': task_data('/t2')},
+            {'t1_task_id': task_data('/t1'), 't2_task_id': task_data('/t2')}))
+        )
+def test_update_tasks_data_with_allocations(allocations, tasks_data, expected):
+    _update_tasks_data_with_allocations(tasks_data, allocations)
+    assert tasks_data == expected

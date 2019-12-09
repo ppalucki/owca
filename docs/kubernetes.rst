@@ -89,7 +89,7 @@ Example how add this files to Secrets:
 3. Add configuration file to ConfigMap
 
 Workload Collocation Agent requires configuration file.
-`Example Allocator as ConfigMap <../manifest/configmap.yaml>`_. To create the resource run:
+`Example Allocator as ConfigMap <../example/manifest/configmap.yaml>`_. To create the resource run:
 
 .. code-block:: bash
 

@@ -19,7 +19,7 @@ from typing import List, Dict, Union, Optional
 from dataclasses import dataclass
 
 from wca.config import Numeric, Str
-from wca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
+from wca.detectors import TasksData, Anomaly
 from wca.metrics import Metric
 from wca.nodes import TaskId
 from wca.platforms import Platform
@@ -33,7 +33,7 @@ class AllocationType(str, Enum):
     RDT = 'rdt'
     CPUSET_CPUS = 'cpuset_cpus'
     CPUSET_MEMS = 'cpuset_mems'
-    CPUSET_MEM_MIGRATE = 'cpu_set_memory_migrate'
+    CPUSET_MEMORY_MIGRATE = 'cpuset_memory_migrate'
     MIGRATE_PAGES = 'migrate_pages'
 
     def __repr__(self):
@@ -58,6 +58,33 @@ TasksAllocations = Dict[TaskId, TaskAllocations]
 
 @dataclass
 class AllocationConfiguration:
+    """rst
+
+    - ``cpu_quota_period``: **Numeric** = *1000*
+
+        Default value for cpu.cpu_period [ms] (used as denominator).
+
+    - ``cpu_shares_unit``: **Numeric** = *1000*
+
+        Multiplier of AllocationType.CPU_SHARES allocation value.
+        E.g. setting 'CPU_SHARES' to 2.0 will set 2000 shares effectively
+        in cgroup cpu controller.
+
+    - ``default_rdt_l3``: **Str** = *None*
+
+        Default resource allocation for last level cache (L3)
+        for root RDT group. Root RDT group is used as default group for all tasks,
+        unless explicitly reconfigured by allocator.
+        `None` (the default value) means no limit (effectively set to maximum available value).
+
+    - ``default_rdt_mb``: **Str** = *None*
+
+        Default resource allocation for memory bandwitdh
+        for root RDT group. Root RDT group is used as default group for all tasks,
+        unless explicitly reconfigured by allocator.
+        `None` (the default value) means no limit (effectively set to maximum available value).
+
+    """
     # Default value for cpu.cpu_period [ms] (used as denominator).
     cpu_quota_period: Numeric(1000, 1000000) = 1000
 
@@ -81,10 +108,7 @@ class Allocator(ABC):
     def allocate(
             self,
             platform: Platform,
-            tasks_measurements: TasksMeasurements,
-            tasks_resources: TasksResources,
-            tasks_labels: TasksLabels,
-            tasks_allocations: TasksAllocations,
+            tasks_data: TasksData
     ) -> (TasksAllocations, List[Anomaly], List[Metric]):
         """Resource allocation callback method, responsible for returning information
         how resources should be allocated.
@@ -101,7 +125,9 @@ class Allocator(ABC):
 
 
 class NOPAllocator(Allocator):
+    """
+    Dummy allocator which does nothing.
+    """
 
-    def allocate(self, platform, tasks_measurements, tasks_resources,
-                 tasks_labels, tasks_allocations):
+    def allocate(self, platform, tasks_data):
         return {}, [], []

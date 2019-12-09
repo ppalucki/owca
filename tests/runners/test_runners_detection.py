@@ -12,18 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest.mock import Mock
+
 import pytest
 
+from tests.testing import (metric, anomaly, assert_metric,
+                           redis_task_with_default_labels, prepare_runner_patches,
+                           platform_mock, TASK_CPU_USAGE, assert_subdict)
 from wca import storage
 from wca.detectors import (AnomalyDetector, LABEL_CONTENDED_TASK_ID,
                            LABEL_CONTENDING_WORKLOAD_INSTANCE,
                            LABEL_WORKLOAD_INSTANCE)
 from wca.mesos import MesosNode
+from wca.metrics import MetricName
 from wca.runners.detection import DetectionRunner
 from wca.runners.measurement import MeasurementRunner
-from tests.testing import (metric, anomaly, assert_metric,
-                           redis_task_with_default_labels, prepare_runner_patches,
-                           platform_mock, assert_subdict, TASK_CPU_USAGE)
 
 
 @prepare_runner_patches
@@ -49,15 +51,15 @@ def test_detection_runner(subcgroups):
     )
 
     runner = DetectionRunner(
-            measurement_runner=MeasurementRunner(
-                node=Mock(spec=MesosNode, get_tasks=Mock(return_value=[t1, t2])),
-                metrics_storage=Mock(spec=storage.Storage, store=Mock()),
-                rdt_enabled=False,
-                extra_labels=dict(extra_label='extra_value'),
-                ),
-            anomalies_storage=Mock(spec=storage.Storage, store=Mock()),
-            detector=detector_mock
-        )
+        measurement_runner=MeasurementRunner(
+            node=Mock(spec=MesosNode, get_tasks=Mock(return_value=[t1, t2])),
+            metrics_storage=Mock(spec=storage.Storage, store=Mock()),
+            rdt_enabled=False,
+            extra_labels=dict(extra_label='extra_value'),
+        ),
+        anomalies_storage=Mock(spec=storage.Storage, store=Mock()),
+        detector=detector_mock
+    )
 
     runner._measurement_runner._wait = Mock()
     runner._measurement_runner._initialize()
@@ -80,19 +82,22 @@ def test_detection_runner(subcgroups):
     assert_metric(got_anomalies_metrics, 'anomaly_last_occurrence')
 
     # Check that detector was called with proper arguments.
-    (platform, tasks_measurements,
-     tasks_resources, tasks_labels) = detector_mock.detect.mock_calls[0][1]
+    (platform, tasks_data) = detector_mock.detect.mock_calls[0][1]
     # Make sure that proper values are propagate to detect method for t1.
     assert platform == platform_mock
     # Measurements have to mach get_measurements mock from measurements_patch decorator.
-    cpu_usage = TASK_CPU_USAGE * (len(subcgroups) if subcgroups else 1)
-    assert_subdict(tasks_measurements, {t1.task_id: {'cpu_usage': cpu_usage}})
     # Labels should have extra LABEL_WORKLOAD_INSTANCE based on redis_task_with_default_labels
     # and sanitized version of other labels for mesos (without prefix).
-    assert_subdict(tasks_labels, {t1.task_id: {LABEL_WORKLOAD_INSTANCE: 'redis_6792_t1'}})
-    assert_subdict(tasks_labels, {t1.task_id: {'load_generator': 'rpc-perf-t1'}})
     # Resources should match resources from redis_task_with_default_labels
-    assert_subdict(tasks_resources, {t1.task_id: t1.resources})
-
     # Check any metrics for t2
-    assert_subdict(tasks_measurements, {t2.task_id: {'cpu_usage': cpu_usage}})
+    cpu_usage = TASK_CPU_USAGE * (len(subcgroups) if subcgroups else 1)
+
+    assert_subdict(tasks_data[t1.task_id].measurements,
+                   {MetricName.TASK_CPU_USAGE_SECONDS: cpu_usage})
+    assert_subdict(tasks_data[t1.task_id].labels,
+                   {LABEL_WORKLOAD_INSTANCE: 'redis_6792_t1', 'load_generator': 'rpc-perf-t1'})
+
+    assert_subdict(tasks_data[t1.task_id].resources, t1.resources)
+
+    assert_subdict(tasks_data[t1.task_id].measurements,
+                   {MetricName.TASK_CPU_USAGE_SECONDS: cpu_usage})

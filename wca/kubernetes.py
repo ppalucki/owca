@@ -13,24 +13,22 @@
 # limitations under the License.
 
 import logging
-import os
 import pathlib
-from enum import Enum
 from typing import Dict, List, Optional, Union
 from urllib.parse import urljoin
 
+import os
 import requests
 from dataclasses import dataclass, field
+from enum import Enum
 
 from wca import logger
-from wca.config import assure_type, Numeric, Url, Str, Path
 from wca.cgroups import CgroupSubsystem
-from wca.metrics import MetricName
+from wca.config import assure_type, Numeric, Url, Str, Path
+from wca.logger import TRACE
 from wca.nodes import Node, Task, TaskId, TaskSynchronizationException
 from wca.resources import calculate_pod_resources
 from wca.security import SSL, HTTPSAdapter
-
-DEFAULT_EVENTS = (MetricName.INSTRUCTIONS, MetricName.CYCLES, MetricName.CACHE_MISSES)
 
 log = logging.getLogger(__name__)
 
@@ -82,19 +80,57 @@ class QosClass(str, Enum):
 
 @dataclass
 class KubernetesNode(Node):
-    # We need to know what cgroup driver is used to properly build cgroup paths for pods.
-    #   Reference in source code for kubernetes version stable 1.13:
-    #   https://github.com/kubernetes/kubernetes/blob/v1.13.3/pkg/kubelet/cm/cgroup_manager_linux.go#L207
-    cgroup_driver: CgroupDriverType = field(
-        default_factory=lambda: CgroupDriverType(CgroupDriverType.CGROUPFS))
+    """rst
+    Class to communicate with orchestrator: Kubernetes.
+    Derived from abstract Node class providing get_tasks interface.
 
+    - ``cgroup_driver``: **CgroupDriverType** = *CgroupDriverType.CGROUPFS*
+
+        We need to know what cgroup driver is used to properly build cgroup paths for pods.
+        Reference in source code for kubernetes version stable 1.13:
+        https://github.com/kubernetes/kubernetes/blob/v1.13.3/pkg/kubelet/cm/cgroup_manager_linux.go#L207
+
+
+    - ``ssl``: **Optional[SSL]** = *None*
+
+        ssl object used to communicate with kubernetes
+
+    - ``client_token_path``: **Optional[Path]** = *SERVICE_TOKEN_FILENAME*
+
+        Default path is using by pods. You can override it to use wca outside pod.
+
+    - ``server_cert_ca_path``: **Optional[Path]** = *SERVICE_CERT_FILENAME*
+
+        Default path is using by pods. You can override it to use wca outside pod.
+
+    - ``kubelet_enabled``: **bool** = *False*
+
+        If true use **kubelet**, otherwise **kubeapi**.
+
+    - ``kubelet_endpoint``: **Url** = *'https://127.0.0.1:10250'*
+
+        By default use localhost.
+
+    - ``kubeapi_host``: **Str** = *None*
+
+    - ``kubeapi_port``: **Str** = *None*
+
+    - ``node_ip``: **Str** = *None*
+
+    - ``timeout``: **Numeric(1, 60)** = *5*
+
+        Timeout to access kubernetes agent [seconds].
+
+    - ``monitored_namespaces``: **List[Str]** =  *["default"]*
+
+        List of namespaces to monitor pods in.
+    """
+    cgroup_driver: CgroupDriverType = CgroupDriverType.CGROUPFS
     ssl: Optional[SSL] = None
 
-    # Default path is using by pods. You can override it to use wca outside pod.
     client_token_path: Optional[Path(absolute=True, mode=os.R_OK)] = SERVICE_TOKEN_FILENAME
     server_cert_ca_path: Optional[Path(absolute=True, mode=os.R_OK)] = SERVICE_CERT_FILENAME
 
-    # By default use localhost, however kubelet may not listen on it.
     kubelet_enabled: bool = False
     kubelet_endpoint: Url = 'https://127.0.0.1:10250'
 
@@ -102,10 +138,8 @@ class KubernetesNode(Node):
     kubeapi_port: Str = None  # Because !Env is String and another type cast might be problematic
     node_ip: Str = None
 
-    # Timeout to access kubernetes agent.
     timeout: Numeric(1, 60) = 5  # [s]
 
-    # List of namespaces to monitor pods in.
     monitored_namespaces: List[Str] = field(default_factory=lambda: ["default"])
 
     def _request_kubeapi(self):
@@ -170,7 +204,6 @@ class KubernetesNode(Node):
                 podlist_json_response = self._request_kubelet()
             else:
                 podlist_json_response = self._request_kubeapi()
-                # when using kubeapi we need this set
                 if self.node_ip is None:
                     raise ValueError("node_ip is not set in config")
         except requests.exceptions.ConnectionError as e:
@@ -183,19 +216,16 @@ class KubernetesNode(Node):
             container_statuses = pod.get('status').get('containerStatuses')
 
             # Kubeapi returns all pods in cluster
-            if not self.kubelet_enabled:
-                assert self.node_ip is not None, 'improperly configured kubernetes!'
-                # TODO: properly initialize Env special kind, because UserString is mutable
-                # and all str methods behave differently!!!
-                if str(self.node_ip).strip() != pod["status"]["hostIP"]:
-                    continue
+            if not self.kubelet_enabled and pod["status"]["hostIP"] != self.node_ip.strip():
+                continue
+
+            # Kubelet return all pods on the node. Ignore pods in not monitored namespaces.
+            if self.kubelet_enabled and \
+                    pod.get('metadata').get('namespace') not in self.monitored_namespaces:
+                continue
 
             # Lacking needed information.
             if not container_statuses:
-                continue
-
-            # Ignore pods in not monitored namespaces.
-            if pod.get('metadata').get('namespace') not in self.monitored_namespaces:
                 continue
 
             # Read into variables essential information about pod.
@@ -255,6 +285,9 @@ def _build_cgroup_path(cgroup_driver, qos: str, pod_id: str, container_id=''):
     """If cgroup for pod needed set container_id to empty string."""
     result: str = ""
     if cgroup_driver == CgroupDriverType.SYSTEMD:
+        pod_id = pod_id.replace("-", "_")
+        if container_id != "":
+            container_id = "docker-" + container_id + ".scope"
         result = os.path.join('/kubepods.slice',
                               'kubepods-{}.slice'.format(qos),
                               'kubepods-{}-pod{}.slice'.format(qos, pod_id),
@@ -273,17 +306,19 @@ def _build_cgroup_path(cgroup_driver, qos: str, pod_id: str, container_id=''):
                                        '' if qos == 'guaranteed' else qos,
                                        'pod{}'.format(pod_id.replace('-', '')))
 
+        log.log(TRACE, 'pod_id=%s container_id=%s cgroup locations %r and %r',
+                pod_id, container_id, pod_path, cutted_pod_path)
         if os.path.exists(CgroupSubsystem.CPU + pod_path):
-
+            log.log(TRACE, 'pod_id=%s container_id=%s cgroup path=%r location',
+                    pod_id, container_id, pod_path)
             result = os.path.join(pod_path, container_id, "")
-
         elif os.path.exists(CgroupSubsystem.CPU + cutted_pod_path):
-
             result = os.path.join(cutted_pod_path, container_id, "")
-
+            log.log(TRACE, 'pod_id=%s container_id=%s cgroup path=%r location',
+                    pod_id, container_id, cutted_pod_path)
         else:
             raise MissingCgroupException(
-                    'There is no pod cgroup matching pod_id: {} !'.format(pod_id))
+                'There is no pod cgroup matching pod_id: {} !'.format(pod_id))
 
     # Remove last slash from path.
     if len(result) > 1 and result[-1] == '/':

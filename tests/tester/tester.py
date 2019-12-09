@@ -12,7 +12,7 @@ from wca.logger import init_logging
 from wca.allocators import Allocator, TasksAllocations
 from wca.config import load_config
 from wca.cgroups import CgroupSubsystem, CgroupType
-from wca.detectors import TasksMeasurements, TasksResources, TasksLabels, Anomaly
+from wca.detectors import TasksData, Anomaly
 from wca.metrics import Metric
 from wca.nodes import Node, Task
 from wca.platforms import Platform
@@ -104,16 +104,12 @@ class IntegrationTester(Node, Allocator, Storage):
     def allocate(
             self,
             platform: Platform,
-            tasks_measurements: TasksMeasurements,
-            tasks_resources: TasksResources,
-            tasks_labels: TasksLabels,
-            tasks_allocations: TasksAllocations,
+            tasks_data: TasksData,
     ) -> (TasksAllocations, List[Anomaly], List[Metric]):
 
         allocator = self.testcases[self.current_iteration - 1]['allocator']
 
-        return allocator.allocate(
-                platform, tasks_measurements, tasks_resources, tasks_labels, tasks_allocations)
+        return allocator.allocate(platform, tasks_data)
 
     def store(self, metrics: List[Metric]) -> None:
         self.metrics.extend(metrics)
@@ -157,6 +153,10 @@ def _create_dumb_process(cgroup_path, command: str):
 
     with open(os.path.join(paths[CgroupType.CPU], 'tasks'), 'a') as f:
         f.write(str(p.pid))
+    with open(os.path.join(paths[CgroupType.MEMORY], 'tasks'), 'a') as f:
+        f.write(str(p.pid))
+    with open(os.path.join(paths[CgroupType.CPUSET], 'tasks'), 'a') as f:
+        f.write(str(p.pid))
     with open(os.path.join(paths[CgroupType.PERF_EVENT], 'tasks'), 'a') as f:
         f.write(str(p.pid))
     return p
@@ -182,7 +182,7 @@ def _create_cgroup(cgroup_path):
     try:
         os.makedirs(paths[CgroupType.MEMORY])
     except FileExistsError:
-        log.warning('cpu cgroup "{}" already exists'.format(cgroup_path))
+        log.warning('memory cgroup "{}" already exists'.format(cgroup_path))
 
     try:
         os.makedirs(paths[CgroupType.CPUSET])
@@ -216,7 +216,7 @@ def _delete_cgroup(cgroup_path):
     try:
         os.rmdir(paths[CgroupType.MEMORY])
     except FileNotFoundError:
-        log.warning('cpu cgroup "{}" not found'.format(cgroup_path))
+        log.warning('memory cgroup "{}" not found'.format(cgroup_path))
 
     try:
         os.rmdir(paths[CgroupType.CPUSET])
@@ -253,16 +253,17 @@ class FileCheck(Check):
 
         with open(self.path) as f:
             for line in f:
+                line_stripped = line.rstrip('\n\r')
                 if self.line:
-                    if not line.rstrip('\n\r') == self.line:
+                    if line_stripped != self.line:
                         raise CheckFailed(
                                 'Expected value "{}" but got "{}"\n{}'.
-                                format(self.line, line, str(self)))
+                                format(self.line, line_stripped, str(self)))
                 if self.subvalue:
-                    if self.subvalue not in line:
+                    if self.subvalue not in line_stripped:
                         raise CheckFailed(
                                 'Expected subvalue "{}" in "{}"\n{}'.
-                                format(self.subvalue, line, str(self)))
+                                format(self.subvalue, line_stripped, str(self)))
 
 
 @dataclass

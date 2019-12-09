@@ -18,12 +18,12 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from wca.metrics import Metric, Measurements, MetricType
-from wca.nodes import TaskId
+from wca.nodes import TaskId, Task
 from wca.platforms import Platform
 
 log = logging.getLogger(__name__)
@@ -34,15 +34,25 @@ LABEL_CONTENDING_WORKLOAD_INSTANCE = 'contending_workload_instance'
 LABEL_WORKLOAD_INSTANCE = 'workload_instance'
 LABEL_CONTENDING_TASK_ID = 'contending_task_id'
 LABEL_CONTENDED_TASK_ID = 'contended_task_id'
-TasksMeasurements = Dict[TaskId, Measurements]
-TasksResources = Dict[TaskId, Dict[str, float]]
-TaskLabels = Dict[str, str]
-TasksLabels = Dict[TaskId, TaskLabels]
+
+
+TaskMeasurements = Measurements
+TaskAllocations = Dict[str, str]
+
+
+@dataclass
+class TaskData(Task):
+    measurements: TaskMeasurements = field(default_factory=lambda: {})
+    allocations: Optional[TaskAllocations] = None
+
+
+TasksData = Dict[TaskId, TaskData]
 
 
 class TaskResource(str, Enum):
     CPUS = 'cpus'
     MEM = 'mem'
+    DISK = 'disk'
 
 
 class ContendedResource(str, Enum):
@@ -160,22 +170,23 @@ class AnomalyDetector(ABC):
     def detect(
             self,
             platform: Platform,
-            tasks_measurements: TasksMeasurements,
-            tasks_resources: TasksResources,
-            tasks_labels: TasksLabels
+            tasks_data: TasksData
     ) -> (List[Anomaly], List[Metric]):
         ...
 
 
 class NOPAnomalyDetector(AnomalyDetector):
+    """
+    Dummy detector which does nothing.
+    """
 
-    def detect(self, platform, tasks_measurements, tasks_resources, tasks_labels):
+    def detect(self, platform, tasks_data):
         return [], []
 
 
 def convert_anomalies_to_metrics(
         anomalies: List[Anomaly],
-        tasks_labels: TasksLabels) -> List[Metric]:
+        tasks_data: TasksData) -> List[Metric]:
     """Takes anomalies on input and convert them to something that can be
     stored persistently adding help/type fields and labels.
     # Note: anomaly metrics include metrics found in ContentionAnomaly.metrics.
@@ -188,23 +199,25 @@ def convert_anomalies_to_metrics(
         # Extra labels for anomaly metrics for information about task.
         if LABEL_CONTENDED_TASK_ID in anomaly_metric.labels:  # Only for anomaly metrics.
             contended_task_id = anomaly_metric.labels[LABEL_CONTENDED_TASK_ID]
-            anomaly_metric.labels.update(
-                tasks_labels.get(contended_task_id, {})
-            )
+            contended_task_data: TaskData = tasks_data[contended_task_id]
+            anomaly_metric.labels.update(contended_task_data.labels)
+
         if LABEL_CONTENDING_TASK_ID in anomaly_metric.labels:
             contending_task_id = anomaly_metric.labels[LABEL_CONTENDING_TASK_ID]
+            contending_task_data: TaskData = tasks_data[contending_task_id]
+            contending_task_labels = contending_task_data.labels
             anomaly_metric.labels[LABEL_CONTENDING_WORKLOAD_INSTANCE] = \
-                tasks_labels.get(contending_task_id, {}).get(
-                    LABEL_WORKLOAD_INSTANCE, WORKLOAD_NOT_FOUND)
+                contending_task_labels.get(LABEL_WORKLOAD_INSTANCE, WORKLOAD_NOT_FOUND)
 
     return anomaly_metrics
 
 
 def update_anomalies_metrics_with_task_information(anomaly_metrics: List[Metric],
-                                                   tasks_labels: Dict[str, Dict[str, str]],
+                                                   tasks_data: TasksData,
                                                    ):
     for anomaly_metric in anomaly_metrics:
         # Extra labels for anomaly metrics for information about task.
         if 'contended_task_id' in anomaly_metric.labels:  # Only for anomaly metrics.
             contended_task_id = anomaly_metric.labels['contended_task_id']
-            anomaly_metric.labels.update(tasks_labels.get(contended_task_id, {}))
+            contended_task_data: TaskData = tasks_data[contended_task_id]
+            anomaly_metric.labels.update(contended_task_data.labels)

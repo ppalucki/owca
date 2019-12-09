@@ -80,11 +80,11 @@ class GettingCapabilitiesFailed(Exception):
 
 
 def are_privileges_sufficient(
-        use_cgroup: bool = True, use_resctrl: bool = False, use_perf: bool = False) -> bool:
+        write_to_cgroup: bool = True, use_resctrl: bool = False, use_perf: bool = False) -> bool:
     """Check if user have sufficient privilages to collect specific metrics types."""
 
-    if not (use_cgroup or use_resctrl or use_perf):
-        raise ValueError('One of arguments must be True!')
+    if not (write_to_cgroup or use_resctrl or use_perf):
+        return True
 
     uid = os.geteuid()
 
@@ -100,7 +100,7 @@ def are_privileges_sufficient(
     are_sufficient_privileges = True
     error_log_message = ""
 
-    if use_cgroup:
+    if write_to_cgroup:
         has_cap_dac_override = capabilities.effective & CAP_DAC_OVERRIDE == CAP_DAC_OVERRIDE
         if not has_cap_dac_override:
             error_log_message += " CAP_DAC_OVERRIDE set."
@@ -167,6 +167,15 @@ class SetEffectiveRootUid:
 
 @dataclass
 class SSL:
+    """rst
+
+    Common configuration for SSL communication.
+
+    - ``server_verify``: **Union[bool, Path(absolute=True, mode=os.R_OK)]** = *True*
+    - ``client_cert_path``: **Optional[Path(absolute=True, mode=os.R_OK)]** = *None*
+    - ``client_key_path``: **Optional[Path(absolute=True, mode=os.R_OK)]** = *None*
+
+    """
     server_verify: Union[bool, Path(absolute=True, mode=os.R_OK)] = True
     client_cert_path: Optional[Path(absolute=True, mode=os.R_OK)] = None
     client_key_path: Optional[Path(absolute=True, mode=os.R_OK)] = None

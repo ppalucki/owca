@@ -12,33 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM centos:7 as builder
+FROM centos:7
 
-RUN curl -s https://packagecloud.io/install/repositories/akopytov/sysbench/script.rpm.sh | bash
+RUN yum -y update
+RUN yum -y install epel-release
 RUN yum -y install sysbench
 
 RUN useradd -M sysbench
-
-#RUN yum update -y
-#RUN yum install -y wget && \
-#    yum -y install make automake libtool pkgconfig libaio-devel && \
-#    yum -y install mariadb-devel openssl-devel && \
-#    yum -y install postgresql-devel
-#
-#RUN wget https://github.com/akopytov/sysbench/archive/1.0.18.tar.gz && \
-#    tar xfz 1.0.18.tar.gz && \
-#    cd ./sysbench-1.0.18 && \
-#    ./autogen.sh && \
-#    # Add --with-pgsql to build with PostgreSQL support
-#    ./configure && \
-#    make -j && \
-#    make install
-#
-#
-#FROM centos:7
-#RUN yum update -y
-#RUN yum install -y wget && \
-#    yum install -y epel-release && \
-#    yum makecache && \
-#    yum install -y python36 python3-distutils
-#

@@ -27,6 +27,7 @@ application_hosts:
         redis_rpc_perf: {'default': {'count': 0}}
         twemcache_rpc_perf: {'default': {'count': 0}}
         specjbb: {'default': {'count': 0}}
+        twemcache_mutilate: {'default': {'count': 0}}
 
   vars:
     # Variables for setting ansible.
@@ -108,6 +109,40 @@ application_hosts:
           rpc_perf:
             resources:
               cpu: 0.5
+              ram: 2
+              disk: 2
+
+      twemcache_mutilate:
+        small:
+          count: 1
+          slo: 3200
+          communication_port: 11311
+          twemcache:
+            replica_count: 1
+            resources:
+              cpu: 1
+              ram: 1
+              disk: 1
+          mutilate:
+            replica_count: 3
+            resources:
+              cpu: 1
+              ram: 1
+              disk: 1
+        big:
+          count: 1
+          slo: 3200
+          communication_port: 11411
+          twemcache:
+            replica_count: 1
+            resources:
+              cpu: 2
+              ram: 2
+              disk: 2
+          mutilate:
+            replica_count: 2
+            resources:
+              cpu: 2
               ram: 2
               disk: 2
 

@@ -30,9 +30,7 @@ Assuming that external implementation of detector is provided as
         def detect(
                 self,
                 platform: Platform,
-                tasks_measurements: TasksMeasurements,
-                tasks_resources: TasksResources,
-                tasks_labels: TasksLabels
+                tasks_data: TasksData,
                 ) -> (List[Anomaly], List[Metric]):
             anomalies = [
                 detectors.ContentionAnomaly(
@@ -59,9 +57,10 @@ when configuration file `mesos_external_detector.yaml <example/mesos_external_de
 .. code:: yaml
 
     runner: !DetectionRunner
-      config: !DetectionRunnerConfig
-        detector: !ExampleDetector
-          task_id: 'some_task_id'
+      measurement_runner: !MeasurementRunner
+        ...
+      detector: !ExampleDetector
+        task_id: 'some_task_id'
         ...
 
 

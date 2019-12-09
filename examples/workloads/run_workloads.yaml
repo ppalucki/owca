@@ -287,6 +287,46 @@
       tags: twemcache_rpc_perf
 
 
+    - name: Create twemcache/mutilate workload
+      vars:
+        workload_name: twemcache_mutilate
+        job_uniq_id: "{{communication_port}}"
+        application: twemcache
+        load_generator: mutilate
+      environment: "{{workload_version[job_id].env | default({}) }}"
+      block:
+      - name: Create twemcache for mutilate
+        vars:
+          job_id: twemcache
+          own_ip: "{{application_host_ip}}"
+        block:
+        - name: Mesos | Create twemcache
+          shell: "{{create_job_command}}"
+          loop: "{{instances_version_iterator}}"
+          when: orchestrator == "Mesos"
+        - name: Kubernetes | Create twemcache
+          shell: "{{create_job_command_k8s}}"
+          loop: "{{instances_version_iterator}}"
+          when: orchestrator == "Kubernetes"
+        tags: twemcache_mutilate--twemcache
+      - name: Create mutilate for twemcache
+        vars:
+          job_id: mutilate
+          own_ip: "{{load_generator_host_ip}}"
+        block:
+        - name: Mesos | Create mutilate
+          shell: "{{create_job_command}}"
+          loop: "{{instances_version_iterator}}"
+          when: orchestrator == "Mesos"
+        - name: Kubernetes | Create mutilate
+          shell: "{{create_job_command_k8s}}"
+          loop: "{{instances_version_iterator}}"
+          when: orchestrator == "Kubernetes"
+        tags: twemcache_mutilate--mutilate
+      delegate_to: localhost
+      tags: twemcache_mutilate
+
+
     - name: Create specjbb workload
       vars:
         workload_name: specjbb

@@ -1,0 +1,60 @@
+loggers:
+#  "wca.extra.numa_allocator": "trace"
+#  "wca.cgroups_allocations": "trace"
+  "wca": "debug"
+runner: !AllocationRunner
+  measurement_runner: !MeasurementRunner
+    interval: 5
+    node: !KubernetesNode
+      cgroup_driver: cgroupfs
+      ssl: !SSL
+        server_verify: false
+        client_cert_path: "/home/ppalucki/wca_remote_pycharm/apiserver-kubelet-client.crt"
+        client_key_path: "/home/ppalucki/wca_remote_pycharm/apiserver-kubelet-client.key"
+      kubelet_enabled: true
+      kubelet_endpoint: "https://100.64.176.37:10250"
+      monitored_namespaces: ["default"]
+
+    # Disable all measurements based on perf system and resctrl
+    enable_derived_metrics: true
+    gather_hw_mm_topology: false
+    perf_aggregate_cpus: true
+    event_names:
+      - task_instructions
+      - task_cycles
+      - task_cache_references
+      - task_cache_misses
+      - task_cache_references
+      - task_stalled_mem_loads
+      - task_offcore_requests_l3_miss_demand_data_rd
+      - task_offcore_requests_outstanding_l3_miss_demand_data_rd
+      - kurde_mem_inst_retired_all_loads__rD081
+
+    # Metrics to files
+    metrics_storage: !LogStorage
+      output_filename: metrics.prom
+      overwrite: true
+
+    task_label_generators:
+      aurora_instance: !TaskLabelRegexGenerator
+        pattern: '.*-(\d+)-.{36}'
+        repl: '\1'  # first match group
+        source: 'task_id' #default
+
+    extra_labels:
+      node: !Env HOSTNAME
+
+  allocator: !StaticAllocator
+    rules:
+    - name: default rule for all
+      allocations:
+        cpuset_cpus: "20-39"
+        cpuset_mems: "1"
+        migrate_pages: 1
+
+  allocations_storage: !LogStorage
+    output_filename: allocations.prom
+    overwrite: true
+  anomalies_storage: !LogStorage
+    output_filename: anomalies.prom
+    overwrite: true

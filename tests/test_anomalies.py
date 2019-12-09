@@ -16,27 +16,27 @@
 import pytest
 
 from wca.detectors import convert_anomalies_to_metrics
-from tests.testing import anomaly, anomaly_metrics
+from tests.testing import anomaly, anomaly_metrics, task_data
 
 
-@pytest.mark.parametrize('anomalies,tasks_labels,expected_metrics', (
+@pytest.mark.parametrize('anomalies,tasks_data,expected_metrics', (
     ([], {}, []),
     (
         [anomaly('t1', ['t2'])],
-        {'t1': {'workload_instance': 't1_workload_instance'},
-         't2': {'workload_instance': 't2_workload_instance'}},
+        {'t1': task_data('/t1', labels={'workload_instance': 't1_workload_instance'}),
+         't2': task_data('/t2', labels={'workload_instance': 't2_workload_instance'})},
         anomaly_metrics('t1', ['t2'],
                         {'t1': 't1_workload_instance', 't2': 't2_workload_instance'})),
     (
         [anomaly('t2', ['t1', 't3'])],
-        {'t1': {'workload_instance': 't1_workload_instance'},
-         't2': {'workload_instance': 't2_workload_instance'},
-         't3': {'workload_instance': 't3_workload_instance'}},
+        {'t1': task_data('/t1', labels={'workload_instance': 't1_workload_instance'}),
+         't2': task_data('/t2', labels={'workload_instance': 't2_workload_instance'}),
+         't3': task_data('/t3', labels={'workload_instance': 't3_workload_instance'})},
         anomaly_metrics('t2', ['t1', 't3'],
                         {'t1': 't1_workload_instance', 't2': 't2_workload_instance',
                          't3': 't3_workload_instance'})
     ),
 ))
-def test_convert_anomalies_to_metrics(anomalies, tasks_labels, expected_metrics):
-    metrics_got = convert_anomalies_to_metrics(anomalies, tasks_labels)
+def test_convert_anomalies_to_metrics(anomalies, tasks_data, expected_metrics):
+    metrics_got = convert_anomalies_to_metrics(anomalies, tasks_data)
     assert metrics_got == expected_metrics

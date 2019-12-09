@@ -13,16 +13,17 @@
 # limitations under the License.
 
 
-import pytest
-import requests
 from unittest.mock import patch
 
+import pytest
+import requests
+
+from tests.testing import create_json_fixture_mock
 from wca.config import ValidationError
 from wca.kubernetes import KubernetesNode, KubernetesTask, \
     _build_cgroup_path, are_all_tasks_of_single_qos, QOS_LABELNAME, \
     MissingCgroupException
 from wca.nodes import TaskSynchronizationException
-from tests.testing import create_json_fixture_mock
 
 
 def ktask(name, qos):
@@ -114,6 +115,7 @@ def test_invalid_kubelet_response(mock_path_exists, get_mock):
 _POD_ID = '12345-67890'
 _STATIC_POD_ID = '09876-54321'
 _CUTTED_STATIC_POD_ID = '0987654321'
+_CONTAINER_ID = '123456'
 
 
 def pod_cgroup_exists(pod_path):
@@ -121,18 +123,37 @@ def pod_cgroup_exists(pod_path):
         return True
     return False
 
+
 @pytest.mark.parametrize('qos, expected_cgroup_path', (
         ('burstable', '/kubepods.slice/kubepods-burstable.slice/'
-                      'kubepods-burstable-pod12345-67890.slice'),
+                      'kubepods-burstable-pod12345_67890.slice'),
         ('guaranteed', '/kubepods.slice/kubepods-guaranteed.slice/'
-                       'kubepods-guaranteed-pod12345-67890.slice'),
+                       'kubepods-guaranteed-pod12345_67890.slice'),
         ('besteffort', '/kubepods.slice/kubepods-besteffort.slice/'
-                       'kubepods-besteffort-pod12345-67890.slice'),
+                       'kubepods-besteffort-pod12345_67890.slice'),
 )
                          )
 def test_find_cgroup_path_for_pod_systemd(qos, expected_cgroup_path):
     assert expected_cgroup_path == _build_cgroup_path(cgroup_driver='systemd',
                                                       qos=qos, pod_id=_POD_ID)
+
+
+@pytest.mark.parametrize('qos, expected_cgroup_path', (
+        ('burstable', '/kubepods.slice/kubepods-burstable.slice/'
+                      'kubepods-burstable-pod12345_67890.slice/'
+                      'docker-123456.scope'),
+        ('guaranteed', '/kubepods.slice/kubepods-guaranteed.slice/'
+                       'kubepods-guaranteed-pod12345_67890.slice/'
+                       'docker-123456.scope'),
+        ('besteffort', '/kubepods.slice/kubepods-besteffort.slice/'
+                       'kubepods-besteffort-pod12345_67890.slice/'
+                       'docker-123456.scope'),
+)
+                         )
+def test_find_cgroup_path_for_pod_systemd_with_container_id(qos, expected_cgroup_path):
+    assert expected_cgroup_path == _build_cgroup_path(cgroup_driver='systemd',
+                                                      qos=qos, pod_id=_POD_ID,
+                                                      container_id=_CONTAINER_ID)
 
 
 @pytest.mark.parametrize('qos, expected_cgroup_path', (
@@ -146,6 +167,7 @@ def test_find_cgroup_path_for_pod_systemd(qos, expected_cgroup_path):
 def test_build_cgroup_path_pod_cgroupfs(mock_path_exists, qos, expected_cgroup_path):
     assert expected_cgroup_path == _build_cgroup_path(cgroup_driver='cgroupfs',
                                                       qos=qos, pod_id=_POD_ID)
+
 
 @pytest.mark.parametrize('qos, expected_cgroup_path', (
         ('burstable', '/kubepods/burstable/pod0987654321'),
