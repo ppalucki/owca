@@ -1,7 +1,10 @@
 resources:
-  - specjbb.yaml
+#  - specjbb.yaml
+#  - specjbb-config.yaml
   - controller.yaml
   - backend.yaml
+
+namespace: ddarczuk
 
 configMapGenerator:
   - name: specjbb
@@ -18,5 +21,16 @@ configMapGenerator:
       - experiment_name= #str(os.environ['EXPERIMENT_NAME'])  # no | yes
       - id_env= #str(os.environ['ID'])
 
-patchesStrategicMerge:
-- resources.yaml
+  - name: specjbb-java
+    literals:
+      - ParallelGCThreads=2
+      - contmeg=4
+      - contnew=4
+      - group_count=1
+
+  - name: specjbb-config
+    files:
+      - specjbb-config.yaml
+
+#patchesStrategicMerge:
+  #- resources.yaml

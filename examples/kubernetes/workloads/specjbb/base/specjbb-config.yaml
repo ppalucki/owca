@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: specjbb-config
+data:
+  qps: qps
+  controller_host_ip: 100.64.176.37
+  controller_listen_port: communication_port
+  config_path: config_path
+  threads_count: threads_count
