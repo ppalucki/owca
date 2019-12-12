@@ -9,7 +9,8 @@
 # 	* kafka_storage
 
 
-PEX_OPTIONS = -v -R component-licenses --cache-dir=.pex-build $(ADDITIONAL_PEX_OPTIONS)
+# For cache-dir $PWD is required, becuase pex 2.0.3 have some issues with relative directories.
+PEX_OPTIONS = -v -R component-licenses --cache-dir=${PWD}/.pex-build $(ADDITIONAL_PEX_OPTIONS)
 OPTIONAL_MODULES =
 ifeq ($(OPTIONAL_FEATURES),kafka_storage) 
 	OPTIONAL_MODULES = 'confluent-kafka-python'

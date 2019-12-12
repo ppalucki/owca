@@ -12,13 +12,12 @@ dataclasses = "==0.7"                 # 2018.10.20
 kazoo = "==2.6.1"                     # 2019.01.22
 
 [dev-packages]
-pex = "==1.6.12"                      # 2019.10.17
+pex = "==2.0.3"                       # 2019.12.06
 pytest = "==5.3.1"                    # 2019.11.26
 pytest-cov = "==2.8.1"                # 2019.10.05
 flake8 = "==3.7.9"                    # 2019.10.28
 setuptools_scm = "==3.3.3"            # 2019.01.16
 bandit = "==1.6.2"	                  # 2019.09.18
-v = {editable = true,version = "*"}
 
 [requires]
 python_version = "3.6"
