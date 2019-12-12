@@ -57,7 +57,7 @@ junit:
 	@echo Running unit tests.	
 	pipenv run env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --junitxml=unit_results.xml -vvv -s --ignore=tests/e2e/test_wca_metrics.py
 
-wca_package_in_docker: DOCKER_OPTIONS ?= ""
+wca_package_in_docker: DOCKER_OPTIONS ?=
 wca_package_in_docker: WCA_IMAGE ?= wca
 wca_package_in_docker: WCA_TAG ?= $(shell git rev-parse HEAD)
 wca_package_in_docker:
