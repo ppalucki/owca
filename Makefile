@@ -13,7 +13,7 @@
 PEX_OPTIONS = -v -R component-licenses --cache-dir=${PWD}/.pex-build $(ADDITIONAL_PEX_OPTIONS)
 OPTIONAL_MODULES =
 ifeq ($(OPTIONAL_FEATURES),kafka_storage) 
-	OPTIONAL_MODULES = 'confluent-kafka-python'
+	OPTIONAL_MODULES = './confluent-kafka-python'
 endif
 
 
