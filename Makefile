@@ -40,6 +40,10 @@ bandit_pex:
 	pipenv run bandit -r dist/wca-pex-bandit/.deps -s B101 -f html -o wca-pex-bandit.html || true
 	rm -rf dist/wca-pex-bandit
 
+check_outdated:
+	@echo Checking out of date dependencies.
+	pipenv run pip list --outdated
+
 unit:
 	@echo Running unit tests.
 	pipenv run env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/test_wca_metrics.py
@@ -52,12 +56,13 @@ junit:
 	@echo Running unit tests.	
 	pipenv run env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --junitxml=unit_results.xml -vvv -s --ignore=tests/e2e/test_wca_metrics.py
 
+wca_package_in_docker: DOCKER_OPTIONS ?= ""
 wca_package_in_docker: WCA_IMAGE ?= wca
 wca_package_in_docker: WCA_TAG ?= $(shell git rev-parse HEAD)
 wca_package_in_docker:
 	@echo Building wca pex file inside docker and copying to ./dist/wca.pex
 	# target: standalone
-	sudo docker build --build-arg MAKE_WCA_PACKAGE=yes --network host --target standalone -f Dockerfile -t $(WCA_IMAGE):$(WCA_TAG) .
+	sudo docker build --build-arg MAKE_WCA_PACKAGE=yes $(DOCKER_OPTIONS) --network host --target standalone -f Dockerfile -t $(WCA_IMAGE):$(WCA_TAG) .
 	# Extract pex to dist folder
 	rm -rf .cidfile && sudo docker create --cidfile=.cidfile $(WCA_IMAGE):$(WCA_TAG)
 	CID=$$(cat .cidfile); \
@@ -156,7 +161,7 @@ _unsafe_wrapper_package:
 	./dist/wrapper.pex --help >/dev/null
 #-----------------------------------------------------------------------------------------------
 
-check: flake8 bandit unit
+check: flake8 unit bandit check_outdated
 
 dist: wca_package wrapper_package
 
