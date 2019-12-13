@@ -238,7 +238,7 @@ pipeline {
                         withCredentials([file(credentialsId: 'specjbb', variable: 'SPECJBB_TAR')]) {
                             sh '''
                             IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/specjbb:${GIT_COMMIT}
-                            BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/specjbbj:${GIT_BRANCH}
+                            BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/specjbb:${GIT_BRANCH}
                             IMAGE_DIR=${WORKSPACE}/examples/workloads/specjbb
                             cp ${SPECJBB_TAR} ${IMAGE_DIR}
                             tar -xC ${IMAGE_DIR} -f ${IMAGE_DIR}/specjbb.tar.bz2
