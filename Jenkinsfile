@@ -94,9 +94,12 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/redis:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/redis:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/redis
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -106,10 +109,13 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/memtier_benchmark:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/memtier_benchmark:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/memtier_benchmark
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -119,10 +125,13 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/stress_ng:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/stress_ng:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/stress_ng
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -132,10 +141,13 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/rpc_perf:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/rpc_perf:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/rpc_perf
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -145,10 +157,13 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/twemcache:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/twemcache:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/twemcache
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -158,10 +173,13 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/ycsb:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/ycsb:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/ycsb
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -171,10 +189,13 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/cassandra_stress:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/cassandra_stress':${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/cassandra_stress
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -184,10 +205,13 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/sysbench:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/sysbench:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/sysbench
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -197,10 +221,13 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/mutilate:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/mutilate:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/mutilate
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                     docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
                     '''
                     }
                 }
@@ -211,12 +238,15 @@ pipeline {
                         withCredentials([file(credentialsId: 'specjbb', variable: 'SPECJBB_TAR')]) {
                             sh '''
                             IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/specjbb:${GIT_COMMIT}
+                            BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/specjbbj:${GIT_BRANCH}
                             IMAGE_DIR=${WORKSPACE}/examples/workloads/specjbb
                             cp ${SPECJBB_TAR} ${IMAGE_DIR}
                             tar -xC ${IMAGE_DIR} -f ${IMAGE_DIR}/specjbb.tar.bz2
                             cp -r dist ${IMAGE_DIR}
                             docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
                             docker push ${IMAGE_NAME}
+                            docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                            docker push ${BRANCH_IMAGE_NAME}
                             '''
                         }
                     }
