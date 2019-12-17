@@ -219,6 +219,8 @@ def _create_file_from_fd(pfd):
         errno = ctypes.get_errno()
         if errno == INVALID_ARG_ERRNO:
             raise UnableToOpenPerfEvents('Invalid perf event file descriptor: {}, {}. '
+                                         'For cgroup based perf counters it may indicate there is '
+                                         'no enough hardware counters for measure all metrics!'
                                          'If traceback shows problem in perf_uncore '
                                          'it could be problem with PERF_FORMAT_GROUP in'
                                          'perf_event_attr structure for perf_event_open syscall.'

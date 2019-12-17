@@ -197,8 +197,6 @@ class MeasurementRunner(Runner):
         self._last_iteration = time.time()  # Used internally by wait function.
         self._allocation_configuration = allocation_configuration
         self._event_names = event_names
-        log.info('Enabling %i perf events: %s', len(self._event_names),
-                 ', '.join(self._event_names))
         self._perf_aggregate_cpus = perf_aggregate_cpus
 
         # TODO: fix those workarounds for dynamic levels and dynamic perf event metrics.
@@ -308,6 +306,25 @@ class MeasurementRunner(Runner):
 
         self._event_names = _filter_out_event_names_for_cpu(
             self._event_names, platform.cpu_codename)
+
+        log.info('Enabling %i perf events (for cgroups).', len(self._event_names))
+        log.debug('Enabling perf events: %s', ', '.join(self._event_names))
+        # Check and assume most popular number of available number of HW counters.
+        if self._event_names:
+            # Exclude fixed counters.
+            number_of_events = len([e for e in self._event_names if e not in
+                                    [MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CYCLES]])
+            # 8 with no HT and 4 for HT excluding fixed counters and check if there is enough
+            # counters to measure generic events.
+            # Validated for BDX, SKX and CLX (cpuid -1 -l 0xa)
+            ht_enabled = (platform.cpus != platform.cores)
+            max_number_of_events = 4 if ht_enabled else 8
+            log.debug('HT state: %s, assuming number of available HW counters: %i (required=%i)',
+                      ht_enabled, max_number_of_events, number_of_events)
+            if number_of_events > max_number_of_events:
+                log.error('Not enough hardware counters to measure %i programmable events '
+                          '(available is %s!)', number_of_events, max_number_of_events)
+                return 1
 
         # We currently do not support RDT without monitoring.
         if self._rdt_enabled and not rdt_information.is_monitoring_enabled():
