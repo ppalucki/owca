@@ -1,0 +1,206 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: specjbb-group
+spec:
+  serviceName: specjbb-group
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app: specjbb-group
+  template:
+    metadata:
+      labels:
+        app: specjbb-group
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node37
+      serviceAccountName: specjbb
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: backend
+          image: specjbb
+          env:
+            - name: controller_count
+              value: "1"
+            - name: group_count
+              value: "1"
+            # Pod information
+            - name: podname
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            # Process information
+            - name: THREADS
+              valueFrom: {configMapKeyRef: { name: specjbb, key: threads }}
+            - name: cpus
+              valueFrom: {configMapKeyRef: { name: specjbb, key: cpus }}
+            - name: memory
+              valueFrom: {configMapKeyRef: { name: specjbb, key: memory }}
+            - name: report_interval
+              valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
+            - name: cores
+              valueFrom: {configMapKeyRef: { name: specjbb, key: cores }}
+            - name: id_env
+              valueFrom: {configMapKeyRef: { name: specjbb, key: id_env }}
+            ## java_opts_inx
+            - name: backendimeg
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: backendimeg }}
+            - name: backendinew
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: backendinew }}
+            - name: ParallelGCThreads
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: ParallelGCThreads }}
+            - name: gc_size
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: gc_size }}
+            - name: worker_size
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: worker_size }}
+          #
+          # description of vars:  >> xmx <- backendimeg, xms <- backendimeg, xmn <- backendinew <<
+          # margin  # [GB] margin for assigning memory to JVM inside a group.
+          # xmn_to_xms # read xmn xms params for JVM; here we assign 0.94 as experimentally checked parameter;
+          command:
+            - sh
+            - -c
+            - >
+              identifier=${podname#specjbb-group-};
+              echo identifier: $identifier;
+              service=${identifier%-+([[:digit:]])};
+              echo service: $service;
+              target=specjbb-controller-${identifier}.specjbb-controller-${service};
+              echo targeting: $target;
+
+              target=specjbb-controller;
+              echo targeting: $target;
+
+              group_identifier=$(($identifier%$group_count));
+              group=GRP$group_identifier;
+
+              worker_size=$((($cores/$group_count)*2));
+
+              gc_size=$(($cores / $group_count));
+
+              mr_size=$(($group_count*2));
+
+              maxheap=$((1500*(($cores-8)/$group_count)/1024));
+
+              ram=$((($maxheap*125)/100));
+              maxram=${ram}g;
+
+              echo worker_size: $worker_size gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
+
+              margin=3;
+              backendimeg=${maxheap}g;
+              xmn_to_xms="0.94";
+              backendinew=$(echo "$maxheap*$xmn_to_xms" | bc);
+              backendinew=${backendinew}g;
+
+              java
+              -Dcom.sun.management.jmxremote.port=8686
+              -Dcom.sun.management.jmxremote.authenticate=false
+              -Dcom.sun.management.jmxremote.ssl=false
+              -Xmx${backendimeg}
+              -Xms${backendimeg}
+              -Xmn${backendinew}
+              -XX:-UseAdaptiveSizePolicy
+              -XX:ParallelGCThreads=$(ParallelGCThreads)
+              -XX:MaxRAM=${maxram}
+              -XX:MaxTenuringThreshold=15
+              -XX:-UseBiasedLocking
+              -XX:SurvivorRatio=10
+              -XX:TargetSurvivorRatio=90
+              -XX:ParallelGCThreads=$(gc_size)
+              -XX:+AggressiveOpts
+              -XX:+AlwaysPreTouch
+              -XX:+UseParallelOldGC
+              -XX:+PrintGCDetails
+              -XX:+PrintHeapAtGC
+              -XX:+PrintGCTimeStamps
+              -Dspecjbb.forkjoin.workers=$worker_size
+              -Dspecjbb.mapreducer.pool.size=${mr_size}
+              -Dspecjbb.controller.type=PRESET
+              -Dspecjbb.controller.host=$target
+              -jar /home/specjbb/specjbb2015.jar
+              -m backend
+              -G ${group}
+              -J JVM_A
+
+        - name: injector
+          image: specjbb
+          env:
+            # Pod information
+            - name: podname
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            # Process information
+            - name: THREADS
+              valueFrom: {configMapKeyRef: { name: specjbb, key: threads }}
+            - name: cpus
+              valueFrom: {configMapKeyRef: { name: specjbb, key: cpus }}
+            - name: memory
+              valueFrom: {configMapKeyRef: { name: specjbb, key: memory }}
+            - name: report_interval
+              valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
+            - name: cores
+              valueFrom: {configMapKeyRef: { name: specjbb, key: cores }}
+            - name: id_env
+              valueFrom: {configMapKeyRef: { name: specjbb, key: id_env }}
+            ## java_opts_inx
+            - name: tximeg
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: tximeg }}
+            - name: txinew
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: txinew }}
+            - name: ParallelGCThreads
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: ParallelGCThreads }}
+          command:
+            - sh
+            - -c
+            - >
+              identifier=${podname#specjbb-group-};
+              echo identifier: $identifier;
+              service=${identifier%-+([[:digit:]])};
+              echo service: $service;
+              target=specjbb-controller-${identifier}.specjbb-controller-${service};
+              echo targeting: $target;
+
+              target=specjbb-controller;
+              echo targeting: $target;
+
+              group_identifier=$(($identifier%$group_count));
+              group=GRP$group_identifier;
+
+
+              worker_size=$((($cores/$group_count)*2));
+
+              gc_size=$(($cores / $group_count));
+
+              mr_size=$(($group_count*2));
+
+              maxheap=$((1500*(($cores-8)/$group_count)/1024));
+
+              ram=$((($maxheap*125)/100));
+              maxram=${ram}g;
+
+              echo worker_size: $worker_size gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
+
+              java
+              -Xmx${tximeg}
+              -Xms${tximeg}
+              -Xmn${txinew}
+              -XX:+AlwaysPreTouch
+              -XX:ParallelGCThreads=$(ParallelGCThreads)
+              -Dspecjbb.controller.host=$target
+              -Dspecjbb.controller.type=PRESET
+              -jar /home/specjbb/specjbb2015.jar
+              -m txinjector
+              -G ${group}
+              -J JVM_B
+
+        - name: buzzy
+          image: specjbb
+          command:
+            - sh
+            - -c
+            - >
+              sleep 100000
+
+  # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
+  # when using commonLabels
+  volumeClaimTemplates: []

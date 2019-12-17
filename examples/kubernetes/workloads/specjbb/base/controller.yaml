@@ -26,10 +26,15 @@ spec:
       nodeSelector:
 #        goal: service
         kubernetes.io/hostname: node37
+      serviceAccountName: specjbb
       terminationGracePeriodSeconds: 0
       containers:
-        - name: controler
+        - name: controller
           env:
+            # Pod information
+            - name: podname
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            # Process information
             - name: THREADS
               valueFrom: {configMapKeyRef: { name: specjbb, key: threads }}
             - name: cpus
@@ -38,18 +43,10 @@ spec:
               valueFrom: {configMapKeyRef: { name: specjbb, key: memory }}
             - name: report_interval
               valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
-            - name: extra
-              valueFrom: {configMapKeyRef: { name: specjbb, key: extra }}
-            - name: base_cores
-              valueFrom: {configMapKeyRef: { name: specjbb, key: base_cores }}
-            - name: use_numa_binding
-              valueFrom: {configMapKeyRef: { name: specjbb, key: use_numa_binding }}
-            - name: experiment_name
-              valueFrom: {configMapKeyRef: { name: specjbb, key: experiment_name }}
+            - name: cores
+              valueFrom: {configMapKeyRef: { name: specjbb, key: cores }}
             - name: id_env
               valueFrom: {configMapKeyRef: { name: specjbb, key: id_env }}
-            - name: specjbb_jar
-              valueFrom: {configMapKeyRef: { name: specjbb, key: specjbb_jar }}
             # Java
             ## java_opts_c
             - name: contmeg
@@ -58,41 +55,98 @@ spec:
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: contnew }}
             - name: ParallelGCThreads
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: ParallelGCThreads }}
-            ## spec_opts_c
+            # Spcejbb information
+            ## group_count set in replicas
             - name: group_count
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: group_count }}
-
+              value: "1"               #valueFrom: {fieldRef: {fieldPath: metadata.annotations}}
+            ## Specjbb-config
+            - name: specjbb.txi.pergroup.count
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.txi.pergroup.count }}
+            - name: specjbb.controller.rtcurve.warmup.step
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rtcurve.warmup.step }}
+            - name: specjbb.controller.rtcurve.step
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rtcurve.step }}
+            - name: specjbb.controller.type
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.type }}
           image: specjbb
           command:
             - sh
             - -c
+            # 1.
+            # worker_size # used as instances of grp tasks
+            # gc_size     # -XX:ParallelGCThreads - equals to number of cores for backend
+            # mr_size     # default: max(Runtime.getRuntime().availableProcessors(), specjbb.group.count * (specjbb.txi.pergroup.count +1))
+            #             # according: https://www.spec.org/jbb2015/docs/runrules.pdf
+            # maxheap     # 1500 -> ram megabytes per core
+            # maxram      # by Ismo to set -XX:MaxRAM=$maxram
+            # 2. Set target to connection between
+            # KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
+            # curl -sSk -H "Authorization: Bearer $KUBE_TOKEN"  https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/apis/apps/v1/namespaces/ddarczuk/statefulsets/specjbb-group | jq -r '.status.replicas';
+            # distcontroller
             - >
+
+              worker_size=$((($cores/$group_count)*2));
+
+              gc_size=$(($cores / $group_count));
+
+              mr_size=$(($group_count*2));
+
+              maxheap=$((1500*(($cores-8)/$group_count)/1024));
+
+              ram=$((($maxheap*125)/100));
+              maxram=${ram}g;
+
+              echo worker_size: $worker_size gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
+
               target=specjbb-controller;
               echo targeting: $target;
-              java
-              -Xmx$(contmeg)G -Xms$(contmeg)G -Xmn$(contnew)G -XX:+AlwaysPreTouch -XX:ParallelGCThreads=$(ParallelGCThreads)
-              -Dspecjbb.group.count=1 -Dspecjbb.txi.pergroup.count=1 -Dspecjbb.controller.rtcurve.warmup.step=0.5
-              -Dspecjbb.forkjoin.workers=1
-              -Dspecjbb.controller.host=$target
-              -jar /home/specjbb/specjbb2015.jar
-              -m distcontroller  -v
 
-        - name: buzzy
-          image: specjbb
-          command:
-            - sh
-            - -c
-            - >
-              sleep 100000
+              java
+              -Xmx${contmeg}
+              -Xms${contmeg}
+              -Xmn${contnew}
+              -XX:+AlwaysPreTouch
+              -XX:ParallelGCThreads=$(ParallelGCThreads)
+              -Dspecjbb.group.count=$(group_count)
+              -Dspecjbb.txi.pergroup.count=$(specjbb.txi.pergroup.count)
+              -Dspecjbb.controller.rtcurve.warmup.step=$(specjbb.controller.rtcurve.warmup.step)
+              -Dspecjbb.controller.rtcurve.step=$(specjbb.controller.rtcurve.step)
+
+              -Dspecjbb.controller.host=$targett=$target
+              -Dspecjbb.controller.type=$(specjbb.controller.type)
+              -jar /home/specjbb/specjbb2015.jar
+              -m MULTICONTROLLER
+              -l ${report_level}
+              -v
+
+               mv /home/specjbb/result/specjbb2015-* /home/result/${id_env}
+
           volumeMounts:
-            - name: specjbb-config
-              mountPath: /var/specjbb/
+            - name: results
+              mountPath: /home/result/
+            - name: podinfo
+              mountPath: /etc/podinfo
 
       volumes:
-        - name: specjbb-config
-          configMap:
-            name: specjbb-config
+#        - name: specjbb-config
+#          configMap:
+#            name: specjbb-config
+        - name: results
+          hostPath:
+            path: /tmp/specjbb-results/
         - name: wca-specjbb-config
           emptyDir: {}
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+              - path: "annotations"
+                fieldRef:
+                  fieldPath: metadata.annotations
+              - path: "group_count"
+                fieldRef:
+                  fieldPath: metadata.annotations['group_count']
 
   volumeClaimTemplates: []
