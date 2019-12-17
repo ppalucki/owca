@@ -1,6 +1,8 @@
 bases:
 - base
 
+namespace: ddarczuk
+
 images:
 - name: specjbb
   newName: 100.64.176.12:80/wca/specjbb
