@@ -189,7 +189,7 @@ pipeline {
                     steps {
                     sh '''
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/cassandra_stress:${GIT_COMMIT}
-                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/cassandra_stress':${GIT_BRANCH}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/cassandra_stress:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/workloads/cassandra_stress
                     cp -r dist ${IMAGE_DIR}
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
