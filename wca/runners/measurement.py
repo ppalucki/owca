@@ -34,7 +34,7 @@ from wca.metrics import Metric, MetricName, MissingMeasurementException, \
     MetricGranularity, MetricMetadata
 from wca.nodes import Node, Task
 from wca.nodes import TaskSynchronizationException
-from wca.perf import check_out_perf_event_names, filter_out_event_names_for_cpu
+from wca.perf import check_perf_event_count_limit, filter_out_event_names_for_cpu
 from wca.perf_uncore import UncorePerfCounters, _discover_pmu_uncore_config, \
     UNCORE_IMC_EVENTS, PMUNotAvailable, UncoreDerivedMetricsGenerator, \
     UNCORE_UPI_EVENTS
@@ -311,7 +311,7 @@ class MeasurementRunner(Runner):
         log.debug('Enabling perf events: %s', ', '.join(self._event_names))
         # Check and assume most popular number of available number of HW counters.
         if self._event_names:
-            if not check_out_perf_event_names(self._event_names, platform.cpus, platform.cores):
+            if not check_perf_event_count_limit(self._event_names, platform.cpus, platform.cores):
                 return 1
 
         # We currently do not support RDT without monitoring.

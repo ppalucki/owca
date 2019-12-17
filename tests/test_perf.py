@@ -25,7 +25,7 @@ from wca import perf
 from wca import perf_const as pc
 from wca.metrics import MetricName
 from wca.perf import _parse_raw_event_name, _get_event_config, PerfCgroupDerivedMetricsGenerator, \
-    filter_out_event_names_for_cpu, check_out_perf_event_names
+    filter_out_event_names_for_cpu, check_perf_event_count_limit
 from wca.platforms import CPUCodeName, Platform
 
 
@@ -446,6 +446,6 @@ def test_exception_parse_event_names(event_names, cpu_codename):
     # HD=disabled fixed counters are not taken into consideration
     (['task_cycles', 'task_instructions', 'e1', 'e2', 'e3', 'e4', 'e5'], 8, 4, False),
 ])
-def test_check_out_perf_event_names(event_names, cpus, cores, exectedc):
-    got = check_out_perf_event_names(event_names, cpus, cores)
-    assert exectedc == got
+def test_check_out_perf_event_names(event_names, cpus, cores, expected):
+    got = check_perf_event_count_limit(event_names, cpus, cores)
+    assert expected == got

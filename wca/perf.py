@@ -441,9 +441,9 @@ class PerfCgroupDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
                 measurements[MetricName.TASK_CACHE_HIT_RATIO] = cache_hit_ratio
 
 
-def check_out_perf_event_names(
+def check_perf_event_count_limit(
         event_names: List[str], platform_cpus: int, platform_cores: int) -> bool:
-    """Check there is enough perf event programable coutners to schedule all of them
+    """Check there is enough perf event programmable counters to schedule all of them
     at the same time (implementation we used in perf.py)
 
     Note: Excludes fixed counters from check.
