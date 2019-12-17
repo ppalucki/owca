@@ -1,10 +1,7 @@
 resources:
-#  - specjbb.yaml
-#  - specjbb-config.yaml
   - controller.yaml
-  - backend.yaml
-
-namespace: ddarczuk
+  - group.yaml
+  - service_account.yaml
 
 configMapGenerator:
   - name: specjbb
@@ -14,23 +11,48 @@ configMapGenerator:
       - memory=16g
       - report_interval=1
       - extra=
-      - specjbb_jar='/home/specjbb/specjbb2015.jar'
-      - base_cores= #int(os.environ['CORES'])
-      - group_count= #int(os.environ['GROUP_COUNT'])
-      - use_numa_binding= #str(os.environ['USE_NUMA_BINDING'])  # no | yes
-      - experiment_name= #str(os.environ['EXPERIMENT_NAME'])  # no | yes
+      - enable_worker_size=no #os.environ.get('ENABLE_WORKER_SIZE', 'no')
+      - hbir= #os.environ.get('HBIR')
+#      - base_cores=56 #int(os.environ['CORES'])the same as cores (used in mesos)
+      - cores=56
+##      - use_numa_binding= #int(os.environ['USE_NUMA_BINDING'])  # 0 | 1
+##      - experiment_name= #str(os.environ['EXPERIMENT_NAME'])  # no | yes
       - id_env= #str(os.environ['ID'])
+      # AUTO DISCOVERY
+      # cores=`cat /proc/cpuinfo | grep processor | wc -l` or `nproc`
+      # zones=`numactl -H | grep cpus | wc -l`
+      - zones=2  # num of numa nodes
 
   - name: specjbb-java
     literals:
+      # >> xmx == max allocation pool memory <<
+      # >> xms == initial allocation pool memory <<
+      # >> xmn == the size of the heap for the young generation <<
+      # https://stackoverflow.com/questions/14763079/what-are-the-xms-and-xmx-parameters-when-starting-jvm
+      # https://stackoverflow.com/questions/23880891/what-does-xmn-jvm-option-stands-for
       - ParallelGCThreads=2
-      - contmeg=4
-      - contnew=4
-      - group_count=1
+      # for the controller
+      - contmeg="2g"
+      - contnew="1536m"
+      # for the TxI
+      - tximeg_numeric_gb=2
+      - tximeg="2g"
+      - txinew="1536m"
+      # for the backend
+      - backendimeg='18000M'
+      - backendinew='16920M'
+      - gc_size='12'
+      - worker_size='12'
+
 
   - name: specjbb-config
-    files:
-      - specjbb-config.yaml
+    literals:
+      # 'specjbb.group.count' set by number replicas groups and controllers
+      - specjbb.txi.pergroup.count=1
+      - specjbb.controller.rtcurve.warmup.step=0.5
+      - specjbb.controller.rtcurve.step=1 # ask pepe
+      - specjbb.controller.type=PRESET
 
-#patchesStrategicMerge:
+patchesStrategicMerge:
+  - replicas.yaml
   #- resources.yaml
