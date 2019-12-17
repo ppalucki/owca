@@ -13,11 +13,9 @@ Preparing developer environment
 
 1. Install `epel-release` repository and basic developer tools:
 
-:Note: For Centos 7.6 Python 3.6 is already available, so you **do not** need to install epel-release.
-
 .. code-block:: shell
 
-    yum install epel-release make git which
+    yum install make git which
 
 Note: that on production system, you should use Python 3.6 as describe `here <install.rst>`_.
 
@@ -25,20 +23,14 @@ Note: that on production system, you should use Python 3.6 as describe `here <in
 
 .. code-block:: shell
 
-    yum install python36
+    yum install python3
 
 Getting source code and preparing python virtualenv
 ---------------------------------------------------
 
 WCA uses `pipenv <https://pipenv.readthedocs.io/en/latest/>`_ to create python virtualenv with all tools required to run, validate and build the project.
 
-1. Install pip using 3.6 Python interpreter (available in ``epel`` release and "Software Collections" python collections:
-
-.. code-block:: shell
-
-    python -m ensurepip
-
-2. Install pipenv in user mode:
+1. Install pipenv in user mode:
 
 .. code-block:: shell
 
@@ -50,25 +42,25 @@ See `pragmatic installation of pipenv`_ for more details on installing pipenv.
 
 .. _`pragmatic installation of pipenv`: https://docs.pipenv.org/install/#pragmatic-installation-of-pipenv
 
-3. Clone WCA repository:
+2. Clone WCA repository:
 
 .. code-block:: shell
 
     git clone https://github.com/intel/workload-collocation-agent
 
-4. Further commands should be run from wca root directory:
+3. Further commands should be run from wca root directory:
 
 .. code-block:: shell
 
     cd workload-collocation-agent
 
-5. Prepare virtual environment for WCA:
+4. Prepare virtual environment for WCA:
 
 .. code-block:: shell
 
     pipenv install --dev
 
-6. Start using newly created virtualenv:
+5. Start using newly created virtualenv:
 
 .. code-block:: shell
 
@@ -104,7 +96,7 @@ You can run without building a distribution like this:
 
 .. code-block:: shell
     
-    python3.6 -mpipenv shell
+    python3 -mpipenv shell
     sudo env PYTHONPATH=. `which python` wca/main.py --root -c configs/extra/static_measurements.yaml
 
 
@@ -113,7 +105,7 @@ Using example allocator:
 
 .. code-block:: shell
 
-    python3.6 -mpipenv shell
+    python3 -mpipenv shell
     sudo env PYTHONPATH=. `which python` wca/main.py --root -c configs/extra/static_allocator.yaml
 
 Fast distribution rebuild
