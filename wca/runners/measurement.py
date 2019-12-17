@@ -21,7 +21,7 @@ import resource
 from abc import abstractmethod
 from dataclasses import dataclass
 
-from wca import platforms, profiling, perf_const as pc
+from wca import platforms, profiling
 from wca import resctrl
 from wca import security
 from wca.allocators import AllocationConfiguration
@@ -34,10 +34,10 @@ from wca.metrics import Metric, MetricName, MissingMeasurementException, \
     MetricGranularity, MetricMetadata
 from wca.nodes import Node, Task
 from wca.nodes import TaskSynchronizationException
+from wca.perf import check_out_perf_event_names, filter_out_event_names_for_cpu
 from wca.perf_uncore import UncorePerfCounters, _discover_pmu_uncore_config, \
     UNCORE_IMC_EVENTS, PMUNotAvailable, UncoreDerivedMetricsGenerator, \
     UNCORE_UPI_EVENTS
-from wca.platforms import CPUCodeName
 from wca.profiling import profiler
 from wca.runners import Runner
 from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
@@ -304,26 +304,14 @@ class MeasurementRunner(Runner):
         )
         rdt_information = platform.rdt_information
 
-        self._event_names = _filter_out_event_names_for_cpu(
+        self._event_names = filter_out_event_names_for_cpu(
             self._event_names, platform.cpu_codename)
 
         log.info('Enabling %i perf events (for cgroups).', len(self._event_names))
         log.debug('Enabling perf events: %s', ', '.join(self._event_names))
         # Check and assume most popular number of available number of HW counters.
         if self._event_names:
-            # Exclude fixed counters.
-            number_of_events = len([e for e in self._event_names if e not in
-                                    [MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CYCLES]])
-            # 8 with no HT and 4 for HT excluding fixed counters and check if there is enough
-            # counters to measure generic events.
-            # Validated for BDX, SKX and CLX (cpuid -1 -l 0xa)
-            ht_enabled = (platform.cpus != platform.cores)
-            max_number_of_events = 4 if ht_enabled else 8
-            log.debug('HT state: %s, assuming number of available HW counters: %i (required=%i)',
-                      ht_enabled, max_number_of_events, number_of_events)
-            if number_of_events > max_number_of_events:
-                log.error('Not enough hardware counters to measure %i programmable events '
-                          '(available is %s!)', number_of_events, max_number_of_events)
+            if not check_out_perf_event_names(self._event_names, platform.cpus, platform.cores):
                 return 1
 
         # We currently do not support RDT without monitoring.
@@ -568,28 +556,3 @@ def _get_internal_metrics(tasks: List[Task]) -> List[Metric]:
     ]
 
     return metrics
-
-
-def _filter_out_event_names_for_cpu(
-        event_names: List[str], cpu_codename: CPUCodeName) -> List[MetricName]:
-    """Filter out events that cannot be collected on given cpu."""
-
-    filtered_event_names = []
-
-    for event_name in event_names:
-        if event_name in pc.HardwareEventNameMap:
-            # Universal metrics that works on all cpus.
-            filtered_event_names.append(event_name)
-        elif event_name in pc.PREDEFINED_RAW_EVENTS:
-            if cpu_codename in pc.PREDEFINED_RAW_EVENTS[event_name]:
-                filtered_event_names.append(event_name)
-            else:
-                log.warning('Event %r not supported for %s!', event_name, cpu_codename.value)
-                continue
-        elif '__r' in event_name:
-            # Pass all raw events.
-            filtered_event_names.append(event_name)
-        else:
-            raise Exception('Unknown event name %r!' % event_name)
-
-    return filtered_event_names
