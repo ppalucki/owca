@@ -18,7 +18,7 @@ FROM centos:7
 
 RUN yum -y update
 RUN yum install -y epel-release && yum makecache
-RUN yum install -y java-1.8.0-openjdk-devel && yum install -y python36
+RUN yum install -y java-1.8.0-openjdk-devel python36 jq bc
 
 # add the specjbb to docker
 COPY specjbb /home/specjbb
