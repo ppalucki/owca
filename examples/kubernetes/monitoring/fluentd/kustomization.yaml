@@ -5,10 +5,12 @@ configMapGenerator:
   - name: fconf
     files:
     - configurations/fluent.conf
-    - configurations/stress.conf
-    - configurations/mutilate.conf
-    - configurations/sysbench.conf
     - configurations/memtier.conf
+    - configurations/mutilate.conf
+    - configurations/specjbb.conf
+    - configurations/stress.conf
+    - configurations/sysbench.conf
+
 resources:
   - daemonset.yaml
   - service.yaml
