@@ -1,0 +1,49 @@
+# NOTICE
+# YOU MUST CHANGE
+# number group per controller: specjbb-group.replicas / specjbb-controller.replicas
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: specjbb-controller
+  annotations:
+    controller_count: "2"
+spec:
+  # number group per controller: specjbb-group.replicas / specjbb-controller.replicas
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: controller
+        env:
+        # 2. replicas specjbb-group
+        - name: group_count
+          value: "2"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: specjbb-group
+  annotations:
+    controller_count: "2"
+spec:
+  # 2. replicas specjbb-group
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: backend
+        env:
+        # 1. replicas specjbb-controller
+        - name: controller_count
+          value: "1"
+          # 2. replicas specjbb-group
+        - name: group_count
+          value: "2"
+      - name: injector
+        env:
+        # 1. replicas specjbb-controller
+        - name: controller_count
+          value: "1"
+          # 2. replicas specjbb-group
+        - name: group_count
+          value: "2"

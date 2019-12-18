@@ -1,0 +1,49 @@
+nameSuffix: -preset
+bases:
+- ../base
+
+commonLabels:
+  app: specjbb-preset-medium
+  type: preset
+  size: medium
+
+patchesStrategicMerge:
+  - replicas.yaml
+  - resources.yaml
+
+configMapGenerator:
+  - name: specjbb
+    behavior: merge
+    literals:
+      - cpus=0-1000
+      - report_interval=1
+      - enable_worker_size=no #os.environ.get('ENABLE_WORKER_SIZE', 'no')
+      - cores=96
+      - id_env= #str(os.environ['ID'])
+
+  - name: specjbb-java
+    behavior: merge
+    literals:
+      - ParallelGCThreads=2
+      # for the controller
+      - contmeg="2g"
+      - contnew="1536m"
+      # for the injector
+      - tximeg_numeric_gb=2
+      - tximeg="2g"
+      - txinew="1536m"
+      # for the backend
+      - backendimeg='18000M'
+      - backendinew='16920M'
+      - gc_size='12'
+      - worker_size='12'
+
+  - name: specjbb-config
+    behavior: merge
+    literals:
+      # 'specjbb.group.count' set by number replicas groups and controllers
+      - specjbb.txi.pergroup.count=1
+      - specjbb.controller.rtcurve.warmup.step=0.5
+      - specjbb.controller.rtcurve.step=1
+      - specjbb.controller.type=PRESET
+      - specjbb.forkjoin.workers=24
