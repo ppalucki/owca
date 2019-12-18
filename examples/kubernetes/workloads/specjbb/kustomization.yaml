@@ -6,4 +6,4 @@ namespace: ddarczuk
 images:
 - name: specjbb
   newName: 100.64.176.12:80/wca/specjbb
-  newTag: fdbfec604a7822919f946e3595143ff78fe6698d
+  newTag: b5de817801ca124285eaae7548fa69de90e7c47c

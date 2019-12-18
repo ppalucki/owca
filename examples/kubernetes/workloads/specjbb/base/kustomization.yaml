@@ -22,6 +22,7 @@ configMapGenerator:
       # cores=`cat /proc/cpuinfo | grep processor | wc -l` or `nproc`
       # zones=`numactl -H | grep cpus | wc -l`
       - zones=2  # num of numa nodes
+      - report_level=0
 
   - name: specjbb-java
     literals:

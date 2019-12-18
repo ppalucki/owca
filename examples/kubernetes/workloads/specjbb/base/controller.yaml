@@ -25,7 +25,7 @@ spec:
     spec:
       nodeSelector:
 #        goal: service
-        kubernetes.io/hostname: node37
+        kubernetes.io/hostname: node38
       serviceAccountName: specjbb
       terminationGracePeriodSeconds: 0
       containers:
@@ -111,12 +111,11 @@ spec:
               -Dspecjbb.txi.pergroup.count=$(specjbb.txi.pergroup.count)
               -Dspecjbb.controller.rtcurve.warmup.step=$(specjbb.controller.rtcurve.warmup.step)
               -Dspecjbb.controller.rtcurve.step=$(specjbb.controller.rtcurve.step)
-
-              -Dspecjbb.controller.host=$targett=$target
+              -Dspecjbb.controller.host=$target
               -Dspecjbb.controller.type=$(specjbb.controller.type)
               -jar /home/specjbb/specjbb2015.jar
               -m MULTICONTROLLER
-              -l ${report_level}
+              -l $(report_level)
               -v
 
                mv /home/specjbb/result/specjbb2015-* /home/result/${id_env}
