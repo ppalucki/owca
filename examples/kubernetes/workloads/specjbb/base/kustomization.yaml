@@ -6,11 +6,8 @@ resources:
 configMapGenerator:
   - name: specjbb
     literals:
-      - threads=4
       - cpus=0-1000
-      - memory=16g
       - report_interval=1
-      - extra=
       - enable_worker_size=no #os.environ.get('ENABLE_WORKER_SIZE', 'no')
       - hbir= #os.environ.get('HBIR')
 #      - base_cores=56 #int(os.environ['CORES'])the same as cores (used in mesos)
@@ -35,7 +32,7 @@ configMapGenerator:
       # for the controller
       - contmeg="2g"
       - contnew="1536m"
-      # for the TxI
+      # for the injector
       - tximeg_numeric_gb=2
       - tximeg="2g"
       - txinew="1536m"
@@ -51,9 +48,8 @@ configMapGenerator:
       # 'specjbb.group.count' set by number replicas groups and controllers
       - specjbb.txi.pergroup.count=1
       - specjbb.controller.rtcurve.warmup.step=0.5
-      - specjbb.controller.rtcurve.step=1 # ask pepe
+      - specjbb.controller.rtcurve.step=1
       - specjbb.controller.type=PRESET
 
 patchesStrategicMerge:
   - replicas.yaml
-  #- resources.yaml
