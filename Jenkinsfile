@@ -51,6 +51,8 @@ pipeline {
                   export WCA_TAG=${GIT_COMMIT}
                   make wca_package_in_docker
                   docker push $WCA_IMAGE:$WCA_TAG
+                  # tag with branch name and push
+                  docker tag $WCA_IMAGE:$WCA_TAG $WCA_IMAGE:${GIT_BRANCH}
                   docker push $WCA_IMAGE:${GIT_BRANCH}
 
                   # Just for completeness (not used later)
