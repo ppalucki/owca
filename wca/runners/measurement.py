@@ -227,7 +227,7 @@ class MeasurementRunner(Runner):
         self._enable_derived_metrics = enable_derived_metrics
         self._enable_perf_uncore = enable_perf_uncore
 
-        self._task_label_generators = task_label_generators
+        self._task_label_generators = task_label_generators or {}
 
         self._wss_reset_interval = wss_reset_interval
 
