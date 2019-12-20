@@ -7,4 +7,4 @@ Examples of Kubernetes manifests
 This folder contains:
 
 - `monitoring <monitoring>`_ manifests to deploy full monitoring stack including WCA integrated with node_exporter, Prometheus, Grafana and Fluentd,
-- `workloads` manifests to run evaluation worklaods on Kubernetes to validated WCA is working correctly,
+- `workloads <workloads>`_ manifests to run evaluation workloads on Kubernetes to validated WCA is working correctly,

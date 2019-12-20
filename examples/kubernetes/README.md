@@ -1,5 +1,0 @@
-Kubernetes
-==========
-
-This folder contains 
-
