@@ -286,7 +286,7 @@ pipeline {
                 INVENTORY="tests/e2e/demo_scenarios/common/inventory.yaml"
                 TAGS = "stress_ng,redis_rpc_perf,twemcache_rpc_perf,twemcache_mutilate,specjbb"
             }
-            failFast false
+            failFast true
             parallel {
                 stage('WCA Daemonset E2E for Kubernetes') {
                     when {expression{return params.E2E_K8S_DS}}
