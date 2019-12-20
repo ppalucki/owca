@@ -6,8 +6,8 @@ spec:
   template:
     spec:
       containers:
-        - name: specjbb-group
+        - name: backend
           resources:
             requests:
               cpu: 2
-              memory: 12G # valueSize*records = 10k * 1M = 10G
+              memory: 6G # valueSize*records = 10k * 1M = 10G
