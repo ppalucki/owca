@@ -14,7 +14,7 @@ metadata:
 spec:
   serviceName: specjbb-controller
   podManagementPolicy: Parallel
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: specjbb-controller
@@ -73,6 +73,8 @@ spec:
             # maxram      # by Ismo to set -XX:MaxRAM=$maxram
 
             - >
+              target=${podname}.$(SERVICE_NAME);
+              echo targeting: $target;
 
               worker_size=$((($cores/$group_count)*2));
 
@@ -86,9 +88,6 @@ spec:
               maxram=${ram}g;
 
               echo worker_size: $worker_size gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
-
-              target=specjbb-controller;
-              echo targeting: $target;
 
               java
               -Xmx${contmeg}

@@ -5,7 +5,7 @@ metadata:
 spec:
   serviceName: specjbb-group
   podManagementPolicy: Parallel
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app: specjbb-group
@@ -57,18 +57,16 @@ spec:
             - sh
             - -c
             - >
-              identifier=${podname#specjbb-group-};
-              echo identifier: $identifier;
-              service=${identifier%-+([[:digit:]])};
-              echo service: $service;
-              target=specjbb-controller-${identifier}.specjbb-controller-${service};
+              identifier=${podname#$(GROUP_POD_NAME)-};
+              echo group_identifier: $identifier;
+
+              controller_identifier=$(($identifier/$group_count));
+              target=$(CONTROLLER_POD_NAME)-${identifier}.$(SERVICE_NAME);
               echo targeting: $target;
 
-              target=specjbb-controller;
-              echo targeting: $target;
-
-              group_identifier=$(($identifier%$group_count));
+              group_identifier=$(($identifier%$group_count))
               group=GRP$group_identifier;
+              echo group: $group group_identifier: $group_identifier;
 
               worker_size=$((($cores/$group_count)*2));
 
@@ -148,18 +146,16 @@ spec:
             - sh
             - -c
             - >
-              identifier=${podname#specjbb-group-};
-              echo identifier: $identifier;
-              service=${identifier%-+([[:digit:]])};
-              echo service: $service;
-              target=specjbb-controller-${identifier}.specjbb-controller-${service};
+              identifier=${podname#$(GROUP_POD_NAME)-};
+              echo group_identifier: $identifier;
+
+              controller_identifier=$(($identifier/$group_count));
+              target=$(CONTROLLER_POD_NAME)-${identifier}.$(SERVICE_NAME);
               echo targeting: $target;
 
-              target=specjbb-controller;
-              echo targeting: $target;
-
-              group_identifier=$(($identifier%$group_count));
+              group_identifier=$(($identifier%$group_count))
               group=GRP$group_identifier;
+              echo group: $group group_identifier: $group_identifier;
 
               worker_size=$((($cores/$group_count)*2));
 
@@ -168,7 +164,6 @@ spec:
               mr_size=$(($group_count*2));
 
               maxheap=$((1500*(($cores-8)/$group_count)/1024));
-
               ram=$((($maxheap*125)/100));
               maxram=${ram}g;
 

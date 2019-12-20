@@ -50,5 +50,25 @@ configMapGenerator:
       - specjbb.controller.rtcurve.step=1
       - specjbb.controller.type=PRESET
 
-patchesStrategicMerge:
-  - replicas.yaml
+vars:
+  - name: GROUP_POD_NAME
+    objref:
+      kind: StatefulSet
+      name: specjbb-group
+      apiVersion: apps/v1
+    fieldref:
+      fieldpath: metadata.name
+  - name: CONTROLLER_POD_NAME
+    objref:
+      kind: StatefulSet
+      name: specjbb-controller
+      apiVersion: apps/v1
+    fieldref:
+      fieldpath: metadata.name
+  - name: SERVICE_NAME
+    objref:
+      kind: StatefulSet
+      name: specjbb-controller
+      apiVersion: apps/v1
+    fieldref:
+      fieldpath: metadata.name
