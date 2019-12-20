@@ -1,7 +1,6 @@
 resources:
   - controller.yaml
   - group.yaml
-  - service_account.yaml
 
 configMapGenerator:
   - name: specjbb
