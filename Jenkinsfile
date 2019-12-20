@@ -56,7 +56,7 @@ pipeline {
                   docker push $WCA_IMAGE:${GIT_BRANCH}
 
                   # Just for completeness (not used later)
-                  export WCA_TAG=${GIT-BRANCH}-devel 
+                  export WCA_TAG=${GIT_BRANCH}-devel 
                   make _wca_docker_devel
                   docker push $WCA_IMAGE:$WCA_TAG
                 '''
