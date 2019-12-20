@@ -227,16 +227,7 @@ class MeasurementRunner(Runner):
         self._enable_derived_metrics = enable_derived_metrics
         self._enable_perf_uncore = enable_perf_uncore
 
-        # Default value for task_labels_generator.
-        if task_label_generators is None:
-            self._task_label_generators = {
-                'application':
-                    TaskLabelRegexGenerator('$', '', 'task_name'),
-                'application_version_name':
-                    TaskLabelRegexGenerator('.*$', '', 'task_name'),
-            }
-        else:
-            self._task_label_generators = task_label_generators
+        self._task_label_generators = task_label_generators
 
         self._wss_reset_interval = wss_reset_interval
 
