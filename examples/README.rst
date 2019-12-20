@@ -42,8 +42,8 @@ This folder contains three examples how to extend or deploy WCA integrated with 
 
 - `simple "hello world" <hello_world_runner.py>`_ runner to show how easily WCA can be extended, details `here <../docs/extending.rst>`_
 - `external_package.py file <external_package.py>`_ for full-fledged example of **externally provided detector** describe `here <../docs/external_detector_example.rst>`_
-- `example manifest files <manifest>`_ for deploying WCA as `DaemonSet in Kubernetes <../docs/kubernetes.rst#run-wca-as-daemonset-on-cluster>`_
 - `workloads for Mesos and Kubernetes <workloads>`_ for WCA testing and evaluation that can be scheduled on Mesos and Kubernetes using Ansible playbook with performance reporting using wrappers,
-- `Kubernetes manifests <kubernetes>`_ for deploying WCA and Kubernetes only workloads using Kubernetes Kustomize including full monitoring stack with Prometheus, Grafana and Fluentd
+- `Kubernetes manifests <kubernetes>`_ for deploying WCA and Kubernetes-only workloads using `Kustomize <https://kustomize.io/>`_
+- `example manifests for monitoring with WCA <kubernetes/monitoring>`_ for deploying WCA as `DaemonSet in Kubernetes <../docs/kubernetes.rst#run-wca-as-daemonset-on-cluster>`_ including full monitoring stack with Prometheus, Grafana and Fluentd
 
 
