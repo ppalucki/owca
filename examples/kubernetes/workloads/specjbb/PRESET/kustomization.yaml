@@ -14,11 +14,10 @@ configMapGenerator:
   - name: specjbb
     behavior: merge
     literals:
-      - cpus=0-1000
+      - group_count=2
       - report_interval=1
-      - enable_worker_size=no #os.environ.get('ENABLE_WORKER_SIZE', 'no')
       - cores=96
-      - id_env= #str(os.environ['ID'])
+      - id_env=preset
 
   - name: specjbb-java
     behavior: merge

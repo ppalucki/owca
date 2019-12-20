@@ -5,10 +5,10 @@ resources:
 configMapGenerator:
   - name: specjbb
     literals:
-      - cpus=0-1000
+       # 'specjbb.group.count' must be set by env group_count below
+      - group_count=1
       - report_interval=1
-      - enable_worker_size=no #os.environ.get('ENABLE_WORKER_SIZE', 'no')
-      - hbir= #os.environ.get('HBIR')
+      - hbir=
 #      - base_cores=56 #int(os.environ['CORES'])the same as cores (used in mesos)
       - cores=56
 ##      - use_numa_binding= #int(os.environ['USE_NUMA_BINDING'])  # 0 | 1

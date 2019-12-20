@@ -15,27 +15,20 @@ spec:
         app: specjbb-group
     spec:
       nodeSelector:
+#        goal: service
         kubernetes.io/hostname: node38
-      serviceAccountName: specjbb
       terminationGracePeriodSeconds: 0
       containers:
         - name: backend
           image: specjbb
           env:
-            - name: controller_count
-              value: "1"
+            # Spcejbb information
             - name: group_count
-              value: "1"
+              valueFrom: {configMapKeyRef: { name: specjbb, key: group_count }}
             # Pod information
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
             # Process information
-            - name: THREADS
-              valueFrom: {configMapKeyRef: { name: specjbb, key: threads }}
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: specjbb, key: cpus }}
-            - name: memory
-              valueFrom: {configMapKeyRef: { name: specjbb, key: memory }}
             - name: report_interval
               valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
             - name: cores
@@ -129,16 +122,13 @@ spec:
         - name: injector
           image: specjbb
           env:
+            # Spcejbb information
+            - name: group_count
+              valueFrom: {configMapKeyRef: { name: specjbb, key: group_count }}
             # Pod information
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
             # Process information
-            - name: THREADS
-              valueFrom: {configMapKeyRef: { name: specjbb, key: threads }}
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: specjbb, key: cpus }}
-            - name: memory
-              valueFrom: {configMapKeyRef: { name: specjbb, key: memory }}
             - name: report_interval
               valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
             - name: cores
@@ -195,14 +185,6 @@ spec:
               -m txinjector
               -G ${group}
               -J JVM_B
-
-        - name: buzzy
-          image: specjbb
-          command:
-            - sh
-            - -c
-            - >
-              sleep 100000
 
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels

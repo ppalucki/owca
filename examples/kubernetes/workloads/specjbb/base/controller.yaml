@@ -26,7 +26,6 @@ spec:
       nodeSelector:
 #        goal: service
         kubernetes.io/hostname: node38
-      serviceAccountName: specjbb
       terminationGracePeriodSeconds: 0
       containers:
         - name: controller
@@ -35,12 +34,6 @@ spec:
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
             # Process information
-            - name: THREADS
-              valueFrom: {configMapKeyRef: { name: specjbb, key: threads }}
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: specjbb, key: cpus }}
-            - name: memory
-              valueFrom: {configMapKeyRef: { name: specjbb, key: memory }}
             - name: report_interval
               valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
             - name: cores
@@ -56,9 +49,8 @@ spec:
             - name: ParallelGCThreads
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: ParallelGCThreads }}
             # Spcejbb information
-            ## group_count set in replicas
             - name: group_count
-              value: "1"               #valueFrom: {fieldRef: {fieldPath: metadata.annotations}}
+              valueFrom: {configMapKeyRef: { name: specjbb, key: group_count }}
             ## Specjbb-config
             - name: specjbb.txi.pergroup.count
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.txi.pergroup.count }}
@@ -79,10 +71,7 @@ spec:
             #             # according: https://www.spec.org/jbb2015/docs/runrules.pdf
             # maxheap     # 1500 -> ram megabytes per core
             # maxram      # by Ismo to set -XX:MaxRAM=$maxram
-            # 2. Set target to connection between
-            # KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token);
-            # curl -sSk -H "Authorization: Bearer $KUBE_TOKEN"  https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/apis/apps/v1/namespaces/ddarczuk/statefulsets/specjbb-group | jq -r '.status.replicas';
-            # distcontroller
+
             - >
 
               worker_size=$((($cores/$group_count)*2));
@@ -123,29 +112,10 @@ spec:
           volumeMounts:
             - name: results
               mountPath: /home/result/
-            - name: podinfo
-              mountPath: /etc/podinfo
 
       volumes:
-#        - name: specjbb-config
-#          configMap:
-#            name: specjbb-config
         - name: results
           hostPath:
             path: /tmp/specjbb-results/
-        - name: wca-specjbb-config
-          emptyDir: {}
-        - name: podinfo
-          downwardAPI:
-            items:
-              - path: "labels"
-                fieldRef:
-                  fieldPath: metadata.labels
-              - path: "annotations"
-                fieldRef:
-                  fieldPath: metadata.annotations
-              - path: "group_count"
-                fieldRef:
-                  fieldPath: metadata.annotations['group_count']
 
   volumeClaimTemplates: []
