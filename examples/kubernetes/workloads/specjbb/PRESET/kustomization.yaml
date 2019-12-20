@@ -8,7 +8,6 @@ commonLabels:
   size: medium
 
 patchesStrategicMerge:
-  - replicas.yaml
   - resources.yaml
 
 configMapGenerator:
