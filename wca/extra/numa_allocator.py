@@ -133,7 +133,6 @@ class NUMAAllocator(Allocator):
             TasksAllocations, List[Anomaly], List[Metric]):
         allocations = {}
         extra_metrics = []
-
         self._log_initial(platform, tasks_data)
 
         # 1. First, get current state of the system
@@ -499,7 +498,7 @@ def _is_enough_memory_on_target(memory_limit: MemoryLimit, target_node: NumaNode
                                 tasks_measurements: Measurements):
     """assuming that task_max_memory is a real limit"""
     task_numa_stat = tasks_measurements[MetricName.TASK_MEM_NUMA_PAGES]
-    max_memory_to_move = memory_limit - pages_to_bytes(task_numa_stat[str(target_node)])
+    max_memory_to_move = memory_limit - pages_to_bytes(task_numa_stat[target_node])
     platform_free_memory = \
         platform.measurements[MetricName.PLATFORM_MEM_NUMA_FREE_BYTES][target_node]
     log.log(TRACE, "platform_free_memory=%d[GB] on node %d max_memory_to_move=%d[GB]",

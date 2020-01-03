@@ -144,7 +144,7 @@ class Cgroup:
                     if line.startswith(metric):
                         for stat in line.split()[1:]:
                             k, v = stat.split("=")
-                            k, v = k[1:], int(v)
+                            k, v = int(k[1:]), int(v)
                             if MetricName.TASK_MEM_NUMA_PAGES not in measurements:
                                 measurements[MetricName.TASK_MEM_NUMA_PAGES] = {k: v}
                             else:
@@ -168,7 +168,7 @@ class Cgroup:
         # Check whether consecutive keys.
         assert (MetricName.TASK_MEM_NUMA_PAGES not in measurements or
                 list(measurements[MetricName.TASK_MEM_NUMA_PAGES].keys()) ==
-                [str(el) for el in range(0, self.platform.numa_nodes)])
+                [el for el in range(0, self.platform.numa_nodes)])
 
         return measurements
 

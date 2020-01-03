@@ -4,7 +4,7 @@ WCA logging configuration.
 
 **This software is pre-production and should not be deployed to production servers.**
 
-Command line ``--log_level`` (or ``-l``) argument configures ``wca`` module only.
+Command line ``--log-level`` (or ``-l``) argument configures ``wca`` module only.
 It is possible to configure logging level for other modules too. Use following call to set logging level for ``example`` module to ``info`` and for ``prm`` to ``debug``:
 
 .. code-block:: shell
@@ -20,7 +20,7 @@ Following snippet shows example logging configuration:
 .. code-block:: yaml
 
     loggers:
-        wca: error  # Overrides value provided from command line
+        wca: error # Enables checking errors in all modules.
         wca.storage: info  # Enables debugging for specifc wca module.
         example.external_package: debug  # Enables verbose mode for external component.
 

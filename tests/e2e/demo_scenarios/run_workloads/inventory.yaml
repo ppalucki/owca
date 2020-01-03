@@ -53,9 +53,9 @@ application_hosts:
             image_name: cassandra
             image_tag: 3.11.3
             resources:
-              cpu: 3
-              ram: 5
-              disk: 5
+              cpu: 5
+              ram: 10
+              disk: 10
           ycsb:
             resources:
               cpu: 3
@@ -91,8 +91,8 @@ application_hosts:
               max_memory: 4024
             resources:
               cpu: 2
-              ram: 20
-              disk: 20
+              ram: 10
+              disk: 10
           mutilate:
             env:
               sli_percentile: 95
@@ -103,7 +103,7 @@ application_hosts:
             resources:
               cpu: 2
               ram: 10
-              disk: 20
+              disk: 10
 
       specjbb:
         default:

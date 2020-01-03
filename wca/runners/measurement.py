@@ -21,7 +21,7 @@ import resource
 from abc import abstractmethod
 from dataclasses import dataclass
 
-from wca import platforms, profiling, perf_const as pc
+from wca import platforms, profiling
 from wca import resctrl
 from wca import security
 from wca.allocators import AllocationConfiguration
@@ -34,10 +34,10 @@ from wca.metrics import Metric, MetricName, MissingMeasurementException, \
     MetricGranularity, MetricMetadata
 from wca.nodes import Node, Task
 from wca.nodes import TaskSynchronizationException
+from wca.perf import check_perf_event_count_limit, filter_out_event_names_for_cpu
 from wca.perf_uncore import UncorePerfCounters, _discover_pmu_uncore_config, \
     UNCORE_IMC_EVENTS, PMUNotAvailable, UncoreDerivedMetricsGenerator, \
     UNCORE_UPI_EVENTS
-from wca.platforms import CPUCodeName
 from wca.profiling import profiler
 from wca.runners import Runner
 from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
@@ -127,7 +127,8 @@ class MeasurementRunner(Runner):
         Perf counters to monitor.
         (defaults to not collect perf counters - empty list of events)
 
-    - ``perf_aggregate_cpus``: **bool** = `True`,
+    - ``perf_aggregate_cpus``: **bool** = `True`
+
         Should perf events collected for cgroups be aggregated (sum) by CPUs.
         (defaults to true, to limit number of exposed metrics)
 
@@ -153,12 +154,14 @@ class MeasurementRunner(Runner):
 
     - ``wss_reset_interval``: **int** = *0*
 
-        Interval of reseting wss.
-        (defaults to 0, not measured)
+        Interval of resetting WSS (WorkingSetSize).
+        (defaults to 0, which means that metric is not collected, e.g. when set to 1
+        ``clear_refs`` will be reset every measurement iteration defined by ``interval`` option.)
 
     - ``include_optional_labels``: **bool** = *False*
 
-        Include optional labels like: sockets, cpus, cpu_model
+        Attach following labels to all metrics:
+        `sockets`, `cores`, `cpus`, `cpu_model`, `cpu_model_number` and `wca_version`
         (defaults to False)
     """
 
@@ -194,8 +197,6 @@ class MeasurementRunner(Runner):
         self._last_iteration = time.time()  # Used internally by wait function.
         self._allocation_configuration = allocation_configuration
         self._event_names = event_names
-        log.info('Enabling %i perf events: %s', len(self._event_names),
-                 ', '.join(self._event_names))
         self._perf_aggregate_cpus = perf_aggregate_cpus
 
         # TODO: fix those workarounds for dynamic levels and dynamic perf event metrics.
@@ -303,8 +304,15 @@ class MeasurementRunner(Runner):
         )
         rdt_information = platform.rdt_information
 
-        self._event_names = _filter_out_event_names_for_cpu(
+        self._event_names = filter_out_event_names_for_cpu(
             self._event_names, platform.cpu_codename)
+
+        log.info('Enabling %i perf events (for cgroups).', len(self._event_names))
+        log.debug('Enabling perf events: %s', ', '.join(self._event_names))
+        # Check and assume most popular number of available number of HW counters.
+        if self._event_names:
+            if not check_perf_event_count_limit(self._event_names, platform.cpus, platform.cores):
+                return 1
 
         # We currently do not support RDT without monitoring.
         if self._rdt_enabled and not rdt_information.is_monitoring_enabled():
@@ -548,28 +556,3 @@ def _get_internal_metrics(tasks: List[Task]) -> List[Metric]:
     ]
 
     return metrics
-
-
-def _filter_out_event_names_for_cpu(
-        event_names: List[str], cpu_codename: CPUCodeName) -> List[MetricName]:
-    """Filter out events that cannot be collected on given cpu."""
-
-    filtered_event_names = []
-
-    for event_name in event_names:
-        if event_name in pc.HardwareEventNameMap:
-            # Universal metrics that works on all cpus.
-            filtered_event_names.append(event_name)
-        elif event_name in pc.PREDEFINED_RAW_EVENTS:
-            if cpu_codename in pc.PREDEFINED_RAW_EVENTS[event_name]:
-                filtered_event_names.append(event_name)
-            else:
-                log.warning('Event %r not supported for %s!', event_name, cpu_codename.value)
-                continue
-        elif '__r' in event_name:
-            # Pass all raw events.
-            filtered_event_names.append(event_name)
-        else:
-            raise Exception('Unknown event name %r!' % event_name)
-
-    return filtered_event_names

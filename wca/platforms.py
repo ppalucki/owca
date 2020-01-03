@@ -280,13 +280,7 @@ def create_metrics(platform: Platform) -> List[Metric]:
         Metric.create_metric_with_metadata(
             MetricName.WCA_INFORMATION,
             value=1,
-            labels=dict(
-                sockets=str(platform.sockets),
-                cores=str(platform.cores),
-                cpus=str(platform.cpus),
-                cpu_model=platform.cpu_model,
-                wca_version=get_wca_version(),
-            )
+            labels=dict(common_optional_labels(platform))
         )
     )
 
@@ -302,16 +296,26 @@ def create_labels(platform: Platform, include_optional_labels: bool) -> Dict[str
     # REQUIRED (for host identification)
     labels["host"] = socket.gethostname()
 
-    # OPTIONAL (for further metrics analysis)
+    # OPTIONAL (for extended metrics analysis)
     if include_optional_labels:
-        # Topology labels
-        labels["sockets"] = str(platform.sockets)
-        labels["cores"] = str(platform.cores)
-        labels["cpus"] = str(platform.cpus)
-        # Additional labels
-        labels["cpu_model"] = platform.cpu_model
-        labels["wca_version"] = get_wca_version()
+        labels.update(common_optional_labels(platform))
 
+    return labels
+
+
+def common_optional_labels(platform) -> Dict[str, str]:
+    """Generate common labels to will be attached optionally to all metrics
+    or wca_information metric."""
+    labels = dict()
+    # If something is modified please also update platform.create_labels function
+    # Topology labels
+    labels["sockets"] = str(platform.sockets)
+    labels["cores"] = str(platform.cores)
+    labels["cpus"] = str(platform.cpus)
+    # Additional labels
+    labels["cpu_model"] = platform.cpu_model
+    labels["cpu_model_number"] = str(platform.cpu_model_number)
+    labels["wca_version"] = get_wca_version()
     return labels
 
 

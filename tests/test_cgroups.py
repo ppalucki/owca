@@ -50,7 +50,7 @@ def test_get_measurements():
                             MetricName.TASK_MEM_LIMIT_BYTES: 2000,
                             MetricName.TASK_MEM_SOFT_LIMIT_BYTES: 1500,
                             MetricName.TASK_MEM_PAGE_FAULTS: 2730362811,
-                            MetricName.TASK_MEM_NUMA_PAGES: {'0': 123, '1': 234}}
+                            MetricName.TASK_MEM_NUMA_PAGES: {0: 123, 1: 234}}
 
 
 @patch('builtins.open', mock_open(read_data='100'))

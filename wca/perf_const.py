@@ -115,12 +115,15 @@ PREDEFINED_RAW_EVENTS = {
         CPUCodeName.CASCADE_LAKE: (0x60, 0x10, 0),
     },
     MetricName.TASK_MEM_LOAD_RETIRED_LOCAL_PMM: {
-        CPUCodeName.SKYLAKE: (0xd1, 0x80, 0),
         CPUCodeName.CASCADE_LAKE: (0xd1, 0x80, 0),
     },
     MetricName.TASK_MEM_LOAD_RETIRED_LOCAL_DRAM: {
         CPUCodeName.SKYLAKE: (0xd3, 0x01, 0),
         CPUCodeName.CASCADE_LAKE: (0xd3, 0x01, 0),
+    },
+    MetricName.TASK_MEM_LOAD_RETIRED_REMOTE_DRAM: {
+        CPUCodeName.SKYLAKE: (0xd3, 0x02, 0),
+        CPUCodeName.CASCADE_LAKE: (0xd3, 0x02, 0),
     },
     MetricName.TASK_MEM_INST_RETIRED_LOADS: {
         CPUCodeName.SKYLAKE: (0xd0, 0x81, 0),

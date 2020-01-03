@@ -55,7 +55,7 @@ def prepare_input(tasks: Dict[TaskId, Dict[NumaNodeId, PercentageMemUsage]],
     for task_name, numa_memory in tasks.items():
         measurements = dict()
         measurements[MetricName.TASK_MEM_NUMA_PAGES] = \
-            {str(numa_id): int(v * node_size_pages) for numa_id, v in numa_memory.items()}
+            {numa_id: int(v * node_size_pages) for numa_id, v in numa_memory.items()}
         data = TaskData(
             name=task_name, task_id=task_name, cgroup_path='', subcgroups_paths=[''],
             labels={'uid': task_name},
@@ -229,7 +229,7 @@ def test_get_pages_to_move():
     mem_usage_on_node = 0.3
     platform, tasks_data = prepare_input({'t1': {0: mem_usage_on_node}}, 2)
     assert (_get_pages_to_move('t1', tasks_data, 1, 'for fun') ==
-            tasks_data['t1'].measurements[MetricName.TASK_MEM_NUMA_PAGES]['0'])
+            tasks_data['t1'].measurements[MetricName.TASK_MEM_NUMA_PAGES][0])
 
 
 def test_platform_total_memory():
@@ -340,9 +340,9 @@ def test_get_free_memory_node_v3(memory, node_memory_free, expected):
 
 @pytest.mark.parametrize('target_node, task_max_memory, numa_free, numa_task, expected', (
         (1, 10 * GB, {0: 2 * GB, 1: 3 * GB},
-         {"0": 3 * GB / get_page_size(), "1": 2 * GB / get_page_size()}, False),
+         {0: 3 * GB / get_page_size(), 1: 2 * GB / get_page_size()}, False),
         (1, 10 * GB, {0: 6 * GB, 1: 6 * GB},
-         {"0": 5 * GB / get_page_size(), "1": 5 * GB / get_page_size()}, True),
+         {0: 5 * GB / get_page_size(), 1: 5 * GB / get_page_size()}, True),
 ))
 def test_is_enough_memory_on_target(target_node, task_max_memory, numa_free, numa_task, expected):
     platform = Mock()

@@ -219,6 +219,8 @@ def _create_file_from_fd(pfd):
         errno = ctypes.get_errno()
         if errno == INVALID_ARG_ERRNO:
             raise UnableToOpenPerfEvents('Invalid perf event file descriptor: {}, {}. '
+                                         'For cgroup based perf counters it may indicate there is '
+                                         'no enough hardware counters for measure all metrics!'
                                          'If traceback shows problem in perf_uncore '
                                          'it could be problem with PERF_FORMAT_GROUP in'
                                          'perf_event_attr structure for perf_event_open syscall.'
@@ -391,7 +393,8 @@ class PerfCgroupDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
             max_depth = len(METRICS_METADATA[MetricName.TASK_INSTRUCTIONS].levels)
 
             if max_depth == 0:
-                measurements[MetricName.TASK_IPC] = float(inst_delta) / cycles_delta
+                if cycles_delta > 0:
+                    measurements[MetricName.TASK_IPC] = float(inst_delta) / cycles_delta
                 if time_delta > 0:
                     measurements[MetricName.TASK_IPS] = rate(inst_delta)
             else:
@@ -437,3 +440,56 @@ class PerfCgroupDerivedMetricsGenerator(BaseDerivedMetricsGenerator):
                 cache_hit_ratio = _operation_on_leveled_dicts(cache_hits_count, cache_ref_delta,
                                                               truediv, max_depth)
                 measurements[MetricName.TASK_CACHE_HIT_RATIO] = cache_hit_ratio
+
+
+def check_perf_event_count_limit(
+        event_names: List[str], platform_cpus: int, platform_cores: int) -> bool:
+    """Check there is enough perf event programmable counters to schedule all of them
+    at the same time (implementation we used in perf.py)
+
+    Note: Excludes fixed counters from check.
+
+    8 with no HT and 4 for HT excluding fixed counters and check if there is enough
+    counters to measure generic events.
+    Validated for BDX, SKX and CLX (cpuid -1 -l 0xa)
+
+    return False and logs errors if there is a problem.
+    else return True
+    """
+    number_of_events = len([e for e in event_names if e not in
+                            [MetricName.TASK_INSTRUCTIONS, MetricName.TASK_CYCLES]])
+    ht_enabled = (platform_cpus != platform_cores)
+    max_number_of_events = 4 if ht_enabled else 8
+    log.debug('HT state: %s, assuming number of available HW counters: %i (required=%i)',
+              ht_enabled, max_number_of_events, number_of_events)
+    if number_of_events > max_number_of_events:
+        log.error('Not enough hardware counters to measure %i programmable events '
+                  '(available is %s!)', number_of_events, max_number_of_events)
+        return False
+    # Everything is ok
+    return True
+
+
+def filter_out_event_names_for_cpu(
+        event_names: List[str], cpu_codename: CPUCodeName) -> List[MetricName]:
+    """Filter out events that cannot be collected on given cpu."""
+
+    filtered_event_names = []
+
+    for event_name in event_names:
+        if event_name in pc.HardwareEventNameMap:
+            # Universal metrics that works on all cpus.
+            filtered_event_names.append(event_name)
+        elif event_name in pc.PREDEFINED_RAW_EVENTS:
+            if cpu_codename in pc.PREDEFINED_RAW_EVENTS[event_name]:
+                filtered_event_names.append(event_name)
+            else:
+                log.warning('Event %r not supported for %s!', event_name, cpu_codename.value)
+                continue
+        elif '__r' in event_name:
+            # Pass all raw events.
+            filtered_event_names.append(event_name)
+        else:
+            raise Exception('Unknown event name %r!' % event_name)
+
+    return filtered_event_names

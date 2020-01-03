@@ -49,7 +49,8 @@ and store them in metrics_storage component.
     Perf counters to monitor.
     (defaults to not collect perf counters - empty list of events)
 
-- ``perf_aggregate_cpus``: **bool** = `True`,
+- ``perf_aggregate_cpus``: **bool** = `True`
+
     Should perf events collected for cgroups be aggregated (sum) by CPUs.
     (defaults to true, to limit number of exposed metrics)
 
@@ -75,12 +76,14 @@ and store them in metrics_storage component.
 
 - ``wss_reset_interval``: **int** = *0*
 
-    Interval of reseting wss.
-    (defaults to 0, not measured)
+    Interval of resetting WSS (WorkingSetSize).
+    (defaults to 0, which means that metric is not collected, e.g. when set to 1
+    ``clear_refs`` will be reset every measurement iteration defined by ``interval`` option.)
 
 - ``include_optional_labels``: **bool** = *False*
 
-    Include optional labels like: sockets, cpus, cpu_model
+    Attach following labels to all metrics:
+    `sockets`, `cores`, `cpus`, `cpu_model`, `cpu_model_number` and `wca_version`
     (defaults to False)
 
 

@@ -200,7 +200,7 @@ def test_collect_platform_information(*mocks):
     assert_metric(got_metrics, MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED,
                   expected_metric_value=5)
     assert got_labels == {"sockets": "1", "cores": "1", "cpus": "2", "host": "test_host",
-                          "wca_version": "0.1", "cpu_model": "intel xeon"}
+                          "wca_version": "0.1", "cpu_model": "intel xeon", "cpu_model_number": "94"}
 
 
 @pytest.mark.parametrize(

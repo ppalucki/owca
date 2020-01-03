@@ -6,6 +6,8 @@ NUMAAllocator documentation
 
 .. contents:: Table of Contents
 
+:Note: HugePages are not supported. Only systems with pagesize of 4096 are supported
+
 Fast start
 ==========
 

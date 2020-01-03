@@ -12,10 +12,10 @@ WCA - Workload Collocation Agent
 Introduction
 ============
 
-Workload Collocation Agent's goal is to reduce interference between collocated tasks and increase tasks density while ensuring the quality of
-service for high priority tasks. Chosen approach allows to enable real-time resource isolation management
-to ensure that high priority jobs meet their Service Level Objective (SLO) and best-effort jobs
-effectively utilize as many idle resources as possible.
+Workload Collocation Agent's goal is to reduce interference between collocated tasks and increase tasks 
+density while ensuring the quality of service for high priority tasks. Chosen approach allows to 
+enable real-time resource isolation management to ensure that high priority jobs meet their 
+Service Level Objective (SLO) and best-effort jobs effectively utilize as many idle resources as possible.
 
 Resource usage can be increased by:
 
@@ -42,15 +42,16 @@ See `WCA Architecture 1.7.pdf`_ for further details.
 Getting started
 ===============
 
-
-WCA is targeted at and tested on Centos 7.6.
+WCA is targeted at and tested on Centos 7.6
+(WCA should work on earlier versions of centos or other Linux distributions, however it is tested only on centos 7.6).
 
 *Note*: for full production installation please follow this detailed `installation guide <docs/install.rst>`_.
 
-.. code-block:: shell
+Steps needed to install WCA dependencies and build WCA pex file:
 
+.. code-block:: shell
+    
     # Install required software.
-    sudo yum install epel-release -y
     sudo yum install git python3 make which python3-pip -y
     python3 -mpip install --user pipenv
     export PATH=$PATH:~/.local/bin
@@ -59,12 +60,32 @@ WCA is targeted at and tested on Centos 7.6.
     git clone https://github.com/intel/workload-collocation-agent
     cd workload-collocation-agent
     
-    export LC_ALL=en_US.utf8 #required for centos docker image
-    make venv
+    export LC_ALL=en_US.utf8  # required for centos docker image
+    make venv  # creates venv by pipenv
     make wca_package
 
-    # Prepare tasks manually (only cgroups are required)
+or using docker:
+
+.. code-block:: shell
+
+    # needed only on host, where pex file is run
+    sudo yum install python3
+
+    # needed on host, where pex file is builded
+    sudo yum install make
+
+    # pex file will be copied to ./dist/wca.pex
+    make wca_package_in_docker
+
+Steps to run WCA:
+
+.. code-block:: shell
+
+    # Configuration files used in below commands requires creating a cgroup with name `task1`.
     sudo mkdir -p /sys/fs/cgroup/{cpu,cpuset,cpuacct,memory,perf_event}/task1
+
+    # Add a process to the cgroup to monitor it using WCA. Might be skipped.
+    sudo bash -c 'echo $PROCESS_PID > /sys/fs/cgroup/{cpu,cpuset,cpuacct,memory,perf_event}/task1/tasks'
 
     # Example of running agent in measurements-only mode with predefined static list of tasks
     sudo dist/wca.pex --config $PWD/configs/extra/static_measurements.yaml --root
@@ -72,11 +93,16 @@ WCA is targeted at and tested on Centos 7.6.
     # Example of static allocation with predefined rules on predefined list of tasks.
     sudo dist/wca.pex --config $PWD/configs/extra/static_allocator.yaml --root
 
-    # For development purposes can be also run from sources (requires venv create by pipenv)
+    # The same as 2nd command, but run from source code - does **not** 
+    #   work with docker option of installing dependencies.
     sudo env PYTHONPATH=. `pipenv --py` wca/main.py --config $PWD/configs/extra/static_allocator.yaml --root
 
+Used configuration files:
 
-Running those commands outputs metrics in Prometheus format to standard error like this:
+- `measurements-only config <configs/extra/static_measurements.yaml>`_,
+- `static allocator with predifined rules <configs/extra/static_allocator.yaml>`_ (`predifined rules <configs/extra/static_allocator_config.yaml>`_).
+
+Running these commands outputs metrics in Prometheus format to standard error like this:
 
 .. code-block:: ini
 
@@ -125,6 +151,7 @@ Running those commands outputs metrics in Prometheus format to standard error li
     # HELP wca_tasks Number of discovered tasks
     # TYPE wca_tasks gauge
     wca_tasks{host="gklab-126-081"} 1 1575625088768
+
 
 
 When reconfigured, other built-in components allow to:
@@ -185,7 +212,7 @@ See `external detector example <docs/external_detector_example.rst>`_ for more d
 Components
 ----------
 
-Following built-in components are available (stable API):
+Following built-in components are available (stable API; refer to `API documentation <docs/api.rst>`_ for full documentation):
 
 - `MesosNode <docs/api.rst#mesosnode>`_ provides workload discovery on Mesos cluster node where `mesos containerizer <http://mesos.apache.org/documentation/latest/mesos-containerizer/>`_ is used (see the `Mesos docs here <docs/mesos.rst>`_)
 - `KubernetesNode <docs/api.rst#kubernetesnode>`_ provides workload discovery on Kubernetes cluster node (see the docs `here <docs/kubernetes.rst>`_)
@@ -233,6 +260,7 @@ Further reading
 - `Detection API <docs/detection.rst>`_
 - `Allocation API <docs/allocation.rst>`_
 - `Metrics list <docs/metrics.rst>`_
+- `Metrics sources <docs/metrics_sources.rst>`_
 - `Development guide <docs/development.rst>`_
 - `External detector example <docs/external_detector_example.rst>`_
 - `Wrappers guide <docs/wrappers.rst>`_

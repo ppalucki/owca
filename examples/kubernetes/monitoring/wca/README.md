@@ -3,12 +3,11 @@ Getting started
 
 To run wca in daemon set: 
 
-1. Build image (from main project repo)
+1. Build image(from main project repo) and push to your registry
 
 ```
-make REPO=100.64.176.12:80/ wca_docker_devel
-#and push to your 
-sudo docker push 100.64.176.12:80/wca:devel
+make REPO=$registry:80/ wca_docker_devel
+sudo docker push $registry:80/wca:devel
 ```
 
 
@@ -33,18 +32,6 @@ spec:
 
 ```
 
-3. Create namespace
-
-```shell
-kubectl create namespace wca
-```
-
-4. Deploy wca (using kustomize)
-
-```shell
-kubectl apply -k .
-```
-
 Optionally, you can use token to connect to Kube API Server, while WCA is using outside pod.
 Save Bearer token and CA cert to enable connection. Set their path in wca configuration.  
 
@@ -64,19 +51,19 @@ kubectl get secret ${SECRET} -o json | jq -Mr '.data["ca.crt"]' | base64 -d > ca
 echo https://$(kubectl -n default get endpoints kubernetes --no-headers | awk '{ print $2 }') > server
 ```
 
-Example config wca
+Example config for wca:
 
 ```
 node: !KubernetesNode
-  client_token_path: "/home/ddarczuk/wca/cert/token"
-  server_cert_ca_path: "/home/ddarczuk/wca/cert/ca.crt"
-  kubeapi_host: "100.64.176.33"
+  client_token_path: "/home/user/wca/cert/token"
+  server_cert_ca_path: "/home/user/wca/cert/ca.crt"
+  kubeapi_host: "123.45.123.45"
   kubeapi_port: "6443"
-  node_ip: "100.64.176.34"
+  node_ip: "123.45.123.46"
 ```
 
 
-Additionally, you can use above variables and use them to connect to Kube API Server.
+Additionally, you can use following variables to connect to Kube API Server.
 ```
 TOKEN=$(cat token)
 APISERVER=$(cat server)

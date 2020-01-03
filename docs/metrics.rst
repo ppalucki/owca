@@ -5,19 +5,48 @@ Available metrics
 
 **This software is pre-production and should not be deployed to production servers.**
 
-For searchable list of metrics `metrics as csv file <metrics.csv>`_ .
-
-The "Enabled" describes if metric is enabled by default and in brackets there is information which 
-option in MeasurementRunner is responsible for configuring it.
-
 .. contents:: Table of Contents
 
 
 Metrics sources
 ===============
 
-Check out `metrics sources documentation <metrics_sources.rst>`_  to learn how measurement them.
+Check out `metrics sources documentation <metrics_sources.rst>`_ for more details how metrics 
+are measured and about labels/levels.
 
+For searchable list of metrics `metrics as csv file <metrics.csv>`_ .
+
+Legend	
+======
+
+- **Name**: is the name of metric that will be exported to Prometheus by using Prometheus 
+  exposition format but also the name of the key in ``Measurements`` dict-like 
+  type used in ``Detector`` and ``Allocator`` plugins,	
+- **Help**: information what metric represents and some 
+  details how metric was collected and known problems or limitations,	
+- **Unit**: unit of the metric (usually seconds or bytes),	
+- **Type**: only possible types are `gauge` and `counter` as described 
+  in `Prometheus metric types <https://prometheus.io/docs/concepts/metric_types/>`_.	
+- **Source**: short description about mechanics that was used to collect metric,	
+  for more detailed information check out `Metric sources documenation <metric_sources.rst>`_.	
+- **Enabled** - column describes if metric is enabled by default and 
+  how to enable (option in ``MeasurementRunner`` responsible for configuring it. 
+  Please refer to `metrics sources documentation <metrics_sources.rst>`_ for more details.)	
+- **Levels/Labels** - some metrics have additional dimensions (more granularity than just ``Task`` 
+  or ``Platform``) e.g. ``task_mem_numa_pages`` can be collected per NUMA node - in this case	
+  this metrics have attached additional label like ``numa_node=0`` which creates new series in	
+  Prometheus nomenclature and represents more granular information about source of metric. 
+  When used in python API in ``Detector`` or ``Allocator`` classes this will be 
+  represented by nested dicts where each level have keys corresponding to "level" (order is important).	
+  For example doubly nested perf uncore metrics like: ``platform_cas_count_reads`` 
+  have two levels: `socket` and `pmu_type` (which physically represents memory controller) 
+  will be encoded as::	
+
+    platform_cas_count_reads{socket=0, pmu_type=17} 12345	
+
+  and represented in Python API as::	
+
+    measurements = {'platform_cas_count_reads': {0: {17: 12345}}}	
 Task's metrics
 ==============
 
@@ -25,20 +54,21 @@ Task's metrics
 	:header: "Name", "Help", "Enabled", "Unit", "Type", "Source", "Levels/Labels"
 	:widths: 5, 5, 5, 5, 5, 5, 5 
 
-	"task_instructions", "Hardware PMU counter for number of instructions.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_cycles", "Hardware PMU counter for number of cycles.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_cache_misses", "Hardware counter for cache-misses.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_cache_references", "Hardware counter for number of cache references.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_stalled_mem_loads", "TBD: Mem stalled loads.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_offcore_requests_l3_miss_demand_data_rd", "Increment each cycle of the number of offcore outstanding demand data read requests from SQ that missed L3.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_offcore_requests_outstanding_l3_miss_demand_data_rd", "Demand data read requests that missed L3.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_mem_load_retired_local_pmm", "TBD mem_load_retired_local_pmm__rd180", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_mem_load_retired_local_dram", "TBD task__mem_load_retired_local_dram__rd301", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_mem_inst_retired_loads", "TBD mem_load_retired_local_pmm__rd180", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_mem_inst_retired_stores", "TBD", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
-	"task_dtlb_load_misses", "TBD", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_instructions", "Hardware PMU counter for number of instructions (PERF_COUNT_HW_INSTRUCTIONS). Fixed counter. Predefined perf PERF_TYPE_HARDWARE. Please man perf_event_open for more details.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_cycles", "Hardware PMU counter for number of cycles (PERF_COUNT_HW_CPU_CYCLES). Fixed counter. Predefined perf PERF_TYPE_HARDWARE. Please man perf_event_open for more details.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_cache_misses", "Hardware PMU counter for cache-misses (PERF_COUNT_HW_CACHE_MISSES).Predefined perf PERF_TYPE_HARDWARE. Please man perf_event_open for more details.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_cache_references", "Hardware PMU counter for number of cache references (PERF_COUNT_HW_CACHE_REFERENCES).Predefined perf PERF_TYPE_HARDWARE. Please man perf_event_open for more details.", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_stalled_mem_loads", "Execution stalls while memory subsystem has an outstanding load.CYCLE_ACTIVITY.STALLS_MEM_ANYIntel SDM October 2019 19-24 Vol. 3B, Table 19-3", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_offcore_requests_l3_miss_demand_data_rd", "Increment each cycle of the number of offcore outstanding demand data read requests from SQ that missed L3.Counts number of Offcore outstanding Demand Data Read requests that miss L3 cache in the superQ every cycle.OFFCORE_REQUESTS_OUTSTANDING.L3_MISS_DEMAND_DATA_RDIntel SDM October 2019 19-24 Vol. 3B, Table 19-3", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_offcore_requests_outstanding_l3_miss_demand_data_rd", "Demand Data Read requests who miss L3 cache. OFFCORE_REQUESTS.L3_MISS_DEMAND_DATA_RD.Intel SDM October 2019 19-24 Vol. 3B, Table 19-3", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_mem_load_retired_local_pmm", "Retired load instructions with local Intel® Optane™ DC persistent memory as the data source and the datarequest missed L3 (AppDirect or Memory Mode), and DRAM cache (Memory Mode). MEM_LOAD_RETIRED.LOCAL_PMM (Mnemonic) For CLX, Intel SDM October 2019 19-24 Vol. 3B, Table 19-4", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_mem_load_retired_local_dram", "Retired load instructions which data sources missed L3 but serviced from local DRAM.MEM_LOAD_L3_MISS_RETIRED.LOCAL_DRAM Intel SDM October 2019 Chapters 19-24 Vol. 3B Table 19-3", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_mem_load_retired_remote_dram", "Retired load instructions which data sources missed L3 but serviced from remote dram. MEM_LOAD_L3_MISS_RETIRED.REMOTE_DRAMIntel SDM October 2019 Chapters 19-24 Vol. 3B Table 19-3", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_mem_inst_retired_loads", "MEM_INST_RETIRED.ALL_LOADS All retired load instructions. Intel SDM October 2019 Chapters 19-24 Vol. 3B Table 19-3", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_mem_inst_retired_stores", "MEM_INST_RETIRED.ALL_STORES All retired store instructions. Intel SDM October 2019 Chapters 19-24 Vol. 3B Table 19-3", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
+	"task_dtlb_load_misses", "DTLB_LOAD_MISSES.WALK_COMPLETEDCounts demand data loads that caused a completedpage walk of any page size (4K/2M/4M/1G). This impliesit missed in all TLB levels. The page walk can end withor without a faultIntel SDM October 2019 Chapters 19-24 Vol. 3B Table 19-3", "no (event_names)", "numeric",  "counter", "perf subsystem with cgroups", ""
 	"task_scaling_factor_avg", "Perf subsystem metric scaling factor, max value of all perf per task metrics.", "yes", "numeric",  "gauge", "perf subsystem with cgroups", ""
-	"task_scaling_factor_max", "Perf subsystem metric scaling factor, max value of all perf per task metrics.", "yes", "numeric",  "gauge", "perf subsystem with cgroups", ""
+	"task_scaling_factor_max", "Perf subsystem metric scaling factor, maximum value of all perf per task metrics.", "yes", "numeric",  "gauge", "perf subsystem with cgroups", ""
 	"task_ips", "Instructions per second.", "no (enable_derived_metrics)", "numeric",  "gauge", "derived", ""
 	"task_ipc", "Instructions per cycle.", "no (enable_derived_metrics)", "numeric",  "gauge", "derived", ""
 	"task_cache_hit_ratio", "Cache hit ratio, based on cache-misses and cache-references.", "no (enable_derived_metrics)", "numeric",  "gauge", "derived", ""

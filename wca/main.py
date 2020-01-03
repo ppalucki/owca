@@ -99,7 +99,7 @@ def main():
     log_levels = logger.parse_loggers_from_list(args.levels)
     log_levels_copy_with_default = dict(**log_levels)
     log_levels_copy_with_default.setdefault(logger.DEFAULT_MODULE, 'info')
-    logger.configure_loggers_from_dict(log_levels)
+    logger.configure_loggers_from_dict(log_levels_copy_with_default)
 
     log.warning('This software is pre-production and should not be deployed to production servers.')
     log.debug('started PID=%r', os.getpid())
