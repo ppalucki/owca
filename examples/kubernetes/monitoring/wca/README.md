@@ -6,9 +6,10 @@ To run wca in daemon set:
 1. Build image(from main project repo) and push to your registry
 
 ```
-make REPO=$registry:80/ wca_docker_devel
+make REPO=$registry:80/ _wca_docker_devel
 sudo docker push $registry:80/wca:devel
 ```
+
 
 
 2. (optionally) Overwrite image name to your local repository in kustomization.yaml
@@ -21,6 +22,8 @@ images:
     newName: REPO/wca
     newTag: devel
 ```
+
+Note the default image (from **kustomization.yaml**) is using private repository in testing cluster and **master** tag.
 
 3. (optionally) Choose (**disable the default goal=service**) nodes to deploy owca using node selector
 

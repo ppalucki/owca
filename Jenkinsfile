@@ -37,9 +37,7 @@ pipeline {
         stage("Generate documentation") {
             when {expression{return params.PRECHECKS}}
             steps {
-                sh '''
-                  make generate_docs
-                '''
+                generate_docs()
             }
         }
         stage("Build WCA pex (in docker and images)") {
@@ -51,9 +49,14 @@ pipeline {
                   export WCA_TAG=${GIT_COMMIT}
                   make wca_package_in_docker
                   docker push $WCA_IMAGE:$WCA_TAG
+                  # tag with branch name and push
+                  docker tag $WCA_IMAGE:$WCA_TAG $WCA_IMAGE:${GIT_BRANCH}
+                  docker push $WCA_IMAGE:${GIT_BRANCH}
 
                   # Just for completeness (not used later)
+                  export WCA_TAG=${GIT_BRANCH}-devel 
                   make _wca_docker_devel
+                  docker push $WCA_IMAGE:$WCA_TAG
                 '''
             }
         }
@@ -285,7 +288,7 @@ pipeline {
                 INVENTORY="tests/e2e/demo_scenarios/common/inventory.yaml"
                 TAGS = "stress_ng,redis_rpc_perf,twemcache_rpc_perf,twemcache_mutilate,specjbb"
             }
-            failFast false
+            failFast true
             parallel {
                 stage('WCA Daemonset E2E for Kubernetes') {
                     when {expression{return params.E2E_K8S_DS}}
@@ -584,4 +587,14 @@ def if_perform_e2e() {
         print(result)
         return result == ""
     }
+}
+
+def generate_docs() {
+    sh '''cp docs/metrics.rst docs/metrics.tmp.rst
+          cp docs/metrics.csv docs/metrics.tmp.csv
+          make generate_docs
+          diff docs/metrics.csv docs/metrics.tmp.csv
+          diff docs/metrics.rst docs/metrics.tmp.rst
+          rm docs/metrics.tmp.rst
+          rm docs/metrics.tmp.csv'''
 }

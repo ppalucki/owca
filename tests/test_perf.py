@@ -85,8 +85,8 @@ def test_parse_online_cpus_string(raw_string, expected):
              b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x4a\x16\x00\x00\x00\x00\x00\x00"),
      [metrics.MetricName.TASK_CYCLES],
      {metrics.MetricName.TASK_CYCLES: 0,
-      metrics.MetricName.TASK_SCALING_FACTOR_AVG: 0,
-      metrics.MetricName.TASK_SCALING_FACTOR_MAX: 0}
+      metrics.MetricName.TASK_SCALING_FACTOR_AVG: 1.0,
+      metrics.MetricName.TASK_SCALING_FACTOR_MAX: 1.0}
      ),
     # case with no scaling
     (BytesIO(b"\x03\x00\x00\x00\x00\x00\x00\x00\x26\xe7\xea\x29\x01\x00\x00\x00\x26\xe7\xea\x29"

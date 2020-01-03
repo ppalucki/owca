@@ -34,8 +34,6 @@ LIBC = ctypes.CDLL('libc.so.6', use_errno=True)
 
 log = logging.getLogger(__name__)
 
-SCALING_RATE_WARNING_THRESHOLD = 1.50
-
 
 def _get_event_config(cpu: CPUCodeName, event_name: str) -> int:
     event, umask, cmask = pc.PREDEFINED_RAW_EVENTS[event_name][cpu]
@@ -84,15 +82,24 @@ def _parse_event_groups(file, event_names, include_scaling_info) -> Measurements
         )
         measurements[event_names[current_event]] = measurement
 
-        scaling_factors.append(scaling_factor)
+        # 0.0 means that process was not running at this CPU at all,
+        # do not take into equation to calculate scaling factor avg/max
+        if scaling_factor != 0.0:
+            scaling_factors.append(scaling_factor)
         # id is unused, but we still need to read the whole struct
         struct.unpack('q', file.read(8))[0]
 
     # we add 2 non-standard metrics based on unpacked values,
     # we need to collect scaling factors here
     if include_scaling_info:
-        measurements[MetricName.TASK_SCALING_FACTOR_AVG] = statistics.mean(scaling_factors)
-        measurements[MetricName.TASK_SCALING_FACTOR_MAX] = max(scaling_factors)
+        if scaling_factors:
+            print(scaling_factors)
+            measurements[MetricName.TASK_SCALING_FACTOR_AVG] = statistics.mean(scaling_factors)
+            measurements[MetricName.TASK_SCALING_FACTOR_MAX] = max(scaling_factors)
+        else:
+            measurements[MetricName.TASK_SCALING_FACTOR_AVG] = 1.0
+            measurements[MetricName.TASK_SCALING_FACTOR_MAX] = 1.0
+
     return measurements
 
 
@@ -122,6 +129,8 @@ def _scale_counter_value(raw_value, time_enabled, time_running) -> (float, float
     according to https://perf.wiki.kernel.org/index.php/Tutorial#multiplexing_and_scaling_events
 
     Return (scaled metric value, scaling factor)
+
+    0 - means that no measurement was performed at all
     """
     # After the start of measurement, first few readings may contain only 0's
     if time_running == 0:
@@ -131,8 +140,6 @@ def _scale_counter_value(raw_value, time_enabled, time_running) -> (float, float
         return 0.0, 0.0
     if time_running != time_enabled:
         scaling_factor = float(time_enabled) / float(time_running)
-        if scaling_factor > SCALING_RATE_WARNING_THRESHOLD:
-            log.debug("Measurement scaling rate: %f", scaling_factor)
         return round(float(raw_value) * scaling_factor), scaling_factor
     else:
         return float(raw_value), 1.0

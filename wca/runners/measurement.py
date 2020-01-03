@@ -217,24 +217,17 @@ class MeasurementRunner(Runner):
         # We had the modify levels for all metrics
         # The set proper levels based on perf_aggregate_cpus value
         if not perf_aggregate_cpus:
-            log.debug('Enabling "cpu" level for PERF_SUBSYSTEM_WITH_CGROUPS metrics.')
+            log.debug('Enabling "cpu" level for PERF_SUBSYSTEM_WITH_CGROUPS and derived metrics.')
             for metric_metadata in METRICS_METADATA.values():
                 if metric_metadata.source == MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS:
+                    metric_metadata.levels = ['cpu']
+                if metric_metadata.source == MetricSource.DERIVED_PERF_WITH_CGROUPS:
                     metric_metadata.levels = ['cpu']
 
         self._enable_derived_metrics = enable_derived_metrics
         self._enable_perf_uncore = enable_perf_uncore
 
-        # Default value for task_labels_generator.
-        if task_label_generators is None:
-            self._task_label_generators = {
-                'application':
-                    TaskLabelRegexGenerator('$', '', 'task_name'),
-                'application_version_name':
-                    TaskLabelRegexGenerator('.*$', '', 'task_name'),
-            }
-        else:
-            self._task_label_generators = task_label_generators
+        self._task_label_generators = task_label_generators or {}
 
         self._wss_reset_interval = wss_reset_interval
 
