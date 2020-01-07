@@ -22,36 +22,20 @@ spec:
         - name: backend
           image: specjbb
           env:
-            # Spcejbb information
+            # discovery information
             - name: group_count
-              valueFrom: {configMapKeyRef: { name: specjbb, key: group_count }}
-            # Pod information
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.group.count }}
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            # Process information
-            - name: report_interval
-              valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
+            # process information
             - name: cores
               valueFrom: {configMapKeyRef: { name: specjbb, key: cores }}
-            - name: id_env
-              valueFrom: {configMapKeyRef: { name: specjbb, key: id_env }}
-            ## java_opts_inx
+            # java_opts_inx
             - name: backendimeg
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: backendimeg }}
             - name: backendinew
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: backendinew }}
-            - name: ParallelGCThreads
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: ParallelGCThreads }}
-            - name: gc_size
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: gc_size }}
-            - name: worker_size
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: worker_size }}
-            - name: specjbb.controller.type
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.type }}
 
-          #
-          # description of vars:  >> xmx <- backendimeg, xms <- backendimeg, xmn <- backendinew <<
-          # margin  # [GB] margin for assigning memory to JVM inside a group.
           # xmn_to_xms # read xmn xms params for JVM; here we assign 0.94 as experimentally checked parameter;
           command:
             - sh
@@ -61,7 +45,7 @@ spec:
               echo group_identifier: $identifier;
 
               controller_identifier=$(($identifier/$group_count));
-              target=$(CONTROLLER_POD_NAME)-${identifier}.$(SERVICE_NAME);
+              target=$(CONTROLLER_POD_NAME)-${controller_identifier}.$(SERVICE_NAME);
               echo targeting: $target;
 
               group_identifier=$(($identifier%$group_count))
@@ -75,11 +59,10 @@ spec:
               mr_size=$(($group_count*2));
 
               maxheap=$((1500*(($cores-8)/$group_count)/1024));
-
               ram=$((($maxheap*125)/100));
               maxram=${ram}g;
 
-              echo worker_size: $worker_size gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
+              echo gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
 
               margin=3;
               backendimeg=${maxheap}g;
@@ -96,13 +79,12 @@ spec:
               -Xms${backendimeg}
               -Xmn${backendinew}
               -XX:-UseAdaptiveSizePolicy
-              -XX:ParallelGCThreads=$(ParallelGCThreads)
               -XX:MaxRAM=${maxram}
               -XX:MaxTenuringThreshold=15
               -XX:-UseBiasedLocking
               -XX:SurvivorRatio=10
               -XX:TargetSurvivorRatio=90
-              -XX:ParallelGCThreads=$(gc_size)
+              -XX:ParallelGCThreads=${gc_size}
               -XX:+AggressiveOpts
               -XX:+AlwaysPreTouch
               -XX:+UseParallelOldGC
@@ -113,35 +95,25 @@ spec:
               -Dspecjbb.mapreducer.pool.size=${mr_size}
               -Dspecjbb.controller.host=$target
               -jar /home/specjbb/specjbb2015.jar
-              -m backend
+              -m BACKEND
               -G ${group}
               -J JVM_A
 
         - name: injector
           image: specjbb
           env:
-            # Spcejbb information
+            # discovery information
             - name: group_count
-              valueFrom: {configMapKeyRef: { name: specjbb, key: group_count }}
-            # Pod information
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.group.count }}
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            # Process information
-            - name: report_interval
-              valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
-            - name: cores
-              valueFrom: {configMapKeyRef: { name: specjbb, key: cores }}
-            - name: id_env
-              valueFrom: {configMapKeyRef: { name: specjbb, key: id_env }}
-            ## java_opts_inx
+            # java_opts_inx
             - name: tximeg
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: tximeg }}
             - name: txinew
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: txinew }}
-            - name: ParallelGCThreads
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: ParallelGCThreads }}
-            - name: specjbb.controller.type
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.type }}
+            - name: txi.ParallelGCThreads
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: txi.ParallelGCThreads }}
           command:
             - sh
             - -c
@@ -149,7 +121,7 @@ spec:
               identifier=${podname#$(GROUP_POD_NAME)-};
               echo group_identifier: $identifier;
 
-              controller_identifier=$(($identifier/$group_count));
+              controller_identifier=$((controller_identifier/$group_count));
               target=$(CONTROLLER_POD_NAME)-${identifier}.$(SERVICE_NAME);
               echo targeting: $target;
 
@@ -157,27 +129,15 @@ spec:
               group=GRP$group_identifier;
               echo group: $group group_identifier: $group_identifier;
 
-              worker_size=$((($cores/$group_count)*2));
-
-              gc_size=$(($cores / $group_count));
-
-              mr_size=$(($group_count*2));
-
-              maxheap=$((1500*(($cores-8)/$group_count)/1024));
-              ram=$((($maxheap*125)/100));
-              maxram=${ram}g;
-
-              echo worker_size: $worker_size gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
-
               java
               -Xmx${tximeg}
               -Xms${tximeg}
               -Xmn${txinew}
               -XX:+AlwaysPreTouch
-              -XX:ParallelGCThreads=$(ParallelGCThreads)
+              -XX:ParallelGCThreads=$(txi.ParallelGCThreads)
               -Dspecjbb.controller.host=$target
               -jar /home/specjbb/specjbb2015.jar
-              -m txinjector
+              -m TXINJECTOR
               -G ${group}
               -J JVM_B
 

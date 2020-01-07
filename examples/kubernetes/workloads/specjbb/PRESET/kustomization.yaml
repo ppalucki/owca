@@ -15,7 +15,6 @@ configMapGenerator:
     behavior: merge
     literals:
       - group_count=2
-      - report_interval=1
       - cores=96
       - id_env=preset
 

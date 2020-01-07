@@ -4,18 +4,16 @@ resources:
 
 configMapGenerator:
   - name: specjbb
+    # worker_size # used as instances of grp tasks
+    # gc_size     # -XX:ParallelGCThreads - equals to number of cores for backend
+    # mr_size     # default: max(Runtime.getRuntime().availableProcessors(), specjbb.group.count * (specjbb.txi.pergroup.count +1))
+    #             # according: https://www.spec.org/jbb2015/docs/runrules.pdf
+    # maxheap     # 1500 -> ram megabytes per core
+    # maxram      # by Ismo to set -XX:MaxRAM=$maxram
     literals:
-       # 'specjbb.group.count' must be set by env group_count below
-      - group_count=1
-      - report_interval=1
-      - hbir=
-#      - base_cores=56 #int(os.environ['CORES'])the same as cores (used in mesos)
-      - cores=56
-##      - use_numa_binding= #int(os.environ['USE_NUMA_BINDING'])  # 0 | 1
-##      - experiment_name= #str(os.environ['EXPERIMENT_NAME'])  # no | yes
-      - id_env= #str(os.environ['ID'])
-      # AUTO DISCOVERY
       # cores=`cat /proc/cpuinfo | grep processor | wc -l` or `nproc`
+      - cores=56
+      - id_env=
       # zones=`numactl -H | grep cpus | wc -l`
       - zones=2  # num of numa nodes
       - report_level=0
@@ -27,7 +25,9 @@ configMapGenerator:
       # >> xmn == the size of the heap for the young generation <<
       # https://stackoverflow.com/questions/14763079/what-are-the-xms-and-xmx-parameters-when-starting-jvm
       # https://stackoverflow.com/questions/23880891/what-does-xmn-jvm-option-stands-for
-      - ParallelGCThreads=2
+      #XX:ParallelGCThreads calulated for backend
+      - controller.ParallelGCThreads=2
+      - txi.ParallelGCThreads=2
       # for the controller
       - contmeg="2g"
       - contnew="1536m"
@@ -40,15 +40,24 @@ configMapGenerator:
       - backendinew='16920M'
       - gc_size='12'
       - worker_size='12'
+      # controler deafoult or from parametr
+      # txi worker_size=$((($cores/$group_count)*2));
+      # controler -Dspecjbb.forkjoin.worker
+      # txi -Dspecjbb.forkjoin.worker
 
 
   - name: specjbb-config
     literals:
       # 'specjbb.group.count' set by number replicas groups and controllers
+      - specjbb.group.count=1
       - specjbb.txi.pergroup.count=1
       - specjbb.controller.rtcurve.warmup.step=0.5
       - specjbb.controller.rtcurve.step=1
       - specjbb.controller.type=PRESET
+      - controller.specjbb.forkjoin.workers=2
+      - txi.specjbb.forkjoin.workers=2
+      # specjbb.forkjoin.workers for backend is calculated
+      # controller.specjbb.forkjoin.workers for txi no setting
 
 vars:
   - name: GROUP_POD_NAME

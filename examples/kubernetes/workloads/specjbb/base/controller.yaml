@@ -33,25 +33,22 @@ spec:
             # Pod information
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            # Process information
-            - name: report_interval
-              valueFrom: {configMapKeyRef: { name: specjbb, key: report_interval}}
             - name: cores
               valueFrom: {configMapKeyRef: { name: specjbb, key: cores }}
             - name: id_env
               valueFrom: {configMapKeyRef: { name: specjbb, key: id_env }}
-            # Java
-            ## java_opts_c
+            - name: report_level
+              valueFrom: {configMapKeyRef: { name: specjbb, key: report_level }}
+            # java_opts_c
             - name: contmeg
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: contmeg }}
             - name: contnew
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: contnew }}
-            - name: ParallelGCThreads
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: ParallelGCThreads }}
+            - name: controller.ParallelGCThreads
+              valueFrom: {configMapKeyRef: { name: specjbb-java, key: controller.ParallelGCThreads }}
             # Spcejbb information
             - name: group_count
-              valueFrom: {configMapKeyRef: { name: specjbb, key: group_count }}
-            ## Specjbb-config
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.group.count }}
             - name: specjbb.txi.pergroup.count
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.txi.pergroup.count }}
             - name: specjbb.controller.rtcurve.warmup.step
@@ -60,51 +57,32 @@ spec:
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rtcurve.step }}
             - name: specjbb.controller.type
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.type }}
+            - name: controller.specjbb.forkjoin.workers
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: controller.specjbb.forkjoin.workers }}
           image: specjbb
           command:
             - sh
             - -c
-            # 1.
-            # worker_size # used as instances of grp tasks
-            # gc_size     # -XX:ParallelGCThreads - equals to number of cores for backend
-            # mr_size     # default: max(Runtime.getRuntime().availableProcessors(), specjbb.group.count * (specjbb.txi.pergroup.count +1))
-            #             # according: https://www.spec.org/jbb2015/docs/runrules.pdf
-            # maxheap     # 1500 -> ram megabytes per core
-            # maxram      # by Ismo to set -XX:MaxRAM=$maxram
-
             - >
               target=${podname}.$(SERVICE_NAME);
               echo targeting: $target;
-
-              worker_size=$((($cores/$group_count)*2));
-
-              gc_size=$(($cores / $group_count));
-
-              mr_size=$(($group_count*2));
-
-              maxheap=$((1500*(($cores-8)/$group_count)/1024));
-
-              ram=$((($maxheap*125)/100));
-              maxram=${ram}g;
-
-              echo worker_size: $worker_size gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
 
               java
               -Xmx${contmeg}
               -Xms${contmeg}
               -Xmn${contnew}
               -XX:+AlwaysPreTouch
-              -XX:ParallelGCThreads=$(ParallelGCThreads)
+              -XX:ParallelGCThreads=$(controller.ParallelGCThreads)
               -Dspecjbb.group.count=$(group_count)
               -Dspecjbb.txi.pergroup.count=$(specjbb.txi.pergroup.count)
               -Dspecjbb.controller.rtcurve.warmup.step=$(specjbb.controller.rtcurve.warmup.step)
               -Dspecjbb.controller.rtcurve.step=$(specjbb.controller.rtcurve.step)
               -Dspecjbb.controller.host=$target
               -Dspecjbb.controller.type=$(specjbb.controller.type)
+              -Dspecjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)
               -jar /home/specjbb/specjbb2015.jar
               -m MULTICONTROLLER
               -l $(report_level)
-              -v
 
                mv /home/specjbb/result/specjbb2015-* /home/result/${id_env}
 
