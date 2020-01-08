@@ -42,7 +42,7 @@ spec:
             - -c
             - >
               identifier=${podname#$(GROUP_POD_NAME)-};
-              echo group_identifier: $identifier;
+              echo identifier: $identifier;
 
               controller_identifier=$(($identifier/$group_count));
               target=$(CONTROLLER_POD_NAME)-${controller_identifier}.$(SERVICE_NAME);
@@ -62,14 +62,14 @@ spec:
               ram=$((($maxheap*125)/100));
               maxram=${ram}g;
 
-              echo gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
-
               margin=3;
               backendimeg=${maxheap}g;
               xmn_to_xms="0.94";
               xmn_to_xms="94/100";
               backendinew=$(($maxheap*$xmn_to_xms));
               backendinew=${backendinew}g;
+
+              echo backendinew: $backendinew gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
 
               java
               -Dcom.sun.management.jmxremote.port=8686
@@ -78,6 +78,7 @@ spec:
               -Xmx${backendimeg}
               -Xms${backendimeg}
               -Xmn${backendinew}
+              -XX:+AlwaysPreTouch
               -XX:-UseAdaptiveSizePolicy
               -XX:MaxRAM=${maxram}
               -XX:MaxTenuringThreshold=15
@@ -86,7 +87,6 @@ spec:
               -XX:TargetSurvivorRatio=90
               -XX:ParallelGCThreads=${gc_size}
               -XX:+AggressiveOpts
-              -XX:+AlwaysPreTouch
               -XX:+UseParallelOldGC
               -XX:+PrintGCDetails
               -XX:+PrintHeapAtGC
@@ -97,7 +97,7 @@ spec:
               -jar /home/specjbb/specjbb2015.jar
               -m BACKEND
               -G ${group}
-              -J JVM_A
+              -J JVM_A_$identifier
 
         - name: injector
           image: specjbb
@@ -119,7 +119,7 @@ spec:
             - -c
             - >
               identifier=${podname#$(GROUP_POD_NAME)-};
-              echo group_identifier: $identifier;
+              echo identifier: $identifier;
 
               controller_identifier=$((controller_identifier/$group_count));
               target=$(CONTROLLER_POD_NAME)-${identifier}.$(SERVICE_NAME);
@@ -139,7 +139,7 @@ spec:
               -jar /home/specjbb/specjbb2015.jar
               -m TXINJECTOR
               -G ${group}
-              -J JVM_B
+              -J JVM_B_${identifier}
 
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels

@@ -57,6 +57,12 @@ spec:
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rtcurve.step }}
             - name: specjbb.controller.type
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.type }}
+            - name: specjbb.controller.validation.skip
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.validation.skip }}
+            - name: specjbb.controller.preset.ir
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.preset.ir }}
+            - name: specjbb.controller.rampup.steps
+              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rampup.steps }}
             - name: controller.specjbb.forkjoin.workers
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: controller.specjbb.forkjoin.workers }}
           image: specjbb
@@ -79,6 +85,9 @@ spec:
               -Dspecjbb.controller.rtcurve.step=$(specjbb.controller.rtcurve.step)
               -Dspecjbb.controller.host=$target
               -Dspecjbb.controller.type=$(specjbb.controller.type)
+              -Dspecjbb.controller.validation.skip=$(specjbb.controller.validation.skip)
+              -Dspecjbb.controller.preset.ir=$(specjbb.controller.preset.ir)
+              -Dspecjbb.controller.rampup.steps=$(specjbb.controller.rampup.steps)
               -Dspecjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)
               -jar /home/specjbb/specjbb2015.jar
               -m MULTICONTROLLER

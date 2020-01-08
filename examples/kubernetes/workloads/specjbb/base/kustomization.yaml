@@ -58,6 +58,9 @@ configMapGenerator:
       - txi.specjbb.forkjoin.workers=2
       # specjbb.forkjoin.workers for backend is calculated
       # controller.specjbb.forkjoin.workers for txi no setting
+      - specjbb.controller.validation.skip=true
+      - specjbb.controller.preset.ir=1000
+      - specjbb.controller.rampup.steps=1
 
 vars:
   - name: GROUP_POD_NAME
