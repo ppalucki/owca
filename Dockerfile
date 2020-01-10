@@ -29,15 +29,14 @@
 # ------------------------ devel ----------------------
 FROM centos:7 AS devel
 
-RUN yum -y update && yum -y install python36 python-pip which make git
+RUN yum -y update && yum -y install python36 python-pip which make git wget
 RUN pip3.6 install pipenv
 
 # 2LM binries for topology discovery (WIP) -- TO BE REMOVED FROM master/1.0.x
-RUN yum install -y wget lshw
 RUN (cd /etc/yum.repos.d/; \
         wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo; \
         wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo)
-RUN yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl
+RUN yum install -y lshw ndctl ndctl-libs ndctl-devel libsafec ipmctl
 # --- TODO: consider moving that to init container just responsilbe for preparing this data
 
 WORKDIR /wca
@@ -76,6 +75,10 @@ ENTRYPOINT ["/usr/bin/wca.pex"]
 ## ------------------------ standalone ----------------------
 ## Building final container that consists of wca only.
 FROM centos:7 AS standalone
-RUN yum -y update && yum -y install python36
+RUN yum -y install python36 lshw which wget
+RUN (cd /etc/yum.repos.d/; \
+        wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo; \
+        wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo)
+RUN yum -y update && yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl
 COPY --from=pex /wca/dist/wca.pex /usr/bin/
 ENTRYPOINT ["/usr/bin/wca.pex"]
