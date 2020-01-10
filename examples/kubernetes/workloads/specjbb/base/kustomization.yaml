@@ -11,12 +11,160 @@ configMapGenerator:
     # maxheap     # 1500 -> ram megabytes per core
     # maxram      # by Ismo to set -XX:MaxRAM=$maxram
     literals:
-      # cores=`cat /proc/cpuinfo | grep processor | wc -l` or `nproc`
-      - cores=56
-      - id_env=
       # zones=`numactl -H | grep cpus | wc -l`
       - zones=2  # num of numa nodes
       - report_level=0
+
+  - name: specjbb-controller-file
+    files:
+      - specjbb-controller.props
+
+  - name: specjbb-controller-2
+    literals:
+      - -Dspecjbb.group.count=1
+      - -Dspecjbb.txi.pergroup.count=1
+      - -Dspecjbb.controller.rtcurve.warmup.step=0.5
+      - -Dspecjbb.controller.rtcurve.step=1
+      - -Dspecjbb.controller.type=PRESET
+      - -Dcontroller.specjbb.forkjoin.workers=2
+      - -Dtxi.specjbb.forkjoin.workers=2
+
+  - name: specjbb-controller
+    literals:
+      - >
+        java=
+        -Xmx2g
+        -Xms2g
+        -Xmn1536m
+        -XX:+AlwaysPreTouch
+        -XX:ParallelGCThreads=2
+      - >
+        specjbb=
+        -Dspecjbb.group.count=1
+        -Dspecjbb.txi.pergroup.count=1
+        -Dspecjbb.controller.rtcurve.warmup.step=0.5
+        -Dspecjbb.controller.rtcurve.step=1
+        -Dspecjbb.controller.type=PRESET
+        -Dcontroller.specjbb.forkjoin.worker
+        -Dtxi.specjbb.forkjoin.workers=2
+      - >
+        extra=
+
+
+
+
+
+#
+#
+#
+#
+#
+#  - name: specjbb-controllerA
+#    literals:
+#      - >
+#        java=
+#        -Xmx2g
+#        -Xms2g
+#        -Xmn1536m
+#        -XX:+AlwaysPreTouch
+#        -XX:ParallelGCThreads=2
+#      - >
+#        specjbb=
+#        -Dspecjbb.group.count=1
+#        -Dspecjbb.txi.pergroup.count=1
+#        -Dspecjbb.controller.rtcurve.warmup.step=0.5
+#        -Dspecjbb.controller.rtcurve.step=1
+#        -Dspecjbb.controller.type=PRESET
+#        -Dcontroller.specjbb.forkjoin.worker
+#        -Dtxi.specjbb.forkjoin.workers=2
+#      - >
+#        extra=
+#
+#  - name: specjbb-backendA
+#    literals:
+#      - >
+#        java=
+#        -XX:+AlwaysPreTouch
+#        -XX:-UseAdaptiveSizePolicy
+#        -XX:-UseBiasedLocking
+#        -XX:+AggressiveOpts
+#        -XX:+UseParallelOldGC
+#        -XX:+PrintGCDetails
+#        -XX:+PrintHeapAtGC
+#        -XX:+PrintGCTimeStamps
+#      - >
+#        java2=
+#        -XX:MaxRAM=${maxram}
+#        -XX:MaxTenuringThreshold=15
+#        -XX:SurvivorRatio=10
+#        -XX:TargetSurvivorRatio=90
+#        -XX:ParallelGCThreads=${gc_size}
+#        -Dspecjbb.forkjoin.workers=${worker_size}
+#        -Dspecjbb.mapreducer.pool.size=${mr_size}
+#
+#  - name: specjbb-injectorA
+#    literals:
+#      - >
+#        java=
+#        -Xmx${tximeg}
+#        -Xms${tximeg}
+#        -Xmn${txinew}
+#        -XX:+AlwaysPreTouch
+#        -XX:ParallelGCThreads=$(txi.ParallelGCThreads)
+#
+#
+#
+#
+#
+#
+#
+#  - name: specjbb-controllerB
+#    literals:
+#      - Xmx=${Xmx}
+#      - Xms=${Xms}
+#      - Xmn=${Xmn}
+#      - XX:+AlwaysPreTouch
+#      - XX:ParallelGCThreads=$(controller.ParallelGCThreads)
+#      - specjbb.group.count=1
+#      - specjbb.txi.pergroup.count=1
+#      - specjbb.controller.rtcurve.warmup.step=0.5
+#      - specjbb.controller.rtcurve.step=1
+#      - specjbb.controller.type=PRESET
+#      - specjbb.controller.validation.skip=
+#      - specjbb.controller.preset.ir=$(specjbb.controller.preset.ir)
+#      - specjbb.controller.rampup.steps=$(specjbb.controller.rampup.steps)
+#      - specjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)
+#
+#
+
+
+#java
+#-Xmx=${Xmx}
+#-Xms=${Xms}
+#-Xmn=${Xmn}
+#-XX:+AlwaysPreTouch
+#-XX:ParallelGCThreads=$(controller.ParallelGCThreads)
+#-Dspecjbb.group.count=$(group_count)
+#-Dspecjbb.txi.pergroup.count=$(specjbb.txi.pergroup.count)
+#-Dspecjbb.controller.rtcurve.warmup.step=$(specjbb.controller.rtcurve.warmup.step)
+#-Dspecjbb.controller.rtcurve.step=$(specjbb.controller.rtcurve.step)
+#-Dspecjbb.controller.type=$(specjbb.controller.type)
+#-Dspecjbb.controller.validation.skip=$(specjbb.controller.validation.skip)
+#-Dspecjbb.controller.preset.ir=$(specjbb.controller.preset.ir)
+#-Dspecjbb.controller.rampup.steps=$(specjbb.controller.rampup.steps)
+#-Dspecjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)
+#-jar /home/specjbb/specjbb2015.jar
+#-m MULTICONTROLLER
+#-l $(report_level)
+
+
+
+
+
+
+
+
+
 
   - name: specjbb-java
     literals:
@@ -60,27 +208,4 @@ configMapGenerator:
       # controller.specjbb.forkjoin.workers for txi no setting
       - specjbb.controller.validation.skip=true
       - specjbb.controller.preset.ir=1000
-      - specjbb.controller.rampup.steps=1
-
-vars:
-  - name: GROUP_POD_NAME
-    objref:
-      kind: StatefulSet
-      name: specjbb-group
-      apiVersion: apps/v1
-    fieldref:
-      fieldpath: metadata.name
-  - name: CONTROLLER_POD_NAME
-    objref:
-      kind: StatefulSet
-      name: specjbb-controller
-      apiVersion: apps/v1
-    fieldref:
-      fieldpath: metadata.name
-  - name: SERVICE_NAME
-    objref:
-      kind: StatefulSet
-      name: specjbb-controller
-      apiVersion: apps/v1
-    fieldref:
-      fieldpath: metadata.name
+      - specjbb.controller.rampup.steps=

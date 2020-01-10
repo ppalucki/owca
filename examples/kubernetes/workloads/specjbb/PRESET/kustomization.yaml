@@ -11,13 +11,6 @@ patchesStrategicMerge:
   - resources.yaml
 
 configMapGenerator:
-  - name: specjbb
-    behavior: merge
-    literals:
-      - group_count=2
-      - cores=96
-      - id_env=preset
-
   - name: specjbb-java
     behavior: merge
     literals:
@@ -39,8 +32,23 @@ configMapGenerator:
     behavior: merge
     literals:
       # 'specjbb.group.count' set by number replicas groups and controllers
+      - specjbb.group.count=2
       - specjbb.txi.pergroup.count=1
       - specjbb.controller.rtcurve.warmup.step=0.5
       - specjbb.controller.rtcurve.step=1
       - specjbb.controller.type=PRESET
       - specjbb.forkjoin.workers=24
+
+  - name: specjbb-controller-2
+    behavior: merge
+    literals:
+      - -Dspecjbb.group.count=2
+      - -Dspecjbb.txi.pergroup.count=1
+      - -Dspecjbb.controller.rtcurve.warmup.step=0.5
+      - -Dspecjbb.controller.rtcurve.step=1
+      - -Dspecjbb.controller.type=PRESET
+      - -Dcontroller.specjbb.forkjoin.workers=2
+      - -Dtxi.specjbb.forkjoin.workers=2
+      - -Xmx2g=
+    files:
+      - specjbb-controller.props

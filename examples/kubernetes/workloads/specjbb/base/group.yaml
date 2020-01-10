@@ -21,36 +21,76 @@ spec:
       containers:
         - name: backend
           image: specjbb
+          #ALL ENV FROM FILE
+          envFrom:
+            - configMapRef:
+                name: specjbb-config
           env:
             # discovery information
             - name: group_count
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.group.count }}
-            - name: podname
-              valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            # process information
-            - name: cores
-              valueFrom: {configMapKeyRef: { name: specjbb, key: cores }}
             # java_opts_inx
             - name: backendimeg
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: backendimeg }}
             - name: backendinew
               valueFrom: {configMapKeyRef: { name: specjbb-java, key: backendinew }}
+            # Downward API
+            - name: podname
+              valueFrom:
+                fieldRef:
+                   fieldPath: metadata.name
+            - name: cores
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: requests.cpu
+            - name: MY_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: limits.cpu
+            - name: MY_MEM_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: requests.memory
+            - name: MY_MEM_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: limits.memory
 
           # xmn_to_xms # read xmn xms params for JVM; here we assign 0.94 as experimentally checked parameter;
           command:
             - sh
             - -c
             - >
-              identifier=${podname#$(GROUP_POD_NAME)-};
+              # Discovery
+
+              ## Delete front name
+
+              identifier=${podname#specjbb-group-};
               echo identifier: $identifier;
 
-              controller_identifier=$(($identifier/$group_count));
-              target=$(CONTROLLER_POD_NAME)-${controller_identifier}.$(SERVICE_NAME);
+              ## Delete from back to last '-'
+
+              name_suffix=${identifier%-*};
+              echo service: name_suffix;
+
+              ## Delete to last '-'
+
+              number=${podname##*-};
+              echo number: $number group_count: $group_count;
+
+              controller_identifier=$(($number/$group_count));
+              target=specjbb-controller-${name_suffix}-${controller_identifier}.specjbb-controller-${name_suffix};
               echo targeting: $target;
 
-              group_identifier=$(($identifier%$group_count))
+              group_identifier=$(($number%$group_count))
               group=GRP$group_identifier;
               echo group: $group group_identifier: $group_identifier;
+
+              # Calculation
 
               worker_size=$((($cores/$group_count)*2));
 
@@ -58,13 +98,14 @@ spec:
 
               mr_size=$(($group_count*2));
 
-              maxheap=$((1500*(($cores-8)/$group_count)/1024));
+              #maxheap=$((1500*(($cores-8)/$group_count)/1024));
+
+              maxheap=$((1500*(($cores)/$group_count)/1024));
               ram=$((($maxheap*125)/100));
               maxram=${ram}g;
 
               margin=3;
               backendimeg=${maxheap}g;
-              xmn_to_xms="0.94";
               xmn_to_xms="94/100";
               backendinew=$(($maxheap*$xmn_to_xms));
               backendinew=${backendinew}g;
@@ -91,13 +132,13 @@ spec:
               -XX:+PrintGCDetails
               -XX:+PrintHeapAtGC
               -XX:+PrintGCTimeStamps
-              -Dspecjbb.forkjoin.workers=$worker_size
+              -Dspecjbb.forkjoin.workers=${worker_size}
               -Dspecjbb.mapreducer.pool.size=${mr_size}
               -Dspecjbb.controller.host=$target
               -jar /home/specjbb/specjbb2015.jar
               -m BACKEND
               -G ${group}
-              -J JVM_A_$identifier
+              -J JVM_A_${name_suffix}_${number}
 
         - name: injector
           image: specjbb
@@ -118,14 +159,28 @@ spec:
             - sh
             - -c
             - >
-              identifier=${podname#$(GROUP_POD_NAME)-};
+              # Discovery
+
+              ## Delete front name
+
+              identifier=${podname#specjbb-group-};
               echo identifier: $identifier;
 
-              controller_identifier=$((controller_identifier/$group_count));
-              target=$(CONTROLLER_POD_NAME)-${identifier}.$(SERVICE_NAME);
+              ## Delete from back to last '-'
+
+              name_suffix=${identifier%-*};
+              echo service: name_suffix;
+
+              ## Delete to last '-'
+
+              number=${podname##*-};
+              echo number: $number;
+
+              controller_identifier=$(($number/$group_count));
+              target=specjbb-controller-${name_suffix}-${controller_identifier}.specjbb-controller-${name_suffix};
               echo targeting: $target;
 
-              group_identifier=$(($identifier%$group_count))
+              group_identifier=$(($number%$group_count))
               group=GRP$group_identifier;
               echo group: $group group_identifier: $group_identifier;
 
@@ -139,7 +194,7 @@ spec:
               -jar /home/specjbb/specjbb2015.jar
               -m TXINJECTOR
               -G ${group}
-              -J JVM_B_${identifier}
+              -J JVM_B_${name_suffix}_${number}
 
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels

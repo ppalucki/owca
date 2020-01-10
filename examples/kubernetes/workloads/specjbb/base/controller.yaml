@@ -33,10 +33,6 @@ spec:
             # Pod information
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            - name: cores
-              valueFrom: {configMapKeyRef: { name: specjbb, key: cores }}
-            - name: id_env
-              valueFrom: {configMapKeyRef: { name: specjbb, key: id_env }}
             - name: report_level
               valueFrom: {configMapKeyRef: { name: specjbb, key: report_level }}
             # java_opts_c
@@ -63,6 +59,8 @@ spec:
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.preset.ir }}
             - name: specjbb.controller.rampup.steps
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rampup.steps }}
+            - name: paramas
+              valueFrom: {configMapKeyRef: { name: specjbb-controller, key: java }}
             - name: controller.specjbb.forkjoin.workers
               valueFrom: {configMapKeyRef: { name: specjbb-config, key: controller.specjbb.forkjoin.workers }}
           image: specjbb
@@ -70,8 +68,25 @@ spec:
             - sh
             - -c
             - >
-              target=${podname}.$(SERVICE_NAME);
+              identifier=${podname#specjbb-controller-};
+              echo identifier: $identifier;
+
+              name_suffix=${identifier%-*};
+              echo name_suffix: $name_suffix;
+
+              target=${podname}.specjbb-controller-${name_suffix};
               echo targeting: $target;
+
+              FILES=/etc/config2/*;
+              specjbb_paremeters="";
+              for key in $FILES;
+              do
+                if [[ $string == *"/-D"* ]]; then
+                  specjbb_paremeters="${specjbb_paremeters} ${key##*/}=$(cat $key)";
+                fi;
+              done;
+
+              echo "$specjbb_paremeters";
 
               java
               -Xmx${contmeg}
@@ -93,15 +108,30 @@ spec:
               -m MULTICONTROLLER
               -l $(report_level)
 
-               mv /home/specjbb/result/specjbb2015-* /home/result/${id_env}
+               mv /home/specjbb/result/specjbb2015-* /home/result/${podname}_$(date +%s)
 
           volumeMounts:
             - name: results
               mountPath: /home/result/
+            - name: config-volume
+              mountPath: /etc/config
+            - name: config-volume2
+              mountPath: /etc/config2
+            - name: config-volume-file
+              mountPath: /etc/file
 
       volumes:
         - name: results
           hostPath:
             path: /tmp/specjbb-results/
+        - name: config-volume
+          configMap:
+            name: specjbb-controller
+        - name: config-volume2
+          configMap:
+            name: specjbb-controller-2
+        - name: config-volume-file
+          configMap:
+            name: specjbb-controller-file
 
   volumeClaimTemplates: []

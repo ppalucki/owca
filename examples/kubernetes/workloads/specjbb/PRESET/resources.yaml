@@ -9,5 +9,5 @@ spec:
         - name: backend
           resources:
             requests:
-              cpu: 2
-              memory: 6G # valueSize*records = 10k * 1M = 10G
+              cpu: 5
+              memory: 20G
