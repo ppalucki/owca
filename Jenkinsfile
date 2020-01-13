@@ -402,7 +402,7 @@ def kustomize_replace_commit() {
         configs: [
             fileContentReplaceConfig(
                 configs: [
-                    fileContentReplaceItemConfig( search: 'devel', replace: "${GIT_COMMIT}", matchCount: 0),
+                    fileContentReplaceItemConfig( search: 'master', replace: "${GIT_COMMIT}", matchCount: 0),
                 ],
                 fileEncoding: 'UTF-8',
                 filePath: "${WORKSPACE}/examples/kubernetes/monitoring/wca/kustomization.yaml")])
