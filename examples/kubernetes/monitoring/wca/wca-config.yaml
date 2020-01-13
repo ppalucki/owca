@@ -7,14 +7,13 @@
 
 runner: !MeasurementRunner
   interval: 5.0
-  rdt_enabled: False
-  enable_derived_metrics: True
   node: !KubernetesNode
     cgroup_driver: cgroupfs
     monitored_namespaces: ["default"]
     kubeapi_host: !Env KUBERNETES_SERVICE_HOST
     kubeapi_port: !Env KUBERNETES_SERVICE_PORT
     node_ip: !Env HOST_IP
+
 
   metrics_storage: !LogStorage
     overwrite: True
@@ -24,4 +23,6 @@ runner: !MeasurementRunner
     node: !Env HOSTNAME
   event_names:
     - task_cycles # do not remove: USED BY E2E tests
+  enable_derived_metrics: True
+
   wss_reset_interval: 1
