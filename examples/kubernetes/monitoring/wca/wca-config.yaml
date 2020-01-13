@@ -9,7 +9,7 @@ runner: !MeasurementRunner
   interval: 5.0
   node: !KubernetesNode
     cgroup_driver: cgroupfs
-    monitored_namespaces: ["default", "ppalucki"]
+    monitored_namespaces: ["default"]
     kubeapi_host: !Env KUBERNETES_SERVICE_HOST
     kubeapi_port: !Env KUBERNETES_SERVICE_PORT
     node_ip: !Env HOST_IP
