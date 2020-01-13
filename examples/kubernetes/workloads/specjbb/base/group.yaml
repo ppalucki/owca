@@ -92,23 +92,16 @@ spec:
 
               # Calculation
 
-              worker_size=$((($cores/$group_count)*2));
-
-              gc_size=$(($cores / $group_count));
+              worker_size=$(($cores*2));
 
               mr_size=$(($group_count*2));
 
-              #maxheap=$((1500*(($cores-8)/$group_count)/1024));
+              maxram=$MY_MEM_REQUEST;
+              maxheap=$(($MY_MEM_REQUEST*80/100));
 
-              maxheap=$((1500*(($cores)/$group_count)/1024));
-              ram=$((($maxheap*125)/100));
-              maxram=${ram}g;
-
-              margin=3;
-              backendimeg=${maxheap}g;
+              backendimeg=${maxheap};
               xmn_to_xms="94/100";
               backendinew=$(($maxheap*$xmn_to_xms));
-              backendinew=${backendinew}g;
 
               echo backendinew: $backendinew gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
 
@@ -126,7 +119,7 @@ spec:
               -XX:-UseBiasedLocking
               -XX:SurvivorRatio=10
               -XX:TargetSurvivorRatio=90
-              -XX:ParallelGCThreads=${gc_size}
+              -XX:ParallelGCThreads=${cores}
               -XX:+AggressiveOpts
               -XX:+UseParallelOldGC
               -XX:+PrintGCDetails
