@@ -363,7 +363,8 @@ pipeline {
 def wca_and_workloads_check() {
     print('-wca_and_workloads_check-')
     sh "echo GIT_COMMIT=$GIT_COMMIT"
-    images_check()
+    workload_image_check()
+    wca_image_check()
     sh "make venv"
     sh "make wca_package_in_docker_with_kafka"
     print('Reconfiguring wca...')
@@ -390,7 +391,7 @@ def kustomize_wca_and_workloads_check() {
     print('-kustomize_wca_and_workloads_check-')
     sh "echo GIT_COMMIT=$GIT_COMMIT"
     print('Configure wca and workloads...')
-    kustomize_replace_commit()
+    kustomize_replace_commit_in_wca()
     kustomize_add_labels("memcached-mutilate")
     kustomize_add_labels("redis-memtier")
     kustomize_add_labels("stress")
@@ -430,7 +431,7 @@ def kustomize_set_docker_image(workload, workload_image) {
     sh "echo '${testing_image}' >> ${file}"
 }
 
-def kustomize_replace_commit() {
+def kustomize_replace_commit_in_wca() {
     contentReplace(
         configs: [
             fileContentReplaceConfig(
@@ -463,10 +464,20 @@ def test_wca_metrics_kustomize() {
     sh "make venv; PYTHONPATH=. pipenv run pytest ${WORKSPACE}/tests/e2e/test_wca_metrics.py::test_wca_metrics_kustomize --junitxml=unit_results.xml --log-level=debug --log-cli-level=debug -v"
 }
 
-def images_check() {
-    print('Check if docker images build for this PR ${GIT_COMMIT}')
+def workload_image_check() {
+    print('Check if workload (rpc-perf) docker image build for this PR ${GIT_COMMIT}')
     /* Checking only for rpc_perf */
-    check_image = sh(script: 'curl ${DOCKER_REPOSITORY_URL}/v2/wca/rpc_perf/manifests/${BUILD_COMMIT} | jq .name', returnStdout: true).trim()
+    check_image = sh(script: 'curl ${DOCKER_REPOSITORY_URL}/v2/wca/rpc_perf/manifests/${GIT_COMMIT} | jq .name', returnStdout: true).trim()
+    if (check_image == 'null') {
+        print('Docker images are not available!')
+        sh "exit 1"
+    }
+}
+
+def wca_image_check() {
+    print('Check if wca docker images build for this PR ${GIT_COMMIT}')
+    /* Checking only for rpc_perf */
+    check_image = sh(script: 'curl ${DOCKER_REPOSITORY_URL}/v2/wca/manifests/${GIT_COMMIT} | jq .name', returnStdout: true).trim()
     if (check_image == 'null') {
         print('Docker images are not available!')
         sh "exit 1"
