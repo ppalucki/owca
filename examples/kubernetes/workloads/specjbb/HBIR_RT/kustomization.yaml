@@ -19,7 +19,7 @@ configMapGenerator:
   - name: specjbb-controller
     behavior: merge
     literals:
-      - Dspecjbb.controller.type=HABIR_RT
+      - specjbb.controller.type=HABIR_RT
       - >
         specjbb_extra=
         -Dspecjbb.controller.validation.skip=true
