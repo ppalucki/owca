@@ -68,7 +68,7 @@ you can run WCA in following way. Remember to use the absolute configuration pat
 
 .. code:: shell-session
 
-    dist/wca.pex -c ${pwd}configs/mesos_external_detector.yaml -r example.external_package:ExampleDetector -l debug
+    sudo env PYTHONPATH=$PWD/examples PEX_INHERIT_PATH=fallback dist/wca.pex -c ${PWD}/configs/mesos/mesos_external_detector.yaml -r external_package:ExampleDetector -l debug --root
 
 you will see similar output:
 
@@ -78,28 +78,3 @@ you will see similar output:
     2018-07-13 14:51:32,829 DEBUG    {MainThread} [wca.main] started PID=30048
     2018-07-13 14:51:32,913 DEBUG    {MainThread} [wca.storage] [Metric(name='platform_dummy', value=1, labels={}, type=None, help=None)]
     2018-07-13 14:51:32,913 DEBUG    {MainThread} [wca.storage] [Metric(name='anomaly', value=1, labels={'task_id': 'task_id', 'resource': <ContendedResource.CPUS: 'cpus'>, 'uuid': <bound method ContentionAnomaly.uuid of ContentionAnomaly(task_ids=['task_id'], resource=<ContendedResource.CPUS: 'cpus'>)>}, type=<MetricType.COUNTER: 'counter'>, help=None), Metric(name='some_debug', value=2, labels={'version': 2}, type=None, help=None)]
-
-Register API (optionally)
--------------------------
-
-Instead of providing a class as command line argument you can register it using annotations:
-
-
-.. code:: python
-
-    #example_package/example_module.py
-
-    ...
-    from wca import config
-
-    @config.register
-    class ExampleDetector(detectors.AnomalyDetector):
-        ...
-
-
-then you can run WCA just providing configuration file:
-
-
-.. code:: shell-session
-
-    dist/wca.pex -c /etc/wca/example.yaml -l debug

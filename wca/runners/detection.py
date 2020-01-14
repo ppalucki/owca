@@ -91,7 +91,7 @@ class DetectionRunner(Runner):
         self._measurement_runner._set_iterate_body_callback(self._iterate_body)
 
     def run(self):
-        self._measurement_runner._run()
+        self._measurement_runner.run()
 
     def _iterate_body(self, containers, platform, tasks_data, common_labels):
         """Detector callback body."""

@@ -17,8 +17,8 @@ import time
 import socket
 import hashlib
 from wca.metrics import Metric
-from wca.detectors import (TasksMeasurements, ContentionAnomaly,
-                           ContendedResource, AnomalyDetector, TasksResources, TasksLabels)
+from wca.detectors import (ContentionAnomaly, TasksData,
+                           ContendedResource, AnomalyDetector)
 from wca.allocators import Allocator, AllocationType, RDTAllocation
 from wca.platforms import Platform
 
@@ -34,9 +34,7 @@ class ExampleDetector(AnomalyDetector):
         self.skew = skew
 
     def detect(self, platform: Platform,
-               tasks_measurements: TasksMeasurements,
-               tasks_resources: TasksResources,
-               tasks_labels: TasksLabels
+               tasks_data: TasksData
                ):
 
         anomalies = []
@@ -52,7 +50,7 @@ class ExampleDetector(AnomalyDetector):
         second_of_cycle = int(time.time() + phase_skew) % self.cycle_length
 
         # Make sure we have enough tasks (to simulate contention).
-        if len(tasks_measurements) >= 10:
+        if len(tasks_data) >= 10:
 
             resources = [
                 ContendedResource.CPUS,
@@ -100,7 +98,7 @@ class ExampleDetector(AnomalyDetector):
                      tasks_count, resources_count, metrics_count)
 
             # Make sure that we choose tasks pairs for generating faked contention.
-            task_ids = sorted(tasks_measurements.keys())
+            task_ids = sorted(tasks_data.keys())
 
             # Predefined pairs of contended and contending tasks.
             task_pairs = [
@@ -129,7 +127,7 @@ class ExampleDetector(AnomalyDetector):
                         )
                     )
         else:
-            log.warning('not enough tasks %d to simulate contention!', len(tasks_measurements))
+            log.warning('not enough tasks %d to simulate contention!', len(tasks_data))
 
         debugging_metrics = [
             Metric(
@@ -144,15 +142,14 @@ class ExampleDetector(AnomalyDetector):
 
 class ExampleAllocator(Allocator):
 
-    def allocate(self, platform, tasks_measurements, tasks_resources,
-                 tasks_labels, tasks_allocations):
-        log.debug('allocated called with tasks_allocations: %r', tasks_allocations)
+    def allocate(self, platform, tasks_data):
+        log.debug('allocated called with tasks_allocations: %r', tasks_data)
 
-        if tasks_measurements:
-            task_id = list(tasks_measurements.keys())[0]
-            tasks_allocations[task_id] = {
+        if tasks_data:
+            task_id = list(tasks_data.keys())[0]
+            tasks_data[task_id].allocations = {
                 AllocationType.QUOTA: 0.5,
                 AllocationType.RDT: RDTAllocation(l3='L3:0=ffff0;1=ffff0'),
             }
 
-        return tasks_allocations, [], []
+        return tasks_data, [], []

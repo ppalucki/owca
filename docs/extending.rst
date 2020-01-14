@@ -101,7 +101,7 @@ and then with WCA started like this
 
 .. code-block:: shell
 
-    PYTHONPATH=$PWD/example PEX_INHERIT_PATH=fallback ./dist/wca.pex -c $PWD/configs/extending/hello_world.yaml -r hello_world_runner:HelloWorldRunner
+    PYTHONPATH=$PWD/examples PEX_INHERIT_PATH=fallback ./dist/wca.pex -c $PWD/configs/extending/hello_world.yaml -r hello_world_runner:HelloWorldRunner
 
 :Tip: You can just copy-paste this command, all required example files are already in project, but you have to build pex file first with ``make``.
 
@@ -187,8 +187,7 @@ and then run WCA like this:
 
 .. code-block:: shell
 
-    sudo env PYTHONPATH=example PEX_INERHITPATH=1 ./dist/wca.pex -c $PWD/configs/extending/measurement_http_storage.yaml -r http_storage:HTTPStorage --root --log http_storage:info
-
+ sudo env PYTHONPATH=$PWD/examples PEX_INHERIT_PATH=fallback ./dist/wca.pex -c $PWD/configs/extending/measurement_http_storage.yaml -r http_store:HTTPStorage --root --log http_storage:info
 
 Expected output is:
 
@@ -297,7 +296,7 @@ use `PEX <https://github.com/pantsbuild/pex>`_ file to package all source code i
 
 .. code-block:: shell
 
-    pex -D example python-dateutil==2.8.0 -o hello_world.pex -v
+    pex -D examples python-dateutil==2.8.0 -o hello_world.pex -v
 
 
 where ``example/hello_world_runner_with_dateutil.py``:

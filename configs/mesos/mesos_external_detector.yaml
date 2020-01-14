@@ -7,8 +7,6 @@ runner: !DetectionRunner
       timeout: 5
       ssl: !SSL
         server_verify: True
-        client_cert_path: "$PATH/apiserver-aurora-client.crt"
-        client_key_path: "$PATH/apiserver-aurora-client.key"
 
     interval: 1.
 
@@ -22,8 +20,3 @@ runner: !DetectionRunner
   # Example use of external component.
   # Requires registration with -r example.external_package:ExampleDetector
   detector: !ExampleDetector
-
-  anomalies_storage: !KafkaStorage
-    brokers_ips: ['$KAFKA_BROKER_IP:9092']
-    topic: wca_anomalies
-    max_timeout_in_seconds: 5.

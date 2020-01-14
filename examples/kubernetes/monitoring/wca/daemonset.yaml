@@ -66,11 +66,10 @@ spec:
             mountPath: /etc/wca/
           - name: proc
             mountPath: /proc
-#        command:
-#          - sleep
-#          - inf
-        command:
-          - /usr/bin/wca.pex
+        # Use default entrypoint that is different for 
+        # devel and standalone based images.
+        # command:
+        #   - /usr/bin/wca.pex
         args:
         - "--config=/etc/wca/wca-config.yaml"
         - "--log=info"
