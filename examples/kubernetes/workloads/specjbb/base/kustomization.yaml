@@ -74,7 +74,7 @@ configMapGenerator:
         java=
         -XX:+AlwaysPreTouch
         -XX:ParallelGCThreads=2
-# Below params are calculated for jvm
+# Below params are calculated for jvm (MAYBE SHOULD BE GIVEN NOT CALCUALTED)
 #      -Xmx$(($MY_MEM_REQUEST*80/100))
 #      -Xms$(($MY_MEM_REQUEST*80/100))
 #      -Xmn$(($MY_MEM_REQUEST*80/100*94/100))

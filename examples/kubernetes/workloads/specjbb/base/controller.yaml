@@ -46,18 +46,18 @@ spec:
               echo targeting: $target;
 
               ### START PROPOSE Script to parse env from file
-
-              FILES=/etc/config2/*;
-              specjbb_paremeters="";
-              for key in $FILES;
-              do
-                if [[ $string == *"specjbb"* ]]; then
-                  specjbb_paremeters="${specjbb_paremeters} -D${key##*/}=$(cat $key)";
-                fi;
-              done;
-
-              echo "$specjbb_paremeters";
-
+              #
+              #FILES=/etc/config2/*;
+              #specjbb_paremeters="";
+              #for key in $FILES;
+              #do
+              #  if [[ $string == *"specjbb"* ]]; then
+              #    specjbb_paremeters="${specjbb_paremeters} -D${key##*/}=$(cat $key)";
+              #  fi;
+              #done;
+              #
+              #echo "$specjbb_paremeters";
+              #
               ### END
 
               set -x;
