@@ -295,6 +295,9 @@ class MeasurementRunner(Runner):
             if rdt_auto_enabling:
                 log.debug(msg)
                 self._rdt_enabled = False
+                platform.rdt_information = None
+                # override rdt information should not be available later
+                # e.g. ContainerManager
             else:
                 # If RDT was force fail short here.
                 log.error(msg)
