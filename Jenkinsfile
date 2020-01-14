@@ -417,8 +417,8 @@ def kustomize_wca_and_workloads_check() {
         sh "kubectl scale --replicas=1 statefulset $item"
     }
 
-    sh "kubectl scale --replicas=1 statefulset specjbb-controller"
-    sh "kubectl scale --replicas=2 statefulset specjbb-group"
+    sh "kubectl scale --replicas=1 statefulset specjbb-controller-preset"
+    sh "kubectl scale --replicas=2 statefulset specjbb-group-preset"
 
     print('Sleep while workloads are running...')
     sleep RUN_WORKLOADS_SLEEP_TIME
