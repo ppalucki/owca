@@ -43,14 +43,7 @@ spec:
             - sh
             - -c
             - >
-              #identifier=${podname#specjbb-controller-};
-              #echo identifier: $identifier;
-
-              #name_suffix=${identifier%-*};
-              #echo name_suffix: $name_suffix;
-
-              #target=${podname}.specjbb-controller-${name_suffix};
-              target=${podname}.specjbb-controller-${podname##*-};
+              target=${podname}.${podname%-*};
               echo targeting: $target;
 
               ### START PROPOSE Script to parse env from file
