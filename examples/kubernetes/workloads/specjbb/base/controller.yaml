@@ -24,8 +24,7 @@ spec:
         app: specjbb-controller
     spec:
       nodeSelector:
-#        goal: service
-        kubernetes.io/hostname: node38
+        goal: service
       terminationGracePeriodSeconds: 0
       containers:
         - name: controller
