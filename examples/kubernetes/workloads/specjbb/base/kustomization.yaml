@@ -43,7 +43,7 @@ configMapGenerator:
         -XX:ParallelGCThreads=2
       - >
         specjbb_extra=
-      # -Dspecjbb.controller.preset.ir=1000
+      # -Dspecjbb.forkjoin.workers=2 # 2*cores
       # extra params needs '-D' prefix, like above
 
   - name: specjbb-backend
