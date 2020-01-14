@@ -3,9 +3,9 @@ bases:
 - FIXED_RT
 - HBIR_RT
 
-namespace: ddarczuk
-
-images:
-- name: specjbb
-  newName: 100.64.176.12:80/wca/specjbb
-  newTag: b5de817801ca124285eaae7548fa69de90e7c47c
+#namespace: ddarczuk
+#
+#images:
+#- name: specjbb
+#  newName: 100.64.176.12:80/wca/specjbb
+#  newTag: b5de817801ca124285eaae7548fa69de90e7c47c
