@@ -93,6 +93,17 @@ def test_get_tasks_kubeapi(mock_path_exists, get_mock, pathlib_open_mock):
     assert len(tasks) == 11
 
 
+@patch('requests.get', return_value=create_json_fixture_mock(
+    'kubeapi_invalid_res_missing_host_ip', __file__))
+@patch('pathlib.Path.open')
+@patch('os.path.exists', return_value=True)
+def test_get_tasks_kubeapi_invalid_res_missing_host_ip(
+        mock_path_exists, get_mock, pathlib_open_mock):
+    node = KubernetesNode(node_ip="100.64.176.37")
+    tasks = node.get_tasks()
+    assert len(tasks) == 0
+
+
 @patch(
     'requests.get',
     return_value=create_json_fixture_mock('kubernetes_get_state_not_ready', __file__))
