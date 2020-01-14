@@ -112,10 +112,10 @@ class MeasurementRunner(Runner):
         Enables or disabled support for RDT monitoring.
         (defaults to None(auto) based on platform capabilities)
 
-    - ``gather_hw_mm_topology``: **bool** = *False*
+    - ``gather_hw_mm_topology``: **Optional[bool]** = *None*
 
         Gather hardware/memory topology based on lshw and ipmctl.
-        (defaults to False)
+        (defaults to None(auto) based on lshw and ipmctl binaries availability)
 
     - ``extra_labels``: **Optional[Dict[Str, Str]]** = *None*
 
@@ -171,7 +171,7 @@ class MeasurementRunner(Runner):
             metrics_storage: Storage = DEFAULT_STORAGE,
             interval: Numeric(0, 60) = 1.,
             rdt_enabled: Optional[bool] = None,
-            gather_hw_mm_topology: bool = False,
+            gather_hw_mm_topology: Optional[bool] = None,
             extra_labels: Optional[Dict[Str, Str]] = None,
             event_names: List[str] = [],
             perf_aggregate_cpus: bool = True,
