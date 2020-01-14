@@ -81,16 +81,11 @@ spec:
           volumeMounts:
             - name: results
               mountPath: /home/result/
-            - name: config-volume2
-              mountPath: /etc/config2
 
       volumes:
         - name: results
           hostPath:
             path: /tmp/specjbb-results/
 
-        - name: config-volume2
-          configMap:
-            name: specjbb-controller-2
 
   volumeClaimTemplates: []

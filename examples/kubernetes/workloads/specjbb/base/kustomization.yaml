@@ -15,13 +15,6 @@ configMapGenerator:
     # https://stackoverflow.com/questions/14763079/what-are-the-xms-and-xmx-parameters-when-starting-jvm
     # https://stackoverflow.com/questions/23880891/what-does-xmn-jvm-option-stands-for
     # zones=`numactl -H | grep cpus | wc -l` # NUMA
-  - name: specjbb-controller-2
-    literals:
-      - specjbb.group.count=1
-      - specjbb.txi.pergroup.count=1
-      - specjbb.controller.rtcurve.warmup.step=0.5
-      - specjbb.controller.rtcurve.step=1
-      - specjbb.controller.type=PRESET
 
   - name: specjbb
     literals:
