@@ -1,6 +1,6 @@
 bases:
 - PRESET
-#- FIXED_RT
+- FIXED_RT
 
 namespace: ddarczuk
 

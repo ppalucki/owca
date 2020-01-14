@@ -11,44 +11,12 @@ patchesStrategicMerge:
   - resources.yaml
 
 configMapGenerator:
-  - name: specjbb-java
+  - name: specjbb
     behavior: merge
     literals:
-      - ParallelGCThreads=2
-      # for the controller
-      - contmeg="2g"
-      - contnew="1536m"
-      # for the injector
-      - tximeg_numeric_gb=2
-      - tximeg="2g"
-      - txinew="1536m"
-      # for the backend
-      - backendimeg='18000M'
-      - backendinew='16920M'
-      - gc_size='12'
-      - worker_size='12'
-
-  - name: specjbb-config
-    behavior: merge
-    literals:
-      # 'specjbb.group.count' set by number replicas groups and controllers
       - specjbb.group.count=2
-      - specjbb.txi.pergroup.count=1
-      - specjbb.controller.rtcurve.warmup.step=0.5
-      - specjbb.controller.rtcurve.step=1
-      - specjbb.controller.type=PRESET
-      - specjbb.forkjoin.workers=24
 
-  - name: specjbb-controller-2
+  - name: specjbb-controller
     behavior: merge
     literals:
-      - -Dspecjbb.group.count=2
-      - -Dspecjbb.txi.pergroup.count=1
-      - -Dspecjbb.controller.rtcurve.warmup.step=0.5
-      - -Dspecjbb.controller.rtcurve.step=1
-      - -Dspecjbb.controller.type=PRESET
-      - -Dcontroller.specjbb.forkjoin.workers=2
-      - -Dtxi.specjbb.forkjoin.workers=2
-      - -Xmx2g=
-    files:
-      - specjbb-controller.props
+      - specjbb.controller.type=PRESET

@@ -24,16 +24,10 @@ spec:
           #ALL ENV FROM FILE
           envFrom:
             - configMapRef:
-                name: specjbb-config
+                name: specjbb
+            - configMapRef:
+                name: specjbb-backend
           env:
-            # discovery information
-            - name: group_count
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.group.count }}
-            # java_opts_inx
-            - name: backendimeg
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: backendimeg }}
-            - name: backendinew
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: backendinew }}
             # Downward API
             - name: podname
               valueFrom:
@@ -79,10 +73,13 @@ spec:
 
               ## Delete to last '-'
 
+              group_count=$(specjbb.group.count);
+
               number=${podname##*-};
               echo number: $number group_count: $group_count;
 
               controller_identifier=$(($number/$group_count));
+              echo controller_identifier: $controller_identifier;
               target=specjbb-controller-${name_suffix}-${controller_identifier}.specjbb-controller-${name_suffix};
               echo targeting: $target;
 
@@ -90,44 +87,25 @@ spec:
               group=GRP$group_identifier;
               echo group: $group group_identifier: $group_identifier;
 
-              # Calculation
+              # RUN COMMAND
 
-              worker_size=$(($cores*2));
-
-              mr_size=$(($group_count*2));
-
-              maxram=$MY_MEM_REQUEST;
-              maxheap=$(($MY_MEM_REQUEST*80/100));
-
-              backendimeg=${maxheap};
-              xmn_to_xms="94/100";
-              backendinew=$(($maxheap*$xmn_to_xms));
-
-              echo backendinew: $backendinew gc_size: $gc_size mr_size: $mr_size maxheap: $maxheap maxram: $maxram;
+              set -x;
 
               java
               -Dcom.sun.management.jmxremote.port=8686
               -Dcom.sun.management.jmxremote.authenticate=false
               -Dcom.sun.management.jmxremote.ssl=false
-              -Xmx${backendimeg}
-              -Xms${backendimeg}
-              -Xmn${backendinew}
-              -XX:+AlwaysPreTouch
-              -XX:-UseAdaptiveSizePolicy
-              -XX:MaxRAM=${maxram}
-              -XX:MaxTenuringThreshold=15
-              -XX:-UseBiasedLocking
-              -XX:SurvivorRatio=10
-              -XX:TargetSurvivorRatio=90
+              -Xmx$(($MY_MEM_REQUEST*80/100))
+              -Xms$(($MY_MEM_REQUEST*80/100))
+              -Xmn$(($MY_MEM_REQUEST*80/100*94/100))
+              -XX:MaxRAM=$MY_MEM_REQUEST
               -XX:ParallelGCThreads=${cores}
-              -XX:+AggressiveOpts
-              -XX:+UseParallelOldGC
-              -XX:+PrintGCDetails
-              -XX:+PrintHeapAtGC
-              -XX:+PrintGCTimeStamps
-              -Dspecjbb.forkjoin.workers=${worker_size}
-              -Dspecjbb.mapreducer.pool.size=${mr_size}
+              $java
+              $java2
+              -Dspecjbb.forkjoin.workers=$(($cores*2))
+              -Dspecjbb.mapreducer.pool.size=$(($group_count*2))
               -Dspecjbb.controller.host=$target
+              $specjbb_extra
               -jar /home/specjbb/specjbb2015.jar
               -m BACKEND
               -G ${group}
@@ -135,24 +113,45 @@ spec:
 
         - name: injector
           image: specjbb
+          #ALL ENV FROM FILE
+          envFrom:
+            - configMapRef:
+                name: specjbb
+            - configMapRef:
+                name: specjbb-injector
           env:
-            # discovery information
-            - name: group_count
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.group.count }}
+            # Downward API
             - name: podname
-              valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            # java_opts_inx
-            - name: tximeg
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: tximeg }}
-            - name: txinew
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: txinew }}
-            - name: txi.ParallelGCThreads
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: txi.ParallelGCThreads }}
+              valueFrom:
+                fieldRef:
+                   fieldPath: metadata.name
+            - name: cores
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: requests.cpu
+            - name: MY_CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: limits.cpu
+            - name: MY_MEM_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: requests.memory
+            - name: MY_MEM_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: limits.memory
           command:
             - sh
             - -c
             - >
               # Discovery
+
+              group_count=$(specjbb.group.count);
 
               ## Delete front name
 
@@ -177,13 +176,17 @@ spec:
               group=GRP$group_identifier;
               echo group: $group group_identifier: $group_identifier;
 
+              # RUN COMMAND
+
+              set -x;
+
               java
-              -Xmx${tximeg}
-              -Xms${tximeg}
-              -Xmn${txinew}
-              -XX:+AlwaysPreTouch
-              -XX:ParallelGCThreads=$(txi.ParallelGCThreads)
+              -Xmx$(($MY_MEM_REQUEST*80/100))
+              -Xms$(($MY_MEM_REQUEST*80/100))
+              -Xmn$(($MY_MEM_REQUEST*80/100*94/100))
+              $java
               -Dspecjbb.controller.host=$target
+              $specjbb_extra
               -jar /home/specjbb/specjbb2015.jar
               -m TXINJECTOR
               -G ${group}

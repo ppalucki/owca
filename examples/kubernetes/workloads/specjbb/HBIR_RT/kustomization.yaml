@@ -1,0 +1,8 @@
+- specjbb.controller.validation.skip=true
+- specjbb.controller.preset.ir=1000
+- specjbb.controller.rampup.steps=1
+
+              -Dspecjbb.controller.validation.skip=$(specjbb.controller.validation.skip)
+              -Dspecjbb.controller.preset.ir=$(specjbb.controller.preset.ir)
+              -Dspecjbb.controller.rampup.steps=$(specjbb.controller.rampup.steps)
+              -Dspecjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)

@@ -3,34 +3,37 @@ resources:
   - group.yaml
 
 configMapGenerator:
-  - name: specjbb
     # worker_size # used as instances of grp tasks
     # gc_size     # -XX:ParallelGCThreads - equals to number of cores for backend
     # mr_size     # default: max(Runtime.getRuntime().availableProcessors(), specjbb.group.count * (specjbb.txi.pergroup.count +1))
     #             # according: https://www.spec.org/jbb2015/docs/runrules.pdf
     # maxheap     # 1500 -> ram megabytes per core
     # maxram      # by Ismo to set -XX:MaxRAM=$maxram
-    literals:
-      # zones=`numactl -H | grep cpus | wc -l`
-      - zones=2  # num of numa nodes
-      - report_level=0
-
-  - name: specjbb-controller-file
-    files:
-      - specjbb-controller.props
-
+    # >> xmx == max allocation pool memory <<
+    # >> xms == initial allocation pool memory <<
+    # >> xmn == the size of the heap for the young generation <<
+    # https://stackoverflow.com/questions/14763079/what-are-the-xms-and-xmx-parameters-when-starting-jvm
+    # https://stackoverflow.com/questions/23880891/what-does-xmn-jvm-option-stands-for
+    # zones=`numactl -H | grep cpus | wc -l` # NUMA
   - name: specjbb-controller-2
     literals:
-      - -Dspecjbb.group.count=1
-      - -Dspecjbb.txi.pergroup.count=1
-      - -Dspecjbb.controller.rtcurve.warmup.step=0.5
-      - -Dspecjbb.controller.rtcurve.step=1
-      - -Dspecjbb.controller.type=PRESET
-      - -Dcontroller.specjbb.forkjoin.workers=2
-      - -Dtxi.specjbb.forkjoin.workers=2
+      - specjbb.group.count=1
+      - specjbb.txi.pergroup.count=1
+      - specjbb.controller.rtcurve.warmup.step=0.5
+      - specjbb.controller.rtcurve.step=1
+      - specjbb.controller.type=PRESET
+
+  - name: specjbb
+    literals:
+      # 'specjbb.group.count' set by number replicas groups and controllers
+      - specjbb.group.count=1
 
   - name: specjbb-controller
     literals:
+      - specjbb.controller.type=PRESET
+      - specjbb.controller.rtcurve.warmup.step=0.5
+      - specjbb.controller.rtcurve.step=1
+      - specjbb.txi.pergroup.count=1
       - >
         java=
         -Xmx2g
@@ -39,173 +42,48 @@ configMapGenerator:
         -XX:+AlwaysPreTouch
         -XX:ParallelGCThreads=2
       - >
-        specjbb=
-        -Dspecjbb.group.count=1
-        -Dspecjbb.txi.pergroup.count=1
-        -Dspecjbb.controller.rtcurve.warmup.step=0.5
-        -Dspecjbb.controller.rtcurve.step=1
-        -Dspecjbb.controller.type=PRESET
-        -Dcontroller.specjbb.forkjoin.worker
-        -Dtxi.specjbb.forkjoin.workers=2
+        specjbb_extra=
+      # -Dspecjbb.controller.preset.ir=1000
+      # extra params needs '-D' prefix, like above
+
+  - name: specjbb-backend
+    literals:
       - >
-        extra=
+        java=
+        -XX:+AlwaysPreTouch
+        -XX:-UseAdaptiveSizePolicy
+        -XX:-UseBiasedLocking
+        -XX:+AggressiveOpts
+        -XX:+UseParallelOldGC
+        -XX:+PrintGCDetails
+        -XX:+PrintHeapAtGC
+        -XX:+PrintGCTimeStamps
+      - >
+        java2=
+        -XX:MaxTenuringThreshold=15
+        -XX:SurvivorRatio=10
+        -XX:TargetSurvivorRatio=90
+# Below params are calculated for jvm
+#      -Xmx$(($MY_MEM_REQUEST*80/100))
+#      -Xms$(($MY_MEM_REQUEST*80/100))
+#      -Xmn$(($MY_MEM_REQUEST*80/100*94/100))
+#      -XX:MaxRAM=$MY_MEM_REQUEST
+#      -XX:ParallelGCThreads=${cores}
+      - >
+        specjbb_extra=
+# Below params are calculated for specjbb
+#      -Dspecjbb.forkjoin.workers=$(($cores*2))
+#      -Dspecjbb.mapreducer.pool.size=$(($group_count*2))
 
-
-
-
-
-#
-#
-#
-#
-#
-#  - name: specjbb-controllerA
-#    literals:
-#      - >
-#        java=
-#        -Xmx2g
-#        -Xms2g
-#        -Xmn1536m
-#        -XX:+AlwaysPreTouch
-#        -XX:ParallelGCThreads=2
-#      - >
-#        specjbb=
-#        -Dspecjbb.group.count=1
-#        -Dspecjbb.txi.pergroup.count=1
-#        -Dspecjbb.controller.rtcurve.warmup.step=0.5
-#        -Dspecjbb.controller.rtcurve.step=1
-#        -Dspecjbb.controller.type=PRESET
-#        -Dcontroller.specjbb.forkjoin.worker
-#        -Dtxi.specjbb.forkjoin.workers=2
-#      - >
-#        extra=
-#
-#  - name: specjbb-backendA
-#    literals:
-#      - >
-#        java=
-#        -XX:+AlwaysPreTouch
-#        -XX:-UseAdaptiveSizePolicy
-#        -XX:-UseBiasedLocking
-#        -XX:+AggressiveOpts
-#        -XX:+UseParallelOldGC
-#        -XX:+PrintGCDetails
-#        -XX:+PrintHeapAtGC
-#        -XX:+PrintGCTimeStamps
-#      - >
-#        java2=
-#        -XX:MaxRAM=${maxram}
-#        -XX:MaxTenuringThreshold=15
-#        -XX:SurvivorRatio=10
-#        -XX:TargetSurvivorRatio=90
-#        -XX:ParallelGCThreads=${gc_size}
-#        -Dspecjbb.forkjoin.workers=${worker_size}
-#        -Dspecjbb.mapreducer.pool.size=${mr_size}
-#
-#  - name: specjbb-injectorA
-#    literals:
-#      - >
-#        java=
-#        -Xmx${tximeg}
-#        -Xms${tximeg}
-#        -Xmn${txinew}
-#        -XX:+AlwaysPreTouch
-#        -XX:ParallelGCThreads=$(txi.ParallelGCThreads)
-#
-#
-#
-#
-#
-#
-#
-#  - name: specjbb-controllerB
-#    literals:
-#      - Xmx=${Xmx}
-#      - Xms=${Xms}
-#      - Xmn=${Xmn}
-#      - XX:+AlwaysPreTouch
-#      - XX:ParallelGCThreads=$(controller.ParallelGCThreads)
-#      - specjbb.group.count=1
-#      - specjbb.txi.pergroup.count=1
-#      - specjbb.controller.rtcurve.warmup.step=0.5
-#      - specjbb.controller.rtcurve.step=1
-#      - specjbb.controller.type=PRESET
-#      - specjbb.controller.validation.skip=
-#      - specjbb.controller.preset.ir=$(specjbb.controller.preset.ir)
-#      - specjbb.controller.rampup.steps=$(specjbb.controller.rampup.steps)
-#      - specjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)
-#
-#
-
-
-#java
-#-Xmx=${Xmx}
-#-Xms=${Xms}
-#-Xmn=${Xmn}
-#-XX:+AlwaysPreTouch
-#-XX:ParallelGCThreads=$(controller.ParallelGCThreads)
-#-Dspecjbb.group.count=$(group_count)
-#-Dspecjbb.txi.pergroup.count=$(specjbb.txi.pergroup.count)
-#-Dspecjbb.controller.rtcurve.warmup.step=$(specjbb.controller.rtcurve.warmup.step)
-#-Dspecjbb.controller.rtcurve.step=$(specjbb.controller.rtcurve.step)
-#-Dspecjbb.controller.type=$(specjbb.controller.type)
-#-Dspecjbb.controller.validation.skip=$(specjbb.controller.validation.skip)
-#-Dspecjbb.controller.preset.ir=$(specjbb.controller.preset.ir)
-#-Dspecjbb.controller.rampup.steps=$(specjbb.controller.rampup.steps)
-#-Dspecjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)
-#-jar /home/specjbb/specjbb2015.jar
-#-m MULTICONTROLLER
-#-l $(report_level)
-
-
-
-
-
-
-
-
-
-
-  - name: specjbb-java
+  - name: specjbb-injector
     literals:
-      # >> xmx == max allocation pool memory <<
-      # >> xms == initial allocation pool memory <<
-      # >> xmn == the size of the heap for the young generation <<
-      # https://stackoverflow.com/questions/14763079/what-are-the-xms-and-xmx-parameters-when-starting-jvm
-      # https://stackoverflow.com/questions/23880891/what-does-xmn-jvm-option-stands-for
-      #XX:ParallelGCThreads calulated for backend
-      - controller.ParallelGCThreads=2
-      - txi.ParallelGCThreads=2
-      # for the controller
-      - contmeg="2g"
-      - contnew="1536m"
-      # for the injector
-      - tximeg_numeric_gb=2
-      - tximeg="2g"
-      - txinew="1536m"
-      # for the backend
-      - backendimeg='18000M'
-      - backendinew='16920M'
-      - gc_size='12'
-      - worker_size='12'
-      # controler deafoult or from parametr
-      # txi worker_size=$((($cores/$group_count)*2));
-      # controler -Dspecjbb.forkjoin.worker
-      # txi -Dspecjbb.forkjoin.worker
-
-
-  - name: specjbb-config
-    literals:
-      # 'specjbb.group.count' set by number replicas groups and controllers
-      - specjbb.group.count=1
-      - specjbb.txi.pergroup.count=1
-      - specjbb.controller.rtcurve.warmup.step=0.5
-      - specjbb.controller.rtcurve.step=1
-      - specjbb.controller.type=PRESET
-      - controller.specjbb.forkjoin.workers=2
-      - txi.specjbb.forkjoin.workers=2
-      # specjbb.forkjoin.workers for backend is calculated
-      # controller.specjbb.forkjoin.workers for txi no setting
-      - specjbb.controller.validation.skip=true
-      - specjbb.controller.preset.ir=1000
-      - specjbb.controller.rampup.steps=
+      - >
+        java=
+        -XX:+AlwaysPreTouch
+        -XX:ParallelGCThreads=2
+# Below params are calculated for jvm
+#      -Xmx$(($MY_MEM_REQUEST*80/100))
+#      -Xms$(($MY_MEM_REQUEST*80/100))
+#      -Xmn$(($MY_MEM_REQUEST*80/100*94/100))
+      - >
+        specjbb_extra=

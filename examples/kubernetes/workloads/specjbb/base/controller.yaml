@@ -29,109 +29,75 @@ spec:
       terminationGracePeriodSeconds: 0
       containers:
         - name: controller
+          #ALL ENV FROM FILE
+          envFrom:
+            - configMapRef:
+                name: specjbb
+            - configMapRef:
+                name: specjbb-controller
           env:
-            # Pod information
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            - name: report_level
-              valueFrom: {configMapKeyRef: { name: specjbb, key: report_level }}
-            # java_opts_c
-            - name: contmeg
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: contmeg }}
-            - name: contnew
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: contnew }}
-            - name: controller.ParallelGCThreads
-              valueFrom: {configMapKeyRef: { name: specjbb-java, key: controller.ParallelGCThreads }}
-            # Spcejbb information
-            - name: group_count
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.group.count }}
-            - name: specjbb.txi.pergroup.count
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.txi.pergroup.count }}
-            - name: specjbb.controller.rtcurve.warmup.step
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rtcurve.warmup.step }}
-            - name: specjbb.controller.rtcurve.step
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rtcurve.step }}
-            - name: specjbb.controller.type
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.type }}
-            - name: specjbb.controller.validation.skip
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.validation.skip }}
-            - name: specjbb.controller.preset.ir
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.preset.ir }}
-            - name: specjbb.controller.rampup.steps
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: specjbb.controller.rampup.steps }}
-            - name: paramas
-              valueFrom: {configMapKeyRef: { name: specjbb-controller, key: java }}
-            - name: controller.specjbb.forkjoin.workers
-              valueFrom: {configMapKeyRef: { name: specjbb-config, key: controller.specjbb.forkjoin.workers }}
           image: specjbb
           command:
             - sh
             - -c
             - >
-              identifier=${podname#specjbb-controller-};
-              echo identifier: $identifier;
+              #identifier=${podname#specjbb-controller-};
+              #echo identifier: $identifier;
 
-              name_suffix=${identifier%-*};
-              echo name_suffix: $name_suffix;
+              #name_suffix=${identifier%-*};
+              #echo name_suffix: $name_suffix;
 
-              target=${podname}.specjbb-controller-${name_suffix};
+              #target=${podname}.specjbb-controller-${name_suffix};
+              target=${podname}.specjbb-controller-${podname##*-};
               echo targeting: $target;
+
+              ### START PROPOSE Script to parse env from file
 
               FILES=/etc/config2/*;
               specjbb_paremeters="";
               for key in $FILES;
               do
                 if [[ $string == *"/-D"* ]]; then
-                  specjbb_paremeters="${specjbb_paremeters} ${key##*/}=$(cat $key)";
+                  specjbb_paremeters="${specjbb_paremeters} -D${key##*/}=$(cat $key)";
                 fi;
               done;
 
               echo "$specjbb_paremeters";
 
+              ### END
+
+              set -x;
+
               java
-              -Xmx${contmeg}
-              -Xms${contmeg}
-              -Xmn${contnew}
-              -XX:+AlwaysPreTouch
-              -XX:ParallelGCThreads=$(controller.ParallelGCThreads)
-              -Dspecjbb.group.count=$(group_count)
+              $java
+              -Dspecjbb.group.count=$(specjbb.group.count)
               -Dspecjbb.txi.pergroup.count=$(specjbb.txi.pergroup.count)
               -Dspecjbb.controller.rtcurve.warmup.step=$(specjbb.controller.rtcurve.warmup.step)
               -Dspecjbb.controller.rtcurve.step=$(specjbb.controller.rtcurve.step)
-              -Dspecjbb.controller.host=$target
               -Dspecjbb.controller.type=$(specjbb.controller.type)
-              -Dspecjbb.controller.validation.skip=$(specjbb.controller.validation.skip)
-              -Dspecjbb.controller.preset.ir=$(specjbb.controller.preset.ir)
-              -Dspecjbb.controller.rampup.steps=$(specjbb.controller.rampup.steps)
-              -Dspecjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)
+              -Dspecjbb.controller.host=$target
+              $specjbb_extra
               -jar /home/specjbb/specjbb2015.jar
               -m MULTICONTROLLER
-              -l $(report_level)
+              -l 0
 
                mv /home/specjbb/result/specjbb2015-* /home/result/${podname}_$(date +%s)
 
           volumeMounts:
             - name: results
               mountPath: /home/result/
-            - name: config-volume
-              mountPath: /etc/config
             - name: config-volume2
               mountPath: /etc/config2
-            - name: config-volume-file
-              mountPath: /etc/file
 
       volumes:
         - name: results
           hostPath:
             path: /tmp/specjbb-results/
-        - name: config-volume
-          configMap:
-            name: specjbb-controller
+
         - name: config-volume2
           configMap:
             name: specjbb-controller-2
-        - name: config-volume-file
-          configMap:
-            name: specjbb-controller-file
 
   volumeClaimTemplates: []
