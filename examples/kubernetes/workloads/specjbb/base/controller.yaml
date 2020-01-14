@@ -14,7 +14,7 @@ metadata:
 spec:
   serviceName: specjbb-controller
   podManagementPolicy: Parallel
-  replicas: 2
+  replicas: 0
   selector:
     matchLabels:
       app: specjbb-controller
@@ -52,7 +52,7 @@ spec:
               specjbb_paremeters="";
               for key in $FILES;
               do
-                if [[ $string == *"/-D"* ]]; then
+                if [[ $string == *"specjbb"* ]]; then
                   specjbb_paremeters="${specjbb_paremeters} -D${key##*/}=$(cat $key)";
                 fi;
               done;
