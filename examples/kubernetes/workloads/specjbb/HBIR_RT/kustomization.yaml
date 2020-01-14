@@ -1,8 +1,29 @@
-- specjbb.controller.validation.skip=true
-- specjbb.controller.preset.ir=1000
-- specjbb.controller.rampup.steps=1
+nameSuffix: -habirrt
+bases:
+- ../base
 
-              -Dspecjbb.controller.validation.skip=$(specjbb.controller.validation.skip)
-              -Dspecjbb.controller.preset.ir=$(specjbb.controller.preset.ir)
-              -Dspecjbb.controller.rampup.steps=$(specjbb.controller.rampup.steps)
-              -Dspecjbb.forkjoin.workers=$(controller.specjbb.forkjoin.workers)
+commonLabels:
+  app: specjbb-habirrt-medium
+  type: habirrt
+  size: medium
+
+patchesStrategicMerge:
+  - resources.yaml
+
+configMapGenerator:
+  - name: specjbb
+    behavior: merge
+    literals:
+      - specjbb.group.count=2
+
+  - name: specjbb-controller
+    behavior: merge
+    literals:
+      - Dspecjbb.controller.type=HABIR_RT
+      - >
+        specjbb_extra=
+        -Dspecjbb.controller.validation.skip=true
+        -Dspecjbb.controller.preset.ir=1000
+        -Dspecjbb.controller.rampup.steps=1
+#        -Dspecjbb.preRunTest=false
+#        -Dspecjbb.postRunTest=false

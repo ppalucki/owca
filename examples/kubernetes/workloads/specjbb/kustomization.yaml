@@ -1,6 +1,7 @@
 bases:
 - PRESET
 - FIXED_RT
+- HBIR_RT
 
 namespace: ddarczuk
 
