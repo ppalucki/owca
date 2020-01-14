@@ -29,6 +29,7 @@ from wca.runners.measurement import (MeasurementRunner, _build_tasks_metrics,
                                      _prepare_tasks_data, TaskLabelRegexGenerator,
                                      TaskLabelGenerator, append_additional_labels_to_tasks)
 
+
 @pytest.mark.parametrize('rdt_enabled, resctrl_available, monitoring_available, access_ok, ok', [
     (None, False, False, True, True),
     (None, True, False, True, True),
@@ -51,7 +52,7 @@ def test_measurements_runner_init_and_checks(rdt_enabled, resctrl_available,
 
     with patch('wca.resctrl.check_resctrl', return_value=resctrl_available), \
             patch('wca.security.are_privileges_sufficient', return_value=access_ok), \
-            patch('wca.platforms.collect_platform_information', 
+            patch('wca.platforms.collect_platform_information',
                   return_value=(platform_mock, None, None)):
         if ok:
             # ok no error
