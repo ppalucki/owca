@@ -467,7 +467,7 @@ def test_wca_metrics_kustomize() {
 def workload_image_check() {
     print('Check if workload (rpc-perf) docker image build for this PR ${GIT_COMMIT}')
     /* Checking only for rpc_perf */
-    check_image = sh(script: 'curl -s ${DOCKER_REPOSITORY_URL}/v2/wca/rpc_perf/manifests/${GIT_COMMIT} | jq -r .name', returnStdout: true).trim()
+    check_image = sh(script: 'curl -s ${DOCKER_REPOSITORY_URL}/v2/wca/rpc_perf/manifests/broken${GIT_COMMIT} | jq -r .name', returnStdout: true).trim()
     if (check_image == 'null') {
         print('Docker images are not available')
         sh "exit 1"
@@ -479,7 +479,7 @@ def workload_image_check() {
 def wca_image_check() {
     print('Check if wca docker images build for this PR ${GIT_COMMIT}')
     /* Checking only for rpc_perf */
-    check_image = sh(script: 'curl -s ${DOCKER_REPOSITORY_URL}/v2/wca/manifests/${GIT_COMMIT} | jq -r .name', returnStdout: true).trim()
+    check_image = sh(script: 'curl -s ${DOCKER_REPOSITORY_URL}/v2/wca/manifests/broken${GIT_COMMIT} | jq -r .name', returnStdout: true).trim()
     if (check_image == 'null') {
         print('Docker images for WCA not available!')
         sh "exit 1"
