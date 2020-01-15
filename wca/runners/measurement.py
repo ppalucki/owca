@@ -289,7 +289,7 @@ class MeasurementRunner(Runner):
         if self._rdt_enabled and not platform.rdt_information.is_monitoring_enabled():
             # Note: WCA does not support RDT without monitoring (keeps a mapping of
             # cgroups and resctrl groups).
-            msg = ('Resctrl ia available byt RDT monitoring features are not!' +
+            msg = ('Resctrl is available but RDT monitoring features are not!' +
                    'Please enable CMT or MBM with kernel parameters (monitoring is ' +
                    'required for CAT or MBA allocation)!')
             if rdt_auto_enabling:
@@ -328,9 +328,9 @@ class MeasurementRunner(Runner):
             return 1
 
         # Resctrl is enabled and available, call a placeholder to allow further initialization.
-        # For MeasurementRunner it's nothing to configure in RDT to measure resource usage.
+        # For "measurement mode" it's nothing to configure in RDT.
         # Check if it's needed to specific rdt initialization in case
-        # of using MeasurementRunner functionality in other runner.
+        # of using "MeasurementRunner" as component functionality in other runners e.g. Allocation.
         if self._rdt_enabled:
             if self._initialize_rdt_callback is not None:
                 rdt_initialization_ok = self._initialize_rdt_callback()

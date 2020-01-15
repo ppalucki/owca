@@ -106,7 +106,7 @@ pipeline {
                     '''
                     }
                 }
-                // memtire-benchmar
+                // memtier_benchmark
                 stage("Build and push memtier_benchmark Docker image") {
                     when {expression{return params.BUILD_IMAGES}}
                     steps {
@@ -122,8 +122,8 @@ pipeline {
                     '''
                     }
                 }
-                // rpc-perf
-                stage("Build and push stress-ng Docker image") {
+                // stress_ng
+                stage("Build and push stress_ng Docker image") {
                     when {expression{return params.BUILD_IMAGES}}
                     steps {
                     sh '''
@@ -138,8 +138,8 @@ pipeline {
                     '''
                     }
                 }
-                // rpc-perf
-                stage("Build and push rpc-perf Docker image") {
+                // rpc_perf
+                stage("Build and push rpc_perf Docker image") {
                     when {expression{return params.BUILD_IMAGES}}
                     steps {
                     sh '''
@@ -363,8 +363,14 @@ pipeline {
 def wca_and_workloads_check() {
     print('-wca_and_workloads_check-')
     sh "echo GIT_COMMIT=$GIT_COMMIT"
-    workload_image_check()
-    wca_image_check()
+    // stress_ng,redis_rpc_perf,twemcache_rpc_perf,twemcache_mutilate,specjbb
+    image_check("wca")
+    image_check("wca/stress_ng")
+    image_check("wca/rpc_perf")
+    image_check("wca/redis")
+    image_check("wca/twemcache")
+    image_check("wca/mutilate")
+    image_check("wca/specjbb")
     sh "make venv"
     sh "make wca_package_in_docker_with_kafka"
     print('Reconfiguring wca...')
@@ -389,6 +395,8 @@ def wca_and_workloads_check() {
 
 def kustomize_wca_and_workloads_check() {
     print('-kustomize_wca_and_workloads_check-')
+    image_check("wca")
+    // examaples/kubernetes workloads like: memcached, memtier, redis use official images
     sh "echo GIT_COMMIT=$GIT_COMMIT"
     print('Configure wca and workloads...')
     kustomize_replace_commit_in_wca()
@@ -402,7 +410,6 @@ def kustomize_wca_and_workloads_check() {
     kustomize_set_docker_image("redis-memtier", "memtier_benchmark")
     kustomize_set_docker_image("stress", "stress_ng")
     kustomize_set_docker_image("sysbench-memory", "sysbench")
-
 
     print('Starting wca...')
     sh "kubectl apply -k ${WORKSPACE}/${KUSTOMIZATION_MONITORING}"
@@ -429,6 +436,8 @@ def kustomize_set_docker_image(workload, workload_image) {
     "    newName: ${DOCKER_REPOSITORY_URL}/wca/${workload_image}\n" +
     "    newTag: ${GIT_COMMIT}\n"
     sh "echo '${testing_image}' >> ${file}"
+
+    image_check("wca/${workload_image}")
 }
 
 def kustomize_replace_commit_in_wca() {
@@ -464,29 +473,17 @@ def test_wca_metrics_kustomize() {
     sh "make venv; PYTHONPATH=. pipenv run pytest ${WORKSPACE}/tests/e2e/test_wca_metrics.py::test_wca_metrics_kustomize --junitxml=unit_results.xml --log-level=debug --log-cli-level=debug -v"
 }
 
-def workload_image_check() {
-    print('Check if workload (rpc-perf) docker image build for this PR ${GIT_COMMIT}')
-    /* Checking only for rpc_perf */
-    check_image = sh(script: 'curl -s ${DOCKER_REPOSITORY_URL}/v2/wca/rpc_perf/manifests/${GIT_COMMIT} | jq -r .name', returnStdout: true).trim()
+def image_check(image_name) {
+    print('Check if workload (${image_name}) docker image build for this PR ${GIT_COMMIT}')
+    check_image = sh(script: 'curl -s ${DOCKER_REPOSITORY_URL}/v2/${image_name}/manifests/${GIT_COMMIT} | jq -r .name', returnStdout: true).trim()
     if (check_image == 'null') {
-        print('Workload (rpc-per) docker image is not available!')
+        print('Workload (${image_name}) docker image is not available!')
         sh "exit 1"
     } else {
-        print('Found rpc-perf workload image output: ${check_image}')
+        print('Found "${image_name}" image - curl output: ${check_image}')
     }
 }
 
-def wca_image_check() {
-    print('Check if wca docker images build for this PR ${GIT_COMMIT}')
-    /* Checking only for rpc_perf */
-    check_image = sh(script: 'curl -s ${DOCKER_REPOSITORY_URL}/v2/wca/manifests/${GIT_COMMIT} | jq -r .name', returnStdout: true).trim()
-    if (check_image == 'null') {
-        print('Docker image for WCA not available!')
-        sh "exit 1"
-    } else {
-        print('Found WCA image output: ${check_image}')
-    }
-}
 
 def clean() {
     print('Cleaning: stopping WCA and workloads .')

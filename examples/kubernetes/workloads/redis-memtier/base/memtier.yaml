@@ -21,8 +21,6 @@ spec:
         goal: load_generator
       containers:
         - name: memtier
-          #image: 100.64.176.12:80/wca/memtier_benchmark:e12ffdeaeaa12f8d9470bde0ed78b2a78cf855bc
-          #image: redislabs/memtier_benchmark
           image: memtier_benchmark
           tty: true
           command:
