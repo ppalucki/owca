@@ -477,10 +477,10 @@ def image_check(image_name) {
     print("Check if workload (${image_name}) docker image build for this PR ${GIT_COMMIT}")
     check_image = sh(script: "curl -s ${DOCKER_REPOSITORY_URL}/v2/${image_name}/manifests/${GIT_COMMIT} | jq -r .name", returnStdout: true).trim()
     if (check_image == 'null') {
-        print("Workload (${image_name}) docker image is not available!")
+        print("Workload '${image_name}' docker image is not available!")
         sh "exit 1"
     } else {
-        print("Found "${image_name}" image - curl output: ${check_image}")
+        print("Found '${image_name}' image - curl output: ${check_image}")
     }
 }
 
