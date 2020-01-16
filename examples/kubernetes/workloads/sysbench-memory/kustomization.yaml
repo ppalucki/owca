@@ -1,8 +1,10 @@
 bases:
 - small
-- medium
+- big-rnd
 - big
-#- big-rnd
+- medium
+- medium-rnd
+- medium-rnd-read
 
 commonLabels:
   fit: 1lm

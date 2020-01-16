@@ -1,0 +1,13 @@
+nameSuffix: -read
+
+bases:
+- ../medium-rnd
+
+commonLabels:
+  app: sysbench-memory-medium-rnd-read
+
+configMapGenerator:
+- name: sysbench-memory
+  behavior: merge
+  literals:
+    - extra='--memory-access-mode=rnd --memory-oper=read'

@@ -19,18 +19,9 @@ spec:
       terminationGracePeriodSeconds: 0
       containers:
         - name: sysbench
-          env:
-            - name: threads
-              valueFrom: {configMapKeyRef: { name: sysbench-memory, key: threads }}
-            - name: memory
-              valueFrom: {configMapKeyRef: { name: sysbench-memory, key: memory }}
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: sysbench-memory, key: cpus }}
-            - name: report_interval
-              valueFrom: {configMapKeyRef: { name: sysbench-memory, key: report_interval}}
-            - name: extra
-              valueFrom: {configMapKeyRef: { name: sysbench-memory, key: extra }}
-#          image: severalnines/sysbench
+          envFrom:
+          - configMapRef:
+              name: sysbench-memory
           image: sysbench
           command:
             - sh

@@ -1,10 +1,10 @@
-nameSuffix: -rnd
+nameSuffix: -rnd2
 
 bases:
-- ../big
+- ../medium
 
 commonLabels:
-  app: sysbench-memory-big-rnd
+  app: sysbench-memory-medium-rnd
 
 configMapGenerator:
 - name: sysbench-memory
