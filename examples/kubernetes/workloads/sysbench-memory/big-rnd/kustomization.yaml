@@ -13,6 +13,6 @@ configMapGenerator:
 - name: sysbench-memory
   behavior: merge
   literals:
-    - threads=4
-    - memory=2g
+    - threads=2
+    - memory=8g
     - extra=--memory-access-mode=rnd
