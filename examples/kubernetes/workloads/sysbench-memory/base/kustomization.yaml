@@ -12,3 +12,4 @@ configMapGenerator:
 
 patchesStrategicMerge:
 - resources.yaml
+- nodeselector.yaml
