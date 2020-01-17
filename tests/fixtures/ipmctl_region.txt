@@ -1,0 +1,14 @@
+---ISetID=0x1234abc5678d9012---
+   SocketID=0x0000
+   PersistentMemoryType=AppDirect
+   Capacity=5000000 B
+   FreeCapacity=5000000 B
+   HealthState=Healthy
+   DimmID=0x0001, 0x0101
+---ISetID=0x1234abc5678d9013---
+   SocketID=0x0001
+   PersistentMemoryType=AppDirect
+   Capacity=5000000 B
+   FreeCapacity=5000000 B
+   HealthState=Healthy
+   DimmID=0x1001, 0x1101

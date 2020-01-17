@@ -213,24 +213,38 @@ class KubernetesNode(Node):
 
         tasks = []
         for pod in podlist_json_response:
-            container_statuses = pod.get('status').get('containerStatuses')
+            # Read into variables essential information about pod.
+            container_statuses = pod['status'].get('containerStatuses')
+            host_ip = pod['status'].get('hostIP')
+            pod_id = pod['metadata'].get('uid')
+            pod_name = pod['metadata'].get('name')
 
-            # Kubeapi returns all pods in cluster
-            if not self.kubelet_enabled and pod["status"]["hostIP"] != self.node_ip.strip():
-                continue
-
-            # Kubelet return all pods on the node. Ignore pods in not monitored namespaces.
-            if self.kubelet_enabled and \
-                    pod.get('metadata').get('namespace') not in self.monitored_namespaces:
-                continue
+            log.log(TRACE, 'Processing pod with uid=%s name=%s: %r', pod_id, pod_name, pod)
 
             # Lacking needed information.
             if not container_statuses:
+                log.debug('Ignore pod with uid={} name={}. '
+                          'Pod has no information about container statuses.'
+                          .format(pod_id, pod_name))
                 continue
 
-            # Read into variables essential information about pod.
-            pod_id = pod.get('metadata').get('uid')
-            pod_name = pod.get('metadata').get('name')
+            # Kubeapi returns all pods in cluster.
+            if not self.kubelet_enabled:
+                if host_ip is None:
+                    log.debug('Ignore pod with uid={} name={}. Pod is not binded yet.'
+                              .format(pod_id, pod_name))
+                    continue
+                if host_ip != self.node_ip.strip():
+                    log.debug('Ignore pod with uid={} name={}. Pod is not binded to this node.'
+                              .format(pod_id, pod_name))
+                    continue
+
+            # Kubelet return all pods on the node. Ignore pods in not monitored namespaces.
+            if self.kubelet_enabled and \
+                    pod['metadata'].get('namespace') not in self.monitored_namespaces:
+                continue
+
+            # Read into variables another essential information about pod.
             qos = pod.get('status').get('qosClass').lower()
             task_name = pod.get('metadata').get('namespace') + "/" + pod_name
             assert QosClass.has_value(qos)

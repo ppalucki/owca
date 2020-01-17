@@ -38,6 +38,7 @@ from wca.perf import check_perf_event_count_limit, filter_out_event_names_for_cp
 from wca.perf_uncore import UncorePerfCounters, _discover_pmu_uncore_config, \
     UNCORE_IMC_EVENTS, PMUNotAvailable, UncoreDerivedMetricsGenerator, \
     UNCORE_UPI_EVENTS
+from wca.pmembw import get_bandwidth
 from wca.profiling import profiler
 from wca.runners import Runner
 from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
@@ -257,46 +258,58 @@ class MeasurementRunner(Runner):
     def _initialize(self) -> Optional[int]:
         """Check RDT availability, privileges and prepare internal state.
         Can return error code that should stop Runner.
+
+        Flow:
+        - Conclude requirments based on configuration
+        - Conclude required features based on auto discovery
+        - confront user expectactions from configuration file with resctrl fs and security access
+        - check RDT HW monitoring features availability
         """
+        resctrl_available = resctrl.check_resctrl()
+        # If enabled explicitly check resctrl availability right now.
+        if self._rdt_enabled is True and not resctrl_available:
+            log.error('RDT explicitly enabled but resctrl fs not available - exiting!')
+            return 1
 
-        # Initialization (auto discovery Intel RDT features).
-        rdt_available = resctrl.check_resctrl()
+        # Auto discovery Intel RDT features.
         if self._rdt_enabled is None:
-            self._rdt_enabled = rdt_available
-            log.info('RDT enabled (auto configuration): %s', self._rdt_enabled)
-        elif self._rdt_enabled is True and not rdt_available:
-            log.error('RDT explicitly enabled but not available - exiting!')
-            return 1
+            # Assume yes temporary - but will check monitoring/access later.
+            log.debug('Enable RDT auto discovery (resctrl availability=%s)', resctrl_available)
+            self._rdt_enabled = resctrl_available
+            rdt_auto_enabling = True
+        else:
+            rdt_auto_enabling = False
 
-        # _allocation_configuration is set in allocation mode (AllocationRunner)
-        # so we need access to write in cgroups.
-        write_to_cgroup = self._allocation_configuration is not None
-        use_resctrl = self._rdt_enabled
-        use_perf = len(self._event_names) > 0
-
-        if not security.are_privileges_sufficient(write_to_cgroup, use_resctrl, use_perf):
-            return 1
-
-        if self._rdt_enabled:
-            # Resctrl is enabled and available, call a placeholder to allow further initialization.
-            # For MeasurementRunner it's nothing to configure in RDT to measure resource usage.
-
-            # Check if it's needed to specific rdt initialization in case
-            # of using MeasurementRunner functionality in other runner.
-            if self._initialize_rdt_callback is not None:
-                rdt_initialization_ok = self._initialize_rdt_callback()
-
-                if not rdt_initialization_ok:
-                    return 1
-
-        log.debug('rdt_enabled: %s', self._rdt_enabled)
         log.debug('gather_hw_mm_topology: %s', self._gather_hw_mm_topology)
         platform, _, _ = platforms.collect_platform_information(
-            self._rdt_enabled,
+            resctrl_available,
             gather_hw_mm_topology=self._gather_hw_mm_topology
         )
-        rdt_information = platform.rdt_information
 
+        # Confront RDT (resctrl fs) with HW enabled monitoring features.
+        if self._rdt_enabled and not platform.rdt_information.is_monitoring_enabled():
+            # Note: WCA does not support RDT without monitoring (keeps a mapping of
+            # cgroups and resctrl groups).
+            msg = ('Resctrl is available but RDT monitoring features are not!' +
+                   'Please enable CMT or MBM with kernel parameters (monitoring is ' +
+                   'required for CAT or MBA allocation)!')
+            if rdt_auto_enabling:
+                log.debug(msg)
+                self._rdt_enabled = False
+                platform.rdt_information = None
+                # override rdt information should not be available later
+                # e.g. ContainerManager
+            else:
+                # If RDT was force fail short here.
+                log.error(msg)
+                return 1
+
+        # All RDT checks (security/check) done - show info and call initialization callback.
+        log.info('RDT: %s %s', 'enabled' if self._rdt_enabled else 'disabled',
+                 ' (auto discovery)' if rdt_auto_enabling else '',
+                 )
+
+        # Event names (perf cgroups)
         self._event_names = filter_out_event_names_for_cpu(
             self._event_names, platform.cpu_codename)
 
@@ -307,11 +320,24 @@ class MeasurementRunner(Runner):
             if not check_perf_event_count_limit(self._event_names, platform.cpus, platform.cores):
                 return 1
 
-        # We currently do not support RDT without monitoring.
-        if self._rdt_enabled and not rdt_information.is_monitoring_enabled():
-            log.error('RDT monitoring is required - please enable CAT '
-                      'or MBM with kernel parameters!')
+        # _allocation_configuration is set in allocation mode (AllocationRunner)
+        # so we need access to write in cgroups.
+        write_to_cgroup = self._allocation_configuration is not None
+        use_perf = len(self._event_names) > 0
+        # Check we have enough access.
+        if not security.are_privileges_sufficient(write_to_cgroup, self._rdt_enabled, use_perf):
             return 1
+
+        # Resctrl is enabled and available, call a placeholder to allow further initialization.
+        # For "measurement mode" it's nothing to configure in RDT.
+        # Check if it's needed to specific rdt initialization in case
+        # of using "MeasurementRunner" as component functionality in other runners e.g. Allocation.
+        if self._rdt_enabled:
+            if self._initialize_rdt_callback is not None:
+                rdt_initialization_ok = self._initialize_rdt_callback()
+
+                if not rdt_initialization_ok:
+                    return 1
 
         self._containers_manager = ContainerManager(
             platform=platform,
@@ -394,6 +420,7 @@ class MeasurementRunner(Runner):
 
         # @TODO why not in platform module?
         extra_platform_measurements = self._uncore_get_measurements()
+        extra_platform_measurements.update(get_bandwidth())
 
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(

@@ -140,6 +140,13 @@ class MetricName(str, Enum):
     WCA_MEM_USAGE_BYTES = 'wca_mem_usage_bytes'
     WCA_DURATION_SECONDS = 'wca_duration_seconds'
     WCA_DURATION_SECONDS_AVG = 'wca_duration_seconds_avg'
+    # -------------pmembw---------------
+    PLATFORM_CAPACITY_PER_NVDIMM_BYTES = 'platform_capacity_per_nvdimm_bytes'
+    PLATFORM_AVG_POWER_PER_NVDIMM_WATTS = 'platform_avg_power_per_nvdimm_watts'
+    PLATFORM_NVDIMM_READ_BANDWIDTH_BYTES_PER_SECOND = \
+        'platform_nvdimm_read_bandwidth_bytes_per_second'
+    PLATFORM_NVDIMM_WRITE_BANDWIDTH_BYTES_PER_SECOND = \
+        'platform_nvdimm_write_bandwidth_bytes_per_second'
 
     def __repr__(self):
         return repr(self.value)
@@ -175,6 +182,7 @@ class MetricUnit(str, Enum):
     SECONDS = 'seconds'
     NUMERIC = 'numeric'
     TIMESTAMP = 'timestamp'
+    WATTS = 'watts'
 
     def __repr__(self):
         return repr(self.value)
@@ -939,7 +947,6 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             [],
             'yes',
         ),
-
     # ---------------------------- WCA internal ----------------------------
     MetricName.WCA_UP:
         MetricMetadata(
@@ -1001,6 +1008,47 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranularity.INTERNAL,
             [],
             'yes',
+        ),
+    # --------------------- pmembw ------------------------
+    MetricName.PLATFORM_CAPACITY_PER_NVDIMM_BYTES:
+        MetricMetadata(
+            'Platform capacity per NVDIMM',
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            MetricSource.INTERNAL,
+            MetricGranularity.PLATFORM,
+            [],
+            'yes'
+        ),
+    MetricName.PLATFORM_AVG_POWER_PER_NVDIMM_WATTS:
+        MetricMetadata(
+            'Average power used by NVDIMM on the platform',
+            MetricType.GAUGE,
+            MetricUnit.WATTS,
+            MetricSource.INTERNAL,
+            MetricGranularity.PLATFORM,
+            [],
+            'yes'
+        ),
+    MetricName.PLATFORM_NVDIMM_READ_BANDWIDTH_BYTES_PER_SECOND:
+        MetricMetadata(
+            'Theoretical reads bandwidth per platform',
+            MetricType.GAUGE,
+            MetricUnit.BYTES_PER_SECOND,
+            MetricSource.INTERNAL,
+            MetricGranularity.PLATFORM,
+            ['socket'],
+            'yes'
+        ),
+    MetricName.PLATFORM_NVDIMM_WRITE_BANDWIDTH_BYTES_PER_SECOND:
+        MetricMetadata(
+            'Theoretical writes bandwidth per platform',
+            MetricType.GAUGE,
+            MetricUnit.BYTES_PER_SECOND,
+            MetricSource.INTERNAL,
+            MetricGranularity.PLATFORM,
+            ['socket'],
+            'yes'
         ),
 }
 

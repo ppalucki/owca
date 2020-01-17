@@ -1,0 +1,16 @@
+---DimmID=0x0001---
+   Capacity=100000000000 B
+   SocketID=0x0000
+   AvgPowerBudget=15000 mW
+---DimmID=0x0101---
+   Capacity=100000000000 B
+   SocketID=0x0000
+   AvgPowerBudget=15000 mW
+---DimmID=0x1001---
+   Capacity=100000000000 B
+   SocketID=0x0001
+   AvgPowerBudget=15000 mW
+---DimmID=0x1101---
+   Capacity=100000000000 B
+   SocketID=0x0001
+   AvgPowerBudget=15000 mW

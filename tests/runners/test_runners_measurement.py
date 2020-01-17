@@ -30,6 +30,38 @@ from wca.runners.measurement import (MeasurementRunner, _build_tasks_metrics,
                                      TaskLabelGenerator, append_additional_labels_to_tasks)
 
 
+@pytest.mark.parametrize('rdt_enabled, resctrl_available, monitoring_available, access_ok, ok', [
+    (None, False, False, True, True),
+    (None, True, False, True, True),
+    (True, False, False, True, False),
+    (True, True, True, True, True),
+    (True, True, False, True, False),
+    (True, True, True, False, False),
+])
+def test_measurements_runner_init_and_checks(rdt_enabled, resctrl_available,
+                                             monitoring_available, access_ok, ok):
+    # auto rdt
+    runner = MeasurementRunner(
+        node=Mock(spec=MesosNode),
+        metrics_storage=Mock(spec=storage.Storage),
+        rdt_enabled=rdt_enabled,
+    )
+
+    platform_mock = Mock(rdt_information=Mock(
+        is_monitoring_enabled=Mock(return_value=monitoring_available)))
+
+    with patch('wca.resctrl.check_resctrl', return_value=resctrl_available), \
+            patch('wca.security.are_privileges_sufficient', return_value=access_ok), \
+            patch('wca.platforms.collect_platform_information',
+                  return_value=(platform_mock, None, None)):
+        if ok:
+            # ok no error
+            assert runner._initialize() is None
+        else:
+            # fails
+            assert runner._initialize() == 1
+
+
 @prepare_runner_patches
 @pytest.mark.parametrize('subcgroups', ([], ['/T/c1'], ['/T/c1', '/T/c2']))
 def test_measurements_runner(subcgroups):
