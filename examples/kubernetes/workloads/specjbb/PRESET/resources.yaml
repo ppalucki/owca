@@ -9,5 +9,5 @@ spec:
         - name: backend
           resources:
             requests:
-              cpu: 5
-              memory: 7.5G # Must be equation: 1.5*cpu = memory
+              cpu: 1
+              memory: 4G # Must be equation: 1.5*cpu = memory

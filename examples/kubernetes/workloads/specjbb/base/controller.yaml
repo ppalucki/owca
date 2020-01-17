@@ -24,7 +24,8 @@ spec:
         app: specjbb-controller
     spec:
       nodeSelector:
-        goal: service
+        # owner: ppalucki
+        goal: load_generator
       terminationGracePeriodSeconds: 0
       containers:
         - name: controller

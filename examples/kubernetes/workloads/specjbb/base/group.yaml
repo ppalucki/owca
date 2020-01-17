@@ -15,7 +15,8 @@ spec:
         app: specjbb-group
     spec:
       nodeSelector:
-        goal: service
+        owner: ppalucki
+        # goal: service
       terminationGracePeriodSeconds: 0
       containers:
         - name: backend

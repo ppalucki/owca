@@ -14,9 +14,14 @@ configMapGenerator:
   - name: specjbb
     behavior: merge
     literals:
-      - specjbb.group.count=2
+      - specjbb.group.count=1
 
   - name: specjbb-controller
     behavior: merge
     literals:
       - specjbb.controller.type=PRESET
+      - >
+        specjbb_extra=
+        -Dspecjbb.controller.validation.skip=true
+        -Dspecjbb.controller.preset.ir=10000
+        -Dspecjbb.controller.rampup.steps=1

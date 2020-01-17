@@ -3,16 +3,7 @@ bases:
 - FIXED_RT
 - HBIR_RT
 
-#namespace: ddarczuk
-#
-#images:
-#- name: specjbb
-#  newName: 100.64.176.12:80/wca/specjbb
-#  newTag: b5de817801ca124285eaae7548fa69de90e7c47c
-#
-#patchesJson6902:
-#- target:
-#    version: v1
-#    kind: StatefulSet
-#    name: specjbb-controller
-#  path: patch.yaml
+images:
+- name: specjbb
+  newName: 100.64.176.12:80/wca/specjbb
+  newTag: PR-364
