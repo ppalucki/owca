@@ -74,6 +74,9 @@ spec:
         - "--config=/etc/wca/wca-config.yaml"
         - "--log=info"
         - "--root"
+        resources:
+          requests:
+            cpu: 500m
 
       - name: node-exporter
         image: prom/node-exporter:v0.18.1
@@ -96,6 +99,9 @@ spec:
             mountPath: /host/sys
           - name: rootfs
             mountPath: /rootfs
+        resources:
+          requests:
+            cpu: 500m
 
       volumes:
         # Config for wca
