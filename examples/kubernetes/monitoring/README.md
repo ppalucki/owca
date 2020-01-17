@@ -162,6 +162,21 @@ from node_exporter v 0.16
 Prometheus rules "16-compatibility-rules-new-to-old" are used to configured new evaluation rules from backward compatibility.
 
 
+### Kubernetes capacity analysis
+
+```shell
+# First label your namespaces with name of namespace
+kubectl  | awk '{print $1}' | xargs -iX kubectl label ns X name=X
+# then you can use kube-capacity tool to analysie used/utilized and free node resources:
+
+# with pods 
+kube-capacity -n name=default -p -u
+
+# with pods only from service nodes
+kube-capacity -n name=default --node-labels goal=service -p -u
+```
+
+
 ## Useful links
 
 - extra dashboards: https://github.com/coreos/kube-prometheus/blob/master/manifests/grafana-dashboardDefinitions.yaml

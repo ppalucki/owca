@@ -1,7 +1,7 @@
 bases:
 - PRESET
-- FIXED_RT
-- HBIR_RT
+# - FIXED_RT
+# - HBIR_RT
 
 images:
 - name: specjbb
