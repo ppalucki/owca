@@ -68,6 +68,29 @@ spec:
           expr: apm_sysbench_mbps_per_task
         - record: apm_latency          # average milliseconds (ms) to transfer 1GB
           expr: 1e3 / (apm_sysbench_mbps_per_task/1e3)
+    - name: specjbb
+      rules:
+        # -------------Specjbb---------------------------
+        - record: apm_specjbb_alive
+          expr: ceil(rate(apm_specjbb_stdout_lines[15s])>0)
+        - record: apm_specjbb_ops
+          expr: avg_over_time(apm_specjbb_PR[90s]) and apm_specjbb_alive
+        - record: apm_specjbb_latency
+          expr: avg_over_time(apm_specjbb_p95[90s]) and apm_specjbb_alive
+        - record: apm_specjbb_ops_per_task
+          expr: apm_specjbb_ops * on(task_name) group_right() task_up
+        - record: apm_specjbb_latency_per_task
+          expr: apm_specjbb_latency * on(task_name) group_right() task_up
+        # common apm metrics
+        - record: apm_specjbb_latency_per_task
+          expr: (label_replace(apm_specjbb_ops, "task_name", "$1/specjbb-group-$2", "task_name", "(.*)/specjbb-controller-(.*)")) * on(task_name) group_right() task_up
+        - record: apm_specjbb_ops_per_task
+          expr: (label_replace(apm_specjbb_latency, "task_name", "$1/specjbb-group-$2", "task_name", "(.*)/specjbb-controller-(.*)")) * on(task_name) group_right() task_up
+          # T & L
+        - record: apm_throughput
+          expr: apm_specjbb_ops_per_task
+        - record: apm_latency
+          expr: apm_specjbb_latency_per_task
 
     - name: apm-generic
       rules:

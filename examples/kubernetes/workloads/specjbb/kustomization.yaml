@@ -1,0 +1,15 @@
+bases:
+- preset-small
+- preset-medium
+- preset-big-60
+- preset-big-220
+- fixed
+- hbir
+
+commonLabels:
+  fit: 1lm
+
+images:
+- name: specjbb
+  newName: 100.64.176.12:80/wca/specjbb
+  newTag: PR-364

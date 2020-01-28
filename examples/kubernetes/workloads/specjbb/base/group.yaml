@@ -1,0 +1,175 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: specjbb-group
+spec:
+  replicas: 0
+  serviceName: specjbb-group
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: specjbb-group
+  template:
+    metadata:
+      labels:
+        app: specjbb-group
+    spec:
+      nodeSelector:
+        goal: service
+      terminationGracePeriodSeconds: 0
+      initContainers:
+        - name: prepare-names
+          image: specjbb
+          envFrom:
+            - configMapRef:
+                name: specjbb
+          env:
+            # Downward API
+            - name: PODNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          command:
+            - sh
+            - -c
+            - >
+              ## Delete front name 'specjbb-group-'
+
+              identifier=${PODNAME#specjbb-group-};
+              echo identifier: $identifier;
+              echo identifier=$identifier >> /var/prepare_names/env
+
+              ## Delete from back to last '-'
+
+              name_suffix=${identifier%-*};
+              echo service: $name_suffix;
+              echo name_suffix=$name_suffix >> /var/prepare_names/env
+
+              ## Get specjbb.group.count, to calc in which group pod is and to which controller connect
+
+              group_count=$(specjbb.group.count);
+              echo group_count: $group_count;
+              echo group_count=$group_count >> /var/prepare_names/env
+
+              ## Delete to last '-', to get number statefulset
+
+              number=${PODNAME##*-};
+              echo number: $number;
+              echo number=$number >> /var/prepare_names/env
+
+              ## Target, which controller connect (division operation)
+
+              controller_identifier=$(($number/$group_count));
+              echo controller_identifier: $controller_identifier;
+              echo controller_identifier=$controller_identifier >> /var/prepare_names/env;
+
+              target=specjbb-controller-${name_suffix}-${controller_identifier}.specjbb-controller-${name_suffix};
+              echo target: $target;
+              echo target=$target >> /var/prepare_names/env
+
+              ## Group, which group pod is (modulo operation)
+
+              group=$(($number%$group_count));
+              echo group: $group;
+              echo group=$group >> /var/prepare_names/env;
+
+          volumeMounts:
+            - name: prepare-names-volume
+              mountPath: /var/prepare_names
+
+      containers:
+        - name: backend
+          image: specjbb
+          envFrom:
+            - configMapRef:
+                name: specjbb-backend
+          env:
+            # Downward API
+            - name: CORES_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: requests.cpu
+            - name: MEM_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: backend
+                  resource: requests.memory
+          # xmn_to_xms # read xmn xms params for JVM; here we assign 0.94 as experimentally checked parameter;
+          command:
+            - sh
+            - -c
+            - >
+              set -x;
+              source /var/prepare_names/env
+
+              java
+              -Dcom.sun.management.jmxremote.port=8686
+              -Dcom.sun.management.jmxremote.authenticate=false
+              -Dcom.sun.management.jmxremote.ssl=false
+              -Xmx$(($MEM_REQUEST*80/100))
+              -Xms$(($MEM_REQUEST*80/100))
+              -Xmn$(($MEM_REQUEST*80/100*94/100))
+              -XX:MaxRAM=$MEM_REQUEST
+              -XX:ParallelGCThreads=${CORES_REQUEST}
+              $java
+              -Dspecjbb.forkjoin.workers=$(($CORES_REQUEST*2))
+              -Dspecjbb.mapreducer.pool.size=$(($group_count*2))
+              -Dspecjbb.controller.host=$target
+              $specjbb_extra
+              -jar /home/specjbb/specjbb2015.jar
+              -m BACKEND
+              -G GRP${group}
+              -J JVM_BACKEND_${name_suffix//-/_}_${number}
+
+          volumeMounts:
+            - name: prepare-names-volume
+              mountPath: /var/prepare_names
+
+        - name: injector
+          image: specjbb
+          envFrom:
+            - configMapRef:
+                name: specjbb-injector
+          env:
+            # Downward API
+            - name: CORES_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: injector
+                  resource: requests.cpu
+            - name: MEM_REQUEST
+              valueFrom:
+                resourceFieldRef:
+                  containerName: injector
+                  resource: requests.memory
+          command:
+            - sh
+            - -c
+            - >
+              set -x;
+              source /var/prepare_names/env
+
+              java
+              -Xmx$(($MEM_REQUEST*80/100))
+              -Xms$(($MEM_REQUEST*80/100))
+              -Xmn$(($MEM_REQUEST*80/100*94/100))
+              $java
+              -Dspecjbb.controller.host=$target
+              $specjbb_extra
+              -jar /home/specjbb/specjbb2015.jar
+              -m TXINJECTOR
+              -G GRP${group}
+              -J JVM_INJECTOR_${name_suffix//-/_}_${number}
+
+          volumeMounts:
+            - name: prepare-names-volume
+              mountPath: /var/prepare_names
+
+      volumes:
+        - name: prepare-names-volume
+          emptyDir: {}
+
+  # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
+  # when using commonLabels
+  volumeClaimTemplates: []

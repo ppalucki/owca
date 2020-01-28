@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: specjbb-controller
+spec:
+  clusterIP: None
+  selector:
+    app: specjbb-controller
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: specjbb-controller
+spec:
+  replicas: 0
+  serviceName: specjbb-controller
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: specjbb-controller
+  template:
+    metadata:
+      labels:
+        app: specjbb-controller
+    spec:
+      nodeSelector:
+        goal: load_generator
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: controller
+          envFrom:
+            - configMapRef:
+                name: specjbb
+            - configMapRef:
+                name: specjbb-controller
+          env:
+            - name: PODNAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          image: specjbb
+          command:
+            - sh
+            - -c
+            - >
+              target=${PODNAME}.${PODNAME%-*};
+              echo targeting: $target;
+
+              set -x;
+
+              java
+              $java
+              -Dspecjbb.group.count=$(specjbb.group.count)
+              -Dspecjbb.txi.pergroup.count=$(specjbb.txi.pergroup.count)
+              -Dspecjbb.controller.rtcurve.warmup.step=$(specjbb.controller.rtcurve.warmup.step)
+              -Dspecjbb.controller.rtcurve.step=$(specjbb.controller.rtcurve.step)
+              -Dspecjbb.controller.type=$(specjbb.controller.type)
+              -Dspecjbb.controller.host=$target
+              $specjbb_extra
+              -jar /home/specjbb/specjbb2015.jar
+              -m MULTICONTROLLER
+              -l 0
+
+               mv /home/specjbb/result/specjbb2015-* /home/result/${PODNAME}_$(date +%s)
+
+          volumeMounts:
+            - name: results
+              mountPath: /home/result/
+
+      volumes:
+        - name: results
+          hostPath:
+            path: /tmp/specjbb-results/
+
+
+  volumeClaimTemplates: []

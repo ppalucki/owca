@@ -404,12 +404,14 @@ def kustomize_wca_and_workloads_check() {
     kustomize_add_labels("redis-memtier")
     kustomize_add_labels("stress")
     kustomize_add_labels("sysbench-memory")
+    kustomize_add_labels("specjbb")
 
     print('Configure images...')
     kustomize_set_docker_image("memcached-mutilate", "mutilate")
     kustomize_set_docker_image("redis-memtier", "memtier_benchmark")
     kustomize_set_docker_image("stress", "stress_ng")
     kustomize_set_docker_image("sysbench-memory", "sysbench")
+    kustomize_set_docker_image("specjbb", "specjbb")
 
     print('Starting wca...')
     sh "kubectl apply -k ${WORKSPACE}/${KUSTOMIZATION_MONITORING}"
@@ -422,6 +424,8 @@ def kustomize_wca_and_workloads_check() {
     for(item in list){
         sh "kubectl scale --replicas=1 statefulset $item"
     }
+
+    sh "kubectl scale --replicas=1 statefulset specjbb-controller-preset-small specjbb-group-preset-small"
 
     print('Sleep while workloads are running...')
     sleep RUN_WORKLOADS_SLEEP_TIME

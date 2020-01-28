@@ -1,0 +1,29 @@
+nameSuffix: -fixed
+bases:
+- ../base
+
+commonLabels:
+  app: specjbb-fixed-medium
+  type: fixed
+  size: medium
+
+patchesStrategicMerge:
+  - resources.yaml
+
+configMapGenerator:
+  - name: specjbb
+    behavior: merge
+    literals:
+      - specjbb.group.count=2
+
+  - name: specjbb-controller
+    behavior: merge
+    literals:
+      - specjbb.controller.type=FIXED_RT
+      - >
+        specjbb_extra=
+        -Dspecjbb.controller.validation.skip=true
+        -Dspecjbb.controller.preset.ir=1000
+        -Dspecjbb.controller.rampup.steps=1
+        -Dspecjbb.preRunTest=false
+        -Dspecjbb.postRunTest=false

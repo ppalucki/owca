@@ -1,0 +1,28 @@
+nameSuffix: -preset-big-60
+bases:
+- ../base
+
+commonLabels:
+  app: specjbb-preset-big-60
+  type: preset
+  size: big-60
+
+patchesStrategicMerge:
+  - resources.yaml
+
+configMapGenerator:
+  - name: specjbb
+    behavior: merge
+    literals:
+      - specjbb.group.count=1
+
+  - name: specjbb-controller
+    behavior: merge
+    literals:
+      - specjbb.controller.type=PRESET
+      - >
+        specjbb_extra=
+        -Dspecjbb.controller.validation.skip=true
+        -Dspecjbb.controller.preset.duration=1209600000
+        -Dspecjbb.controller.preset.ir=30000
+        -Dspecjbb.controller.rampup.steps=1

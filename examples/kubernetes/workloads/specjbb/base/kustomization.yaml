@@ -1,0 +1,80 @@
+resources:
+  - controller.yaml
+  - group.yaml
+
+configMapGenerator:
+    # worker_size # used as instances of grp tasks
+    # gc_size     # -XX:ParallelGCThreads - equals to number of cores for backend
+    # mr_size     # default: max(Runtime.getRuntime().availableProcessors(), specjbb.group.count * (specjbb.txi.pergroup.count +1))
+    #             # according: https://www.spec.org/jbb2015/docs/runrules.pdf
+    # maxheap     # 1500 -> ram megabytes per core
+    # maxram      # by Ismo to set -XX:MaxRAM=$maxram
+    # >> xmx == max allocation pool memory <<
+    # >> xms == initial allocation pool memory <<
+    # >> xmn == the size of the heap for the young generation <<
+    # https://stackoverflow.com/questions/14763079/what-are-the-xms-and-xmx-parameters-when-starting-jvm
+    # https://stackoverflow.com/questions/23880891/what-does-xmn-jvm-option-stands-for
+    # zones=`numactl -H | grep cpus | wc -l` # NUMA
+
+  - name: specjbb
+    literals:
+      # 'specjbb.group.count' set by number replicas groups and controllers
+      - specjbb.group.count=1
+
+  - name: specjbb-controller
+    literals:
+      - specjbb.controller.type=PRESET
+      - specjbb.controller.rtcurve.warmup.step=0.5
+      - specjbb.controller.rtcurve.step=1
+      - specjbb.txi.pergroup.count=1
+      - >
+        java=
+        -Xmx2g
+        -Xms2g
+        -Xmn1536m
+        -XX:+AlwaysPreTouch
+        -XX:ParallelGCThreads=2
+      - >
+        specjbb_extra=
+      # -Dspecjbb.forkjoin.workers=2 # 2*cores
+      # extra params needs '-D' prefix, like above
+
+  - name: specjbb-backend
+    literals:
+      - >
+        java=
+        -XX:+AlwaysPreTouch
+        -XX:-UseAdaptiveSizePolicy
+        -XX:-UseBiasedLocking
+        -XX:+AggressiveOpts
+        -XX:+UseParallelOldGC
+        -XX:+PrintGCDetails
+        -XX:+PrintHeapAtGC
+        -XX:+PrintGCTimeStamps
+        -XX:MaxTenuringThreshold=15
+        -XX:SurvivorRatio=10
+        -XX:TargetSurvivorRatio=90
+# Below params are calculated for jvm
+#      -Xmx$(($MY_MEM_REQUEST*80/100))
+#      -Xms$(($MY_MEM_REQUEST*80/100))
+#      -Xmn$(($MY_MEM_REQUEST*80/100*94/100))
+#      -XX:MaxRAM=$MY_MEM_REQUEST
+#      -XX:ParallelGCThreads=${cores}
+      - >
+        specjbb_extra=
+# Below params are calculated for specjbb
+#      -Dspecjbb.forkjoin.workers=$(($cores*2))
+#      -Dspecjbb.mapreducer.pool.size=$(($group_count*2))
+
+  - name: specjbb-injector
+    literals:
+      - >
+        java=
+        -XX:+AlwaysPreTouch
+        -XX:ParallelGCThreads=2
+# Below params are calculated for jvm (MAYBE SHOULD BE GIVEN NOT CALCUALTED)
+#      -Xmx$(($MY_MEM_REQUEST*80/100))
+#      -Xms$(($MY_MEM_REQUEST*80/100))
+#      -Xmn$(($MY_MEM_REQUEST*80/100*94/100))
+      - >
+        specjbb_extra=

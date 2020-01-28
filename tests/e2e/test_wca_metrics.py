@@ -70,8 +70,7 @@ def _fetch_metrics(url):
 @pytest.mark.parametrize('workload_name', [
     'stress_ng',
     'twemcache_rpc_perf',
-    'redis_rpc_perf',
-    'specjbb',
+    'redis_rpc_perf'
 ])
 def test_wca_metrics(workload_name):
     test_wca(workload_name, ['sli', 'task_cycles'])
@@ -81,7 +80,8 @@ def test_wca_metrics(workload_name):
     'stress',
     'redis-memtier',
     'sysbench-memory',
-    'memcached-mutilate'
+    'memcached-mutilate',
+    'specjbb'
 ])
 def test_wca_metrics_kustomize(workload_name):
     test_wca(workload_name, ['apm_sli', 'task_cycles'])
