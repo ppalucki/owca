@@ -1,4 +1,4 @@
-## Node affinityxx
+## Node affinityxxx
 
 Load generators are only scheduled to nodes labeled with **goal="load_generator"**.
 All "services" are only scheduled to nodes labeled with **goal="service"**.
