@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mutilate
-  labels:
-    workload: memcached-mutilate
 spec:
   replicas: 0
   serviceName: memcached
@@ -22,38 +20,46 @@ spec:
       containers:
         - name: mutilate
           image: mutilate
+          envFrom:
+            - configMapRef:
+                name: mutilate
           env:
-            - name: threads
-              valueFrom: {configMapKeyRef: { name: mutilate, key: threads }}
-            - name: qps
-              valueFrom: {configMapKeyRef: { name: mutilate, key: qps }}
-            - name: time
-              valueFrom: {configMapKeyRef: { name: mutilate, key: time }}
-            - name: conns
-              valueFrom: {configMapKeyRef: { name: mutilate, key: conns }}
-            - name: records
-              valueFrom: {configMapKeyRef: { name: mutilate, key: records }}
-            - name: value
-              valueFrom: {configMapKeyRef: { name: mutilate, key: value }}
-            - name: extra
-              valueFrom: {configMapKeyRef: { name: mutilate, key: extra }}
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: mutilate, key: cpus }}
-            - name: load_records
-              valueFrom: {configMapKeyRef: { name: mutilate, key: load_records }}
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
           command:
             - bash
             - -c
-            - "sleep 30;
-               shopt -s extglob;
-               identifier=${podname#mutilate-};
-               service=${identifier%-+([[:digit:]])};
-               target=memcached-${identifier}.memcached-${service};
-               echo targeting: $target;
-               echo loading && ./mutilate -T 1 -s ${target}:11211 --loadonly -r $load_records -V $value -v && echo started && \
-               taskset -c $cpus ./mutilate -C $conns -T $threads -t $time -s ${target}:11211 --noload --scan $qps:$qps:0 -r $records -V $value $extra"
+            - >
+              echo sleeping...;
+              sleep 30;
+              shopt -s extglob;
+              identifier=${podname#mutilate-};
+              service=${identifier%-+([[:digit:]])};
+              target=memcached-${identifier}.memcached-${service};
+              echo targeting: $target;
+
+              echo loading;
+              ./mutilate
+              -T 1
+              -s ${target}:11211
+              --loadonly -r
+              $load_records
+              -V $value
+              -v
+
+              echo started;
+              ./mutilate
+              -C $conns
+              -T $threads
+              -t $time
+              -s ${target}:11211
+              --noload
+              --scan $qps:$qps:0
+              -r $records
+              -V $value
+              $extra
+
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels
+  # fixed in 2.1.0 https://github.com/kubernetes-sigs/kustomize/commit/c470982ce5b96da82a757f088a842bb05d3bcdb4
   volumeClaimTemplates: []

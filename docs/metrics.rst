@@ -130,6 +130,10 @@ Platform's metrics
 	"platform_dram_hit_ratio", "TBD", "no (enable_perf_uncore and enable_derived_metrics)", "numeric",  "gauge", "derived from perf uncore", "socket, pmu_type"
 	"platform_upi_bandwidth_bytes_per_second", "TBD", "no (enable_perf_uncore and enable_derived_metrics)", "numeric",  "counter", "derived from perf uncore", "socket, pmu_type"
 	"platform_last_seen", "Timestamp the information about platform was last collected", "yes", "timestamp",  "counter", "internal", ""
+	"platform_capacity_per_nvdimm_bytes", "Platform capacity per NVDIMM", "yes", "bytes",  "gauge", "internal", ""
+	"platform_avg_power_per_nvdimm_watts", "Average power used by NVDIMM on the platform", "yes", "watts",  "gauge", "internal", ""
+	"platform_nvdimm_read_bandwidth_bytes_per_second", "Theoretical reads bandwidth per platform", "yes", "bytes_per_second",  "gauge", "internal", "socket"
+	"platform_nvdimm_write_bandwidth_bytes_per_second", "Theoretical writes bandwidth per platform", "yes", "bytes_per_second",  "gauge", "internal", "socket"
 
 
 

@@ -8,7 +8,6 @@ commonLabels:
 
 configMapGenerator:
 - name: stress
-  behavior: merge
   literals:
     - extra='--stream 1 --stream-l3-size=512m --stream-index=0' # 6GB RSS
 

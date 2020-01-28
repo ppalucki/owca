@@ -3,6 +3,6 @@ bases:
 - stream-medium
 - stream-big
 
-
 commonLabels:
   fit: 1lm
+  workload: stress

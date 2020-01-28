@@ -5,12 +5,10 @@ resources:
 configMapGenerator:
 - name: redis
   literals:
-  - cpus=0-1000
   - extra=
 
 - name: memtier
   literals:
-    - cpus=0-1000
     - extra=
     - test_time=7200         # 7200 (overrides --requests)
     - pipeline=1             # defaults from memtire

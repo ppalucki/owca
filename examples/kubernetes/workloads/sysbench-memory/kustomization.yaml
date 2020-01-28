@@ -8,6 +8,7 @@ bases:
 
 commonLabels:
   fit: 1lm
+  workload: sysbench-memory
 
 images:
 - name: sysbench 

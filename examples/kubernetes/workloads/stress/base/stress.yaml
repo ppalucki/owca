@@ -3,12 +3,12 @@ kind: StatefulSet
 metadata:
   name: stress
 spec:
+  replicas: 0
   serviceName: stress
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app: stress
-  replicas: 0
-  podManagementPolicy: Parallel
   template:
     metadata:
       labels:
@@ -20,15 +20,15 @@ spec:
       containers:
         - name: stress
           image: stress_ng
+          envFrom:
+            - configMapRef:
+                name: stress
           command:
             - sh
             - -c
-            - "taskset -c $cpus stress-ng $extra"
-          env:
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: stress, key: cpus }}
-            - name: extra
-              valueFrom: {configMapKeyRef: { name: stress, key: extra }}
+            - >
+              stress-ng $extra
+
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels
   # fixed in 2.1.0 https://github.com/kubernetes-sigs/kustomize/commit/c470982ce5b96da82a757f088a842bb05d3bcdb4

@@ -38,6 +38,7 @@ from wca.perf import check_perf_event_count_limit, filter_out_event_names_for_cp
 from wca.perf_uncore import UncorePerfCounters, _discover_pmu_uncore_config, \
     UNCORE_IMC_EVENTS, PMUNotAvailable, UncoreDerivedMetricsGenerator, \
     UNCORE_UPI_EVENTS
+from wca.pmembw import get_bandwidth
 from wca.profiling import profiler
 from wca.runners import Runner
 from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
@@ -419,6 +420,7 @@ class MeasurementRunner(Runner):
 
         # @TODO why not in platform module?
         extra_platform_measurements = self._uncore_get_measurements()
+        extra_platform_measurements.update(get_bandwidth())
 
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(

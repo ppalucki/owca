@@ -6,6 +6,7 @@ spec:
   clusterIP: None
   selector:
     app: memcached
+
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -28,20 +29,21 @@ spec:
         goal: service
       containers:
         - name: memcached
-          env:
-            - name: threads
-              valueFrom: {configMapKeyRef: { name: memcached, key: threads }}
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: memcached, key: cpus }}
-            - name: memory
-              valueFrom: {configMapKeyRef: { name: memcached, key: memory }}
-            - name: extra
-              valueFrom: {configMapKeyRef: { name: memcached, key: extra }}
           image: memcached
+          envFrom:
+            - configMapRef:
+                name: memcached
           command:
             - sh
             - -c
-            - "taskset -c $cpus memcached -t $threads -m $memory -u root $extra"
+            - >
+              memcached
+              -t $threads
+              -m $memory
+              -u root
+              $extra
+
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels
+  # fixed in 2.1.0 https://github.com/kubernetes-sigs/kustomize/commit/c470982ce5b96da82a757f088a842bb05d3bcdb4
   volumeClaimTemplates: []

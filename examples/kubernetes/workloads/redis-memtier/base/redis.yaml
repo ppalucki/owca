@@ -15,10 +15,10 @@ metadata:
 spec:
   replicas: 0
   serviceName: redis
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app: redis
-  podManagementPolicy: Parallel
   template:
     metadata:
       labels:
@@ -30,17 +30,22 @@ spec:
       containers:
         - name: redis
           image: redis
-          command:
-            - sh
-            - -c
-            - "taskset -c $cpus redis-server --save '' --loglevel notice --databases 1 $redis_extra"
+          envFrom:
+            - configMapRef:
+                name: redis
           env:
             - name: podname
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: redis, key: cpus }}
-            - name: extra
-              valueFrom: {configMapKeyRef: { name: redis, key: extra }}
+          command:
+            - sh
+            - -c
+            - >
+              redis-server
+              --save ''
+              --loglevel
+              notice
+              --databases 1
+              $redis_extra
 
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels

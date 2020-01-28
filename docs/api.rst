@@ -34,10 +34,10 @@ and store them in metrics_storage component.
     Enables or disabled support for RDT monitoring.
     (defaults to None(auto) based on platform capabilities)
 
-- ``gather_hw_mm_topology``: **bool** = *False*
+- ``gather_hw_mm_topology``: **Optional[bool]** = *None*
 
     Gather hardware/memory topology based on lshw and ipmctl.
-    (defaults to False)
+    (defaults to None(auto) based on lshw and ipmctl binaries availability)
 
 - ``extra_labels``: **Optional[Dict[Str, Str]]** = *None*
 

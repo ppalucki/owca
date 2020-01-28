@@ -3,7 +3,7 @@ kind: PrometheusRule
 metadata:
   labels:
     role: prometheus-rules
-  name: prometheus-wca
+  name: prometheus-rules-16-compatibility-rules-new-to-old
 spec:
   groups:
   - name: node_exporter-16-bcache

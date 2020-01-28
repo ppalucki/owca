@@ -1,0 +1,80 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    role: prometheus-rules
+  name: prometheus-wca-app
+spec:
+  groups:
+    - name: app
+      # simple/straightforward rules (task raw date aggregation)
+      rules:
+        - record: app_memory_access_rate
+          expr: avg(rate(task_mem_inst_retired_loads[15s]) + rate(task_mem_inst_retired_stores[15s])) by (app) / 1e9
+        - record: app_bw # GB/s
+          expr: avg(rate(task_mem_bandwidth_bytes[15s])) by (app) / 1e9
+        - record: app_wss # GB collected over 15s
+          expr: (avg(avg_over_time(task_wss_referenced_bytes[15s])) by (app)) / 1e9
+        - record: app_rss
+          expr: avg by(app) (avg_over_time(task_mem_usage_bytes[15s])) / 1e9
+        - record: app_cpus
+          expr: avg(task_requested_cpus) by (app)
+        - record: app_cpus_usage  # [cpus/s]
+          expr: avg(rate(task_cpu_usage_seconds[15s])) by (app)
+        - record: app_mem_usage
+          expr: avg(task_mem_usage_bytes) by (app)
+         # Depends on context
+        - record: app_dtlb_misses
+          expr: avg(task_dtlb_load_misses) by (app)
+        - record: app_dram_hit
+          expr: avg(task_dram_hit) by (app)
+        - record: app_dram_miss
+          expr: avg(task_dram_miss) by (app)
+        - record: app_dram_hit
+          expr: avg(task_dram_hit) by (app)
+        - record: app_dram_miss
+          expr: avg(task_dram_miss) by (app)
+
+        ### Consumer/Producer analysis
+        - record: app_rw
+          expr: avg(task_memory_rw_ratio) by (app)
+        - record: app_count
+          expr: count(task_up) by (app)
+
+        # Metrics for cache-utilization metric (transfered vs wss)
+        - record: app_cache_locality  # 50GB/s / 10 GBs
+          expr: app_bw / app_wss
+        # Memory utilization = WSS/RSS  (used vs allocated)
+        - record: app_memory_utilization
+          expr: app_wss / app_rss
+        # Memory intensity (GB transferred per core)
+        - record: app_memory_intensity
+          expr: app_bw / app_cpus_usage
+
+          # 2LM Friend = RW / (BW * WSS)
+        - record: app_2lm_friend
+          expr: app_rw / (app_bw*app_wss)
+
+          # RSS to WSS ratio
+        - record: app_rss_wss_ratio
+          expr: app_rss / app_wss
+
+        # Contention sensitivity
+        - record: app_contention_sensitivity
+          expr: clamp_max(app_memory_intensity * app_memory_utilization / app_rw, 5)  # for DEMO1
+
+# ----------------------------- TASK_DERIVED -------------------------------------
+    - name: wca_task_derived
+      rules:
+        - record: task_dram_hit
+          expr: rate(task_mem_load_retired_local_dram[15s]) / (rate(task_mem_load_retired_local_pmm[15s]) + rate(task_mem_load_retired_local_dram[15s]))
+        - record: task_dram_miss
+          expr: rate(task_mem_load_retired_local_pmm[15s]) / rate(task_mem_inst_retired_loads[15s])
+        - record: task_memory_rw_ratio
+          expr: rate(task_mem_inst_retired_loads[15s]) / rate(task_mem_inst_retired_stores[15s])
+
+# ----------------------------- APPNODE -------------------------------------
+    - name: aep_appnode
+      rules:
+        - record: appnode_count
+          expr: count(task_up) by (app, node)

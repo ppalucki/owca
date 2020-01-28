@@ -84,7 +84,7 @@ def test_wca_metrics(workload_name):
     'memcached-mutilate'
 ])
 def test_wca_metrics_kustomize(workload_name):
-    test_wca(workload_name, ['apm__sli', 'task_cycles'])
+    test_wca(workload_name, ['apm_sli', 'task_cycles'])
 
 
 def test_wca(workload_name, metrics):

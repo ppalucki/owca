@@ -1,69 +1,77 @@
 apiVersion: apps/v1
 kind: StatefulSet
-
 metadata:
   name: memtier
-
 spec:
   replicas: 0
   serviceName: redis
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app: memtier
-  podManagementPolicy: Parallel
   template:
     metadata:
       labels:
         app: memtier
     spec:
-      terminationGracePeriodSeconds: 0
       nodeSelector:
         goal: load_generator
+      terminationGracePeriodSeconds: 0
       containers:
         - name: memtier
           image: memtier_benchmark
+          envFrom:
+            - configMapRef:
+                name: memtier
+          env:
+            - name: podname
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
           tty: true
           command:
             - bash
             - -c
-            - 'echo sleeping...;
-            sleep 30;
-            shopt -s extglob;
-            identifier=${podname#memtier-};
-            service=${identifier%-+([[:digit:]])};
-            target=redis-${identifier}.redis-${service};
-            echo targeting: $target;
-            echo preparing data...
-            &&
-            taskset -c $cpus memtier_benchmark --run-count=1 --requests=allkeys --server=$target --threads=1 --clients=1 --pipeline=20000 --data-size=$datasize --hide-histogram  --key-pattern=P:P --key-maximum=$keymaximum --ratio 1:0
-            &&
-            echo loading...
-            &&
-            stdbuf -e0 -o0 taskset -c $cpus stdbuf -e0 -o0 memtier_benchmark --run-count=9999 --requests=10000000000 --server=$target --threads=$threads --hide-histogram --clients=$clients --pipeline=$pipeline --data-size=$datasize --key-pattern=G:G --key-maximum=$keymaximum  --ratio $ratio 2>&1 | stdbuf -e0 -o0 awk ''BEGIN { RS = "\r" } { print $0; fflush(); system("") }'' '
+            - >
+              echo sleeping...;
+              sleep 30;
+              shopt -s extglob;
+              identifier=${podname#memtier-};
+              service=${identifier%-+([[:digit:]])};
+              target=redis-${identifier}.redis-${service};
+              echo targeting: $target;
 
-          env:
-            - name: podname
-              valueFrom: {fieldRef: {fieldPath: metadata.name}}
-            - name: threads
-              valueFrom: {configMapKeyRef: { name: memtier, key: threads }}
-            - name: clients
-              valueFrom: {configMapKeyRef: { name: memtier, key: clients }}
-            - name: pipeline
-              valueFrom: {configMapKeyRef: { name: memtier, key: pipeline }}
-            - name: datasize
-              valueFrom: {configMapKeyRef: { name: memtier, key: datasize }}
-            - name: keymaximum
-              valueFrom: {configMapKeyRef: { name: memtier, key: keymaximum }}
-            - name: ratio
-              valueFrom: {configMapKeyRef: { name: memtier, key: ratio }}
-            - name: cpus
-              valueFrom: {configMapKeyRef: { name: memtier, key: cpus }}
-            - name: extra
-              valueFrom: {configMapKeyRef: { name: memtier, key: extra }}
+              echo preparing data...;
+              memtier_benchmark
+              --run-count=1
+              --requests=allkeys
+              --server=$target
+              --threads=1
+              --clients=1
+              --pipeline=20000
+              --data-size=$datasize
+              --hide-histogram
+              --key-pattern=P:P
+              --key-maximum=$keymaximum
+              --ratio 1:0
+
+              echo loading...;
+              stdbuf -e0 -o0
+              memtier_benchmark
+              --run-count=9999
+              --requests=10000000000
+              --server=$target
+              --threads=$threads
+              --hide-histogram
+              --clients=$clients
+              --pipeline=$pipeline
+              --data-size=$datasize
+              --key-pattern=G:G
+              --key-maximum=$keymaximum
+              --ratio $ratio
+              2>&1 | stdbuf -e0 -o0 awk ''BEGIN { RS = "\r" } { print $0; fflush(); system("") }''
+
           volumeMounts:
             - name: var-log-wrapper
               mountPath: /var/log/wrapper
-
 
       volumes:
         - name: var-log-wrapper

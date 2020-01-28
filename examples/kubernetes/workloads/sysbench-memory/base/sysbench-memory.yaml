@@ -3,9 +3,9 @@ kind: StatefulSet
 metadata:
   name: sysbench-memory
 spec:
+  replicas: 0
   serviceName: sysbench-memory
   podManagementPolicy: Parallel
-  replicas: 0
   selector:
     matchLabels:
       app: sysbench-memory
@@ -23,10 +23,24 @@ spec:
           - configMapRef:
               name: sysbench-memory
           image: sysbench
+          envFrom:
+            - configMapRef:
+                name: sysbench-memory
           command:
             - sh
             - -c
-            - "taskset -c $cpus sysbench --threads=$threads memory run --time=0 --memory-block-size=$memory --memory-total-size=0 --report-interval=$report_interval $extra"
+            - >
+              sysbench
+              --threads=$threads
+              memory
+              run
+              --time=0
+              --memory-block-size=$memory
+              --memory-total-size=0
+              --report-interval=$report_interval
+              $extra
+
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels
+  # fixed in 2.1.0 https://github.com/kubernetes-sigs/kustomize/commit/c470982ce5b96da82a757f088a842bb05d3bcdb4
   volumeClaimTemplates: []
