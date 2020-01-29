@@ -93,7 +93,6 @@ def _parse_event_groups(file, event_names, include_scaling_info) -> Measurements
     # we need to collect scaling factors here
     if include_scaling_info:
         if scaling_factors:
-            print(scaling_factors)
             measurements[MetricName.TASK_SCALING_FACTOR_AVG] = statistics.mean(scaling_factors)
             measurements[MetricName.TASK_SCALING_FACTOR_MAX] = max(scaling_factors)
         else:
