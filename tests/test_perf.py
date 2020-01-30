@@ -334,9 +334,9 @@ def test_parse_raw_event_name_invalid(event_name, expected_match):
 @pytest.mark.parametrize('cpu, event_name, expected_config', [
     (CPUCodeName.SKYLAKE, MetricName.TASK_STALLED_MEM_LOADS, 0x140014A3),
     (CPUCodeName.BROADWELL, MetricName.TASK_STALLED_MEM_LOADS, 0x60006A3),
-    (CPUCodeName.SKYLAKE, MetricName.TASK_OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD, 0x00001060),
+    (CPUCodeName.SKYLAKE, MetricName.TASK_OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD, 0x000010B0),
     (CPUCodeName.SKYLAKE,
-     MetricName.TASK_OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 0x000010B0),
+     MetricName.TASK_OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD, 0x00001060),
 ])
 def test_get_event_config(cpu, event_name, expected_config):
     assert expected_config == _get_event_config(cpu, event_name)
