@@ -34,6 +34,8 @@ class MetricName(str, Enum):
     # Perf event platform specifc metrics
     # offcore_requests_outstanding_l3_miss_demand_data_rd
     TASK_OFFCORE_REQUESTS_L3_MISS_DEMAND_DATA_RD = 'task_offcore_requests_l3_miss_demand_data_rd'
+    TASK_OFFCORE_REQUESTS_DEMAND_DATA_RD = 'task_offcore_requests_demand_data_rd'
+    TASK_OFFCORE_REQUESTS_DEMAND_RFO = 'task_offcore_requests_demand_rfo'
     TASK_OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD = \
         'task_offcore_requests_outstanding_l3_miss_demand_data_rd'
     TASK_MEM_LOAD_RETIRED_LOCAL_PMM = 'task_mem_load_retired_local_pmm'
@@ -291,6 +293,30 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'Counts number of Offcore outstanding Demand Data Read requests '
             'that miss L3 cache in the superQ every cycle.'
             'OFFCORE_REQUESTS_OUTSTANDING.L3_MISS_DEMAND_DATA_RD'
+            'Intel SDM October 2019 19-24 Vol. 3B, Table 19-3',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
+            MetricGranularity.TASK,
+            [],
+            'no (event_names)',
+        ),
+    MetricName.TASK_OFFCORE_REQUESTS_DEMAND_DATA_RD:
+        MetricMetadata(
+            'Counts the Demand Data Read requests sent to uncore. '
+            'OFFCORE_REQUESTS.DEMAND_DATA_RD '
+            'Intel SDM October 2019 19-24 Vol. 3B, Table 19-3',
+            MetricType.COUNTER,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_SUBSYSTEM_WITH_CGROUPS,
+            MetricGranularity.TASK,
+            [],
+            'no (event_names)',
+        ),
+    MetricName.TASK_OFFCORE_REQUESTS_DEMAND_RFO:
+        MetricMetadata(
+            'Demand RFO read requests sent to uncore, including regular RFOs, locks, ItoM. '
+            'OFFCORE_REQUESTS.DEMAND_RFO '
             'Intel SDM October 2019 19-24 Vol. 3B, Table 19-3',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,

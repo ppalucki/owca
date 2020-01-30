@@ -110,6 +110,14 @@ PREDEFINED_RAW_EVENTS = {
         CPUCodeName.SKYLAKE: (0x60, 0x10, 0),
         CPUCodeName.CASCADE_LAKE: (0x60, 0x10, 0),
     },
+    MetricName.TASK_OFFCORE_REQUESTS_DEMAND_DATA_RD: {
+        CPUCodeName.SKYLAKE: (0xB0, 0x01, 0),
+        CPUCodeName.CASCADE_LAKE: (0xB0, 0x01, 0),
+    },
+    MetricName.TASK_OFFCORE_REQUESTS_DEMAND_RFO: {
+        CPUCodeName.SKYLAKE: (0xB0, 0x04, 0),
+        CPUCodeName.CASCADE_LAKE: (0xB0, 0x04, 0),
+    },
     MetricName.TASK_OFFCORE_REQUESTS_OUTSTANDING_L3_MISS_DEMAND_DATA_RD: {
         CPUCodeName.SKYLAKE: (0xB0, 0x10, 0),
         CPUCodeName.CASCADE_LAKE: (0x60, 0x10, 0),
