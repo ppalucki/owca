@@ -92,6 +92,7 @@ def test_find_new_and_dead_tasks(discovered_tasks, containers,
 @patch('wca.perf.PerfCounters')
 @patch('wca.containers.Container.sync')
 @patch('wca.containers.Container.get_pids')
+@patch('wca.cgroups.Cgroup.reset_counters')
 @pytest.mark.parametrize('subcgroups', ([], ['/t1/c1', '/t1/c2']))
 @pytest.mark.parametrize(
     'tasks_, pre_running_containers_, mon_groups_relation,'
@@ -117,7 +118,7 @@ def test_find_new_and_dead_tasks(discovered_tasks, containers,
              {}, {}, {}),
     )
 )
-def test_sync_containers_state(_, get_pids_mock, sync_mock, perf_counters_mock,
+def test_sync_containers_state(_, reset_counter_mock, get_pids_mock, sync_mock, perf_counters_mock,
                                add_pids_mock, clean_taskless_groups_mock,
                                subcgroups,
                                tasks_, pre_running_containers_,

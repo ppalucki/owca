@@ -101,6 +101,10 @@ class ContainerInterface(ABC):
     def get_allocations(self) -> TaskAllocations:
         ...
 
+    @abstractmethod
+    def reset_counters(self):
+        ...
+
 
 class ContainerSet(ContainerInterface):
     def __init__(self,
@@ -139,6 +143,10 @@ class ContainerSet(ContainerInterface):
                 wss_reset_interval=wss_reset_interval,
                 perf_aggregate_cpus=perf_aggregate_cpus
             )
+
+    def reset_counters(self):
+        for container in self._subcontainers.values():
+            container.reset_counters()
 
     def get_subcgroups(self) -> List[cgroups.Cgroup]:
         return [container.get_cgroup() for container in
@@ -290,6 +298,12 @@ class Container(ContainerInterface):
             self._derived_metrics_generator = \
                 PerfCgroupDerivedMetricsGenerator(self._get_measurements)
 
+    def reset_counters(self):
+        # There is no other counters than cgroups.
+        # RDT is per Pod and doesn't need to be reset
+        # Perf counters are reset every time there are initialized.
+        self._cgroup.reset_counters()
+
     def __repr__(self):
         return 'Container(%r)' % self._cgroup_path
 
@@ -423,6 +437,8 @@ class ContainerManager:
                 wss_reset_interval=self._wss_reset_interval,
                 perf_aggregate_cpus=self._perf_aggregate_cpus
             )
+        # Every initialization aor reinitializaiotn should reset managed counters.
+        container.reset_counters()
         return container
 
     @profiler.profile_duration('sync_containers_state')

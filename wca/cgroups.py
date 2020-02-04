@@ -96,6 +96,32 @@ class Cgroup:
         self.cgroup_memory_fullpath = os.path.join(CgroupSubsystem.MEMORY,
                                                    relative_cgroup_path)
 
+    def reset_counters(self):
+        """Reset counters managed by cgroup abstraction.
+
+        After one of the container from Pod restarts, the cgroup is reused, but
+        cpuacct.usage still holds a value from previus unsucessful runs.
+        For multicontainer Pods there is a problem when long lived sum of counters
+        from all containers is slightly decreased, because any decrease in counter
+        is treated by Prometheus as reset and then it is assumed that "total value" is
+        last period decrese causing unrealistics spikes in counter rate/increase.
+        There are two solitions:
+        1. Make sure that after we reintialize cgroups, we will reset all the counters
+           (This solution)
+        2. Do not aggregate counters (by summing), but expose them as as additional time
+           series (new metrics per container)
+           (To be considered, but requires API change (new levels) for some metrics)
+        ps. Cgroups solutions works because all other metrics:
+        are gauages (NUMA),  collected per POD (RDT) or properly reset to 0 (perf counters)
+        """
+        try:
+            with open(os.path.join(self.cgroup_cpu_fullpath, CgroupResource.CPU_USAGE), 'w') as \
+                    cpu_usage_file:
+                cpu_usage_file.write(0)
+        except FileNotFoundError as e:
+            raise MissingMeasurementException(
+                'File {} is missing. Cpu usage (to perfom reset) unavailable.'.format(e.filename))
+
     def get_measurements(self) -> Measurements:
         try:
             with open(os.path.join(self.cgroup_cpu_fullpath, CgroupResource.CPU_USAGE)) as \
@@ -155,10 +181,17 @@ class Cgroup:
             has_hierarchical_metrics = False
             get_metric("hierarchical_total=")
             if not has_hierarchical_metrics:
-                import warnings
-                warnings.warn(
-                    "No hierarchical_total in NUMA memory stat for tasks in cgroup. Using total=."
-                )
+                # NOTE: because we have no nested containers support
+                # total is ok and we do not need hierarhical total
+                # because we're alread collecting per container and aggregate
+                # for Pod
+                log.log(logger.TRACE, "No hierarchical_total in NUMA "
+                        "memory stat for tasks in cgroup. Using total=.")
+
+                # import warnings
+                # warnings.warn(
+                #     "No hierarchical_total in NUMA memory stat for tasks in cgroup. Using total=."
+                # )
                 get_metric("total=")
 
         except FileNotFoundError as e:

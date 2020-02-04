@@ -336,6 +336,7 @@ def prepare_runner_patches(func):
              patch('resource.getrusage', return_value=Mock(ru_maxrss=WCA_MEMORY_USAGE)), \
              patch('wca.perf_uncore.UncorePerfCounters._open'), \
              patch('wca.perf.PerfCounters._open'):
+
             func(*args, **kwargs)
 
     return _decorated_function
