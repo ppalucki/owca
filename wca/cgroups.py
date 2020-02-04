@@ -117,7 +117,7 @@ class Cgroup:
         try:
             with open(os.path.join(self.cgroup_cpu_fullpath, CgroupResource.CPU_USAGE), 'w') as \
                     cpu_usage_file:
-                cpu_usage_file.write(0)
+                cpu_usage_file.write('0')
         except FileNotFoundError as e:
             raise MissingMeasurementException(
                 'File {} is missing. Cpu usage (to perfom reset) unavailable.'.format(e.filename))
