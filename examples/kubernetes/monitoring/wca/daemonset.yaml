@@ -16,11 +16,11 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9100"
     spec:
-      nodeSelector:
-        #kubernetes.io/hostname: node11
-        # kubectl get nodes --show-labels
-        goal: service
-
+      priorityClassName: high-priority
+      # nodeSelector:
+      #   #kubernetes.io/hostname: node11
+      #   # kubectl get nodes --show-labels
+      #   goal: service
       terminationGracePeriodSeconds: 1
       hostPID: true
       hostIPC: true

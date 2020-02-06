@@ -12,6 +12,7 @@ resources:
   - service.yaml
   - service_account.yaml
   - service_monitor.yaml
+  - priority_class.yaml
 
 configMapGenerator:
   - name: wca-config
