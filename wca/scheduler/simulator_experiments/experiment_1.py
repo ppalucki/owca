@@ -253,6 +253,20 @@ class TaskGenerator__2lm_contention_demo:
                 {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}, name_suffix)
 
 
+class TaskGenerator_equal:
+    """Multiple each possible kind of tasks by replicas"""
+    def __init__(self, replicas):
+        self.replicas = replicas
+        self.tasks = []
+
+        tasks = extend_membw_dimensions_to_write_read(tasks__2lm_contention_demo)
+        for task in tasks:
+            self.tasks.extend([task]*replicas)
+
+    def __call__(self, index: int):
+        return self.tasks.pop()
+
+
 def run_n_iter(iterations_count: int, simulator: ClusterSimulator,
                task_creation_fun: Callable[[int], Task],
                iteration_finished_callback: Callable):
@@ -297,12 +311,15 @@ def run():
     experiments_set__generic(
         'comparing_bar2d_vs_bar3d__option_A',
         (200,),
-        (TaskGenerator__2lm_contention_demo(max_items=200, seed=300),),
+        (
+            # TaskGenerator__2lm_contention_demo(max_items=200, seed=300),
+            TaskGenerator_equal(10,),
+        ),
         (
             (FitGeneric, {'dimensions': {rt.CPU, rt.MEM}}),
-            (FitGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
-            (BARGeneric, {'dimensions': {rt.CPU, rt.MEM}}),
-            (BARGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
+            # (FitGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
+            # (BARGeneric, {'dimensions': {rt.CPU, rt.MEM}}),
+            # (BARGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
         ),
         (prepare_NxMxK_nodes__demo_configuration(5, 10, 5),))
 
@@ -316,6 +333,6 @@ if __name__ == "__main__":
         exit(1)
 
     init_logging('trace', 'scheduler_extender_simulator_experiments')
-    logging.basicConfig(level=logging.ERROR)
+    logging.basicConfig(level=logging.INFO)
 
     run()
