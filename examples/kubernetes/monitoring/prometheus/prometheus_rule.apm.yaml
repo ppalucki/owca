@@ -180,3 +180,29 @@ spec:
         - record: apm_sli2_normalized
           expr: apm_sli2 / on (app) group_left apm_slo2
 
+    - name: apm-mode
+      rules:
+        - record: apm_sli_per_mode
+          expr: avg(apm_sli) by (nodename, app) * on (nodename) group_left() (sum(platform_mem_mode_size_bytes > 0) by (nodename) / sum(platform_mem_mode_size_bytes > 0) by (nodename))
+          labels:
+            mode: 2lm
+        - record: apm_sli_per_mode
+          expr: avg(apm_sli) by (nodename, app) * on (nodename) group_left() (sum(platform_mem_mode_size_bytes == 0) by (nodename) + 1)
+          labels:
+            mode: 1lm
+        - record: apm_sli2_per_mode
+          expr: avg(apm_sli2) by (nodename, app) * on (nodename) group_left() (sum(platform_mem_mode_size_bytes > 0) by (nodename) / sum(platform_mem_mode_size_bytes > 0) by (nodename))
+          labels:
+            mode: 2lm
+        - record: apm_sli2_per_mode
+          expr: avg(apm_sli2) by (nodename, app) * on (nodename) group_left() (sum(platform_mem_mode_size_bytes == 0) by (nodename) + 1)
+          labels:
+            mode: 1lm
+
+        # NORMALIZED ACCORDING THE GOALS 1
+        - record: apm_sli_normalized_per_mode
+          expr: apm_sli_per_mode / on (app) group_left apm_slo
+
+        # NORMALIZED ACCORDING THE GOALS 2
+        - record: apm_sli2_normalized_per_mode
+          expr: apm_sli2 / on (app) group_left apm_slo2
