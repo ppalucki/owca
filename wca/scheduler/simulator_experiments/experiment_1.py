@@ -19,7 +19,7 @@ import itertools
 from functools import partial
 from collections import Counter
 import pprint
-from typing import Dict, List, Any, Callable, Tuple
+from typing import Dict, List, Any, Callable, Tuple, Set
 import shutil
 
 import random
@@ -37,49 +37,6 @@ from wca.scheduler.types import ResourceType as rt
 log = logging.getLogger(__name__)
 
 
-# taken from 2lm contention demo slides:
-# wca_load_balancing_multidemnsional_2lm_v0.2
-tasks__2lm_contention_demo = [
-    Task(name='memcached_big',
-         requested=Resources({rt.CPU: 2, rt.MEM: 28,
-                              rt.MEMBW: 1.3, rt.WSS: 1.7})),
-    Task(name='memcached_medium',
-         requested=Resources({rt.CPU: 2, rt.MEM: 12,
-                              rt.MEMBW: 1.0, rt.WSS: 1.0})),
-    Task(name='memcached_small',
-         requested=Resources({rt.CPU: 2, rt.MEM: 2.5,
-                              rt.MEMBW: 0.4, rt.WSS: 0.4})),
-    # ---
-    Task(name='redis_big',
-         requested=Resources({rt.CPU: 1, rt.MEM: 29,
-                              rt.MEMBW: 0.5, rt.WSS: 14})),
-    Task(name='redis_medium',
-         requested=Resources({rt.CPU: 1, rt.MEM: 11,
-                              rt.MEMBW: 0.4, rt.WSS: 10})),
-    Task(name='redis_small',
-         requested=Resources({rt.CPU: 1, rt.MEM: 1.5,
-                              rt.MEMBW: 0.3, rt.WSS: 1.5})),
-    # ---
-    Task(name='stress_stream_big',
-         requested=Resources({rt.CPU: 3, rt.MEM: 13,
-                              rt.MEMBW: 18, rt.WSS: 12})),
-    Task(name='stress_stream_medium',
-         requested=Resources({rt.CPU: 1, rt.MEM: 12,
-                              rt.MEMBW: 6, rt.WSS: 10})),
-    Task(name='stress_stream_small',
-         requested=Resources({rt.CPU: 1, rt.MEM: 7,
-                              rt.MEMBW: 5, rt.WSS: 6})),
-    # ---
-    Task(name='sysbench_big',
-         requested=Resources({rt.CPU: 3, rt.MEM: 9,
-                              rt.MEMBW: 13, rt.WSS: 7.5})),
-    Task(name='sysbench_medium',
-         requested=Resources({rt.CPU: 2, rt.MEM: 2,
-                              rt.MEMBW: 10, rt.WSS: 2})),
-    Task(name='sysbench_small',
-         requested=Resources({rt.CPU: 1, rt.MEM: 1,
-                              rt.MEMBW: 8, rt.WSS: 1}))
-]
 
 
 def extend_membw_dimensions_to_write_read(taskset):
@@ -235,10 +192,11 @@ def experiments_set__generic(experiment_name, *args):
         experiment__generic(exp_iter, *params)
 
 
-class TaskGenerator__2lm_contention_demo:
-    """takes randomly from >>tasks__2lm_contention_demo<<"""
-    def __init__(self, max_items, seed):
+class TaskGenerator_random:
+    """takes randomly from given task_definitions"""
+    def __init__(self, task_definitions, max_items, seed):
         self.max_items = max_items
+        self.task_definitions = task_definitions
         random.seed(seed)
 
     def __call__(self, index: int):
@@ -246,20 +204,19 @@ class TaskGenerator__2lm_contention_demo:
             return None
         return self.rand_from_taskset(str(index))
 
-    @staticmethod
-    def rand_from_taskset(name_suffix: str):
+    def rand_from_taskset(self, name_suffix: str):
         return randonly_choose_from_taskset_single(
-                extend_membw_dimensions_to_write_read(tasks__2lm_contention_demo),
+                extend_membw_dimensions_to_write_read(self.task_definitions),
                 {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}, name_suffix)
 
 
 class TaskGenerator_equal:
     """Multiple each possible kind of tasks by replicas"""
-    def __init__(self, replicas):
+    def __init__(self, task_definitions: List[Task], replicas):
         self.replicas = replicas
         self.tasks = []
 
-        tasks = extend_membw_dimensions_to_write_read(tasks__2lm_contention_demo)
+        tasks = extend_membw_dimensions_to_write_read(task_definitions)
         for task in tasks:
             task.remove_dimension(rt.WSS)
         for task in tasks:
@@ -282,11 +239,35 @@ def run_n_iter(iterations_count: int, simulator: ClusterSimulator,
     return simulator
 
 
+def prepare_nodes(
+        node_specs: Dict[str, Dict], # node_type to resource dict,
+        type_counts: Dict[str, int], # node_type to number of nodes,
+        dimensions: Set[rt]
+        ) -> List[Node]:
+    """Create cluster with node_specs with number of each kind (node_spec are sorted by name).
+    A: {ram: 1}, B: {ram: 10}
+    {A: 2, B: 3} result in
+    A1, A2, B1, B2, B3 machines
+    """
+
+    # Filter only dimensions required.
+    node_specs = {node_type: {dim: val for dim, val in node_spec.items() if dim in dimensions}
+                  for node_type, node_spec in node_specs.items()}
+
+    nodes = []
+    for node_type in sorted(node_specs.keys()):
+        for node_id in range(type_counts[node_type]):
+            node_name = node_type+str(node_id)
+            node = Node(node_name, available_resources=Resources(node_specs[node_type]))
+            nodes.append(node)
+    return nodes
+
 def prepare_NxMxK_nodes__demo_configuration(
         apache_pass_count, dram_only_v1_count,
         dram_only_v2_count,
         dimensions={rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}) -> List[Node]:
     """Taken from WCA team real cluster."""
+    print('deprecated! please use prepare_nodes!')
     apache_pass = {rt.CPU: 40, rt.MEM: 1000, rt.MEMBW: 40, rt.MEMBW_READ: 40,
                    rt.MEMBW_WRITE: 10, rt.WSS: 256}
     dram_only_v1 = {rt.CPU: 48, rt.MEM: 192, rt.MEMBW: 200, rt.MEMBW_READ: 150,
@@ -309,6 +290,52 @@ def prepare_NxMxK_nodes__demo_configuration(
             inode += 1
     return nodes
 
+# taken from 2lm contention demo slides:
+# wca_load_balancing_multidemnsional_2lm_v0.2
+task_definitions = [
+    Task(name='memcached_big',
+         requested=Resources({rt.CPU: 2, rt.MEM: 28,
+                              rt.MEMBW: 1.3, rt.WSS: 1.7})),
+    Task(name='memcached_medium',
+         requested=Resources({rt.CPU: 2, rt.MEM: 12,
+                              rt.MEMBW: 1.0, rt.WSS: 1.0})),
+    Task(name='memcached_small',
+         requested=Resources({rt.CPU: 2, rt.MEM: 2.5,
+                              rt.MEMBW: 0.4, rt.WSS: 0.4})),
+    # ---
+    Task(name='redis_big',
+         requested=Resources({rt.CPU: 1, rt.MEM: 29,
+                              rt.MEMBW: 0.5, rt.WSS: 14})),
+    Task(name='redis_medium',
+         requested=Resources({rt.CPU: 1, rt.MEM: 11,
+                              rt.MEMBW: 0.4, rt.WSS: 10})),
+    Task(name='redis_small',
+         requested=Resources({rt.CPU: 1, rt.MEM: 1.5,
+                              rt.MEMBW: 0.3, rt.WSS: 1.5})),
+    # ---
+    Task(name='stress_stream_big',
+         requested=Resources({rt.CPU: 3, rt.MEM: 13,
+                              rt.MEMBW: 18, rt.WSS: 12})),
+    Task(name='stress_stream_medium',
+         requested=Resources({rt.CPU: 1, rt.MEM: 12,
+                              rt.MEMBW: 6, rt.WSS: 10})),
+    Task(name='stress_stream_small',
+         requested=Resources({rt.CPU: 1, rt.MEM: 7,
+                              rt.MEMBW: 5, rt.WSS: 6})),
+    # ---
+    Task(name='sysbench_big',
+         requested=Resources({rt.CPU: 3, rt.MEM: 9,
+                              rt.MEMBW: 13, rt.WSS: 7.5})),
+    Task(name='sysbench_medium',
+         requested=Resources({rt.CPU: 2, rt.MEM: 2,
+                              rt.MEMBW: 10, rt.WSS: 2})),
+    Task(name='sysbench_small',
+         requested=Resources({rt.CPU: 1, rt.MEM: 1,
+                              rt.MEMBW: 8, rt.WSS: 1}))
+]
+
+# Used to filter out unsed node dimensions
+nodes_dimensions={rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}
 
 def run():
     # dimensions supported by simulator
@@ -316,8 +343,8 @@ def run():
         'comparing_bar2d_vs_bar3d__option_A',
         (200,),
         (
-            # TaskGenerator__2lm_contention_demo(max_items=200, seed=300),
-            TaskGenerator_equal(10,),
+            TaskGenerator_equal(task_definitions, 10),
+            # TaskGenerator_random(task_definitions, max_items=200, seed=300),
         ),
         (
             (FitGeneric, {'dimensions': {rt.CPU, rt.MEM}}),
@@ -325,7 +352,25 @@ def run():
             # (BARGeneric, {'dimensions': {rt.CPU, rt.MEM}}),
             # (BARGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
         ),
-        (prepare_NxMxK_nodes__demo_configuration(5, 10, 5),))
+        (
+            prepare_nodes(dict(
+                aep={rt.CPU: 40, rt.MEM: 1000, rt.MEMBW: 40, rt.MEMBW_READ: 40, rt.MEMBW_WRITE: 10},
+                dram={rt.CPU: 90, rt.MEM: 192, rt.MEMBW: 200, rt.MEMBW_READ: 150, rt.MEMBW_WRITE: 150}, ),
+                dict(aep=2, dram=6),
+                nodes_dimensions,
+            ),
+            # prepare_nodes(dict(
+            #     apache_pass={rt.CPU: 40, rt.MEM: 1000, rt.MEMBW: 40, rt.MEMBW_READ: 40,
+            #                  rt.MEMBW_WRITE: 10, rt.WSS: 256},
+            #     dram_only_v1={rt.CPU: 48, rt.MEM: 192, rt.MEMBW: 200, rt.MEMBW_READ: 150,
+            #                   rt.MEMBW_WRITE: 150, rt.WSS: 192},
+            #     dram_only_v2={rt.CPU: 40, rt.MEM: 394, rt.MEMBW: 200, rt.MEMBW_READ: 200,
+            #                   rt.MEMBW_WRITE: 200, rt.WSS: 394}),
+            #     dict(apache_pass=5, dram_only_v1=10, dram_only_v2=5),
+            #     nodes_dimensions
+            # ),
+        )
+    )
 
 
 if __name__ == "__main__":
