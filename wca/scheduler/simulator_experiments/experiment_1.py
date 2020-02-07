@@ -261,10 +261,14 @@ class TaskGenerator_equal:
 
         tasks = extend_membw_dimensions_to_write_read(tasks__2lm_contention_demo)
         for task in tasks:
+            task.remove_dimension(rt.WSS)
+        for task in tasks:
             self.tasks.extend([task]*replicas)
 
     def __call__(self, index: int):
-        return self.tasks.pop()
+        if self.tasks:
+            return self.tasks.pop()
+        return None
 
 
 def run_n_iter(iterations_count: int, simulator: ClusterSimulator,
