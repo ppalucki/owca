@@ -38,11 +38,12 @@ class Algorithm(ABC):
         pass
 
 
-class BaseAlgorithm(ABC):
+class BaseAlgorithm(Algorithm):
     def __init__(self, data_provider: DataProvider,
                  dimensions: Iterable[rt] = (rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE)):
         self.data_provider = data_provider
         self.dimensions = dimensions
+        self.metrics = []
 
     def filter(self, extender_args: ExtenderArgs) -> Tuple[
             ExtenderFilterResult, List[Metric]]:
@@ -51,8 +52,8 @@ class BaseAlgorithm(ABC):
 
         extender_filter_result = ExtenderFilterResult()
 
-        # TODO: Fill this with metrics from algorithm.
-        metrics = []
+        # Clear for new metrics.
+        self.metrics = []
 
         data_provider_queried = self.query_data_provider()
 
@@ -65,7 +66,8 @@ class BaseAlgorithm(ABC):
                 extender_filter_result.NodeNames.append(node_name)
 
         log.debug('Results: {}'.format(extender_filter_result))
-        return extender_filter_result, metrics
+
+        return extender_filter_result, self.metrics
 
     def prioritize(self, extender_args: ExtenderArgs) -> Tuple[
             List[HostPriority], List[Metric]]:

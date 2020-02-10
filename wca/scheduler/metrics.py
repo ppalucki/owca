@@ -22,6 +22,9 @@ class MetricName(str, Enum):
     POD_IGNORE_PRIORITIZE = PREFIX + 'pod_ignore_prioritize'
     FILTER = PREFIX + 'filter'
     PRIORITIZE = PREFIX + 'prioritize'
+    APP_REQUESTED_RESOURCE = PREFIX + 'app_requested_resource'
+    NODE_CAPACITY_RESOURCE = PREFIX + 'node_capacity_resource'
+    NODE_USED_RESOURCE = PREFIX + 'node_used_resource'
 
     def __repr__(self):
         return repr(self.value)

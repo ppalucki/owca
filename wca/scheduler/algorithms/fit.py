@@ -15,7 +15,10 @@
 import logging
 from typing import List, Tuple
 
+from wca.metrics import Metric, MetricType
+from wca.logger import TRACE
 from wca.scheduler.algorithms import BaseAlgorithm, used_resources_on_node, membw_check
+from wca.scheduler.metrics import MetricName
 from wca.scheduler.types import (ExtenderArgs, HostPriority, NodeName)
 from wca.scheduler.types import ResourceType as rt
 
@@ -28,7 +31,7 @@ class FitGeneric(BaseAlgorithm):
        Treats MEMBW_READ and MEMBW_WRITE differently than other dimensions."""
 
     def app_fit_node(self, node_name: NodeName, app_name: str,
-                     data_provider_queried: Tuple) -> bool:
+                     data_provider_queried: Tuple) -> Tuple[bool, str]:
         nodes_capacities, assigned_apps_counts, apps_spec = data_provider_queried
 
         used = used_resources_on_node(self.dimensions, assigned_apps_counts[node_name], apps_spec)
@@ -37,20 +40,44 @@ class FitGeneric(BaseAlgorithm):
 
         broken_capacities = set([r for r in self.dimensions
                                  if requested[r] > capacity[r] - used[r]])
-        log.debug("Requested {} Capacity {} Used {}".format(requested, capacity, used))
+
+        log.log(TRACE, "Requested %s Capacity %s Used %s", requested, capacity, used)
+
         if not membw_check(requested, used, capacity):
             for broken in broken_capacities:
                 if broken in (rt.MEMBW, rt.MEMBW_READ, rt.MEMBW_WRITE):
-                    log.error('Not enough resources! [%s]: %r' %
-                              (broken, (capacity[broken] - used[broken] - requested[broken])))
+                    log.warning('Not enough resources! [%s]: %r' %
+                                (broken, (capacity[broken] - used[broken] - requested[broken])))
             broken_capacities.update((rt.MEMBW_READ, rt.MEMBW_READ,))
+
         broken_capacities_str = ','.join([str(e) for e in broken_capacities])
 
-        log.debug("Broken_capacities: {}".format(broken_capacities))
+        # Prepare metrics.
+        for resource in used:
+            self.metrics.append(
+                Metric(name=MetricName.NODE_USED_RESOURCE,
+                       value=used[resource],
+                       labels=dict(node=node_name, resource=resource),
+                       type=MetricType.GAUGE,))
+
+        for resource in capacity:
+            self.metrics.append(
+                Metric(name=MetricName.NODE_CAPACITY_RESOURCE,
+                       value=capacity[resource],
+                       labels=dict(node=node_name, resource=resource),
+                       type=MetricType.GAUGE,))
+
+        for resource in requested:
+            self.metrics.append(
+                Metric(name=MetricName.APP_REQUESTED_RESOURCE,
+                       value=used[resource],
+                       labels=dict(resource=resource, app=app_name),
+                       type=MetricType.GAUGE,))
 
         if not broken_capacities:
             return True, ''
         else:
+            log.debug("Broken_capacities: {}".format(broken_capacities))
             return False, 'Could not fit node for dimensions: ({}).'.format(broken_capacities_str)
 
     def priority_for_node(self, node_name: str, app_name: str,
