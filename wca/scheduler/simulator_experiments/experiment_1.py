@@ -344,13 +344,13 @@ def run():
         (200,),
         (
             TaskGenerator_equal(task_definitions, 10),
-            # TaskGenerator_random(task_definitions, max_items=200, seed=300),
+            TaskGenerator_random(task_definitions, max_items=200, seed=300),
         ),
         (
             (FitGeneric, {'dimensions': {rt.CPU, rt.MEM}}),
-            # (FitGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
-            # (BARGeneric, {'dimensions': {rt.CPU, rt.MEM}}),
-            # (BARGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
+            (FitGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
+            (BARGeneric, {'dimensions': {rt.CPU, rt.MEM}}),
+            (BARGeneric, {'dimensions': {rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}}),
         ),
         (
             prepare_nodes(dict(
@@ -359,16 +359,16 @@ def run():
                 dict(aep=2, dram=6),
                 nodes_dimensions,
             ),
-            # prepare_nodes(dict(
-            #     apache_pass={rt.CPU: 40, rt.MEM: 1000, rt.MEMBW: 40, rt.MEMBW_READ: 40,
-            #                  rt.MEMBW_WRITE: 10, rt.WSS: 256},
-            #     dram_only_v1={rt.CPU: 48, rt.MEM: 192, rt.MEMBW: 200, rt.MEMBW_READ: 150,
-            #                   rt.MEMBW_WRITE: 150, rt.WSS: 192},
-            #     dram_only_v2={rt.CPU: 40, rt.MEM: 394, rt.MEMBW: 200, rt.MEMBW_READ: 200,
-            #                   rt.MEMBW_WRITE: 200, rt.WSS: 394}),
-            #     dict(apache_pass=5, dram_only_v1=10, dram_only_v2=5),
-            #     nodes_dimensions
-            # ),
+            prepare_nodes(dict(
+                apache_pass={rt.CPU: 40, rt.MEM: 1000, rt.MEMBW: 40, rt.MEMBW_READ: 40,
+                             rt.MEMBW_WRITE: 10, rt.WSS: 256},
+                dram_only_v1={rt.CPU: 48, rt.MEM: 192, rt.MEMBW: 200, rt.MEMBW_READ: 150,
+                              rt.MEMBW_WRITE: 150, rt.WSS: 192},
+                dram_only_v2={rt.CPU: 40, rt.MEM: 394, rt.MEMBW: 200, rt.MEMBW_READ: 200,
+                              rt.MEMBW_WRITE: 200, rt.WSS: 394}),
+                dict(apache_pass=5, dram_only_v1=10, dram_only_v2=5),
+                nodes_dimensions
+            ),
         )
     )
 
@@ -382,6 +382,7 @@ if __name__ == "__main__":
         exit(1)
 
     init_logging('trace', 'scheduler_extender_simulator_experiments')
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.ERROR)
+    #logging.getLogger('wca.scheduler.algorithms').setLevel(logging.DEBUG)
 
     run()
