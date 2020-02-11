@@ -673,7 +673,8 @@ def decode_listformat(value: str) -> Set[int]:
     """
     cores = set()
 
-    if not value:
+    # handle empty values like '' or ' '
+    if not value or value.strip() == '':
         return set()
 
     ranges = value.split(',')
