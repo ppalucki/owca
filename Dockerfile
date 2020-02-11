@@ -78,6 +78,6 @@ RUN yum -y install python36 which wget
 RUN (cd /etc/yum.repos.d/; \
         wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo; \
         wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo)
-RUN yum -y update && yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl
+RUN yum -y update && yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl dmidecode
 COPY --from=pex /wca/dist/wca.pex /usr/bin/
 ENTRYPOINT ["/usr/bin/wca.pex"]
