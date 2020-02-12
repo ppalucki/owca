@@ -19,13 +19,13 @@ runner: !AllocationRunner
     rules:
     - name: Bind to numa node1
       labels:
-        numanode: node1
+        numanode: node0
       allocations:
         migrate_pages: 0
 
     - name: Bind to numa node2
       labels:
-        numanode: node2
+        numanode: node1
       allocations:
         migrate_pages: 1
 
