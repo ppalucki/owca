@@ -187,7 +187,7 @@ def test_migrate_pages_unsuccessful(migrate_page_call, warning_mock, log_mock):
     warning_mock.assert_any_call(
         'Cannot migrate pages for pid=2: Unable to migrate pages (ignored)')
     # Reached only first log in a loop: pid to node migration
-    assert log_mock.call_count == 2
+    assert log_mock.call_count == 3
     # Exception caught twice
     assert warning_mock.call_count == 2
 
@@ -198,7 +198,7 @@ def test_migrate_pages_unsuccessful(migrate_page_call, warning_mock, log_mock):
 def test_migrate_pages_success(migrate_page_call, warning_mock, log_mock):
     _migrate_pages([1, 2], 1, 2)
     # Reached first and second log in a loop: 1)pid to node migration 2)migration duration
-    assert log_mock.call_count == 4
+    assert log_mock.call_count == 5
     # No exception caught
     warning_mock.assert_not_called()
 

@@ -26,6 +26,7 @@ from enum import Enum
 
 from wca.metrics import Metric, MetricName, Measurements, export_metrics_from_measurements
 from wca.profiling import profiler
+from wca.logger import TRACE
 
 try:
     from pkg_resources import get_distribution, DistributionNotFound
