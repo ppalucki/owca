@@ -119,7 +119,7 @@ class StaticAllocator(Allocator):
 
     - ``name``,
     - ``labels (optional)``,
-    - ``allocations`` <docs/allocation.rst>`_
+    - ``allocations`` `<docs/allocation.rst>`_
 
     First field is just a helper to name a rule.
     Second field contains a dictionary, where each key is a task's label name and
