@@ -448,7 +448,7 @@ A rule is an object with three fields:
 
 - name,
 - labels (optional),
-- allocations.
+- allocations `docs/allocation.rst`_
 
 First field is just a helper to name a rule.
 Second field contains a dictionary, where each key is a task's label name and
@@ -464,6 +464,7 @@ Arguments:
 - ``rules``: **List[dict]** = *None*
 
     Direct way to pass rules.
+
 
 - ``config``: **Path** = *None*
 
