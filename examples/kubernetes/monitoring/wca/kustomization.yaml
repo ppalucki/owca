@@ -18,3 +18,4 @@ configMapGenerator:
   - name: wca-config
     files:
     - wca-config.yaml
+    - wca-config-static-allocator.yaml

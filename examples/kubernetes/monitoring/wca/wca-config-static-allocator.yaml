@@ -1,0 +1,73 @@
+# Full example for Kubernetes running as daemonset (in-cluster k8s config)
+# Requires environment variables:
+# - KUBERNETES_SERVICE_HOST - provided by default by Kuberenetes
+# - KUBERNETES_SERVICE_PORT - provided by default by Kubernetes
+# - HOST_IP - need to explicitly enabled in Pod spec using downward-api
+# - HOSTNAME - default provided by OS
+runner: !AllocationRunner
+
+  allocations_storage: !LogStorage
+    overwrite: True
+    output_filename: /var/lib/wca/allocations.prom
+
+  anomalies_storage: !LogStorage
+    output_filename: /dev/null
+
+  allocator: !StaticAllocator
+
+
+    rules:
+    - name: Bind to numa node1
+      labels:
+        numanode: node1
+      allocations:
+        migrate_pages: 0
+
+    - name: Bind to numa node2
+      labels:
+        numanode: node2
+      allocations:
+        migrate_pages: 1
+
+    - name: Bind to numa node2
+      labels:
+        numanode: node2
+      allocations:
+        migrate_pages: 2
+
+    - name: Bind to numa node3
+      labels:
+        numanode: node3
+      allocations:
+        migrate_pages: 3
+
+  measurement_runner: !MeasurementRunner
+    interval: 5.0
+    node: !KubernetesNode
+      cgroup_driver: cgroupfs
+      monitored_namespaces: ["default"]
+      kubeapi_host: !Env KUBERNETES_SERVICE_HOST
+      kubeapi_port: !Env KUBERNETES_SERVICE_PORT
+      node_ip: !Env HOST_IP
+
+
+    metrics_storage: !LogStorage
+      overwrite: True
+      output_filename: /var/lib/wca/metrics.prom
+
+    extra_labels:
+      node: !Env HOSTNAME
+    event_names:
+      - task_cycles # do not remove: USED BY E2E tests
+      - task_instructions
+      - task_offcore_requests_demand_data_rd # required fro R/W characterization
+      - task_offcore_requests_demand_rfo
+    enable_derived_metrics: True
+    uncore_event_names:
+      - platform_cas_count_reads
+      - platform_cas_count_writes
+      - platform_pmm_bandwidth_reads
+      - platform_pmm_bandwidth_writes
+
+    wss_reset_interval: 1
+    gather_hw_mm_topology: True
