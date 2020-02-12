@@ -57,7 +57,6 @@ spec:
         #   - /usr/bin/wca.pex
         args:
         - "--config=/etc/wca/wca-config.yaml"
-        - "--log=info"
         - "--root"
         resources:
           requests:
