@@ -55,8 +55,16 @@ COPY examples/hello_world_runner.py ./examples
 COPY examples/hello_world_runner_with_dateutil.py ./examples
 COPY examples/http_storage.py ./examples
 COPY examples/__init__.py ./examples
+COPY Makefile .
+COPY requirements.txt .
+
+RUN make venv
+
+ENV PYTHONPATH=/wca
 
 COPY wca ./wca
+
+ENTRYPOINT ["/wca/env/bin/python", "wca/main.py"]
 
 # ------------------------ pex ----------------------
 # "pex" stage includes pex file in /usr/bin/
