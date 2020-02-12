@@ -117,9 +117,9 @@ class StaticAllocator(Allocator):
 
     A rule is an object with three fields:
 
-    - name,
-    - labels (optional),
-    - allocations `docs/allocation.rst`_
+    - ``name``,
+    - ``labels (optional)``,
+    - ``allocations`` <docs/allocation.rst>`_
 
     First field is just a helper to name a rule.
     Second field contains a dictionary, where each key is a task's label name and
