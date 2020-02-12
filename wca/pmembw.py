@@ -93,11 +93,11 @@ def _get_ipmctl():
         #    SocketID=0x0000
         #    AvgPowerBudget=15000 mW
 
-    except FileNotFoundError:
-        log.warning('ipmctl unavailable, cannot read memory mode size')
+    except FileNotFoundError as e:
+        log.warning('ipmctl unavailable, cannot read memory mode size: %s', e)
         return None, None
-    except subprocess.CalledProcessError:
-        log.warning('ipmctl unavailable, cannot read memory mode size')
+    except subprocess.CalledProcessError as e:
+        log.warning('ipmctl unavailable (call error), cannot read memory mode size: %s', e)
         return None, None
     return ipmctl_region, ipmctl_dimm
 
