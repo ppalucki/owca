@@ -663,6 +663,7 @@ def collect_platform_information(rdt_enabled: bool = True,
     )
     assert len(platform_measurements[MetricName.PLATFORM_CPU_USAGE]) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
+    log.log(TRACE, 'platform: %r', platform)
     return platform, create_metrics(platform), create_labels(platform, include_optional_labels)
 
 

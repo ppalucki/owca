@@ -237,6 +237,8 @@ def _migrate_pages(task_pids, to_node, number_of_nodes):
 
     # set 1 in mask for to_node
     mask_to_node = 2 ** to_node
+    log.log(TRACE, 'number_of_nodes=%r mask_all_nodes=%r mask_to_node=%r', number_of_nodes,
+            mask_all_nodes, mask_without_to_node)
 
     for pid in task_pids:
         log.log(TRACE, 'migrate pages pid %s to node %d', pid, to_node)
