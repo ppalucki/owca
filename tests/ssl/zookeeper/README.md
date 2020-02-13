@@ -83,7 +83,8 @@ sudo -E /tmp/zk/apache-zookeeper-3.5.5-bin/bin/zkServer.sh start
 ```
 #### Run python script.
 ```
-pipenv run env PYTHONPATH=. python tests/ssl/zookeeper/good_configuration.py
+source env/bin/activate
+env PYTHONPATH=. python tests/ssl/zookeeper/good_configuration.py
 ```
 #### Stop zk.
 ```
@@ -110,7 +111,8 @@ sudo -E /tmp/zk/apache-zookeeper-3.5.5-bin/bin/zkServer.sh start
 ```
 #### Run python script.
 ```
-pipenv run env PYTHONPATH=. python tests/ssl/zookeeper/good_configuration.py
+source env/bin/activate
+env PYTHONPATH=. python tests/ssl/zookeeper/good_configuration.py
 ```
 #### Stop zk.
 ```
@@ -135,7 +137,8 @@ sudo -E /tmp/zk/apache-zookeeper-3.5.5-bin/bin/zkServer.sh start
 ```
 #### Run python script.
 ```
-pipenv run env PYTHONPATH=. python tests/ssl/zookeeper/weak_client_cert.py
+source env/bin/activate
+env PYTHONPATH=. python tests/ssl/zookeeper/weak_client_cert.py
 ```
 #### Stop zk.
 ```

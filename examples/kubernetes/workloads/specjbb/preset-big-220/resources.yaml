@@ -10,10 +10,24 @@ spec:
         - name: backend
           resources:
             requests:
-              cpu: 16
+              cpu: 22
+              memory: 220G
+            limits:
+              cpu: 22
               memory: 220G
         - name: injector
           resources:
             requests:
               cpu: 1
-              memory: 2G
+              memory: 3G
+            limits:
+              cpu: 1
+              memory: 3G
+        - name: controller
+          resources:
+            requests:
+              cpu: 1
+              memory: 3G
+            limits:
+              cpu: 1
+              memory: 3G

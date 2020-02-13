@@ -36,7 +36,7 @@ The diagram below puts WCA in context of a cluster and monitoring infrastructure
 For context regarding `Mesos see this document <docs/mesos.rst>`_ and for `Kubernetes see this document <docs/kubernetes.rst>`_.
 
 
-See `WCA Architecture 1.7.pdf`_ for further details.
+See `[Outdated] WCA Architecture v1.7.pdf`_ for additional details related to Mesos, which is supported for 1.0.x rc.
 
 
 Getting started
@@ -53,7 +53,6 @@ Steps needed to install WCA dependencies and build WCA pex file:
     
     # Install required software.
     sudo yum install git python3 make which python3-pip -y
-    python3 -mpip install --user pipenv
     export PATH=$PATH:~/.local/bin
 
     # Clone the repository & build.
@@ -61,7 +60,7 @@ Steps needed to install WCA dependencies and build WCA pex file:
     cd workload-collocation-agent
     
     export LC_ALL=en_US.utf8  # required for centos docker image
-    make venv  # creates venv by pipenv
+    make venv  # creates venv
     make wca_package
 
 or using docker:
@@ -95,7 +94,7 @@ Steps to run WCA:
 
     # The same as 2nd command, but run from source code - does **not** 
     #   work with docker option of installing dependencies.
-    sudo env PYTHONPATH=. `pipenv --py` wca/main.py --config $PWD/configs/extra/static_allocator.yaml --root
+    sudo env PYTHONPATH=. $PWD/env/bin/python wca/main.py --config $PWD/configs/extra/static_allocator.yaml --root
 
 Used configuration files:
 

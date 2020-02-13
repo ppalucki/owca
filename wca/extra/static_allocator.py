@@ -82,7 +82,7 @@ def _build_allocations_from_rules(tasks_data: TasksData, rules):
                             str(labels[label_name]), data.labels[label_name]):
                         match_task_ids.add(task)
                         log.log(TRACE, 'StaticAllocator(%s):  match task %r by label=%s',
-                                rule_idx, task_id, label_name)
+                                rule_idx, task, label_name)
         else:
             # match everything
             log.log(TRACE, 'StaticAllocator(%s):  match all tasks', rule_idx)
@@ -117,9 +117,9 @@ class StaticAllocator(Allocator):
 
     A rule is an object with three fields:
 
-    - name,
-    - labels (optional),
-    - allocations.
+    - ``name``,
+    - ``labels (optional)``,
+    - ``allocations`` `<allocation.rst>`_
 
     First field is just a helper to name a rule.
     Second field contains a dictionary, where each key is a task's label name and
@@ -135,6 +135,7 @@ class StaticAllocator(Allocator):
     - ``rules``: **List[dict]** = *None*
 
         Direct way to pass rules.
+
 
     - ``config``: **Path** = *None*
 

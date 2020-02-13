@@ -210,6 +210,9 @@ def test_collect_platform_information(*mocks):
         ('5,1-2', {1, 2, 5}),
         ('1,  2', {1, 2}),
         ('5,1- 2', {1, 2, 5}),
+        ('', set()),
+        (' ', set()),
+        ('\n', set()),
     ])
 def test_decode_listform(raw_cpulist, expected_cpus):
     got_cpus = decode_listformat(raw_cpulist)

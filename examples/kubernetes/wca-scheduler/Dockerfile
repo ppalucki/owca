@@ -17,15 +17,14 @@ FROM centos:7
 WORKDIR /wca-scheduler
 
 # Install dependencies.
-RUN yum -y install python36 python-pip which
-RUN pip3.6 install pipenv
+RUN yum -y install python36 python-pip which make
 
 # Prepare Python environment.
-COPY Pipfile Pipfile
-COPY Pipfile.lock Pipfile.lock
+COPY Makefile Makefile
+COPY requirements.txt requirements.txt
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
-RUN pipenv install
+RUN make venv
 ENV PYTHONPATH=/wca-scheduler
 
 # Prepare wca-scheduler files.

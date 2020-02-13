@@ -15,10 +15,11 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Set
 import logging
+from collections import Counter
 
 from wca.logger import TRACE
 from wca.scheduler.algorithms import Algorithm
-from wca.scheduler.types import ExtenderArgs
+from wca.scheduler.types import ExtenderArgs, NodeName, AppName
 from wca.scheduler.types import ResourceType as rt
 
 
@@ -212,6 +213,51 @@ class Node:
                                                     self.get_membw_read_write_ratio())
 
 
+class AssignmentsCounts:
+    def __init__(self, tasks: List[Task], nodes: List[Node]):
+        per_node: Dict[NodeName, Counter]
+        per_cluster: Counter
+        unassigned: Counter
+
+        # represents sum of all other siblings in the tree
+        ALL = '__ALL__'
+
+        """Returns tuple from structures 1) 2) 3)"""
+        # 1) assignments per node per app
+        per_node: Dict[NodeName, Counter[AppName]] = {}
+        for node in nodes:
+            per_node[node.name] = Counter(Counter({ALL: 0}))
+            for task in tasks:
+                if task.assignment == node:
+                    app_name = task.get_core_name()
+                    per_node[node.name].update([app_name])
+                    per_node[node.name].update([ALL])
+        assert sum([leaf for node_assig in per_node.values()
+                    for _, leaf in node_assig.items()]) \
+            == len([task for task in tasks if task.assignment is not None]) * 2
+
+        # 2) assignemnts per app (for the whole cluster)
+        per_cluster: Counter[AppName] = Counter({ALL: 0})
+        # 3) unassigned apps
+        unassigned: Counter[AppName] = Counter({ALL: 0})
+        for task in tasks:
+            app_name = task.get_core_name()
+            if task.assignment is not None:
+                per_cluster.update([app_name])
+                per_cluster.update([ALL])
+            else:
+                unassigned.update([app_name])
+                unassigned.update([ALL])
+        assert sum(per_cluster.values()) + sum(unassigned.values()) == len(tasks) * 2
+
+        self.per_node = per_node
+        self.per_cluster = per_cluster
+        self.unassigned = unassigned
+
+    def to_str(self) -> List[str]:
+        pass
+
+
 @dataclass
 class ClusterSimulator:
     tasks: List[Task]
@@ -248,6 +294,10 @@ class ClusterSimulator:
             return {node: node_resource_usage[node]/node.initial
                     for node in node_resource_usage.keys()}
         return node_resource_usage
+
+    # Counter represents Dict[AppName, int]
+    def assignments_counts(self) -> AssignmentsCounts:
+        return AssignmentsCounts(self.tasks, self.nodes)
 
     def cluster_resource_usage(self, if_percentage: bool = False):
         node_resource_usage = self.per_node_resource_usage()
@@ -298,7 +348,8 @@ class ClusterSimulator:
         Returns task_name -> node_name.
         """
 
-        log.log(TRACE, "Before calling scheduler; new_task={}; nodes={}".format(new_task, self.nodes))
+        log.log(TRACE, "Before calling scheduler; new_task={}; nodes={}".format(new_task,
+                                                                                self.nodes))
 
         if new_task is None:
             return {}
@@ -360,6 +411,8 @@ class ClusterSimulator:
     def iterate_single_task(self, new_task: Optional[Task]):
         new_tasks = [] if new_task is None else [new_task]
         if new_task is not None:
-            assert new_task.name not in set([task.name for task in self.tasks]), 'Tasks names must be unique, use sufixes'
-            assert new_task not in self.tasks, 'Each Task must be seperate object (deep copy)'
+            assert new_task.name not in set([task.name for task in self.tasks]), \
+                'Tasks names must be unique, use sufixes'
+            assert new_task not in self.tasks, \
+                'Each Task must be seperate object (deep copy)'
         return self.iterate(delta_time=1, changes=([], new_tasks))

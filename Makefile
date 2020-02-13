@@ -24,11 +24,18 @@
 
 
 # For cache-dir $PWD is required, becuase pex 2.0.3 have some issues with relative directories.
+
+SHELL := /bin/bash
+
 PEX_OPTIONS = -v -R component-licenses --cache-dir=${PWD}/.pex-build $(ADDITIONAL_PEX_OPTIONS)
 OPTIONAL_MODULES =
 ifeq ($(OPTIONAL_FEATURES),kafka_storage) 
 	OPTIONAL_MODULES = './confluent-kafka-python'
 endif
+
+define execute_in_venv
+	source env/bin/activate && $(1) && deactivate
+endef
 
 
 # Do not really on artifacts created by make for all targets.
@@ -37,39 +44,29 @@ endif
 all: venv check dist generate_docs
 
 venv:
-	@echo Preparing virtual enviornment using pipenv.
-	pipenv --version
-	env PIPENV_QUIET=true pipenv install --dev
+	@echo Preparing virtual enviornment.
+	python3.6 -m venv env
+	$(call execute_in_venv, pip install -r requirements.txt)
 
 flake8:
 	@echo Checking code quality.
-	pipenv run flake8 wca tests examples
-
-bandit:
-	@echo Checking code with bandit.
-	pipenv run bandit -r wca -s B101 -f html -o wca-bandit.html
-
-bandit_pex:
-	@echo Checking pex with bandit.
-	unzip dist/wca.pex -d dist/wca-pex-bandit
-	pipenv run bandit -r dist/wca-pex-bandit/.deps -s B101 -f html -o wca-pex-bandit.html || true
-	rm -rf dist/wca-pex-bandit
+	$(call execute_in_venv, flake8 wca tests examples)
 
 check_outdated:
 	@echo Checking out of date dependencies.
-	pipenv run pip list --outdated
+	$(call execute_in_venv, pip list --outdated | tee /dev/stderr | if [[ $$(wc -l) != 0 ]]; then echo "WARNING! Some of packageges are outdated. Consider updating the dependencies."; fi)
 
 unit:
 	@echo Running unit tests.
-	pipenv run env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/test_wca_metrics.py
+	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/test_wca_metrics.py)
 
 unit_no_ssl:
 	@echo Running unit tests.
-	pipenv run env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/test_wca_metrics.py --ignore=tests/ssl/test_ssl.py
+	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/test_wca_metrics.py --ignore=tests/ssl/test_ssl.py)
 
 junit:
-	@echo Running unit tests.	
-	pipenv run env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --junitxml=unit_results.xml -vvv -s --ignore=tests/e2e/test_wca_metrics.py
+	@echo Running unit tests.
+	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --junitxml=unit_results.xml -vvv -s --ignore=tests/e2e/test_wca_metrics.py)
 
 wca_package_in_docker: DOCKER_OPTIONS ?=
 wca_package_in_docker: WCA_IMAGE ?= wca
@@ -106,11 +103,11 @@ wca_package_in_docker_with_kafka:
 
 wca_package:
 	@echo Building wca pex file.
-	-rm .pex-build/wca*
+	-rm -f .pex-build/wca*
 	-rm -rf .pex-build
-	-rm dist/wca.pex
+	-rm -f dist/wca.pex
 	-rm -rf wca.egg-info
-	pipenv run env PYTHONPATH=. pex . $(OPTIONAL_MODULES) $(PEX_OPTIONS) -o dist/wca.pex -m wca.main:main
+	$(call execute_in_venv, pex . $(OPTIONAL_MODULES) $(PEX_OPTIONS) -o dist/wca.pex -m wca.main:main)
 	./dist/wca.pex --version
 
 wrapper_package_in_docker_with_kafka: WCA_IMAGE ?= wca
@@ -134,17 +131,19 @@ wrapper_package:
 	@echo "Building wrappers pex files."
 	-sh -c 'rm -f .pex-build/*wrapper.pex'
 	-rm -rf .pex-build
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/wrapper.pex -m wrapper.wrapper_main
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/example_workload_wrapper.pex -m wrapper.parser_example_workload
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/specjbb_wrapper.pex -m wrapper.parser_specjbb
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/ycsb_wrapper.pex -m wrapper.parser_ycsb
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/rpc_perf_wrapper.pex -m wrapper.parser_rpc_perf
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/mutilate_wrapper.pex -m wrapper.parser_mutilate
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/cassandra_stress_wrapper.pex -m wrapper.parser_cassandra_stress
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/stress_ng_wrapper.pex -m wrapper.parser_stress_ng
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/memtier_benchmark_wrapper.pex -m wrapper.parser_memtier
-	pipenv run pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/mysql_tpm_gauge_wrapper.pex -m wrapper.parser_mysql_tpm_gauge
-	./dist/wrapper.pex --help >/dev/null
+
+	$(call execute_in_venv, \
+    pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/wrapper.pex -m wrapper.wrapper_main && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/example_workload_wrapper.pex -m wrapper.parser_example_workload && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/specjbb_wrapper.pex -m wrapper.parser_specjbb && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/ycsb_wrapper.pex -m wrapper.parser_ycsb && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/rpc_perf_wrapper.pex -m wrapper.parser_rpc_perf && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/mutilate_wrapper.pex -m wrapper.parser_mutilate && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/cassandra_stress_wrapper.pex -m wrapper.parser_cassandra_stress && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/stress_ng_wrapper.pex -m wrapper.parser_stress_ng && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/memtier_benchmark_wrapper.pex -m wrapper.parser_memtier && \
+	pex . $(OPTIONAL_MODULES) -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/mysql_tpm_gauge_wrapper.pex -m wrapper.parser_mysql_tpm_gauge && \
+	./dist/wrapper.pex --help >/dev/null)
 
 #-----------------------------------------------------------------------------------------------
 # Private or deprecated
@@ -165,17 +164,18 @@ _unsafe_wrapper_package:
 	@echo Building wrappers pex files. Unsafe method, do not use in production environment.
 	-sh -c 'rm -f .pex-build/*wrapper.pex'
 	-rm -rf .pex-build
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/wrapper.pex -m wrapper.wrapper_main
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/example_workload_wrapper.pex -m wrapper.parser_example_workload
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/specjbb_wrapper.pex -m wrapper.parser_specjbb
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/ycsb_wrapper.pex -m wrapper.parser_ycsb
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/rpc_perf_wrapper.pex -m wrapper.parser_rpc_perf
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/mutilate_wrapper.pex -m wrapper.parser_mutilate
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/cassandra_stress_wrapper.pex -m wrapper.parser_cassandra_stress
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/stress_ng_wrapper.pex -m wrapper.parser_stress_ng
-	pipenv run $(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/memtier_benchmark_wrapper.pex -m wrapper.parser_memtier
-	./dist/wrapper.pex --help >/dev/null
 
+	$(call execute_in_venv, \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/wrapper.pex -m wrapper.wrapper_main && \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/example_workload_wrapper.pex -m wrapper.parser_example_workload && \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/specjbb_wrapper.pex -m wrapper.parser_specjbb && \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/ycsb_wrapper.pex -m wrapper.parser_ycsb && \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/rpc_perf_wrapper.pex -m wrapper.parser_rpc_perf && \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/mutilate_wrapper.pex -m wrapper.parser_mutilate && \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/cassandra_stress_wrapper.pex -m wrapper.parser_cassandra_stress && \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/stress_ng_wrapper.pex -m wrapper.parser_stress_ng && \
+	$(ENV_UNSAFE) pex . -D examples/workloads/wrapper $(PEX_OPTIONS) -o dist/memtier_benchmark_wrapper.pex -m wrapper.parser_memtier && \
+	./dist/wrapper.pex --help >/dev/null)
 #-----------------------------------------------------------------------------------------------
 
 check: flake8 unit bandit check_outdated
@@ -187,7 +187,7 @@ clean:
 	rm -rf .pex-build
 	rm -rf wca.egg-info
 	rm -rf dist
-	pipenv --rm
+	python3.6 -m venv env --clear
 
 tester:
 	@echo Integration tests.
@@ -196,4 +196,4 @@ tester:
 
 generate_docs:
 	@echo Generate documentation.
-	pipenv run env PYTHONPATH=. python util/docs.py
+	$(call execute_in_venv, env PYTHONPATH=. python util/docs.py)

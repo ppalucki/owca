@@ -30,9 +30,10 @@ from wca.scheduler.algorithms import Algorithm
 from wca.scheduler.algorithms.bar import BARGeneric
 from wca.scheduler.algorithms.fit import FitGeneric
 from wca.scheduler.algorithms.nop_algorithm import NOPAlgorithm
-from wca.scheduler.cluster_simulator import ClusterSimulator, Node, Resources, Task
+from wca.scheduler.cluster_simulator import ClusterSimulator, Node, Resources, Task, AssignmentsCounts
 from wca.scheduler.data_providers.cluster_simulator_data_provider import (
     ClusterSimulatorDataProvider)
+from wca.scheduler.types import NodeName, AppName
 from wca.scheduler.types import ResourceType as rt
 
 log = logging.getLogger(__name__)
@@ -82,6 +83,7 @@ class IterationData:
     cluster_resource_usage: Resources
     per_node_resource_usage: Dict[Node, Resources]
     broken_assignments: Dict[Node, int]
+    assignments_counts: AssignmentsCounts
     tasks_types_count: Dict[str, int]
 
 
@@ -90,17 +92,30 @@ def wrapper_iteration_finished_callback(iterations_data: List[IterationData]):
         per_node_resource_usage = simulator.per_node_resource_usage(True)
         cluster_resource_usage = simulator.cluster_resource_usage(True)
         broken_assignments = simulator.rough_assignments_per_node.copy()
+        assignments_counts = simulator.assignments_counts()
         tasks_types_count = Counter([task.get_core_name() for task in simulator.tasks])
 
         iterations_data.append(IterationData(
             cluster_resource_usage, per_node_resource_usage,
-            broken_assignments, tasks_types_count))
+            broken_assignments, assignments_counts, tasks_types_count))
 
     return iteration_finished_callback
 
 
 def create_report(title: str, subtitle: str,
-                  header: Dict[str, Any], iterations_data: List[IterationData]):
+                  run_params: Dict[str, Any],
+                  iterations_data: List[IterationData],
+                  reports_root_directory: str ='experiments_results'):
+    """
+        Results will be saved to location:
+        {reports_root_directory}/{title}/{subtitle}.{extension}
+        where extensions='png'|'txt'
+
+        >>run_params<< is dict of params used to run experiment
+    """
+    # experiment directory
+    exp_dir = '{}/{}'.format(reports_root_directory, title)
+
     plt.style.use('ggplot')
     iterd = iterations_data
 
@@ -134,16 +149,24 @@ def create_report(title: str, subtitle: str,
     axs[1].set_xlim(iterations.min() - 1, iterations.max() + 1)
     axs[1].set_ylim(broken_assignments.min() - 1, broken_assignments.max() + 1)
 
-    if not os.path.isdir('experiments_results/{}'.format(title)):
-        os.makedirs('experiments_results/{}'.format(title))
-    fig.savefig('experiments_results/{}/{}.png'.format(title, subtitle))
+    if not os.path.isdir(exp_dir):
+        os.makedirs(exp_dir)
+    fig.savefig('{}/{}.png'.format(exp_dir, subtitle))
 
-    with open('experiments_results/{}/{}.txt'.format(title, subtitle), 'w') as fref:
+    with open('{}/{}.txt'.format(exp_dir, subtitle), 'w') as fref:
+        pp = pprint.pformat
         t_ = datetime.datetime.strftime(datetime.datetime.now(), '%Y%m%d_%H%M')
         fref.write("Start of experiment: {}\n".format(t_))
-        fref.write("Run params: {}\n".format(pprint.pformat(header, indent=4)))
+        fref.write("Run params: {}\n".format(pprint.pformat(run_params, indent=4)))
         fref.write("Iterations: {}\n".format(len(iterations_data)))
-        fref.write("Assigned tasks: {}\n".format(iterations_data[-1].tasks_types_count))
+        fref.write("Scheduled tasks (might not be successfully assigned): {}\n"
+            .format(iterations_data[-1].tasks_types_count))
+
+        assignments_counts = iterations_data[-1].assignments_counts
+        fref.write("Assigned tasks per node: {}\n".format(pp(assignments_counts.per_node), indent=4))
+        fref.write("Assigned tasks per cluster: {}\n".format(assignments_counts.per_cluster))
+        fref.write("Unassigned tasks: {}\n".format(assignments_counts.unassigned))
+
         fref.write("Broken assignments: {}\n".format(
             sum(iterations_data[-1].broken_assignments.values())))
 
@@ -160,9 +183,9 @@ def create_report(title: str, subtitle: str,
                 "resource_usage_per_node(node={}, cpu, mem, membw_flat) = ({}, {}, {})\n".format(
                     node.name, *rounded_last_iter_resources))
 
-    with open('experiments_results/{}/README.txt'.format(title), 'a') as fref:
+    with open('{}/README.txt'.format(exp_dir), 'a') as fref:
         fref.write("Subexperiment: {}\n".format(subtitle))
-        fref.write("Run params: {}\n\n".format(pprint.pformat(header, indent=4)))
+        fref.write("Run params: {}\n\n".format(pprint.pformat(run_params, indent=4)))
 
 
 def experiments_set__generic(experiment_name, *args):

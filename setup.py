@@ -14,13 +14,12 @@
 
 from setuptools import setup
 import os
-import json
 
-
-# Taking all packages from Pipfile.lock
-install_requires = ['%s%s' % (name, spec['version'])
-                    for name, spec in
-                    json.load(open('Pipfile.lock'))['default'].items()]
+# Taking all requirements from requirements.txt
+install_requires = []
+with open('requirements.txt') as requirements_file:
+    for line in requirements_file:
+        install_requires.append(line.split()[0])
 
 if os.environ.get('INCLUDE_UNSAFE_CONFLUENT_KAFKA_WHEEL', 'no') == 'yes':
     print('Warning: bundling confluent_kafka package with binary libraries, '

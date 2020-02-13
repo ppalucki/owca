@@ -40,6 +40,11 @@ class Algorithm(ABC):
 
 
 class BaseAlgorithm(Algorithm):
+    """Implementing some basic functionalities which probably
+       each Algorithm subclass will need to do. However forcing
+       some way of implementing filtering and prioritizing which may
+       not match everybody needs."""
+
     def __init__(self, data_provider: DataProvider,
                  dimensions: Iterable[rt] = (rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE)):
         self.data_provider = data_provider
@@ -88,14 +93,17 @@ class BaseAlgorithm(Algorithm):
     @abstractmethod
     def app_fit_node(self, node_name: NodeName, app_name: str,
                      data_provider_queried: Tuple[Any]) -> bool:
+        """Consider if the app match the given node."""
         pass
 
     @abstractmethod
     def priority_for_node(self, node_name: str, app_name: str,
                           data_provider_queried: Tuple[Any]) -> int:
+        """Considering priority of the given node."""
         pass
 
     def query_data_provider(self) -> Tuple:
+        """Should be overwritten if one needs more data from DataProvider."""
         dp = self.data_provider
         assigned_apps_counts, apps_unassigned = dp.get_apps_counts()
         nodes_capacities = dp.get_nodes_capacities(self.dimensions)
@@ -104,6 +112,7 @@ class BaseAlgorithm(Algorithm):
 
 
 def used_resources_on_node(dimensions, assigned_apps_counts, apps_spec) -> Resources:
+    """Calculate used resources on a given node using data returned by data provider."""
     used = {dim: 0 for dim in dimensions}
     for app, count in assigned_apps_counts.items():
         for dim in dimensions:
@@ -112,7 +121,9 @@ def used_resources_on_node(dimensions, assigned_apps_counts, apps_spec) -> Resou
 
 
 def free_resources_on_node(
-        dimensions: Iterable[rt], capacity: Resources, used: Resources) -> Resources:
+        dimensions: Iterable[rt], capacity: Resources,
+        used: Resources) -> Resources:
+    """Returns free resources on node, by substracting capacity-used"""
     free = capacity.copy()
     for dimension in dimensions:
         if dimension not in (rt.MEMBW_READ, rt.MEMBW_WRITE):
@@ -120,8 +131,9 @@ def free_resources_on_node(
     if rt.MEMBW_READ in dimensions:
         assert rt.MEMBW_WRITE in dimensions
         read, write = rt.MEMBW_READ, rt.MEMBW_WRITE
-        free[read] = capacity[read] - (used[read] + used[write] * 4)
-        free[write] = capacity[write] - (used[write] + used[read] / 4)
+        R = float(capacity[rt.MEMBW_READ])/float(capacity[rt.MEMBW_WRITE])
+        free[read] = capacity[read] - (used[read] + used[write] * R)
+        free[write] = capacity[write] - (used[write] + used[read] / R)
     return free
 
 
@@ -142,3 +154,30 @@ def membw_check(requested: Resources, used: Resources, capacity: Resources) -> b
     R = float(capacity[rt.MEMBW_READ])/float(capacity[rt.MEMBW_WRITE])
 
     return (used[READ]+requested[READ]) + R * (used[WRITE]+requested[WRITE]) < capacity[READ]
+
+
+def sum_resources(a: Resources, b: Resources) -> Resources:
+    assert set(a.keys()) == set(b.keys()), \
+        'the same dimensions must be provided for both resources'
+    c = {}
+    for resource in a.keys():
+        c[resource] = a[resources] + b[resources]
+    return c
+
+
+def substract_resources(a: Resources, b: Resources, membw_read_write_ratio: float) -> Resources:
+    assert set(a.keys()) == set(b.keys()), \
+        'the same dimensions must be provided for both resources'
+    assert type(membw_read_write_ratio) == float
+    dimensions = set(a.keys())
+
+    c = a.copy()
+    for dimension in dimensions:
+        if dimension not in (rt.MEMBW_READ, rt.MEMBW_WRITE):
+            c[dimension] = a[dimensions] - b[dimension]
+    if rt.MEMBW_READ in dimensions:
+        assert rt.MEMBW_WRITE in dimensions
+        read, write = rt.MEMBW_READ, rt.MEMBW_WRITE
+        c[read] = a[read] - (b[read] + b[write] * membw_read_write_ratio)
+        c[write] = a[write] - (b[write] + b[read] / membw_read_write_ratio)
+    return c

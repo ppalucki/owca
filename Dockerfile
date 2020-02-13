@@ -30,25 +30,21 @@
 FROM centos:7 AS devel
 
 RUN yum -y update && yum -y install python36 python-pip which make git wget
-RUN pip3.6 install pipenv
 
-# 2LM binries for topology discovery (WIP) -- TO BE REMOVED FROM master/1.0.x
+# The official way to build impctl is used below,
+# based on instruction from https://github.com/intel/ipmctl#build,
+# where ndctl, libsafec is dependency of ipmctl
 RUN (cd /etc/yum.repos.d/; \
         wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo; \
         wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo)
-RUN yum install -y lshw ndctl ndctl-libs ndctl-devel libsafec ipmctl
+RUN yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl dmidecode
 # --- TODO: consider moving that to init container just responsilbe for preparing this data
 
 WORKDIR /wca
 
 
-COPY Pipfile Pipfile
-COPY Pipfile.lock Pipfile.lock
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
-RUN pipenv install --dev --deploy
-ENV PYTHONPATH=/wca
-
 
 
 # note: Cache will be propably invalidated here.
@@ -59,15 +55,23 @@ COPY examples/hello_world_runner.py ./examples
 COPY examples/hello_world_runner_with_dateutil.py ./examples
 COPY examples/http_storage.py ./examples
 COPY examples/__init__.py ./examples
+COPY Makefile .
+COPY requirements.txt .
+
+RUN make venv
+
+ENV PYTHONPATH=/wca
 
 COPY wca ./wca
 
-ENTRYPOINT ["pipenv", "run", "python3.6", "wca/main.py"]
+ENTRYPOINT ["/wca/env/bin/python", "wca/main.py"]
 
 # ------------------------ pex ----------------------
 # "pex" stage includes pex file in /usr/bin/
 FROM devel AS pex
 COPY . .
+RUN make clean
+RUN make venv
 RUN make wca_package
 RUN cp /wca/dist/wca.pex /usr/bin/
 ENTRYPOINT ["/usr/bin/wca.pex"]
@@ -75,10 +79,13 @@ ENTRYPOINT ["/usr/bin/wca.pex"]
 ## ------------------------ standalone ----------------------
 ## Building final container that consists of wca only.
 FROM centos:7 AS standalone
-RUN yum -y install python36 lshw which wget
+RUN yum -y install python36 which wget
+# The official way to build impctl is used below,
+# based on instruction from https://github.com/intel/ipmctl#build,
+# where ndctl, libsafec is dependency of ipmctl
 RUN (cd /etc/yum.repos.d/; \
         wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo; \
         wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo)
-RUN yum -y update && yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl
+RUN yum -y update && yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl dmidecode
 COPY --from=pex /wca/dist/wca.pex /usr/bin/
 ENTRYPOINT ["/usr/bin/wca.pex"]

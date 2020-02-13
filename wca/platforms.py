@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import json
 import logging
 import shlex
 import socket
@@ -19,7 +18,6 @@ import subprocess  # nosec: B404, we deliberately use this module
 import time
 from collections import defaultdict
 from itertools import groupby
-from json.decoder import JSONDecodeError
 from typing import List, Dict, Optional, Set
 
 import os
@@ -28,6 +26,7 @@ from enum import Enum
 
 from wca.metrics import Metric, MetricName, Measurements, export_metrics_from_measurements
 from wca.profiling import profiler
+from wca.logger import TRACE
 
 try:
     from pkg_resources import get_distribution, DistributionNotFound
@@ -180,7 +179,7 @@ def get_platform_static_information(strict_mode: bool) -> Measurements:
     """Time-consuming gathering information function that calles external binaries e.g.
     lshw and ipmctl. Assumption is that this information is not changing over life of WCA
     application and should be called only once upon WCA starting.
-    :param strict_mode: raise expection if collection
+    :param strict_mode: raise exception if collection
                         is not possible e.g. required binaries is missing
     :return: cached platform information
     """
@@ -207,29 +206,44 @@ def get_platform_static_information(strict_mode: bool) -> Measurements:
 
         try:
             # nosec: B603. We deliberately use 'subprocess'. There is a permanent input.
-            lshw_raw = subprocess.check_output(  # nosec
-                shlex.split('lshw -class memory -json -quiet -sanitize -notime'))
-            lshw_str = lshw_raw.decode("utf-8")
-            lshw_str = lshw_str.rstrip()
-            lshw_str = '[' + lshw_str[0:(len(lshw_str) - 1)] + ']'
-            lshw_data = json.loads(lshw_str)
+            dmidecode_raw = subprocess.check_output(  # nosec
+                shlex.split('dmidecode --quiet'))
+            dmidecode_str = dmidecode_raw.decode("utf-8")
+
             nvm_dimm_count = 0
             ram_dimm_count = 0
             nvm_dimm_size = 0
             ram_dimm_size = 0
-            for system in lshw_data:
-                if system['id'] == 'memory' and 'children' in system:
-                    for bank in system['children']:
-                        if '[empty]' in bank['description']:
-                            continue
-                        elif 'DDR4' in bank['description']:
-                            assert bank['units'] == 'bytes'
-                            ram_dimm_count += 1
-                            ram_dimm_size += bank['size']
-                        elif 'Non-volatile' in bank['description']:
-                            assert bank['units'] == 'bytes'
-                            nvm_dimm_count += 1
-                            nvm_dimm_size += bank['size']
+            units = {'GB': 1e9, 'MB': 1e6, 'B': 1}
+
+            found_memory_device = False
+            memory_device_params = {}
+            for line in dmidecode_str.split('\n'):
+                if line.startswith('Memory Device'):
+                    found_memory_device = True
+                    continue
+                if found_memory_device:
+                    split_line = line.split()
+                    if 'Size:' in line:
+                        memory_device_params.update(
+                            {'size': {'value': split_line[1], 'unit': split_line[2]}})
+                    elif 'Type:' in line and split_line[1] == 'DDR4':
+                        memory_device_params.update({'type': split_line[1]})
+                    elif 'Type Detail:' in line and 'Non-Volatile' in line:
+                        memory_device_params.update({'type': 'Non-Volatile'})
+
+                if memory_device_params.get('size', None) and \
+                        memory_device_params.get('type', None):
+                    if memory_device_params['type'] == 'DDR4':
+                        ram_dimm_count += 1
+                        ram_dimm_size += int(memory_device_params['size']['value']) * \
+                            units[memory_device_params['size']['unit']]
+                    elif memory_device_params['type'] == 'Non-Volatile':
+                        nvm_dimm_count += 1
+                        nvm_dimm_size += int(memory_device_params['size']['value']) * \
+                            units[memory_device_params['size']['unit']]
+                    found_memory_device = False
+                    memory_device_params = {}
 
             _platform_static_information[MetricName.PLATFORM_DIMM_COUNT] = {}
             _platform_static_information[MetricName.PLATFORM_DIMM_COUNT]['ram'] = int(
@@ -242,13 +256,10 @@ def get_platform_static_information(strict_mode: bool) -> Measurements:
             _platform_static_information[MetricName.PLATFORM_DIMM_TOTAL_SIZE_BYTES]['nvm'] = int(
                 nvm_dimm_size)
         except FileNotFoundError:
-            log.warning('lshw unavailable, cannot read memory topology size!')
+            log.warning('dmidecode unavailable, cannot read memory topology size!')
             if strict_mode:
-                raise MissingPlatformStaticInformation('ipmctl binary is missing!')
+                raise MissingPlatformStaticInformation('dmidecode binary is missing!')
 
-        except JSONDecodeError:
-            log.warning('lshw unavailable (incorrect version or missing data), '
-                        'cannot parse output, cannot read memory topology size!')
             if strict_mode:
                 raise MissingPlatformStaticInformation
 
@@ -653,6 +664,7 @@ def collect_platform_information(rdt_enabled: bool = True,
     )
     assert len(platform_measurements[MetricName.PLATFORM_CPU_USAGE]) == platform.cpus, \
         "Inconsistency in cpu data returned by kernel"
+    log.log(TRACE, 'platform: %r', platform)
     return platform, create_metrics(platform), create_labels(platform, include_optional_labels)
 
 
@@ -663,7 +675,8 @@ def decode_listformat(value: str) -> Set[int]:
     """
     cores = set()
 
-    if not value:
+    # handle empty values like '' or ' '
+    if not value or value.strip() == '':
         return set()
 
     ranges = value.split(',')

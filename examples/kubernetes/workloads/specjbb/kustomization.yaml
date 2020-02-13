@@ -3,8 +3,8 @@ bases:
 - preset-medium
 - preset-big-60
 - preset-big-220
-# - fixed
-# - hbir
+#- fixed
+#- hbir
 
 commonLabels:
   fit: 1lm

@@ -25,22 +25,19 @@ COPY /configs/confluent_repo/confluent.repo /etc/yum.repos.d/confluent.repo
 RUN yum -y update && yum -y install epel-release
 RUN yum -y install python3 python-pip which make git \
         librdkafka1 librdkafka-devel gcc python3-devel
-RUN pip install pipenv
 
 WORKDIR /wca
 
-COPY Pipfile Pipfile
-COPY Pipfile.lock Pipfile.lock
-RUN pipenv install --dev --deploy
 
 RUN git clone https://github.com/confluentinc/confluent-kafka-python
 RUN cd confluent-kafka-python && git checkout v1.2.0  # newest version as for 2019-12-10
 
-# Cache will be propably invalidated here.
-COPY . .
-
-RUN git clean -fdx
 ENV OPTIONAL_FEATURES=kafka_storage
+
+# Cache will be probably invalidated here.
+COPY . .
+RUN make clean
+RUN make venv
 
 ARG MAKE_WRAPPER_PACKAGE=no
 ARG MAKE_WCA_PACKAGE=yes

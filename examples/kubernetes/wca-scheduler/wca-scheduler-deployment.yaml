@@ -44,12 +44,9 @@ spec:
             - name: wca-scheduler-config
               mountPath: /etc/wca-scheduler
           command:
-            - pipenv
-            - run
-            - gunicorn
-            - wca.scheduler.main:main('/etc/wca-scheduler/wca-scheduler-config.yaml')
-            - -b
-            - unix:/var/run/wca/wca-scheduler.sock
+            - /bin/bash
+            - -c
+            - source ./env/bin/activate && gunicorn "wca.scheduler.main:main('/etc/wca-scheduler/wca-scheduler-config.yaml')" -b unix:/var/run/wca/wca-scheduler.sock && deactivate
         - name: nginx
           image: nginx:latest
           ports:

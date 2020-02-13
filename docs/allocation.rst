@@ -139,16 +139,18 @@ Supported allocations types
 
 Following built-in allocations types are supported:
 
-- ``cpu_quota`` - CPU Bandwidth Control called quota (normalized),
-- ``cpu_shares`` - CPU shares for Linux CFS (normalized),
-- ``rdt`` - Intel RDT resources.
-- ``cpuset_cpus`` - support for cpu pinning(requires specific isolator for Mesos)
-- ``cpuset_mems`` - support for memory pinning
-- ``cpuset_memory_migrate`` - cgroups based memory migration to NUMA nodes
-- ``migrate_pages`` - syscall based memory migration to NUMA node
+- `cpu_quota`_ ``float`` - CPU Bandwidth Control called quota (normalized),
+- `cpu_shares`_ ``float`` - CPU shares for Linux CFS (normalized),
+- `rdt`_ ``RDTAllocation`` - Intel RDT resources.
+- `cpuset_cpus`_ ``List[int]`` - support for cpu pinning(requires specific isolator for Mesos)
+- `cpuset_mems`_ ``List[int]`` support for memory pinning
+- `cpuset_memory_migrate`_ ``bool`` - cgroups based memory migration to NUMA nodes
+- `migrate_pages`_ ``int`` syscall based memory migration to NUMA node
 
 cpu_quota
 ^^^^^^^^^
+
+type: ``float``
 
 ``cpu_quota`` is normalized in respect to whole system capacity (all logical processor) and will be applied using cgroups cpu subsystem
 using CFS bandwidth control.
@@ -174,6 +176,8 @@ Refer to `Kernel sched-bwc.txt <https://www.kernel.org/doc/Documentation/schedul
 cpu_shares
 ^^^^^^^^^^
 
+type: ``float``
+
 ``cpu_shares`` value is normalized against configured ``AllocationConfiguration.cpu_shares_unit``.
 
 .. code-block:: python
@@ -189,6 +193,8 @@ Refer to `Kernel sched-design <https://www.kernel.org/doc/Documentation/schedule
 
 rdt
 ^^^
+
+type: ``RDTAllocation``
 
 .. code-block:: python
 
@@ -248,6 +254,9 @@ Refer to `Kernel x86/intel_rdt_ui.txt <https://www.kernel.org/doc/Documentation/
 
 cpuset_cpus
 ^^^^^^^^^^^
+
+type: ``List[int]``
+
 Support for CPU pinning.
 
 **Requires specific isolator** ``cgroups/cpuset`` **enabled for Mesos!**
@@ -256,6 +265,9 @@ Support for CPU pinning.
 
 cpuset_mems
 ^^^^^^^^^^^
+
+type: ``List[int]``
+
 Support for memory pinning.
 
 **Requires specific isolator** ``cgroups/cpuset`` **enabled for Mesos!**
@@ -264,12 +276,18 @@ Support for memory pinning.
 
 cpuset_memory_migrate
 ^^^^^^^^^^^^^^^^^^^^^
+
+type: ``bool``
+
 If set, moves task's memory pages in use to a NUMA node provided in ``cpuset_mems``.
 
 Refer to `Memory migration <http://man7.org/linux/man-pages/man7/cpuset.7.html>`_ for further description.
 
 migrate_pages
 ^^^^^^^^^^^^^
+
+type: ``int``
+
 Attempts to immediately (blocking) move task's memory pages to a NUMA node provided as an argument.
 
 Possible values are target NUMA node from 0 to ( **number of memory NUMA nodes** - 1 ).

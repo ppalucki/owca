@@ -28,51 +28,40 @@ Note: that on production system, you should use Python 3.6 as describe `here <in
 Getting source code and preparing python virtualenv
 ---------------------------------------------------
 
-WCA uses `pipenv <https://pipenv.readthedocs.io/en/latest/>`_ to create python virtualenv with all tools required to run, validate and build the project.
-
-1. Install pipenv in user mode:
-
-.. code-block:: shell
-
-    pip install --user pipenv
-
-See `pragmatic installation of pipenv`_ for more details on installing pipenv. 
-
-:note: Further commands assume that `pipenv` command is available in `$PATH`, please follow the guide `pragmatic installation of pipenv`_ how to do this (on Linux: added `~/.local/bin` to `$PATH` environment variable)
-
-.. _`pragmatic installation of pipenv`: https://docs.pipenv.org/install/#pragmatic-installation-of-pipenv
-
-2. Clone WCA repository:
+1. Clone WCA repository:
 
 .. code-block:: shell
 
     git clone https://github.com/intel/workload-collocation-agent
 
-3. Further commands should be run from wca root directory:
+2. Further commands should be run from wca root directory:
 
 .. code-block:: shell
 
     cd workload-collocation-agent
 
-4. Prepare virtual environment for WCA:
+3. Prepare virtual environment for WCA:
 
 .. code-block:: shell
 
-    pipenv install --dev
+    make venv
 
 5. Start using newly created virtualenv:
 
 .. code-block:: shell
 
-    pipenv shell
+    source env/bin/activate
 
-Tip, you can use virtualenv created by pipenv in your favorite IDE. Use `
-pipenv --where` to find location of python virutalenv and interpreter.
+If you need to deactivate virtual environment simply use command:
+
+.. code-block:: shell
+
+    deactivate
 
 Running unit tests
 ------------------
 
-Those command should be run from `virtual environment` created by pipenv:
+Those command should be run from `virtual environment`:
 
 .. code-block:: shell
 
@@ -91,13 +80,13 @@ You can use make to check code style, or build packages:
 Running locally (for development purposes)
 ------------------------------------------
 
-You can run without building a distribution like this: 
+You can run without building a distribution like this(venv must exist prior to running following commands):
 
 
 .. code-block:: shell
     
-    python3 -mpipenv shell
-    sudo env PYTHONPATH=. `which python` wca/main.py --root -c configs/extra/static_measurements.yaml
+    source env/bin/activate
+    sudo env PYTHONPATH=. `which python` wca/main.py --root -c $PWD/configs/extra/static_measurements.yaml
 
 
 Using example allocator:
@@ -105,7 +94,7 @@ Using example allocator:
 
 .. code-block:: shell
 
-    python3 -mpipenv shell
+    source env/bin/activate
     sudo env PYTHONPATH=. `which python` wca/main.py --root -c configs/extra/static_allocator.yaml
 
 Fast distribution rebuild

@@ -45,11 +45,13 @@ class BARGeneric(FitGeneric):
                                                     *data_provider_queried)
 
         # Parse "requested" as dict from defaultdict to get better string representation.
-        log.log(TRACE, "[Prioritize] Requested %s Free %s Used %s", dict(requested), free, used)
+        log.log(TRACE, "[Prioritize][%s][%s] Requested %s Free %s Used %s",
+                app_name, node_name, dict(requested), free, used)
 
         requested_fraction = app_requested_fraction(self.dimensions, requested, free)
 
-        log.log(TRACE, "[Prioritize] Requested fraction: %s", requested_fraction)
+        log.log(TRACE, "[Prioritize][%s][%s] Requested fraction: %s",
+                app_name, node_name, requested_fraction)
 
         # Least used.
         weights = self.least_used_weights
@@ -59,8 +61,15 @@ class BARGeneric(FitGeneric):
             sum([free_fraction*weights[dim] for dim, free_fraction in free_fraction.items()]) \
             / weights_sum * self.max_node_score
 
+        log.log(TRACE, "[Prioritize][%s][%s] Least used score: %s",
+                app_name, node_name, least_used_score)
+
         # priority according to variance of dimensions
         mean = sum([v for v in requested_fraction.values()])/len(requested_fraction)
+
+        log.log(TRACE, "[Prioritize][%s][%s] Mean: %s",
+                app_name, node_name, mean)
+
         if len(requested_fraction) > 2:
             variance = sum([(fraction - mean)*(fraction - mean)
                             for fraction in requested_fraction.values()]) \
@@ -69,9 +78,21 @@ class BARGeneric(FitGeneric):
             variance = abs(requested_fraction[0] - requested_fraction[1])
         else:
             variance = 0
+
+        log.log(TRACE, "[Prioritize][%s][%s] Variance: %s",
+                app_name, node_name, variance)
+
         bar_score = int((1-variance) * self.max_node_score)
 
-        return (bar_score + least_used_score) / 2
+        log.log(TRACE, "[Prioritize][%s][%s] Bar score: %s",
+                app_name, node_name, bar_score)
+
+        result = (bar_score + least_used_score) / 2
+
+        log.log(TRACE, "[Prioritize][%s][%s] Result: %s",
+                app_name, node_name, result)
+
+        return result
 
 
 def app_requested_fraction(dimensions, requested, free) -> Dict[rt, float]:
@@ -90,6 +111,7 @@ def app_requested_fraction(dimensions, requested, free) -> Dict[rt, float]:
 def used_free_requested(
         node_name, app_name, dimensions,
         nodes_capacities, assigned_apps_counts, apps_spec):
+    """Helper function not making any new calculations."""
     used = used_resources_on_node(dimensions, assigned_apps_counts[node_name], apps_spec)
     free = free_resources_on_node(dimensions, nodes_capacities[node_name], used)  # allocable
     requested = apps_spec[app_name]
