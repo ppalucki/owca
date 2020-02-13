@@ -4,7 +4,14 @@
 # - KUBERNETES_SERVICE_PORT - provided by default by Kubernetes
 # - HOST_IP - need to explicitly enabled in Pod spec using downward-api
 # - HOSTNAME - default provided by OS
+loggers:
+  wca.containers: TRACE
+  wca.cgroups_allocations: TRACE
+  wca.platforms: TRACE
+  wca.extra: TRACE
+
 runner: !AllocationRunner
+
 
   allocations_storage: !LogStorage
     overwrite: True
@@ -21,24 +28,28 @@ runner: !AllocationRunner
       labels:
         numanode: node0
       allocations:
+        cpuset_mems: '0'
         migrate_pages: 0
 
     - name: Bind to numa node2
       labels:
         numanode: node1
       allocations:
+        cpuset_mems: '1'
         migrate_pages: 1
 
     - name: Bind to numa node2
       labels:
         numanode: node2
       allocations:
+        cpuset_mems: '2'
         migrate_pages: 2
 
     - name: Bind to numa node3
       labels:
         numanode: node3
       allocations:
+        cpuset_mems: '3'
         migrate_pages: 3
 
   measurement_runner: !MeasurementRunner
