@@ -1,0 +1,532 @@
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: Single-bit ECC
+        Maximum Capacity: 2304 GB
+        Number Of Devices: 6
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_A1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139E50
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_A2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_B1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139C7A
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_B2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_C1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139CEC
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_C2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: Single-bit ECC
+        Maximum Capacity: 2304 GB
+        Number Of Devices: 6
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_D1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139E57
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_D2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_E1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139E51
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_E2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_F1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139E58
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_F2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: Single-bit ECC
+        Maximum Capacity: 2304 GB
+        Number Of Devices: 6
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_A1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139C82
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_A2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_B1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139C51
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_B2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_C1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139CEF
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_C2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: Single-bit ECC
+        Maximum Capacity: 2304 GB
+        Number Of Devices: 6
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_D1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139C50
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_D2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_E1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139C7E
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_E2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 16384 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_F1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Samsung
+        Serial Number: 12139C4C
+        Asset Tag:
+        Part Number: M393A2K43CB2-CTD
+        Rank: 2
+        Configured Memory Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_F2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Memory Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+

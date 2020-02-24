@@ -192,7 +192,7 @@ def _parse_dmidecode_output(dmidecode_str):
 
     found_memory_device = False
     memory_device_params = {}
-    for line in dmidecode_str.split('\n'):
+    for i, line in enumerate(dmidecode_str.split('\n')):
         if line.startswith('Memory Device'):
             found_memory_device = True
             continue
@@ -205,7 +205,7 @@ def _parse_dmidecode_output(dmidecode_str):
                 memory_device_params.update({'type': split_line[1]})
             elif 'Type Detail:' in line and 'Non-Volatile' in line:
                 memory_device_params.update({'type': 'Non-Volatile'})
-            elif 'Speed:' in line and not ram_dimm_speed:
+            elif 'Speed:' in line and not 'Configured' in line and not 'Unknown' in line:
                 memory_device_params.update({'speed': split_line[1]})
 
         if memory_device_params.get('size', None) and \
@@ -222,6 +222,7 @@ def _parse_dmidecode_output(dmidecode_str):
                     units[memory_device_params['size']['unit']]
             found_memory_device = False
             memory_device_params = {}
+
     return nvm_dimm_count, ram_dimm_count, nvm_dimm_size, \
         ram_dimm_size, ram_dimm_speed
 
@@ -256,8 +257,7 @@ def get_platform_static_information(strict_mode: bool) -> Measurements:
                 raise MissingPlatformStaticInformation('ipmctl binary is missing!')
         try:
             # nosec: B603. We deliberately use 'subprocess'. There is a permanent input.
-            dmidecode_raw = subprocess.check_output(  # nosec
-                shlex.split('dmidecode --quiet'))
+            dmidecode_raw = subprocess.check_output(shlex.split('dmidecode --quiet -t memory'))
             dmidecode_str = dmidecode_raw.decode("utf-8")
             nvm_dimm_count, ram_dimm_count, nvm_dimm_size, \
                 ram_dimm_size, ram_dimm_speed = _parse_dmidecode_output(dmidecode_str)

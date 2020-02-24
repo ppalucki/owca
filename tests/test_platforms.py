@@ -23,7 +23,7 @@ from wca.platforms import Platform, CPUCodeName, parse_proc_stat, \
     parse_proc_meminfo, _parse_cpuinfo, parse_proc_vmstat
 from wca.platforms import collect_topology_information, collect_platform_information, \
     RDTInformation, decode_listformat, parse_node_cpus, parse_node_meminfo, encode_listformat, \
-    parse_node_distances
+    parse_node_distances, _parse_dmidecode_output
 
 
 @pytest.mark.parametrize("raw_meminfo_output,expected", [
@@ -240,3 +240,15 @@ def test_parse_node_meminfo(*mocks):
     expected_node_free, expected_node_used = parse_node_meminfo()
     assert expected_node_free == {0: 454466117632}
     assert expected_node_used == {0: 77696421888}
+
+
+
+def test_parse_dmidecode():
+    with open(relative_module_path(__file__, 'fixtures/dmidecode_memory.txt')) as f:
+        dmidecode_raw = f.read()
+    assert _parse_dmidecode_output(dmidecode_raw) == (0, 12, 0, 196608000000.0, '2666')
+
+    with open(relative_module_path(__file__, 'fixtures/dmidecode_nvm.txt')) as f:
+        dmidecode_raw = f.read()
+    assert _parse_dmidecode_output(dmidecode_raw) == (4, 12, 1033984000000.0, 384000000000.0, '2666')
+

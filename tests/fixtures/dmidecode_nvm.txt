@@ -1,0 +1,532 @@
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: Single-bit ECC
+        Maximum Capacity: 2304 GB
+        Number Of Devices: 6
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_A1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18567D95
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 258496 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_A2
+        Bank Locator: NODE 1
+        Type: <OUT OF SPEC>
+        Type Detail: Synchronous Non-Volatile
+        Speed: 2666 MT/s
+        Manufacturer: Intel
+        Serial Number: 00000D6B
+        Asset Tag:
+        Part Number: NMA1XBD256GQS
+        Rank: 1
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_B1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18567AEF
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_B2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Clock Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_C1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18BB8A47
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6D1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_C2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Clock Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: Single-bit ECC
+        Maximum Capacity: 2304 GB
+        Number Of Devices: 6
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_D1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18568657
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 258496 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_D2
+        Bank Locator: NODE 1
+        Type: <OUT OF SPEC>
+        Type Detail: Synchronous Non-Volatile
+        Speed: 2666 MT/s
+        Manufacturer: Intel
+        Serial Number: 000011D8
+        Asset Tag:
+        Part Number: NMA1XBD256GQS
+        Rank: 1
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_E1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18BB8A32
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6D1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_E2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Clock Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_F1
+        Bank Locator: NODE 1
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18568BFB
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU1_DIMM_F2
+        Bank Locator: NODE 1
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Clock Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: Single-bit ECC
+        Maximum Capacity: 2304 GB
+        Number Of Devices: 6
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_A1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18BB92A4
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6D1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 258496 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_A2
+        Bank Locator: NODE 2
+        Type: <OUT OF SPEC>
+        Type Detail: Synchronous Non-Volatile
+        Speed: 2666 MT/s
+        Manufacturer: Intel
+        Serial Number: 00000C46
+        Asset Tag:
+        Part Number: NMA1XBD256GQS
+        Rank: 1
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_B1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 185679E9
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_B2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Clock Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_C1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18567C2D
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_C2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Clock Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: Single-bit ECC
+        Maximum Capacity: 2304 GB
+        Number Of Devices: 6
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_D1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 18568BDD
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 258496 MB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_D2
+        Bank Locator: NODE 2
+        Type: <OUT OF SPEC>
+        Type Detail: Synchronous Non-Volatile
+        Speed: 2666 MT/s
+        Manufacturer: Intel
+        Serial Number: 00000C1F
+        Asset Tag:
+        Part Number: NMA1XBD256GQS
+        Rank: 1
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_E1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 1856865D
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_E2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Clock Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: 72 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_F1
+        Bank Locator: NODE 2
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 2666 MT/s
+        Manufacturer: Micron
+        Serial Number: 185679D0
+        Asset Tag:
+        Part Number: 36ASF4G72PZ-2G6H1
+        Rank: 2
+        Configured Clock Speed: 2666 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
+Memory Device
+        Total Width: Unknown
+        Data Width: Unknown
+        Size: No Module Installed
+        Form Factor: DIMM
+        Set: None
+        Locator: CPU2_DIMM_F2
+        Bank Locator: NODE 2
+        Type: Unknown
+        Type Detail: Synchronous
+        Speed: Unknown
+        Manufacturer: NO DIMM
+        Serial Number: NO DIMM
+        Asset Tag:
+        Part Number: NO DIMM
+        Rank: Unknown
+        Configured Clock Speed: Unknown
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+
