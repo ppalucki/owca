@@ -242,7 +242,6 @@ def test_parse_node_meminfo(*mocks):
     assert expected_node_used == {0: 77696421888}
 
 
-
 def test_parse_dmidecode():
     with open(relative_module_path(__file__, 'fixtures/dmidecode_memory.txt')) as f:
         dmidecode_raw = f.read()
@@ -250,5 +249,5 @@ def test_parse_dmidecode():
 
     with open(relative_module_path(__file__, 'fixtures/dmidecode_nvm.txt')) as f:
         dmidecode_raw = f.read()
-    assert _parse_dmidecode_output(dmidecode_raw) == (4, 12, 1033984000000.0, 384000000000.0, '2666')
-
+    assert _parse_dmidecode_output(dmidecode_raw) == (4, 12,
+                                                      1033984000000.0, 384000000000.0, '2666')

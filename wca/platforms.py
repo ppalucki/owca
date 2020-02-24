@@ -205,7 +205,7 @@ def _parse_dmidecode_output(dmidecode_str):
                 memory_device_params.update({'type': split_line[1]})
             elif 'Type Detail:' in line and 'Non-Volatile' in line:
                 memory_device_params.update({'type': 'Non-Volatile'})
-            elif 'Speed:' in line and not 'Configured' in line and not 'Unknown' in line:
+            elif 'Speed:' in line and 'Configured' not in line and 'Unknown' not in line:
                 memory_device_params.update({'speed': split_line[1]})
 
         if memory_device_params.get('size', None) and \
