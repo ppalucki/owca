@@ -192,7 +192,7 @@ def _parse_dmidecode_output(dmidecode_str):
 
     found_memory_device = False
     memory_device_params = {}
-    for i, line in enumerate(dmidecode_str.split('\n')):
+    for line in dmidecode_str.split('\n'):
         if line.startswith('Memory Device'):
             found_memory_device = True
             continue
