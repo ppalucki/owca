@@ -39,7 +39,7 @@ endef
 
 
 # Do not really on artifacts created by make for all targets.
-.PHONY: all venv flake8 bandit unit wca_package bandit_pex wrapper_package clean tests check dist
+.PHONY: all venv flake8 unit wca_package bandit_pex wrapper_package clean tests check dist
 
 all: venv check dist generate_docs
 
@@ -178,7 +178,7 @@ _unsafe_wrapper_package:
 	./dist/wrapper.pex --help >/dev/null)
 #-----------------------------------------------------------------------------------------------
 
-check: flake8 unit bandit check_outdated
+check: flake8 unit check_outdated
 
 dist: wca_package wrapper_package
 

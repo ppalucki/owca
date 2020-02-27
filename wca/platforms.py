@@ -257,7 +257,8 @@ def get_platform_static_information(strict_mode: bool) -> Measurements:
                 raise MissingPlatformStaticInformation('ipmctl binary is missing!')
         try:
             # nosec: B603. We deliberately use 'subprocess'. There is a permanent input.
-            dmidecode_raw = subprocess.check_output(shlex.split('dmidecode --quiet -t memory'))
+            dmidecode_raw = subprocess.check_output(  # nosec
+                shlex.split('dmidecode --quiet -t memory'))
             dmidecode_str = dmidecode_raw.decode("utf-8")
             nvm_dimm_count, ram_dimm_count, nvm_dimm_size, \
                 ram_dimm_size, ram_dimm_speed = _parse_dmidecode_output(dmidecode_str)
