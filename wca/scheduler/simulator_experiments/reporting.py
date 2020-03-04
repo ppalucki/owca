@@ -8,18 +8,13 @@ from collections import Counter, defaultdict
 from functools import partial, reduce
 from typing import Dict, List, Any
 
-import numpy as np
-import pandas as pd
 from dataclasses import dataclass
-from matplotlib import pyplot as plt
 
 from wca.scheduler.algorithms.base import query_data_provider, sum_resources
 from wca.scheduler.cluster_simulator import Resources, Node, AssignmentsCounts, ClusterSimulator
 from wca.scheduler.types import ResourceType as rt
 
 log = logging.getLogger(__name__)
-
-CHARTS = False
 
 
 @dataclass
@@ -34,7 +29,7 @@ class IterationData:
 
 def get_total_capacity_and_demand(nodes_capacities, assigned_apps_counts, unassigend_apps_count,
                                   apps_spec):
-    """ Sum of total cluster capacity and sum of all requirments of all scheduled tasks"""
+    """ Sum of total cluster capacity and sum of all requirements of all scheduled tasks"""
     total_capacity = reduce(sum_resources, nodes_capacities.values())
     total_apps_count = defaultdict(int)
     for apps_count in list(assigned_apps_counts.values()) + [unassigend_apps_count]:
@@ -55,6 +50,7 @@ def generate_subexperiment_report(
         iterations_data: List[IterationData],
         reports_root_directory: str = 'experiments_results',
         filter_metrics=None, task_gen=None, scheduler=None,
+        charts=False,
 ) -> dict:
     """
         Results will be saved to location:
@@ -63,16 +59,16 @@ def generate_subexperiment_report(
 
         >>run_params<< is dict of params used to run experiment
     """
-    iterations = np.arange(0, len(iterations_data))
-    cpu_usage = np.array([iter_.cluster_resource_usage.data[rt.CPU] for iter_ in iterations_data])
-    mem_usage = np.array([iter_.cluster_resource_usage.data[rt.MEM] for iter_ in iterations_data])
+
+    iterations = [0 for _ in range(len(iterations_data))]
+    cpu_usage = [iter_.cluster_resource_usage.data[rt.CPU] for iter_ in iterations_data]
+    mem_usage = [iter_.cluster_resource_usage.data[rt.MEM] for iter_ in iterations_data]
 
     if rt.MEMBW_READ in iterations_data[0].cluster_resource_usage.data:
-        membw_usage = np.array([iter_.cluster_resource_usage.data[rt.MEMBW_READ]
-                                for iter_ in iterations_data])
+        membw_usage = [iter_.cluster_resource_usage.data[rt.MEMBW_READ]
+                       for iter_ in iterations_data]
     else:
-        membw_usage = np.array(
-            [iter_.cluster_resource_usage.data[rt.MEMBW] for iter_ in iterations_data])
+        membw_usage = [iter_.cluster_resource_usage.data[rt.MEMBW] for iter_ in iterations_data]
 
     # experiment directory
     exp_dir = '{}/{}'.format(reports_root_directory, title)
@@ -85,10 +81,6 @@ def generate_subexperiment_report(
         # Total demand and total capacity based from data from scheduler
         nodes_capacities, assigned_apps_counts, apps_spec, unassigend_apps_count = \
             query_data_provider(scheduler.data_provider, scheduler.dimensions)
-
-        # fref.write('Nodes capacities: %s\n' % nodes_capacities)
-        # fref.write('Assigned_apps_counts %s\n' % assigned_apps_counts)
-        # fref.write('Unassigned_apps_counts %s\n' % unassigend_apps_count)
 
         total_capacity, total_demand, total_apps_count = \
             get_total_capacity_and_demand(nodes_capacities, assigned_apps_counts,
@@ -106,8 +98,9 @@ def generate_subexperiment_report(
                    .format(total_tasks_dict))
         # Check consistency of iterations data and data provider.
         if total_apps_count != total_tasks_dict:
-            fref.write("!Scheduled tasks different from total_apps_count from query! total_apps_count={}\n"
-                       .format(dict(total_apps_count)))
+            fref.write(
+                "!Scheduled tasks different from total_apps_count from query! total_apps_count={}\n"
+                .format(dict(total_apps_count)))
             assert False, 'should not happen!'
 
         scheduled_tasks = sum(total_tasks_dict.values())
@@ -127,7 +120,8 @@ def generate_subexperiment_report(
 
         fref.write("Assigned tasks per node:\n")
         for node, counters in assignments_counts.per_node.items():
-            fref.write("   {}: {}\n".format(node, ' '.join('%s=%d'%(k,v) for k,v in sorted(dict(counters).items()) if k!='__ALL__')))
+            fref.write("   {}: {}\n".format(node, ' '.join(
+                '%s=%d' % (k, v) for k, v in sorted(dict(counters).items()) if k != '__ALL__')))
 
         rounded_last_iter_resources = \
             map(partial(round, ndigits=2), (cpu_usage[-1], mem_usage[-1], membw_usage[-1],))
@@ -151,8 +145,6 @@ def generate_subexperiment_report(
             nodes_avg_var.append(statistics.variance(
                 [usages.data[rt.CPU], usages.data[rt.MEM], usages.data[rt.MEMBW_READ]]))
 
-        util_var_avg = statistics.variance(nodes_utilization_avg)
-        util_avg_var = statistics.mean(nodes_avg_var)
         util_var = statistics.variance(nodes_utilization)
 
         available_metrics = {m.split('{')[0] for iterdata in iterations_data for m in
@@ -200,68 +192,82 @@ def generate_subexperiment_report(
 
     # Chart report
 
-    if CHARTS:
-        filter_metrics = filter_metrics or []
-        plt.style.use('ggplot')
-        number_of_metrics = len(filter_metrics)
-        fig, axs = plt.subplots(2 + number_of_metrics)
-        fig.set_size_inches(20, 20 + 6 * number_of_metrics)
-        axs[0].plot(iterations, cpu_usage, 'r--')
-        axs[0].plot(iterations, mem_usage, 'b--')
-        axs[0].plot(iterations, membw_usage, 'g--')
-        axs[0].legend(['cpu usage', 'mem usage', 'membw usage'])
-        # ---
-        axs[0].set_title('{} {}'.format(title, subtitle), fontsize=10)
-        # ---
-        axs[0].set_xlim(iterations.min(), iterations.max())
-        axs[0].set_ylim(0, 1)
-
-        broken_assignments = \
-            np.array([sum(list(iter_.broken_assignments.values())) for iter_ in iterations_data])
-        axs[1].plot(iterations, broken_assignments, 'g--')
-        axs[1].legend(['broken assignments'])
-        axs[1].set_ylabel('')
-        axs[1].set_xlim(iterations.min(), iterations.max())
-        axs[1].set_ylim(broken_assignments.min() - 1, broken_assignments.max() + 1)
-
-        # Visualize metrics
-        try:
-            import seaborn as sns
-            import pandas as pd
-            for pidx, filter in enumerate(filter_metrics):
-                dicts = []
-                for iteration, idata in enumerate(iterations_data):
-                    d = {k.split('{')[1][:-1]: v
-                         for k, v in idata.metrics.items() if k.startswith(filter)}
-                    if not d:
-                        log.warning('metric %s not found: available: %s', filter,
-                                    ', '.join([m.split('{')[0] for m in idata.metrics.keys()]))
-                    dicts.append(d)
-
-                from matplotlib.markers import MarkerStyle
-                df = pd.DataFrame(dicts)
-                try:
-                    x = sns.lineplot(data=df,
-                                     markers=MarkerStyle.filled_markers,
-                                     dashes=False,
-                                     ax=axs[2 + pidx])
-                except ValueError:
-                    x = sns.lineplot(data=df,
-                                     dashes=False,
-                                     ax=axs[2 + pidx])
-                x.set_title(filter)
-                x.set_xlim(iterations.min(), iterations.max())
-
-            # plt.show()
-        except ImportError:
-            log.warning('missing seaborn and pandas')
-
-        fig.savefig('{}/{}.png'.format(exp_dir, subtitle))
+    if charts:
+        generate_charts(cpu_usage, exp_dir, filter_metrics, iterations, iterations_data, mem_usage,
+                        membw_usage, subtitle, title)
 
     return stats
 
 
+def generate_charts(cpu_usage, exp_dir, filter_metrics, iterations, iterations_data, mem_usage,
+                    membw_usage, subtitle, title):
+    """Generate charts if optional libraries are available!"""
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        import pandas as pd
+        import numpy as np
+    except ImportError:
+        # No installed packages required for report generation.
+        log.warning(
+            'matplotlib, seaborn, pandas or numpy not installed, charts will not be generated!')
+        exit(1)
+    filter_metrics = filter_metrics or []
+    plt.style.use('ggplot')
+    number_of_metrics = len(filter_metrics)
+    fig, axs = plt.subplots(2 + number_of_metrics)
+    fig.set_size_inches(20, 20 + 6 * number_of_metrics)
+    axs[0].plot(iterations, cpu_usage, 'r--')
+    axs[0].plot(iterations, mem_usage, 'b--')
+    axs[0].plot(iterations, membw_usage, 'g--')
+    axs[0].legend(['cpu usage', 'mem usage', 'membw usage'])
+    # ---
+    axs[0].set_title('{} {}'.format(title, subtitle), fontsize=10)
+    # ---
+    axs[0].set_xlim(iterations.min(), iterations.max())
+    axs[0].set_ylim(0, 1)
+    broken_assignments = \
+        np.array([sum(list(iter_.broken_assignments.values())) for iter_ in iterations_data])
+    axs[1].plot(iterations, broken_assignments, 'g--')
+    axs[1].legend(['broken assignments'])
+    axs[1].set_ylabel('')
+    axs[1].set_xlim(iterations.min(), iterations.max())
+    axs[1].set_ylim(broken_assignments.min() - 1, broken_assignments.max() + 1)
+    # Visualize metrics
+    for pidx, filter in enumerate(filter_metrics):
+        dicts = []
+        for iteration, idata in enumerate(iterations_data):
+            d = {k.split('{')[1][:-1]: v
+                 for k, v in idata.metrics.items() if k.startswith(filter)}
+            if not d:
+                log.warning('metric %s not found: available: %s', filter,
+                            ', '.join([m.split('{')[0] for m in idata.metrics.keys()]))
+            dicts.append(d)
+
+        from matplotlib.markers import MarkerStyle
+        df = pd.DataFrame(dicts)
+        try:
+            x = sns.lineplot(data=df,
+                             markers=MarkerStyle.filled_markers,
+                             dashes=False,
+                             ax=axs[2 + pidx])
+        except ValueError:
+            x = sns.lineplot(data=df,
+                             dashes=False,
+                             ax=axs[2 + pidx])
+        x.set_title(filter)
+        x.set_xlim(iterations.min(), iterations.max())
+
+    fig.savefig('{}/{}.png'.format(exp_dir, subtitle))
+
+
 def generate_experiment_report(stats_dicts, exp_dir):
+    try:
+        import pandas as pd
+    except ImportError:
+        # No installed packages required for report generation.
+        print('numpy and matplotlib are required!')
+        exit(1)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 200)
     df = pd.DataFrame(stats_dicts)
@@ -288,7 +294,7 @@ def generate_experiment_report(stats_dicts, exp_dir):
         _pivot_ui(
             df,
             totals=True,
-            rowTotals=False,
+            row_totals=False,
             rows=['TASKS', 'NODES'],
             cols=['ALGO'],
             vals=[val], aggregatorName=aggr,
@@ -328,7 +334,7 @@ def wrapper_iteration_finished_callback(iterations_data: List[IterationData]):
     return iteration_finished_callback
 
 
-def _pivot_ui(df, totals=True, rowTotals=True, **options):
+def _pivot_ui(df, totals=True, row_totals=True, **options):
     """ Interactive pivot table for data analysis.
     # Example options:
     rows=['x', 'y'),
@@ -340,19 +346,19 @@ def _pivot_ui(df, totals=True, rowTotals=True, **options):
     try:
         from pivottablejs import pivot_ui
     except ImportError:
-        print("Error: cannot import pivottablejs, please install 'pip install pivottablejs'!")
+        log.warning("Error: cannot import pivottablejs, Pivottable will not be generated'!")
         return
     iframe = pivot_ui(df, **options)
     if not totals:
         with open(iframe.src) as f:
-            replacedHtml = f.read().replace('</style>',
-                                            '.pvtTotal, .pvtTotalLabel, .pvtGrandTotal {display: none}</style>')
+            replaced_html = f.read().replace(
+                '</style>', '.pvtTotal, .pvtTotalLabel, .pvtGrandTotal {display: none}</style>')
         with open(iframe.src, "w") as f:
-            f.write(replacedHtml)
-    if not rowTotals:
+            f.write(replaced_html)
+    if not row_totals:
         with open(iframe.src) as f:
-            replacedHtml = f.read().replace('</style>',
-                                            '.rowTotal, .pvtRowTotalLabel, .pvtGrandTotal {display: none}</style>')
+            replaced_html = f.read().replace(
+                '</style>', '.rowTotal, .pvtRowTotalLabel, .pvtGrandTotal {display: none}</style>')
         with open(iframe.src, "w") as f:
-            f.write(replacedHtml)
+            f.write(replaced_html)
     return iframe

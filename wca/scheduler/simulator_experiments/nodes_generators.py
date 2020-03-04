@@ -17,7 +17,6 @@ def prepare_nodes(
     for name in node_specs:
         assert '_' not in name, '_ used as separator for class later in reporting'
 
-
     # Filter only dimensions required.
     node_specs = {node_type: {dim: val for dim, val in node_spec.items() if dim in dimensions}
                   for node_type, node_spec in node_specs.items()}
@@ -29,35 +28,3 @@ def prepare_nodes(
             node = Node(node_name, available_resources=Resources(node_specs[node_type]))
             nodes.append(node)
     return nodes
-
-
-#Superseded by prepare_nodes above
-
-
-# def prepare_NxMxK_nodes__demo_configuration(
-#         apache_pass_count, dram_only_v1_count,
-#         dram_only_v2_count,
-#         dimensions={rt.CPU, rt.MEM, rt.MEMBW_READ, rt.MEMBW_WRITE}) -> List[Node]:
-#     """Taken from WCA team real cluster."""
-#     print('deprecated! please use prepare_nodes!')
-#     apache_pass = {rt.CPU: 40, rt.MEM: 1000, rt.MEMBW: 40, rt.MEMBW_READ: 40,
-#                    rt.MEMBW_WRITE: 10, rt.WSS: 256}
-#     dram_only_v1 = {rt.CPU: 48, rt.MEM: 192, rt.MEMBW: 200, rt.MEMBW_READ: 150,
-#                     rt.MEMBW_WRITE: 150, rt.WSS: 192}
-#     dram_only_v2 = {rt.CPU: 40, rt.MEM: 394, rt.MEMBW: 200, rt.MEMBW_READ: 200,
-#                     rt.MEMBW_WRITE: 200, rt.WSS: 394}
-#     nodes_spec = [apache_pass, dram_only_v1, dram_only_v2]
-#
-#     # Filter only dimensions required.
-#     for i, node_spec in enumerate(nodes_spec):
-#         nodes_spec[i] = {dim: val for dim, val in node_spec.items() if dim in dimensions}
-#
-#     inode = 0
-#     nodes = []
-#     for i_node_type, node_type_count in enumerate((apache_pass_count, dram_only_v1_count,
-#                                                    dram_only_v2_count,)):
-#         for i in range(node_type_count):
-#             node = Node(str(inode), available_resources=Resources(nodes_spec[i_node_type]))
-#             nodes.append(node)
-#             inode += 1
-#     return nodes

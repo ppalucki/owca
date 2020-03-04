@@ -55,16 +55,16 @@ class Resources:
 
     def __sub__(self, other):
         me = self.copy()
-        me.substract(other)
+        me.subtract(other)
         return me
 
-    def substract(self, b):
+    def subtract(self, b):
         """simply loops over all dimensions and use - operator"""
         assert set(self.data.keys()) == set(b.data.keys())
         for key in self.data.keys():
             self.data[key] -= b.data[key]
 
-    def substract_aep_aware(self, b, membw_read_write_ratio):
+    def subtract_aep_aware(self, b, membw_read_write_ratio):
         """Mutates self. """
         assert set(self.data.keys()) == set(b.data.keys())
         for key in self.data.keys():
@@ -78,7 +78,7 @@ class Resources:
             WRITE = rt.MEMBW_WRITE
             x = self.data
             y = b.data
-            # mirror calculations for WRITE from READ; that are not two seperate dimensions;
+            # mirror calculations for WRITE from READ; that are not two separate dimensions;
             x[READ] = x[READ] - y[READ] - y[WRITE] * membw_read_write_ratio
             x[WRITE] = x[WRITE] - y[WRITE] - y[READ] / membw_read_write_ratio
 
@@ -164,7 +164,7 @@ class Node:
         self.unassigned = available_resources.copy()
 
     def __repr__(self):
-        return "Node(name: {}, initial: {}, free: {}, unassiged: {})".format(
+        return "Node(name: {}, initial: {}, free: {}, unassigned: {})".format(
             self.name, str(self.initial), str(self.free), str(self.unassigned))
 
     def get_membw_read_write_ratio(self):
@@ -173,33 +173,14 @@ class Node:
             return d_[rt.MEMBW_READ] / d_[rt.MEMBW_WRITE]
         return 1
 
-    # @staticmethod
-    # def substract_resources(a: Resources, b: Resources):
-    #     """returns c = a - b"""
-    #     assert set(a.data.keys()) == set(b.data.keys())
-    #     c = a.copy()
-    #     for key in self.data.keys():
-    #         if key == rt.MEMBW_READ or key == rt.MEMBW_WRITE:
-    #             continue
-    #         c.data[key] -= b.data[key]
-    #     # Special case for MEMBW
-    #     if rt.MEMBW_READ in c.data and rt.MEMBW_WRITE in c.data:
-    #         READ = rt.MEMBW_READ
-    #         WRITE = rt.MEMBW_WRITE
-    #         x = c.data
-    #         y = b.data
-    #         x[READ] = x[READ] - y[READ] - y[WRITE] * membw_read_write_ratio
-    #         x[WRITE] = x[WRITE] - y[WRITE] - y[READ] / membw_read_write_ratio
-    #     return c
-
     def validate_assignment(self, tasks, new_task):
         """Check if there is enough resources on the node for a >>new_task<<."""
         tmp_unassigned: Resources = self.initial.copy()
         for task in tasks:
             if task.assignment == self:
-                tmp_unassigned.substract_aep_aware(task.requested,
-                                                   self.get_membw_read_write_ratio())
-        tmp_unassigned.substract_aep_aware(new_task.requested, self.get_membw_read_write_ratio())
+                tmp_unassigned.subtract_aep_aware(
+                        task.requested, self.get_membw_read_write_ratio())
+        tmp_unassigned.subtract_aep_aware(new_task.requested, self.get_membw_read_write_ratio())
         return bool(tmp_unassigned)
 
     def update(self, tasks):
@@ -208,9 +189,9 @@ class Node:
         self.unassigned = self.initial.copy()
         for task in tasks:
             if task.assignment == self:
-                self.free.substract_aep_aware(task.real, self.get_membw_read_write_ratio())
-                self.unassigned.substract_aep_aware(task.requested,
-                                                    self.get_membw_read_write_ratio())
+                self.free.subtract_aep_aware(task.real, self.get_membw_read_write_ratio())
+                self.unassigned.subtract_aep_aware(
+                        task.requested, self.get_membw_read_write_ratio())
 
 
 class AssignmentsCounts:
@@ -222,7 +203,6 @@ class AssignmentsCounts:
         # represents sum of all other siblings in the tree
         ALL = '__ALL__'
 
-        """Returns tuple from structures 1) 2) 3)"""
         # 1) assignments per node per app
         per_node: Dict[NodeName, Counter[AppName]] = {}
         for node in nodes:
@@ -233,10 +213,10 @@ class AssignmentsCounts:
                     per_node[node.name].update([app_name])
                     per_node[node.name].update([ALL])
         assert sum([leaf for node_assig in per_node.values()
-                    for _, leaf in node_assig.items()]) \
-            == len([task for task in tasks if task.assignment is not None]) * 2
+                    for _, leaf in node_assig.items()]) == len(
+                            [task for task in tasks if task.assignment is not None]) * 2
 
-        # 2) assignemnts per app (for the whole cluster)
+        # 2) assignments per app (for the whole cluster)
         per_cluster: Counter[AppName] = Counter({ALL: 0})
         # 3) unassigned apps
         unassigned: Counter[AppName] = Counter({ALL: 0})
@@ -344,12 +324,12 @@ class ClusterSimulator:
         return assigned_count
 
     def call_scheduler(self, new_task: Optional[Task]) -> Dict[str, Node]:
-        """To map simulator structure into required by scheduler.Algorithm interace.
+        """To map simulator structure into required by scheduler.Algorithm interface.
         Returns task_name -> node_name.
         """
 
-        log.log(TRACE, "Before calling scheduler; new_task={}; nodes={}".format(new_task,
-                                                                                self.nodes))
+        log.log(TRACE, "State before calling scheduler; new_task={}; nodes={}".format(
+            new_task, self.nodes))
 
         if new_task is None:
             return {}
@@ -377,7 +357,7 @@ class ClusterSimulator:
             best_node = max(extender_prioritize_result, key=lambda el: el.Score).Host
         else:
             best_node = None
-        log.debug("Best node choosen in prioritize step: {}".format(best_node))
+        log.debug("Best node chosen in prioritize step: {}".format(best_node))
 
         if best_node is None:
             return {}
@@ -411,7 +391,7 @@ class ClusterSimulator:
         new_tasks = [] if new_task is None else [new_task]
         if new_task is not None:
             assert new_task.name not in set([task.name for task in self.tasks]), \
-                'Tasks names must be unique, use sufixes'
+                'Tasks names must be unique, use suffixes'
             assert new_task not in self.tasks, \
-                'Each Task must be seperate object (deep copy)'
+                'Each Task must be separate object (deep copy)'
         return self.iterate(delta_time=1, changes=([], new_tasks))

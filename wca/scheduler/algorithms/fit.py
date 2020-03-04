@@ -40,7 +40,8 @@ class Fit(BaseAlgorithm):
         try:
             requested_and_used = sum_resources(requested, used)
         except ValueError as e:
-            msg = 'cannot sum app=%s requested=%s and node=%s used=%s: %s' % (app_name, requested, node_name, used, e)
+            msg = 'cannot sum app=%s requested=%s and node=%s used=%s: %s' % (
+                    app_name, requested, node_name, used, e)
             log.error(msg)
             raise DataMissingException(msg) from e
 
@@ -54,40 +55,18 @@ class Fit(BaseAlgorithm):
         broken_capacities = {r: abs(v) for r, v in free_after_bind.items() if v < 0}
 
         if not broken_capacities:
-            log.debug('[Filter][app=%s][node=%s] ok free_after_bind=%r', app_name, node_name, free_after_bind)
+            log.debug('[Filter][app=%s][node=%s] ok free_after_bind=%r',
+                      app_name, node_name, free_after_bind)
             return True, ''
         else:
             broken_capacities_str = \
                 ','.join(['({}: {})'.format(r, v) for r, v in broken_capacities.items()])
-            log.debug('[Filter][app=%s][node=%s] broken capacities: missing %r', app_name, node_name, broken_capacities_str)
-            return False, 'Could not fit node for dimensions: missing {}.'.format(broken_capacities_str)
+            log.debug('[Filter][app=%s][node=%s] broken capacities: missing %r',
+                      app_name, node_name, broken_capacities_str)
+            return False, 'Could not fit node for dimensions: missing {}.'.format(
+                    broken_capacities_str)
 
     def priority_for_node(self, node_name: str, app_name: str,
                           data_provider_queried: Tuple) -> float:
         """no prioritization method for FitGeneric"""
         return 0.0
-
-# class FitGenericTesting(FitGeneric):
-#     """with some testing cluster specific hacks"""
-#
-#     def prioritize(self, extender_args: ExtenderArgs) -> List[HostPriority]:
-#         nodes = extender_args.NodeNames
-#         log.info('[Prioritize] Nodes: %r' % nodes)
-#         nodes = sorted(extender_args.NodeNames)
-#         return self.testing_prioritize(nodes)
-#
-#     @staticmethod
-#     def testing_prioritize(nodes):
-#         priorities = []
-#
-#         # Trick to not prioritize:
-#         # nodeSelector:
-#         #   goal: load_generator
-#         if nodes[0] == 'node200':
-#             return priorities
-#
-#         if len(nodes) > 0:
-#             for node in sorted(nodes):
-#                 priorities.append(HostPriority(node, 0))
-#             priorities[0].Score = 100
-#         return priorities

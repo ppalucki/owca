@@ -16,7 +16,7 @@ Give access to read configmaps for kube-scheduler:
 
 ``kubectl apply -f scheduler-policy-role.yaml``
 
-Edit kube-scheduler pod manifest (``/etc/kubernetes/manifests/kube-scheduler.yaml``) to use policy with external scheduler.
+Edit kube-scheduler pod manifest on master node (``/etc/kubernetes/manifests/kube-scheduler.yaml``) to use policy with external scheduler.
 
 .. code-block:: yaml
 

@@ -24,9 +24,15 @@ TaskName = str
 AppName = str
 FailureMessage = str
 
+
+class UnsupportedCase(Exception):
+    """Raised when kube-scheduler passes information about nodes rather
+    than list of node names which wca-scheduler supports."""
+    pass
+
 #  https://github.com/kubernetes/kubernetes/blob/release-1.15/pkg/scheduler/api/types.go#L299
 @dataclass
-class ExtenderFilterResult():
+class ExtenderFilterResult:
     Nodes: Optional[List[Dict]] = None
     NodeNames: List[NodeName] = field(default_factory=lambda: [])
     FailedNodes: Dict[NodeName, FailureMessage] = field(default_factory=lambda: {})
@@ -34,7 +40,7 @@ class ExtenderFilterResult():
 
     def __post_init__(self):
         if self.Nodes:
-            assure_type(self.Nodes, List[Dict])
+            raise UnsupportedCase()
 
         assure_type(self.NodeNames, List[NodeName])
         assure_type(self.FailedNodes, Dict[NodeName, FailureMessage])
@@ -43,7 +49,7 @@ class ExtenderFilterResult():
 
 #  https://github.com/kubernetes/kubernetes/blob/release-1.15/pkg/scheduler/api/types.go#L331
 @dataclass
-class HostPriority():
+class HostPriority:
     Host: str
     Score: int
 
@@ -51,21 +57,20 @@ class HostPriority():
         assure_type(self.Host, str)
         assure_type(self.Score, int)
 
+
 #  https://github.com/kubernetes/kubernetes/blob/release-1.15/pkg/scheduler/api/types.go#L284
 @dataclass
 class ExtenderArgs:
     Nodes: Optional[List[Dict]]
-    Pod: Optional[Dict]
+    Pod: Dict
     NodeNames: List[NodeName]
 
     def __post_init__(self):
 
         if self.Nodes:
-            assure_type(self.Nodes, List[dict])
+            raise UnsupportedCase()
 
-        if self.Pod:
-            assure_type(self.Pod, dict)
-
+        assure_type(self.Pod, dict)
         assure_type(self.NodeNames, List[str])
 
 

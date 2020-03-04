@@ -64,7 +64,7 @@ class MetricRegistry:
                     metric_already_here = True
                     # Check metric type.
                     if metric.type == MetricType.GAUGE:
-                        # Gauges should be overwriten.
+                        # Gauges should be overwritten.
                         registered_metric.value = metric.value
                     elif metric.type == MetricType.COUNTER:
                         # Counters should be incremented.
@@ -90,7 +90,7 @@ class MetricRegistry:
         return d
 
     def get_names(self) -> List[str]:
-        return list(set(map(lambda m:m, list(self._storage.keys()))))
+        return list(set(map(lambda m: m, list(self._storage.keys()))))
 
     def prometheus_exposition(self) -> str:
         metrics = []

@@ -45,14 +45,17 @@ class Queries:
     MEMBW_CAPACITY_WRITE: str =\
         'sum(platform_nvdimm_write_bandwidth_bytes_per_second) by (nodename)'
 
-    NODE_CAPACITY_MEM_WSS: str = 'sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (nodename)'
-    NODE_CAPACITY_DRAM_MEMBW: str =  'platform_dimm_speed_bytes_per_second'
+    NODE_CAPACITY_MEM_WSS: str =\
+        'sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (nodename)'
+    NODE_CAPACITY_DRAM_MEMBW: str = 'platform_dimm_speed_bytes_per_second'
 
     APP_REQUESTED_RESOURCES_QUERY_MAP: Dict[ResourceType, str] = field(default_factory=lambda: {
             ResourceType.CPU: 'max(max_over_time(task_requested_cpus[3h])) by (app)',
             ResourceType.MEM: 'max(max_over_time(task_requested_mem_bytes[3h])) by (app)',
-            ResourceType.MEMBW_READ: 'max(max_over_time(task_membw_reads_bytes_per_second[3h])) by (app)',
-            ResourceType.MEMBW_WRITE: 'max(max_over_time(task_membw_writes_bytes_per_second[3h])) by (app)',
+            ResourceType.MEMBW_READ:
+            'max(max_over_time(task_membw_reads_bytes_per_second[3h])) by (app)',
+            ResourceType.MEMBW_WRITE:
+            'max(max_over_time(task_membw_writes_bytes_per_second[3h])) by (app)',
             ResourceType.WSS: 'max(max_over_time(task_wss_referenced_bytes[3h])) by (app)',
     })
 
@@ -145,6 +148,10 @@ class MissingBasicResources(Exception):
     pass
 
 
+class GatheringWSSwithoutMemoryBandwidth(Exception):
+    pass
+
+
 @dataclass
 class ClusterDataProvider(DataProvider):
     kubeapi: Kubeapi
@@ -219,7 +226,8 @@ class ClusterDataProvider(DataProvider):
                                 node_capacities[node][ResourceType.MEM]
 
         elif ResourceType.WSS in resources:
-            assert 'Cannot calculate WSS without MEMBW READS and WRITES!'
+            raise GatheringWSSwithoutMemoryBandwidth(
+                    'Cannot calculate WSS without MEMBW READS and WRITES!')
 
         log.debug('Node capacities: %r' % node_capacities)
 
@@ -280,6 +288,6 @@ class ClusterDataProvider(DataProvider):
                     app_requested_resources[app][resource] = int(value)
 
         app_requested_resources = {k: dict(v) for k, v in app_requested_resources.items()}
-        log.debug('Apps requested resources: %r' % app_requested_resources)
+        log.debug('Resources requested by apps: %r' % app_requested_resources)
 
         return app_requested_resources

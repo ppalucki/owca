@@ -65,7 +65,8 @@ class BAR(Fit):
             variance = 0
 
         log.log(TRACE,
-                "[Prioritize][app=%s][node=%s][bar] Variance(weighted quadratic sum of requested_fraction-mean): %s",
+                "[Prioritize][app=%s][node=%s][bar] "
+                "Variance(weighted quadratic sum of requested_fraction-mean): %s",
                 app_name, node_name, variance)
         self.metrics.add(
             Metric(name=MetricName.BAR_VARIANCE,

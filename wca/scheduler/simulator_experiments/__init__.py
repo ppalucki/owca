@@ -21,9 +21,11 @@ from typing import List, Tuple, Callable, Dict
 from wca.nodes import Node, Task
 from wca.scheduler.algorithms import Algorithm
 from wca.scheduler.cluster_simulator import ClusterSimulator
-from wca.scheduler.data_providers.cluster_simulator_data_provider import ClusterSimulatorDataProvider
-from wca.scheduler.simulator_experiments.reporting import IterationData, wrapper_iteration_finished_callback, \
-    generate_subexperiment_report, generate_experiment_report
+from wca.scheduler.data_providers.cluster_simulator_data_provider import (
+        ClusterSimulatorDataProvider)
+from wca.scheduler.simulator_experiments.reporting import (
+    IterationData, wrapper_iteration_finished_callback,
+    generate_subexperiment_report, generate_experiment_report)
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +35,7 @@ def experiments_set__generic(experiment_name, extra_charts, *args):
 
     reports_root_directory: str = 'experiments_results'
     experiment_stats: List = []
+
     def experiment__generic(
             exp_iter: int,
             max_iteration: int,
@@ -60,21 +63,21 @@ def experiments_set__generic(experiment_name, extra_charts, *args):
         else:
             filter_metrics = []
 
-
-        args = ',' + '_'.join(['%s_%s'%(k,v)
-                               for k,v in scheduler_kwargs.items() if k not in ['dimensions']])
         dimensions = len(scheduler_kwargs.get('dimensions', []))
-        stats = generate_subexperiment_report(experiment_name,
-                                              '%d_%snodes_%s_%s' % (exp_iter, len(nodes), task_creation_fun, simulator.scheduler),
-                                              input_args, iterations_data,
-                                              reports_root_directory=reports_root_directory,
-                                              filter_metrics=filter_metrics,
-                                              task_gen=task_creation_fun,
-                                              scheduler=simulator.scheduler,
-                                              )
+
+        stats = generate_subexperiment_report(
+            experiment_name,
+            '%d_%snodes_%s_%s' % (exp_iter, len(nodes), task_creation_fun, simulator.scheduler),
+            input_args, iterations_data,
+            reports_root_directory=reports_root_directory,
+            filter_metrics=filter_metrics,
+            task_gen=task_creation_fun,
+            scheduler=simulator.scheduler,
+            charts=False,
+        )
+
         log.debug('Finished experiment.', experiment_name, exp_iter)
         log.debug('Stats:', stats)
-        print('.', end='', flush=True)
         experiment_stats.append(stats)
         return iterations_data
 
@@ -85,12 +88,12 @@ def experiments_set__generic(experiment_name, extra_charts, *args):
         iterations_data = experiment__generic(exp_iter, *params)
         iterations_data_list.append(iterations_data)
 
-
     exp_dir = '{}/{}'.format(reports_root_directory, experiment_name)
-    print()
+
     generate_experiment_report(experiment_stats, exp_dir)
 
     return iterations_data_list
+
 
 def run_n_iter(iterations_count: int, simulator: ClusterSimulator,
                task_creation_fun: Callable[[int], Task],

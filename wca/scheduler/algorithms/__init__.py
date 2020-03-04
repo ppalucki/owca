@@ -22,18 +22,18 @@ from wca.scheduler.types import ExtenderArgs, ExtenderFilterResult, HostPriority
 
 log = logging.getLogger(__name__)
 
+
 class DataMissingException(Exception):
     pass
 
+
 class Algorithm(ABC):
     @abstractmethod
-    def filter(self, extender_args: ExtenderArgs) -> Tuple[
-        ExtenderFilterResult, List[Metric]]:
+    def filter(self, extender_args: ExtenderArgs) -> Tuple[ExtenderFilterResult, List[Metric]]:
         pass
 
     @abstractmethod
-    def prioritize(self, extender_args: ExtenderArgs) -> Tuple[
-        List[HostPriority], List[Metric]]:
+    def prioritize(self, extender_args: ExtenderArgs) -> Tuple[List[HostPriority], List[Metric]]:
         pass
 
     @abstractmethod
@@ -47,6 +47,3 @@ class Algorithm(ABC):
     @abstractmethod
     def reinit_metrics(self):
         pass
-
-
-
