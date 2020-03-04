@@ -31,4 +31,4 @@ algorithm: !HierBAR
         NODES_PMM_MEMORY_MODE: 'sum(platform_mem_mode_size_bytes) by (nodename) != 0'
         NODE_CAPACITY_MEM_WSS: '(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (nodename) / 1e9)*0.3'
         NODE_CAPACITY_DRAM_MEMBW: 'ceil(platform_dimm_speed_bytes_per_second / 1e9)'
-      time: '1582733480' # 2020-02-26 17:11:20
+      time: '1583160884' # 2020-03-02 15:54:44

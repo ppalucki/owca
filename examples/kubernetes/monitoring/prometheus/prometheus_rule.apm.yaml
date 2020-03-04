@@ -132,7 +132,8 @@ spec:
         - {record: apm_slo, labels: {app: mysql-hammerdb-small}, expr: "5"}
 
         # Redis latency goal (msec)
-        - {record: apm_slo, labels: {app: redis-memtier-big},        expr: "10"}
+        - {record: apm_slo, labels: {app: redis-memtier-big},        expr: "6"}
+        - {record: apm_slo, labels: {app: redis-memtier-big-wss},    expr: "40"}
         - {record: apm_slo, labels: {app: redis-memtier-medium},     expr: "5"}
         - {record: apm_slo, labels: {app: redis-memtier-small},      expr: "5"}
 
@@ -143,12 +144,12 @@ spec:
         - {record: apm_slo2, labels: {app: specjbb-preset-small}, expr: "5000"}
 
         # Stress average duration for one bogus operation (maximum)
-        - {record: apm_slo, labels: {app: stress-stream-big},    expr: "500"}
+        - {record: apm_slo, labels: {app: stress-stream-big},    expr: "526"}   # inverse of 1.9 ops * 1000
         - {record: apm_slo, labels: {app: stress-stream-medium}, expr: "8000"}
         - {record: apm_slo, labels: {app: stress-stream-small},  expr: "5000"}
 
         # Sysbench average durations [ms]  of copying 1GB (maximum)
-        - {record: apm_slo, labels: {app: sysbench-memory-big}, expr: "50"}
+        - {record: apm_slo, labels: {app: sysbench-memory-big}, expr: "60"}    # inverse of 16000 ops * 1000
         - {record: apm_slo, labels: {app: sysbench-memory-medium}, expr: "60"}
         - {record: apm_slo, labels: {app: sysbench-memory-small}, expr: "120"}
 
@@ -165,7 +166,8 @@ spec:
         - {record: apm_slo2, labels: {app: mysql-hammerdb-small}, expr: "14400"}
 
         # Redis QPS goal
-        - {record: apm_slo2, labels: {app: redis-memtier-big}, expr: "90000"}
+        - {record: apm_slo2, labels: {app: redis-memtier-big-wss}, expr: "20000"}
+        - {record: apm_slo2, labels: {app: redis-memtier-big},     expr: "80000"}
         - {record: apm_slo2, labels: {app: redis-memtier-medium},     expr: "85000"}
         - {record: apm_slo2, labels: {app: redis-memtier-small},      expr: "100000"}
 
@@ -176,12 +178,12 @@ spec:
         - {record: apm_slo2, labels: {app: specjbb-preset-small}, expr: "935"}
 
         # Number of bogs per seconds
-        - {record: apm_slo2, labels: {app: stress-stream-big},    expr: "2"}
+        - {record: apm_slo2, labels: {app: stress-stream-big},    expr: "1.900"}
         - {record: apm_slo2, labels: {app: stress-stream-medium}, expr: "0.2"}
         - {record: apm_slo2, labels: {app: stress-stream-small},  expr: "0.3"}
 
         # Sysbench number of copy operations
-        - {record: apm_slo2, labels: {app: sysbench-memory-big}, expr: "22800"}
+        - {record: apm_slo2, labels: {app: sysbench-memory-big}, expr: "16000"}
         - {record: apm_slo2, labels: {app: sysbench-memory-medium}, expr: "17100"}
         - {record: apm_slo2, labels: {app: sysbench-memory-small}, expr: "8500"}
 
