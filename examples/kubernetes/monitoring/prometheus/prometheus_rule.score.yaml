@@ -40,8 +40,14 @@ spec:
       labels:
         dim: cpu
     # Mem capacity and wss
+    # -- wss on 2lm is devaulated to 10% because of direct mapping
     - record: node_capacity
-      expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) / 1e9)'
+      expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) * 0.1 / 1e9) and on(node) platform_mem_mode_size_bytes!=0'
+      labels:
+        dim: wss
+    # -- ws on 1lm nodes is just capacity of ram
+    - record: node_capacity
+      expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes==0'
       labels:
         dim: wss
     - record: node_capacity
@@ -74,34 +80,35 @@ spec:
     # nvm profile only catch pmm nodes!!!!
     # # and on(node) platform_mem_mode_size_bytes!=0
     - record: profile_node_by_cpu
-      expr: 'ceil(node_capacity{dim="mem"} / on (node) node_capacity{dim="cpu"})'
+      expr: 'node_capacity{dim="mem"} / on (node) node_capacity{dim="cpu"}'
       labels:
         dim: mem_density
     - record: profile_node_by_cpu
-      expr: 'ceil(node_capacity{dim="mbw_read"} / on (node) node_capacity{dim="cpu"})'
+      expr: 'node_capacity{dim="mbw_read"} / on (node) node_capacity{dim="cpu"}'
       labels:
         dim: mem_intensity_read
     - record: profile_node_by_cpu
-      expr: 'ceil(node_capacity{dim="mbw_write"} / on (node) node_capacity{dim="cpu"})'
+      expr: 'node_capacity{dim="mbw_write"} / on (node) node_capacity{dim="cpu"}'
       labels:
         dim: mem_intensity_write
     - record: profile_node_by_cpu
-      expr: 'ceil(node_capacity{dim="wss"} / on (node) node_capacity{dim="cpu"})'
+      expr: 'node_capacity{dim="wss"} / on (node) node_capacity{dim="cpu"}'
       labels:
         dim: mem_utilization
 
-    - record: profile_node_by_cpu
+    # By specifc nodes
+    - record: profile_nodes_by_cpu
       expr: 'profile_node_by_cpu and on(node) platform_mem_mode_size_bytes==0'
       labels:
         memory: 1lm
-    - record: profile_node_by_cpu
+    - record: profile_nodes_by_cpu
       expr: 'profile_node_by_cpu and on(node) platform_mem_mode_size_bytes!=0'
       labels:
         memory: 2lm
 
     # Average nvm profile
     - record: profile_node_by_cpu_2lm
-      expr: avg(profile_node_by_cpu{memory="2lm"}) by (dim)
+      expr: avg(profile_nodes_by_cpu{memory="2lm"}) by (dim)
 
     # ============================ apps ===================================
     - record: app_count
