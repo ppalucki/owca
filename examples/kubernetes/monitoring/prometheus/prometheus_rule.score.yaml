@@ -1,0 +1,202 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    role: prometheus-rules
+  name: prometheus-wca-app
+spec: 
+  groups:
+
+  - name: score
+
+    # ---- For nodes -----------------------
+    # New metrics with folowing dim=[cpu, mem, wss, mbw_write, mbw_read]
+    # end following units: cpu, GB, GB, GBs, GBs
+    # node_capacity 
+    #   -> profile_node_by_cpu with memory=[1lm, 2lm]
+    #       -> profile_node_by_cpu_2lm (only for 2LM)
+    # 
+    #
+    # ---- For applications ------------
+    # app_count
+    # low level:
+    #
+    # WARNING all level metrics take an average of 1d for tasks
+    # app_cpu, app_cpu_usage -> app_cpu_util
+    # app_mem, app_mem_usage -> app_mem_util
+    # app_req with dim=[cpu, mem, wss, mbw_write, mbw_read]
+    # app_mbw, app_mbw_rw, app_mbw_read, app_mbw_write
+    #   -> app_req
+
+
+
+    rules:
+    # ============================ node ===================================
+    # cpu
+    - record: node_capacity
+      expr: 'sum(platform_topology_cpus) by (node)'
+      labels:
+        dim: cpu
+    # Mem capacity and wss
+    - record: node_capacity
+      expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) / 1e9)'
+      labels:
+        dim: wss
+    - record: node_capacity
+      expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes==0'
+      labels:
+        dim: mem
+    - record: node_capacity
+      expr: 'ceil((sum(platform_mem_mode_size_bytes) by (node) / 1e9)) and on(node) platform_mem_mode_size_bytes!=0'
+      labels:
+        dim: mem
+    # BW
+    - record: node_capacity
+      expr: 'ceil(sum(platform_nvdimm_read_bandwidth_bytes_per_second) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes!=0'
+      labels:
+        dim: mbw_read
+    - record: node_capacity
+      expr: 'ceil(sum(platform_dimm_speed_bytes_per_second) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes==0'
+      labels:
+        dim: mbw_read
+    - record: node_capacity
+      expr: 'ceil(sum(platform_nvdimm_write_bandwidth_bytes_per_second) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes!=0'
+      labels:
+        dim: mbw_write
+    - record: node_capacity
+      expr: 'ceil(sum(platform_dimm_speed_bytes_per_second) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes==0'
+      labels:
+        dim: mbw_write
+    
+    # ---------------------------- node nvm profile -----------------------------------------
+    # nvm profile only catch pmm nodes!!!!
+    # # and on(node) platform_mem_mode_size_bytes!=0
+    - record: profile_node_by_cpu
+      expr: 'ceil(node_capacity{dim="mem"} / on (node) node_capacity{dim="cpu"})'
+      labels:
+        dim: mem_density
+    - record: profile_node_by_cpu
+      expr: 'ceil(node_capacity{dim="mbw_read"} / on (node) node_capacity{dim="cpu"})'
+      labels:
+        dim: mem_intensity_read
+    - record: profile_node_by_cpu
+      expr: 'ceil(node_capacity{dim="mbw_write"} / on (node) node_capacity{dim="cpu"})'
+      labels:
+        dim: mem_intensity_write
+    - record: profile_node_by_cpu
+      expr: 'ceil(node_capacity{dim="wss"} / on (node) node_capacity{dim="cpu"})'
+      labels:
+        dim: mem_utilization
+
+    - record: profile_node_by_cpu
+      expr: 'profile_node_by_cpu and on(node) platform_mem_mode_size_bytes==0'
+      labels:
+        memory: 1lm
+    - record: profile_node_by_cpu
+      expr: 'profile_node_by_cpu and on(node) platform_mem_mode_size_bytes!=0'
+      labels:
+        memory: 2lm
+
+    # Average nvm profile
+    - record: profile_node_by_cpu_2lm
+      expr: avg(profile_node_by_cpu{memory="2lm"}) by (dim)
+
+    # ============================ apps ===================================
+    - record: app_count
+      expr: count(task_up) by (app)
+
+    # very low metric
+    - record: task_memory_rw_ratio
+      expr: rate(task_offcore_requests_demand_data_rd[1d]) / (rate(task_offcore_requests_demand_data_rd[1d]) + rate(task_offcore_requests_demand_rfo[1d]))
+
+    # ---- low level metrics for apps [1d]
+    - record: app_cpu
+      expr: avg(max_over_time(task_requested_cpus[1d])) by (app)
+    - record: app_cpu_usage
+      expr: ceil(avg(rate(task_cpu_usage_seconds[1d])) by (app))
+    - record: app_cpu_util
+      expr: app_cpu_usage/app_cpu
+
+    - record: app_mem
+      expr: avg(max_over_time(task_requested_mem_bytes[1d])) by (app) / 1e9
+    - record: app_mem_usage
+      expr: avg(avg_over_time(task_mem_usage_bytes[1d])) by(app) / 1e9
+    - record: app_mem_util
+      expr: app_mem_usage/app_mem
+
+    # ---- mem bandwidth [gb/s]
+    - record: app_mbw
+      expr: avg(rate(task_mem_bandwidth_bytes[1d])) by (app) / 1e9
+    # ---- r/w and read/write bandwidth
+    - record: app_mbw_rw
+      expr: ceil(avg(task_memory_rw_ratio) by (app))
+    - record: app_mbw_read
+      expr: ceil(app_mbw * app_mbw_rw)
+    - record: app_mbw_write
+      expr: ceil(app_mbw * (1-app_mbw_rw))
+    # --- wss [gb]
+    - record: app_wss   # gb collected over 15s
+      expr: ceil((avg(avg_over_time(task_wss_referenced_bytes[1d])) by (app)) / 1e9)
+
+    # just a mapping app_req to use labels: cpu, mem, mbw_read, mbw_write, wss
+    - record: app_req
+      expr: app_cpu
+      labels:
+        dim: cpu
+    - record: app_req
+      expr: app_mem
+      labels:
+        dim: mem
+    - record: app_req
+      expr: app_mbw_read
+      labels:
+        dim: mbw_read
+    - record: app_req
+      expr: app_mbw_write
+      labels:
+        dim: mbw_write
+    - record: app_req
+      expr: app_wss
+      labels:
+        dim: wss
+
+
+    # --------------------- Profiles APP -----------------------
+
+    # app profile
+    - record: profile_app_by_cpu
+      expr: app_mem / app_cpu
+      labels:
+        dim: mem_density
+    - record: profile_app_by_cpu
+      expr: app_mbw_read / app_cpu
+      labels:
+        dim: mem_intensity_read
+    - record: profile_app_by_cpu
+      expr: app_mbw_read / app_cpu
+      labels:
+        dim: mem_intensity_write
+    - record: profile_app_by_cpu
+      expr: app_wss / app_cpu
+      labels:
+        dim: mem_utilization
+
+
+    # ======================== normalization profile ========================
+    - record: profile_app_by_cpu_norm
+      expr: profile_app_by_cpu / on(dim) group_left profile_node_by_cpu_2lm
+
+    # ======================== SCORE calculation ==========================
+    - record: profile_app_2lm_score_positive # higher is better for 2lm
+      expr: profile_app_by_cpu_norm{dim="mem_density"}
+
+    - record: profile_app_2lm_score_negative_sum # lower is better for 2lm
+      expr: sum(profile_app_by_cpu_norm{dim=~"mem_intensity_read|mem_intensity_write|mem_utilization"}) by (app)
+
+    - record: profile_app_2lm_score_negative_max # lower is better for 2lm
+      expr: max(profile_app_by_cpu_norm{dim=~"mem_intensity_read|mem_intensity_write|mem_utilization"}) by (app)
+
+    - record: profile_app_2lm_score_max # higher is better for 2lm
+      expr: profile_app_2lm_score_positive - on(app) profile_app_2lm_score_negative_max
+    - record: profile_app_2lm_score_sum # higher is better for 2lm
+      expr: profile_app_2lm_score_positive - on(app) profile_app_2lm_score_negative_sum
