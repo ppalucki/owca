@@ -28,6 +28,7 @@ spec:
     # app_req with dim=[cpu, mem, wss, mbw_write, mbw_read]
     # app_mbw, app_mbw_rw, app_mbw_read, app_mbw_write
     #   -> app_req
+    #     -> profile_app_by_cpu
 
 
 
