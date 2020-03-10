@@ -3,7 +3,8 @@ kind: PrometheusRule
 metadata:
   labels:
     role: prometheus-rules
-  name: prometheus-wca-app
+  name: prometheus-wca-score
+  namespace: prometheus
 spec: 
   groups:
 
@@ -126,10 +127,10 @@ spec:
 
     # ---- mem bandwidth [gb/s]
     - record: app_mbw
-      expr: avg(rate(task_mem_bandwidth_bytes[1d])) by (app) / 1e9
+      expr: max(irate(task_mem_bandwidth_bytes[1d])) by (app) / 1e9
     # ---- r/w and read/write bandwidth
     - record: app_mbw_rw
-      expr: ceil(avg(task_memory_rw_ratio) by (app))
+      expr: avg(task_memory_rw_ratio) by (app)
     - record: app_mbw_read
       expr: ceil(app_mbw * app_mbw_rw)
     - record: app_mbw_write
