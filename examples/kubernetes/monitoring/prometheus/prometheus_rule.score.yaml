@@ -15,7 +15,7 @@ spec:
     # end following units: cpu, GB, GB, GBs, GBs
     # node_capacity 
     #   -> profile_node_by_cpu with memory=[1lm, 2lm]
-    #       -> profile_node_by_cpu_2lm (only for 2LM)
+    #       -> profile_nodes_by_cpu_2lm (only for 2LM)
     # 
     #
     # ---- For applications ------------
@@ -29,6 +29,11 @@ spec:
     # app_mbw, app_mbw_rw, app_mbw_read, app_mbw_write
     #   -> app_req
     #     -> profile_app_by_cpu
+    #
+    # Profle final metrics:
+    #  profile_nodes_by_cpu_2lm
+    #  profile_app_by_cpu_norm
+    #    -> profile_app_by_cpu_norm 
 
 
 
@@ -82,19 +87,19 @@ spec:
     - record: profile_node_by_cpu
       expr: 'node_capacity{dim="mem"} / on (node) node_capacity{dim="cpu"}'
       labels:
-        dim: mem_density
+        index: mem_density
     - record: profile_node_by_cpu
       expr: 'node_capacity{dim="mbw_read"} / on (node) node_capacity{dim="cpu"}'
       labels:
-        dim: mem_intensity_read
+        index: mem_intensity_read
     - record: profile_node_by_cpu
       expr: 'node_capacity{dim="mbw_write"} / on (node) node_capacity{dim="cpu"}'
       labels:
-        dim: mem_intensity_write
+        index: mem_intensity_write
     - record: profile_node_by_cpu
       expr: 'node_capacity{dim="wss"} / on (node) node_capacity{dim="cpu"}'
       labels:
-        dim: mem_utilization
+        index: mem_utilization
 
     # By specifc nodes
     - record: profile_nodes_by_cpu
@@ -107,7 +112,7 @@ spec:
         memory: 2lm
 
     # Average nvm profile
-    - record: profile_node_by_cpu_2lm
+    - record: profile_nodes_by_cpu_2lm
       expr: avg(profile_nodes_by_cpu{memory="2lm"}) by (dim)
 
     # ============================ apps ===================================
@@ -176,34 +181,34 @@ spec:
     - record: profile_app_by_cpu
       expr: app_mem / app_cpu
       labels:
-        dim: mem_density
+        index: mem_density
     - record: profile_app_by_cpu
       expr: app_mbw_read / app_cpu
       labels:
-        dim: mem_intensity_read
+        index: mem_intensity_read
     - record: profile_app_by_cpu
       expr: app_mbw_read / app_cpu
       labels:
-        dim: mem_intensity_write
+        index: mem_intensity_write
     - record: profile_app_by_cpu
       expr: app_wss / app_cpu
       labels:
-        dim: mem_utilization
+        index: mem_utilization
 
 
     # ======================== normalization profile ========================
     - record: profile_app_by_cpu_norm
-      expr: profile_app_by_cpu / on(dim) group_left profile_node_by_cpu_2lm
+      expr: profile_app_by_cpu / on(dim) group_left profile_nodes_by_cpu_2lm
 
     # ======================== SCORE calculation ==========================
     - record: profile_app_2lm_score_positive # higher is better for 2lm
-      expr: profile_app_by_cpu_norm{dim="mem_density"}
+      expr: profile_app_by_cpu_norm{index="mem_density"}
 
     - record: profile_app_2lm_score_negative_sum # lower is better for 2lm
-      expr: sum(profile_app_by_cpu_norm{dim=~"mem_intensity_read|mem_intensity_write|mem_utilization"}) by (app)
+      expr: sum(profile_app_by_cpu_norm{index=~"mem_intensity_read|mem_intensity_write|mem_utilization"}) by (app)
 
     - record: profile_app_2lm_score_negative_max # lower is better for 2lm
-      expr: max(profile_app_by_cpu_norm{dim=~"mem_intensity_read|mem_intensity_write|mem_utilization"}) by (app)
+      expr: max(profile_app_by_cpu_norm{index=~"mem_intensity_read|mem_intensity_write|mem_utilization"}) by (app)
 
     - record: profile_app_2lm_score_max # higher is better for 2lm
       expr: profile_app_2lm_score_positive - on(app) profile_app_2lm_score_negative_max
