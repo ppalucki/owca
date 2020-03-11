@@ -30,9 +30,10 @@ spec:
     #   -> app_req
     #     -> profile_app_by_cpu
     #
-    # Profle final metrics:
-    #  profile_nodes_by_cpu_2lm
-    #  profile_app_by_cpu_norm
+    # ---- Profiles -----------------------
+    # with index=[mem_density, mem_intesity_read, mem_intesity_write, mem_utilization]
+    #  profile_nodes_by_cpu
+    #  profile_app_by_cpu
     #    -> profile_app_by_cpu_norm 
 
 
@@ -103,17 +104,13 @@ spec:
 
     # By specifc nodes
     - record: profile_nodes_by_cpu
-      expr: 'profile_node_by_cpu and on(node) platform_mem_mode_size_bytes==0'
+      expr: 'avg(profile_node_by_cpu and on(node) platform_mem_mode_size_bytes==0) by (index)'
       labels:
         memory: 1lm
     - record: profile_nodes_by_cpu
-      expr: 'profile_node_by_cpu and on(node) platform_mem_mode_size_bytes!=0'
+      expr: 'avg(profile_node_by_cpu and on(node) platform_mem_mode_size_bytes!=0) by (index)'
       labels:
         memory: 2lm
-
-    # Average nvm profile
-    - record: profile_nodes_by_cpu_2lm
-      expr: avg(profile_nodes_by_cpu{memory="2lm"}) by (dim)
 
     # ============================ apps ===================================
     - record: app_count
@@ -198,7 +195,7 @@ spec:
 
     # ======================== normalization profile ========================
     - record: profile_app_by_cpu_norm
-      expr: profile_app_by_cpu / on(dim) group_left profile_nodes_by_cpu_2lm
+      expr: profile_app_by_cpu / on(dim) group_left profile_nodes_by_cpu{memory="2lm"}
 
     # ======================== SCORE calculation ==========================
     - record: profile_app_2lm_score_positive # higher is better for 2lm
