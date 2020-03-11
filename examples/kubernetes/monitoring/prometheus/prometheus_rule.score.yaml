@@ -179,19 +179,19 @@ spec:
 
     # app profile
     - record: profile_app_by_cpu
-      expr: app_mem / app_cpu
+      expr: app_req{dim="mem"} / on(app) app_req{dim="cpu"}
       labels:
         index: mem_density
     - record: profile_app_by_cpu
-      expr: app_mbw_read / app_cpu
+      expr: app_req{dim="mbw_read"} / on(app) app_req{dim="cpu"}
       labels:
         index: mem_intensity_read
     - record: profile_app_by_cpu
-      expr: app_mbw_read / app_cpu
+      expr: app_req{dim="mbw_write"} / on(app) app_req{dim="cpu"}
       labels:
         index: mem_intensity_write
     - record: profile_app_by_cpu
-      expr: app_wss / app_cpu
+      expr: app_req{dim="wss"} / on(app) app_req{dim="cpu"}
       labels:
         index: mem_utilization
 
