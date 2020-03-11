@@ -195,7 +195,7 @@ spec:
 
     # ======================== normalization profile ========================
     - record: profile_app_by_cpu_norm
-      expr: profile_app_by_cpu / on(dim) group_left profile_nodes_by_cpu{memory="2lm"}
+      expr: profile_app_by_cpu / on(index) group_left profile_nodes_by_cpu{memory="2lm"}
 
     # ======================== SCORE calculation ==========================
     - record: profile_app_2lm_score_positive # higher is better for 2lm
