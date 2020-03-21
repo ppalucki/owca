@@ -21,6 +21,7 @@ from wca.scheduler.algorithms.hierbar import HierBAR
 from wca.scheduler.algorithms.least_used import LeastUsed
 from wca.scheduler.algorithms.least_used_bar import LeastUsedBAR
 from wca.scheduler.algorithms.nop_algorithm import NOPAlgorithm
+from wca.scheduler.algorithms.score import Score
 from wca.scheduler.algorithms.static_assigner import StaticAssigner
 from wca.scheduler.simulator_experiments.generic_experiment import experiments_iterator
 from wca.scheduler.simulator_experiments.nodes_generators import prepare_nodes
@@ -45,7 +46,7 @@ def experiment_mini():
     dim = DIM2
     experiments_iterator(
         'mini',
-        dict(retry_scheduling=True),  # Simulator configuration
+        [dict(retry_scheduling=True)],  # Simulator configuration
         [10],
         [
             (TaskGeneratorEqual,
@@ -60,7 +61,33 @@ def experiment_mini():
         ],
         rmtree=False,
         charts=False,
-        metrics=False, # can be as list of metric names
+        metrics=False,  # can be as list of metric names
+    )
+
+
+def experiment_score():
+    dim = DIM2
+    experiments_iterator(
+        'score',
+        [  # Simulator & data provider configuration
+            dict(retry_scheduling=True, data_provider_args=dict(normalization_dimension=CPU)),
+            dict(retry_scheduling=True, data_provider_args=dict(normalization_dimension=MEM)),
+        ],
+        [20],
+        [
+            (TaskGeneratorEqual,
+             dict(task_definitions=TASKS_3TYPES, dimensions=dim, replicas=3,
+                  duration=None, node_name='dram_0')),
+        ],
+        [
+            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=1, dram=1), dim),
+        ],
+        [
+            (Score, dict(dimensions=dim)),
+        ],
+        rmtree=False,
+        charts=False,
+        metrics=False,  # can be as list of metric names
     )
 
 
@@ -70,7 +97,8 @@ def experiment_debug():
     dim = DIM4
     length = 90
     experiments_iterator(
-        'debug', dict(retry_scheduling=True),
+        'debug',
+        [dict(retry_scheduling=True)],
         [length * task_scale],
         [
             (TaskGeneratorEqual,
@@ -99,7 +127,8 @@ def experiment_bar():
     nodes_dimensions = DIM4
 
     experiments_iterator(
-        'bar_weights', {},
+        'bar_weights',
+        [{}],
         [30 * task_scale, ],
         [
             (TaskGeneratorClasses, dict(task_definitions=taskset_dimensions(nodes_dimensions,
@@ -127,7 +156,8 @@ def experiment_bar():
 def experiment_full(task_scale=1, cluster_scale=1):
     dim = DIM4
     experiments_iterator(
-        'intel_demo_local', {},
+        'intel_demo_local',
+        [{}],
         [30 * task_scale],
         [
             (TaskGeneratorEqual,
@@ -182,7 +212,8 @@ def experiment_static_assigner():
          'dram_0': {'cputask': 1, 'memtask': 0}}
 
     experiments_iterator(
-        'static_assigner', {},
+        'static_assigner',
+        [{}],
         [6],
         [
             (TaskGeneratorClasses,
@@ -207,7 +238,8 @@ def experiment_hierbar():
     dim = DIM4
     iterations = 60
     experiments_iterator(
-        'hierbar', {},
+        'hierbar',
+        [{}],
         [iterations],
         [
             (TaskGeneratorEqual, dict(task_definitions=TASKS_3TYPES, replicas=10, dimensions=dim)),
@@ -236,11 +268,12 @@ def experiment_hierbar():
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.WARN, format='%(levelname)s:%(module)s:%(funcName)s:%(lineno)d %(message)s')
-    # logging.getLogger('wca.algorithms').setLevel(logging.INFO)
+    # logging.getLogger('wca.algorithms').setLevel(logging.DEBUG)
     # logging.getLogger('wca.scheduler.cluster_simulator').setLevel(TRACE)
-    experiment_mini()
-    experiment_debug()
-    experiment_bar()
-    experiment_hierbar()
-    experiment_static_assigner()
-    experiment_full()  # takes about 30 seconds
+    # experiment_mini()
+    experiment_score()
+    # experiment_debug()
+    # experiment_bar()
+    # experiment_hierbar()
+    # experiment_static_assigner()
+    # experiment_full()  # takes about 30 seconds

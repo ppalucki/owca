@@ -104,6 +104,7 @@ def get_total_capacity_and_demand(
 
 
 def generate_subexperiment_report(
+        simulator_args_text,
         exp_name: str,
         exp_dir: str,
         subexp_name: str,
@@ -190,10 +191,16 @@ def generate_subexperiment_report(
         fref.write("Start of experiment: {}\n".format(
             datetime.datetime.strftime(datetime.datetime.now(), '%Y%m%d_%H%M')))
         fref.write("Iterations: {}\n".format(len(iterations_data)))
+        app_profiles = algorithm.data_provider.get_apps_profile()
+        app_profiles = list(sorted(app_profiles.items(), key=lambda x: x[1], reverse=True))
+        fref.write(
+            "Scores (app_profiles): {}\n".format(app_profiles)
+        )
 
     # ----------------------- Stats --------------------------------------
 
     stats = {}
+    stats['SIM'] = simulator_args_text
     stats['TASKS'] = str(task_gen)  # sum(total_tasks_dict.values())
     stats['NODES'] = '%s(%s)' % (total_nodes, nodes_info)
     stats['ALGO'] = str(algorithm)

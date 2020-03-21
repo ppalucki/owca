@@ -33,7 +33,8 @@ log = logging.getLogger(__name__)
 reports_root_directory: str = 'experiments_results'
 
 
-def experiments_iterator(exp_name, simulator_args,
+def experiments_iterator(exp_name,
+                         simulator_args_list: List[dict],
                          lengths: List[int],  # max iterations
                          task_gen_func_defs: List[Tuple[Type[TaskGenerator], dict]],
                          nodes_sets: List[List[Node]],
@@ -55,15 +56,28 @@ def experiments_iterator(exp_name, simulator_args,
             lengths,
             task_gen_func_defs,
             nodes_sets,
-            algorithm_defs
+            algorithm_defs,
+            simulator_args_list,
     )):
-        length, task_gen_func_def, nodes, algorithm_def = args
+        length, task_gen_func_def, nodes, algorithm_def, simulator_args = args
         iterations_data, task_gen, simulator = \
             perform_one_experiment(simulator_args, length, task_gen_func_def, nodes, algorithm_def)
 
+        # simulator_args to string
+        # (configuration of simulator retrying and normalization for data provider)
+        simulator_args_text = 'retry=%s' % int(
+            simulator_args[
+                'retry_scheduling']) if 'retry_scheduling' in simulator_args else 'default'
+        if 'data_provider_args' in simulator_args and 'normalization_dimension' in simulator_args[
+            'data_provider_args']:
+            simulator_args_text += ',norm=%s' % simulator_args['data_provider_args'][
+                'normalization_dimension'].value
+
         # Sub experiment report
-        subexp_name = '%d_%snodes_%s_%s' % (n, len(simulator.nodes), task_gen, simulator.algorithm)
+        subexp_name = '%d_%snodes_%s_%s_%s' % (
+            n, len(simulator.nodes), task_gen, simulator.algorithm, simulator_args_text)
         stats = generate_subexperiment_report(
+            simulator_args_text,
             exp_name,
             exp_dir,
             subexp_name,
@@ -73,7 +87,6 @@ def experiments_iterator(exp_name, simulator_args,
             charts=charts,
             metrics=metrics,
         )
-
         log.debug('Finished experiment.', n)
         log.debug('Stats:', stats)
         exp_stats.append(stats)
@@ -93,8 +106,10 @@ def perform_one_experiment(
     iterations_data: List[IterationData] = []
 
     # Back reference between data proxy and simulator.
-    simulator = ClusterSimulator(tasks=[], nodes=nodes, algorithm=None, **simulator_args)
-    data_proxy = ClusterSimulatorDataProvider(simulator)
+    only_simulator_args = dict(simulator_args)
+    data_provider_args = only_simulator_args.pop('data_provider_args', {})
+    simulator = ClusterSimulator(tasks=[], nodes=nodes, algorithm=None, **only_simulator_args)
+    data_proxy = ClusterSimulatorDataProvider(simulator, **data_provider_args)
     simulator.algorithm = algorithm_class(data_provider=data_proxy, **algorithm_args)
 
     task_gen_class, task_gen_args = task_gen_def

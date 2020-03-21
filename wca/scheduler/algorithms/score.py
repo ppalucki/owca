@@ -102,7 +102,7 @@ class Score(Fit):
             node_type = self.data_provider.get_node_type(node)
             for app in apps_on_node[node]:
 
-                app_correct_placement, _ = self.app_fit_node_type(app, node)
+                app_correct_placement, _ = self._app_fit_node_type(app, node)
 
                 if not app_correct_placement:
 
