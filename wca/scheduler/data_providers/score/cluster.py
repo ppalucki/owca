@@ -14,13 +14,13 @@
 from dataclasses import dataclass
 
 from wca.scheduler.data_providers.cluster_data_provider import ClusterDataProvider
-from wca.scheduler.data_providers.score import ScoreDataProvider, AppsProfile, NodeType
+from wca.scheduler.data_providers.score import ScoreDataProvider, AppsProfile, NodesType
 
 
 @dataclass
 class ClusterScoreDataProvider(ClusterDataProvider, ScoreDataProvider):
     app_profiles_query = 'app_profile'
-    node_type_query = 'node_type{nodename=%r}'
+    node_type_query = 'node_type'
 
     def get_apps_profile(self) -> AppsProfile:
         query_result = self.prometheus.do_query(self.app_profiles_query, use_time=True)
@@ -28,14 +28,7 @@ class ClusterScoreDataProvider(ClusterDataProvider, ScoreDataProvider):
         return {row['metric']['app']: float(row['value'][1])
                 for row in query_result}
 
-    def get_node_type(self, node) -> NodeType:
-        query = self.node_type_query % node
-        query_result = self.prometheus.do_query(query, use_time=True)
-        if len(query_result) > 0:
-            node_type = query_result[0]['metric']['nodetype']
-            if node_type == NodeType.DRAM:
-                return NodeType.DRAM
-            elif node_type == NodeType.PMEM:
-                return NodeType.PMEM
-        else:
-            return NodeType.UNKNOWN
+    def get_nodes_type(self) -> NodesType:
+        query_result = self.prometheus.do_query(self.node_type_query, use_time=True)
+        return {row['metric']['nodename']: row['metric']['nodetype']
+                for row in query_result}

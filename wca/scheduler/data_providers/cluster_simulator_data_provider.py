@@ -34,6 +34,8 @@ def normalize_by(resources, dimension):
     return {dim: resources[dim] / resources[dimension]
             for dim in [CPU, MEM, MEMBW_WRITE, MEMBW_READ, WSS]
             if dim in resources}
+from wca.scheduler.data_providers import DataProvider, AppsOnNode
+from wca.scheduler.types import Resources, NodeName, AppsCount, ResourceType, AppName
 
 
 def _calculate_score_for_app(app_requested_resources, dimensions, node_capacities,
@@ -97,7 +99,7 @@ class ClusterSimulatorDataProvider(DataProvider):
 
         return r
 
-    def get_apps_counts(self) -> Tuple[Dict[NodeName, Apps], AppsCount]:
+    def get_apps_counts(self) -> Tuple[AppsOnNode, AppsCount]:
         apps_per_node = {node.name: defaultdict(list) for node in
                          self.simulator.nodes}
         unassigned_tasks = defaultdict(int)

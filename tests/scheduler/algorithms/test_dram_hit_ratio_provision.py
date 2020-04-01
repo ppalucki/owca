@@ -23,13 +23,13 @@ from wca.scheduler.metrics import MetricName
 
 
 @pytest.mark.parametrize('node_name, app_name, expected_output', [
-    ('node37', '', (False, 'Could not fit node because of dram hit ratio violation.')),
-    ('node102', '', (True, ''))
+    ('node101', '', (False, 'Could not fit node because of dram hit ratio violation.')),
+    ('node37', '', (True, ''))
 ])
 def test_app_fit_node(node_name, app_name, expected_output):
     algorithm = DramHitRatioProvision(data_provider=get_mocked_cluster_data_provider(),
                                       dimensions=DEFAULT_DIMENSIONS,
-                                      threshold=0.97)
+                                      threshold=0.995)
     assert algorithm.app_fit_node(node_name, app_name, None) == expected_output
     assert algorithm.metrics._storage[MetricName.NODE_DRAM_HIT_RATIO_CAN_SCHEDULE] == \
         [Metric(name=MetricName.NODE_DRAM_HIT_RATIO_CAN_SCHEDULE,

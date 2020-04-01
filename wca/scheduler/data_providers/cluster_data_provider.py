@@ -18,12 +18,12 @@ from dataclasses import dataclass, field
 from typing import Iterable, Dict, Optional, List, Tuple
 
 from wca.resources import _MEMORY_UNITS
-from wca.scheduler.data_providers import DataProvider
+from wca.scheduler.data_providers import DataProvider, AppsOnNode
 from wca.scheduler.kubeapi import Kubeapi
 from wca.scheduler.prometheus import Prometheus
 from wca.scheduler.types import (
         Resources, ResourceType, NodeName, AppName,
-        NodeCapacities, AppsCount, Apps)
+        NodeCapacities, AppsCount)
 
 log = logging.getLogger(__name__)
 
@@ -160,6 +160,7 @@ class ClusterDataProvider(DataProvider):
                         node['status']['capacity']['memory']),
                     }
                 for node in kubeapi_nodes_data
+                if 'node-role.kubernetes.io/master' not in node['metadata']['labels']
         }
 
         nodes = node_capacities.keys()
@@ -184,12 +185,14 @@ class ClusterDataProvider(DataProvider):
 
         return node_capacities
 
-    def get_apps_counts(self) -> Tuple[Dict[NodeName, Apps], AppsCount]:
+    def get_apps_counts(self) -> Tuple[AppsOnNode, AppsCount]:
 
         unassigned_apps = defaultdict(int)
 
         nodes_data = list(self.kubeapi.request_kubeapi('/api/v1/nodes')['items'])
-        node_names = [node['metadata']['name']for node in nodes_data]
+        node_names = [
+            node['metadata']['name']for node in nodes_data
+            if 'node-role.kubernetes.io/master' not in node['metadata']['labels']]
 
         assigned_apps = {}
         for node_name in node_names:

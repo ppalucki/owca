@@ -57,7 +57,9 @@ def test_get_app_node_type(apps_profile, app_name, score_target, result):
         ((True, ""))),
     ])
 def test_app_fit_node_type(algorithm, expected):
-    assert algorithm._app_fit_node_type('mysql-hammerdb-small', 'node101') == expected
+    apps_profile = algorithm.data_provider.get_apps_profile()
+    assert algorithm._app_fit_node_type(
+        apps_profile, 'mysql-hammerdb-small', NodeType.PMEM) == expected
 
 
 @pytest.mark.parametrize('node_names, app_name, expected', [
@@ -70,6 +72,21 @@ def test_app_fit_nodes(node_names, app_name, expected):
     assert algorithm.app_fit_nodes(node_names, app_name, None) == (expected, {})
 
 
-def test_rescheduling():
-    # TODO: Do it.
-    pass
+def test_reschedule():
+    algorithm = Score(data_provider=get_mocked_cluster_data_provider())
+
+    assert algorithm.reschedule() == ['memcached-mutilate-big-wss-1', 'redis-memtier-big-0',
+                                      'redis-memtier-big-wss-0', 'specjbb-preset-big-120-0']
+
+
+@pytest.mark.parametrize('strict_mode, nodes, expected', [
+    (True, ['node37', 'node38'], []),
+    (False, ['node37', 'node38'], ['node37', 'node38'])
+    ])
+def test_strict_mode_placement(strict_mode, nodes, expected):
+    algorithm = Score(
+            data_provider=get_mocked_cluster_data_provider(),
+            score_target=SCORE_TARGET,
+            strict_mode_placement=strict_mode)
+    nodes, _ = algorithm.app_fit_nodes(nodes, 'memcached-mutilate-big', None)
+    assert nodes == expected
