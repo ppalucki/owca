@@ -36,3 +36,4 @@ wca-bandit.html
 env
 Pipfile
 /experiments_results
+/tests/scheduler/experiments/experiments_results/
