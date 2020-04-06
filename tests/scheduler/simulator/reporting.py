@@ -335,6 +335,7 @@ def generate_experiment_report(stats_dicts, exp_dir):
         'util_var': '{:,.0%}'.format,
         'utilization%': '{:,.0f}%'.format,
     })
+    print(output, file=open(os.path.join(exp_dir, 'summary.txt'), 'w'))
     print(output)
     df.reset_index()
 
