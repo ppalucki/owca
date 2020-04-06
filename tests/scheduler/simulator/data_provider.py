@@ -15,11 +15,13 @@ from collections import defaultdict
 from typing import Iterable, Dict, Tuple
 
 from wca.scheduler.algorithms.base import divide_resources, calculate_read_write_ratio
+from wca.scheduler.algorithms.hierbar import _calc_average_resources
 from wca.scheduler.cluster_simulator import ClusterSimulator
-from wca.scheduler.data_providers import DataProvider
+from wca.scheduler.data_providers import AppsOnNode
 from wca.scheduler.data_providers.score import AppsProfile, NodeType
-from wca.scheduler.types import Resources, NodeName, AppsCount, ResourceType, AppName, Apps, \
-    MEMBW_READ, MEMBW_WRITE, CPU, MEM, WSS
+from wca.scheduler.data_providers.score.cluster import ClusterScoreDataProvider
+from wca.scheduler.types import MEMBW_READ, MEMBW_WRITE, CPU, MEM, WSS
+from wca.scheduler.types import Resources, NodeName, AppsCount, ResourceType, AppName
 
 
 def _is_aep(node_name, node_capacity, dimensions) -> bool:
@@ -34,21 +36,22 @@ def normalize_by(resources, dimension):
     return {dim: resources[dim] / resources[dimension]
             for dim in [CPU, MEM, MEMBW_WRITE, MEMBW_READ, WSS]
             if dim in resources}
-from wca.scheduler.data_providers import DataProvider, AppsOnNode
-from wca.scheduler.types import Resources, NodeName, AppsCount, ResourceType, AppName
 
 
-def _calculate_score_for_app(app_requested_resources, dimensions, node_capacities,
-                             normalization_dimension: ResourceType
-                             ):
+def _calculate_score_for_apps(app_requested_resources, dimensions, node_capacities,
+                              normalization_dimension: ResourceType
+                              ):
     """Try to implement score algorithm in Python similar to Prometheus rules."""
-    from wca.scheduler.algorithms.hierbar import _calc_average_resources
 
     # Find AEP nodes (by BW ratio or by name)
     aep_capacities = [capacity
                       for node_name, capacity
                       in node_capacities.items()
                       if _is_aep(node_name, capacity, dimensions)]
+
+    if not aep_capacities:
+        # There is not AEP nodes in the cluster, cannot calculate score at all.
+        return {}
 
     # ... and average AEP node capacity
     aep_average_resources = _calc_average_resources(aep_capacities)
@@ -77,12 +80,15 @@ def _calculate_score_for_app(app_requested_resources, dimensions, node_capacitie
             negatives = [r[d] for d in [CPU, MEMBW_READ, MEMBW_WRITE, WSS] if d in r]
             negative = max(negatives) if negatives else 0
             return -negative
+    else:
+        def score(_):
+            return 0
 
     scores = {app: score(r) for app, r in app_profile_norm_by_aep.items()}
     return scores
 
 
-class ClusterSimulatorDataProvider(DataProvider):
+class ClusterSimulatorDataProvider(ClusterScoreDataProvider):
 
     def __init__(self, simulator: ClusterSimulator, normalization_dimension: ResourceType = CPU):
         self.simulator = simulator
@@ -133,17 +139,18 @@ class ClusterSimulatorDataProvider(DataProvider):
         app_requested_resources = self.get_apps_requested_resources(dimensions)
         node_capacities = self.get_nodes_capacities(dimensions)
 
-        scores = _calculate_score_for_app(
+        scores = _calculate_score_for_apps(
             app_requested_resources, dimensions, node_capacities, self.normalization_dimension
         )
         return scores
 
-    def get_node_type(self, node) -> NodeType:
+    def get_nodes_type(self) -> Dict[NodeName, NodeType]:
         """Node type is based on BW ratio or node name."""
         dimensions = self.simulator._get_dimensions_from_first_node()
         node_capacities = self.get_nodes_capacities(dimensions)
-        node_capacity = node_capacities[node]
-        return NodeType.PMEM if _is_aep(node, node_capacity, dimensions) else NodeType.DRAM
+        return {node_name: NodeType.PMEM if _is_aep(node_name, node_resource,
+                                                    dimensions) else NodeType.DRAM
+                for node_name, node_resource in node_capacities.items()}
 
     def get_dram_hit_ratio(self) -> Dict[NodeName, float]:
         """Returns dram_hit_ratio for node"""

@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from logging import DEBUG
 
-from wca.logger import TRACE
+import pytest
+
+from tests.scheduler.simulator.generic_experiment import experiments_iterator
+from tests.scheduler.simulator.nodes_generators import prepare_nodes
+from tests.scheduler.simulator.nodesets import (
+    NODES_DEFINITIONS_2TYPES, NODES_DEFINITIONS_3TYPES)
+from tests.scheduler.simulator.task_generators import TaskGeneratorEqual, \
+    TaskGeneratorClasses, taskset_dimensions
+from tests.scheduler.simulator.tasksets import TASKS_3TYPES, TASKS_2TYPES
+from tests.scheduler.simulator.tasksets import TASKS_6TYPES
 from wca.scheduler.algorithms.bar import BAR
 from wca.scheduler.algorithms.fit import Fit
 from wca.scheduler.algorithms.hierbar import HierBAR
@@ -23,17 +31,7 @@ from wca.scheduler.algorithms.least_used_bar import LeastUsedBAR
 from wca.scheduler.algorithms.nop_algorithm import NOPAlgorithm
 from wca.scheduler.algorithms.score import Score
 from wca.scheduler.algorithms.static_assigner import StaticAssigner
-from wca.scheduler.simulator_experiments.generic_experiment import experiments_iterator
-from wca.scheduler.simulator_experiments.nodes_generators import prepare_nodes
-from wca.scheduler.simulator_experiments.nodesets import (
-    NODES_DEFINITIONS_2TYPES, NODES_DEFINITIONS_3TYPES)
-from wca.scheduler.simulator_experiments.task_generators import TaskGeneratorEqual, \
-    TaskGeneratorClasses, taskset_dimensions
-from wca.scheduler.simulator_experiments.tasksets import TASKS_3TYPES, TASKS_2TYPES
-from wca.scheduler.simulator_experiments.tasksets import TASKS_6TYPES
 from wca.scheduler.types import WSS, MEM, CPU, MEMBW_WRITE, MEMBW_READ
-
-x = DEBUG, TRACE  # to not be auto removed during import cleanup
 
 log = logging.getLogger(__name__)
 
@@ -42,12 +40,14 @@ DIM4 = {CPU, MEM, MEMBW_READ, MEMBW_WRITE}
 DIM2 = {CPU, MEM}
 
 
-def experiment_mini():
+@pytest.mark.scheduler_simulator
+@pytest.mark.long
+def test_experiment_mini():
     dim = DIM2
     experiments_iterator(
         'mini',
         [dict(retry_scheduling=True)],  # Simulator configuration
-        [10],
+        [1],
         [
             (TaskGeneratorEqual,
              dict(task_definitions=TASKS_2TYPES, dimensions=dim, replicas=3,
@@ -65,7 +65,8 @@ def experiment_mini():
     )
 
 
-def experiment_score():
+@pytest.mark.scheduler_simulator
+def test_experiment_score():
     dim = DIM2
     experiments_iterator(
         'score',
@@ -91,37 +92,8 @@ def experiment_score():
     )
 
 
-def experiment_debug():
-    task_scale = 1
-    cluster_scale = 1
-    dim = DIM4
-    length = 90
-    experiments_iterator(
-        'debug',
-        [dict(retry_scheduling=True)],
-        [length * task_scale],
-        [
-            (TaskGeneratorEqual,
-             dict(task_definitions=TASKS_3TYPES, replicas=10 * task_scale, duration=30,
-                  alias='long', dimensions=dim)),
-            (TaskGeneratorEqual,
-             dict(task_definitions=TASKS_3TYPES, replicas=10 * task_scale, duration=5,
-                  alias='short', dimensions=dim)),
-            (TaskGeneratorEqual,
-             dict(task_definitions=TASKS_3TYPES, replicas=10 * task_scale, duration=None,
-                  dimensions=dim)),
-        ],
-        [
-            prepare_nodes(NODES_DEFINITIONS_2TYPES,
-                          dict(aep=2 * cluster_scale, dram=6 * cluster_scale), dim),
-        ],
-        [
-            (LeastUsedBAR, dict(alias='BAR__LU_OFF', dimensions=DIM4, least_used_weight=0)),
-        ],
-    )
-
-
-def experiment_bar():
+@pytest.mark.scheduler_simulator
+def test_experiment_bar():
     task_scale = 1
     cluster_scale = 1
     nodes_dimensions = DIM4
@@ -153,7 +125,106 @@ def experiment_bar():
     )
 
 
-def experiment_full(task_scale=1, cluster_scale=1):
+@pytest.mark.scheduler_simulator
+def test_experiment_static_assigner():
+    dim = DIM2
+    targeted_assigned_apps_counts = \
+        {'aep_0': {'cputask': 1, 'memtask': 2},
+         'dram_0': {'cputask': 1, 'memtask': 0}}
+
+    experiments_iterator(
+        'static_assigner',
+        [{}],
+        [6],
+        [
+            (TaskGeneratorClasses,
+             dict(task_definitions=TASKS_2TYPES,
+                  counts=dict(cputask=2, memtask=2), dimensions=dim)),
+        ],
+        [
+            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=1, dram=1), dim),
+        ],
+        [
+            (StaticAssigner,
+             dict(alias='StaticAssigner',
+                  targeted_assigned_apps_counts=targeted_assigned_apps_counts,
+                  dimensions=dim
+                  )
+             ),
+        ],
+    )
+
+
+@pytest.mark.scheduler_simulator
+@pytest.mark.long
+def test_experiment_hierbar():
+    dim = DIM4
+    iterations = 30
+    experiments_iterator(
+        'hierbar',
+        [{}],
+        [iterations],
+        [
+            (TaskGeneratorEqual, dict(task_definitions=TASKS_3TYPES, replicas=10, dimensions=dim)),
+            (TaskGeneratorClasses,
+             dict(task_definitions=TASKS_3TYPES, counts=dict(mem=30), dimensions=dim)),  # AEP
+            (TaskGeneratorClasses,
+             dict(task_definitions=TASKS_3TYPES, counts=dict(mbw=30), dimensions=dim)),  # no AEP
+            (TaskGeneratorClasses,
+             dict(task_definitions=TASKS_3TYPES, counts=dict(cpu=5, mem=5, mbw=20),
+                  dimensions=dim)),
+            (TaskGeneratorClasses,
+             dict(task_definitions=TASKS_3TYPES, counts=dict(cpu=5, mem=20, mbw=5),
+                  dimensions=dim)),
+        ],
+        [
+            prepare_nodes(NODES_DEFINITIONS_3TYPES, dict(aep=2, sml=4, big=2), dim)
+        ],
+        [
+            (LeastUsedBAR, dict(dimensions=DIM2, alias='native')),
+            (HierBAR, dict(dimensions=dim)),
+            (HierBAR, dict(dimensions=dim, merge_threshold=1, alias='extender')),
+        ],
+    )
+
+
+# Long experiments (minutes...)
+
+@pytest.mark.scheduler_simulator
+@pytest.mark.long
+def test_experiment_debug():
+    task_scale = 1
+    cluster_scale = 1
+    dim = DIM4
+    length = 90
+    experiments_iterator(
+        'debug',
+        [dict(retry_scheduling=True)],
+        [length * task_scale],
+        [
+            (TaskGeneratorEqual,
+             dict(task_definitions=TASKS_3TYPES, replicas=10 * task_scale, duration=30,
+                  alias='long', dimensions=dim)),
+            (TaskGeneratorEqual,
+             dict(task_definitions=TASKS_3TYPES, replicas=10 * task_scale, duration=5,
+                  alias='short', dimensions=dim)),
+            (TaskGeneratorEqual,
+             dict(task_definitions=TASKS_3TYPES, replicas=10 * task_scale, duration=None,
+                  dimensions=dim)),
+        ],
+        [
+            prepare_nodes(NODES_DEFINITIONS_2TYPES,
+                          dict(aep=2 * cluster_scale, dram=6 * cluster_scale), dim),
+        ],
+        [
+            (LeastUsedBAR, dict(alias='BAR__LU_OFF', dimensions=DIM4, least_used_weight=0)),
+        ],
+    )
+
+
+@pytest.mark.scheduler_simulator
+@pytest.mark.long
+def test_experiment_full(task_scale=1, cluster_scale=1):
     dim = DIM4
     experiments_iterator(
         'intel_demo_local',
@@ -203,77 +274,3 @@ def experiment_full(task_scale=1, cluster_scale=1):
                   bar_weights={MEM: 0.5})),
         ],
     )
-
-
-def experiment_static_assigner():
-    dim = DIM2
-    targeted_assigned_apps_counts = \
-        {'aep_0': {'cputask': 1, 'memtask': 2},
-         'dram_0': {'cputask': 1, 'memtask': 0}}
-
-    experiments_iterator(
-        'static_assigner',
-        [{}],
-        [6],
-        [
-            (TaskGeneratorClasses,
-             dict(task_definitions=TASKS_2TYPES,
-                  counts=dict(cputask=2, memtask=2), dimensions=dim)),
-        ],
-        [
-            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=1, dram=1), dim),
-        ],
-        [
-            (StaticAssigner,
-             dict(alias='StaticAssigner',
-                  targeted_assigned_apps_counts=targeted_assigned_apps_counts,
-                  dimensions=dim
-                  )
-             ),
-        ],
-    )
-
-
-def experiment_hierbar():
-    dim = DIM4
-    iterations = 60
-    experiments_iterator(
-        'hierbar',
-        [{}],
-        [iterations],
-        [
-            (TaskGeneratorEqual, dict(task_definitions=TASKS_3TYPES, replicas=10, dimensions=dim)),
-            (TaskGeneratorClasses,
-             dict(task_definitions=TASKS_3TYPES, counts=dict(mem=30), dimensions=dim)),  # AEP
-            (TaskGeneratorClasses,
-             dict(task_definitions=TASKS_3TYPES, counts=dict(mbw=30), dimensions=dim)),  # no AEP
-            (TaskGeneratorClasses,
-             dict(task_definitions=TASKS_3TYPES, counts=dict(cpu=5, mem=5, mbw=20),
-                  dimensions=dim)),
-            (TaskGeneratorClasses,
-             dict(task_definitions=TASKS_3TYPES, counts=dict(cpu=5, mem=20, mbw=5),
-                  dimensions=dim)),
-        ],
-        [
-            prepare_nodes(NODES_DEFINITIONS_3TYPES, dict(aep=2, sml=4, big=2), dim)
-        ],
-        [
-            (LeastUsedBAR, dict(dimensions=DIM2, alias='native')),
-            (HierBAR, dict(dimensions=dim)),
-            (HierBAR, dict(dimensions=dim, merge_threshold=1, alias='extender')),
-        ],
-    )
-
-
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.WARN, format='%(levelname)s:%(module)s:%(funcName)s:%(lineno)d %(message)s')
-    # logging.getLogger('wca.algorithms').setLevel(logging.DEBUG)
-    # logging.getLogger('wca.scheduler.cluster_simulator').setLevel(TRACE)
-    # experiment_mini()
-    experiment_score()
-    # experiment_debug()
-    # experiment_bar()
-    # experiment_hierbar()
-    # experiment_static_assigner()
-    # experiment_full()  # takes about 30 seconds

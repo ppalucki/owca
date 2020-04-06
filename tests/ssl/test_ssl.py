@@ -20,6 +20,8 @@ from multiprocessing import Process
 from wca.security import HTTPSAdapter
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+import pytest
+pytestmark = pytest.mark.long
 
 class HTTPRequestHandlerForTest(BaseHTTPRequestHandler):
     def do_GET(self):

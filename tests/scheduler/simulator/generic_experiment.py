@@ -18,15 +18,14 @@ import os
 import shutil
 from typing import List, Tuple, Callable, Dict, Type, Union
 
+from tests.scheduler.simulator.data_provider import ClusterSimulatorDataProvider
+from tests.scheduler.simulator.reporting import (
+    IterationData, wrapper_iteration_finished_callback,
+    generate_subexperiment_report, generate_experiment_report)
+from tests.scheduler.simulator.task_generators import TaskGenerator
 from wca.nodes import Node
 from wca.scheduler.algorithms import Algorithm
 from wca.scheduler.cluster_simulator import ClusterSimulator
-from wca.scheduler.data_providers.cluster_simulator_data_provider import \
-    ClusterSimulatorDataProvider
-from wca.scheduler.simulator_experiments.reporting import (
-    IterationData, wrapper_iteration_finished_callback,
-    generate_subexperiment_report, generate_experiment_report)
-from wca.scheduler.simulator_experiments.task_generators import TaskGenerator
 
 log = logging.getLogger(__name__)
 
@@ -68,8 +67,8 @@ def experiments_iterator(exp_name,
         simulator_args_text = 'retry=%s' % int(
             simulator_args[
                 'retry_scheduling']) if 'retry_scheduling' in simulator_args else 'default'
-        if 'data_provider_args' in simulator_args and 'normalization_dimension' in simulator_args[
-            'data_provider_args']:
+        if 'data_provider_args' in simulator_args and \
+                'normalization_dimension' in simulator_args['data_provider_args']:
             simulator_args_text += ',norm=%s' % simulator_args['data_provider_args'][
                 'normalization_dimension'].value
 
@@ -93,6 +92,7 @@ def experiments_iterator(exp_name,
 
     # Experiment report
     generate_experiment_report(exp_stats, exp_dir)
+    return exp_stats
 
 
 def perform_one_experiment(

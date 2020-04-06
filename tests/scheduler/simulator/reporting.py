@@ -148,8 +148,9 @@ def generate_subexperiment_report(
         # Check consistency of iterations data and data provider.
         if total_apps_count != total_tasks_dict:
             fref.write(
-                "!Scheduled tasks different from total_apps_count from query! total_apps_count={}\n"
-                    .format(dict(total_apps_count)))
+                "!Scheduled tasks different from "
+                "total_apps_count from query! "
+                "total_apps_count={}\n".format(dict(total_apps_count)))
             assert False, 'should not happen!'
 
         scheduled_tasks = sum(total_tasks_dict.values())
@@ -244,7 +245,6 @@ def generate_charts(exp_name, exp_dir, subexp_name, extra_metrics, iterations_da
         import matplotlib.pyplot as plt
         import seaborn as sns
         import pandas as pd
-        import numpy as np
     except ImportError:
         # No installed packages required for report generation.
         log.warning(
