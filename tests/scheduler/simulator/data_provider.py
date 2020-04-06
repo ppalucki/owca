@@ -154,4 +154,4 @@ class ClusterSimulatorDataProvider(ClusterScoreDataProvider):
 
     def get_dram_hit_ratio(self) -> Dict[NodeName, float]:
         """Returns dram_hit_ratio for node"""
-        return {}
+        return defaultdict(lambda: 1)
