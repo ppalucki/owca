@@ -41,34 +41,9 @@ DIM2 = {CPU, MEM}
 
 
 @pytest.mark.scheduler_simulator
-@pytest.mark.long
-def test_experiment_mini():
-    dim = DIM2
-    experiments_iterator(
-        'mini',
-        [dict(retry_scheduling=True)],  # Simulator configuration
-        [1],
-        [
-            (TaskGeneratorEqual,
-             dict(task_definitions=TASKS_2TYPES, dimensions=dim, replicas=3,
-                  duration=None, node_name='dram_0')),
-        ],
-        [
-            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=1, dram=1), dim),
-        ],
-        [
-            (Fit, dict(dimensions=dim)),
-        ],
-        rmtree=False,
-        charts=False,
-        metrics=False,  # can be as list of metric names
-    )
-
-
-@pytest.mark.scheduler_simulator
 def test_experiment_score():
     dim = DIM2
-    experiments_iterator(
+    results = experiments_iterator(
         'score',
         [  # Simulator & data provider configuration
             dict(retry_scheduling=True, data_provider_args=dict(normalization_dimension=CPU)),
@@ -90,6 +65,33 @@ def test_experiment_score():
         charts=False,
         metrics=False,  # can be as list of metric names
     )
+    assert len(results) == 2
+    assert results == [{'ALGO': 'Score(2)',
+                        'NODES': '2(aep=1,dram=1)',
+                        'SIM': 'retry=1,norm=cpu',
+                        'TASKS': '9(cpu=3,mbw=3,mem=3)',
+                        'assigned%': 100,
+                        'assigned_broken%': 0,
+                        'balance': 0.90892333984375,
+                        'cpu_util%': 30.0,
+                        'cpu_util(AEP)%': 7.5,
+                        'mem_util%': 38.00335570469799,
+                        'mem_util(AEP)%': 30.0,
+                        'scheduled': 9,
+                        'utilization%': 34},
+                       {'ALGO': 'Score(2)',
+                        'NODES': '2(aep=1,dram=1)',
+                        'SIM': 'retry=1,norm=mem',
+                        'TASKS': '9(cpu=3,mbw=3,mem=3)',
+                        'assigned%': 100,
+                        'assigned_broken%': 0,
+                        'balance': 0.90892333984375,
+                        'cpu_util%': 30.0,
+                        'cpu_util(AEP)%': 7.5,
+                        'mem_util%': 38.00335570469799,
+                        'mem_util(AEP)%': 30.0,
+                        'scheduled': 9,
+                        'utilization%': 34}]
 
 
 @pytest.mark.scheduler_simulator
@@ -98,7 +100,7 @@ def test_experiment_bar():
     cluster_scale = 1
     nodes_dimensions = DIM4
 
-    experiments_iterator(
+    results = experiments_iterator(
         'bar_weights',
         [{}],
         [30 * task_scale, ],
@@ -123,6 +125,7 @@ def test_experiment_bar():
             (LeastUsedBAR, dict(alias='BAR__LU_OFF', dimensions=DIM4, least_used_weight=0)),
         ],
     )
+    assert len(results) == 4
 
 
 @pytest.mark.scheduler_simulator
@@ -132,7 +135,7 @@ def test_experiment_static_assigner():
         {'aep_0': {'cputask': 1, 'memtask': 2},
          'dram_0': {'cputask': 1, 'memtask': 0}}
 
-    experiments_iterator(
+    results = experiments_iterator(
         'static_assigner',
         [{}],
         [6],
@@ -153,14 +156,31 @@ def test_experiment_static_assigner():
              ),
         ],
     )
+    assert len(results) == 1
+    result = results[0]
+    assert result == {'ALGO': 'StaticAssigner',
+                      'NODES': '2(aep=1,dram=1)',
+                      'SIM': 'default',
+                      'TASKS': '4(cputask=2,memtask=2)',
+                      'assigned%': 100,
+                      'assigned_broken%': 0,
+                      'balance': 0.8671381944444445,
+                      'cpu_util%': 50.0,
+                      'cpu_util(AEP)%': 100.0,
+                      'mem_util%': 40.26845637583892,
+                      'mem_util(AEP)%': 44.0,
+                      'scheduled': 4,
+                      'utilization%': 45}
 
+
+# --- Long experiments (15 - 20 seconds) ---
 
 @pytest.mark.scheduler_simulator
 @pytest.mark.long
 def test_experiment_hierbar():
     dim = DIM4
     iterations = 30
-    experiments_iterator(
+    results = experiments_iterator(
         'hierbar',
         [{}],
         [iterations],
@@ -187,8 +207,47 @@ def test_experiment_hierbar():
         ],
     )
 
+    assert len(results) == 15
 
-# Long experiments (minutes...)
+
+@pytest.mark.scheduler_simulator
+@pytest.mark.long
+def test_experiment_fit():
+    dim = DIM2
+    results = experiments_iterator(
+        'fit',
+        [dict(retry_scheduling=True)],  # Simulator configuration
+        [1],
+        [
+            (TaskGeneratorEqual,
+             dict(task_definitions=TASKS_2TYPES, dimensions=dim, replicas=3,
+                  duration=None, node_name='dram_0')),
+        ],
+        [
+            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=1, dram=1), dim),
+        ],
+        [
+            (Fit, dict(dimensions=dim)),
+        ],
+        rmtree=False,
+        charts=False,
+        metrics=False,  # can be as list of metric names
+    )
+    assert len(results) == 1
+    assert results == [{'ALGO': 'Fit(2)',
+                        'NODES': '2(aep=1,dram=1)',
+                        'SIM': 'retry=1',
+                        'TASKS': '6(cputask=3,memtask=3)',
+                        'assigned%': 100,
+                        'assigned_broken%': 0,
+                        'balance': 0.7465277777777778,
+                        'cpu_util%': 8.333333333333332,
+                        'cpu_util(AEP)%': 0.0,
+                        'mem_util%': 16.778523489932887,
+                        'mem_util(AEP)%': 0.0,
+                        'scheduled': 1,
+                        'utilization%': 12}]
+
 
 @pytest.mark.scheduler_simulator
 @pytest.mark.long
