@@ -45,6 +45,7 @@ pipeline {
             post {
                 always {
                     junit 'unit_results.xml'
+                    archiveArtifacts(artifacts: "tests/scheduler/experiments/experiments_results/**")
                 }
             }
         }
