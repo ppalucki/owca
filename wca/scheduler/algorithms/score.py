@@ -20,9 +20,10 @@ from wca.scheduler.algorithms.base import (
     QueryDataProviderInfo, DEFAULT_DIMENSIONS, subtract_resources,
     sum_resources, calculate_read_write_ratio, enough_resources_on_node,
     get_nodes_used_resources)
+from wca.scheduler.algorithms.dram_hit_ratio_provision import DramHitRatioProvision
 from wca.scheduler.algorithms.fit import Fit
 from wca.scheduler.data_providers import AppsOnNode
-from wca.scheduler.data_providers.score import ScoreDataProvider, NodeType, NodesType, AppsProfile
+from wca.scheduler.data_providers.score import ScoreDataProvider, NodeType, AppsProfile
 from wca.scheduler.types import (AppName, NodeName, ResourceType, TaskName)
 
 log = logging.getLogger(__name__)
@@ -48,18 +49,31 @@ def _get_app_node_type(
     return NodeType.DRAM
 
 
-class Score(Fit):
+class Score(Fit, DramHitRatioProvision):
 
     def __init__(self, data_provider: ScoreDataProvider,
                  dimensions: List[ResourceType] = DEFAULT_DIMENSIONS,
                  max_node_score: float = 10.,
                  alias: str = None,
                  score_target: Optional[float] = None,
-                 strict_mode_placement: bool = False
+                 strict_mode_placement: bool = False,
+                 threshold: float = 0.97
                  ):
-        super().__init__(data_provider, dimensions, max_node_score, alias)
+        Fit.__init__(self, data_provider, dimensions, max_node_score, alias)
+        DramHitRatioProvision.__init__(self, data_provider, dimensions, max_node_score,
+                                       alias, threshold)
         self.score_target = score_target
         self.strict_mode_placement = strict_mode_placement
+        self.nodes_type = self.data_provider.get_nodes_type()
+
+    def app_fit_node(self, node_name: NodeName, app_name: str,
+                     data_provider_queried: QueryDataProviderInfo) -> Tuple[bool, str]:
+        fit, fit_cause = Fit.app_fit_node(self, node_name, app_name, data_provider_queried)
+        dram_hit_ratio_ok, dram_cause = True, ''
+        if self.nodes_type[node_name] == NodeType.PMEM:
+            dram_hit_ratio_ok, dram_cause = DramHitRatioProvision.app_fit_node(
+                self, node_name, app_name, data_provider_queried)
+        return fit and dram_hit_ratio_ok, '{} {}'.format(fit_cause, dram_cause)
 
     def _app_fit_node_type(
             self, apps_profile,
@@ -73,7 +87,7 @@ class Score(Fit):
         app_type = _get_app_node_type(apps_profile, app_name, self.score_target)
 
         if node_type != app_type:
-            return False, '%r not prefered for %r type of node' % (app_name, node_type)
+            return False, '%r not preferred for %r type of node' % (app_name, node_type)
 
         return True, ''
 
@@ -95,7 +109,7 @@ class Score(Fit):
                     fit_nodes.append(node)
 
             if not fit_nodes:
-                # There is no prefered nodes.
+                # There is no preferred nodes.
                 if not self.strict_mode_placement:
                     # We can use different nodes, only if we allow it.
                     return node_names, {}
@@ -104,14 +118,13 @@ class Score(Fit):
 
     def reschedule(self) -> RescheduleResult:
         apps_on_node, _ = self.data_provider.get_apps_counts()
-        nodes_type = self.data_provider.get_nodes_type()
         apps_profile = self.data_provider.get_apps_profile()
 
         reschedule: RescheduleApps = {}
         consider: RescheduleApps = {}
 
         for node in apps_on_node:
-            node_type = nodes_type[node]
+            node_type = self.nodes_type[node]
             for app in apps_on_node[node]:
 
                 app_correct_placement, _ = self._app_fit_node_type(apps_profile, app, node_type)
@@ -137,15 +150,14 @@ class Score(Fit):
                         consider[app][node] = apps_on_node[node][app]
 
         result = self._get_tasks_to_reschedule(
-            reschedule, consider, apps_profile, apps_on_node, nodes_type)
+            reschedule, consider, apps_profile, apps_on_node)
 
         return result
 
     def _get_tasks_to_reschedule(self, reschedule: RescheduleApps,
                                  consider: RescheduleApps,
                                  apps_profile,
-                                 apps_on_node: AppsOnNode,
-                                 nodes_type: NodesType) -> RescheduleResult:
+                                 apps_on_node: AppsOnNode) -> RescheduleResult:
         result: RescheduleResult = []
 
         if len(consider) <= 0:
@@ -156,7 +168,7 @@ class Score(Fit):
         apps_on_pmem_nodes = {
             node: apps
             for node, apps in apps_on_node.items()
-            if nodes_type[node] == NodeType.PMEM
+            if self.nodes_type[node] == NodeType.PMEM
         }
 
         pmem_nodes_used_resources = get_nodes_used_resources(
@@ -192,7 +204,7 @@ class Score(Fit):
         pmem_nodes_capacities = {
             node: capacities
             for node, capacities in nodes_capacities.items()
-            if nodes_type[node] == NodeType.PMEM
+            if self.nodes_type[node] == NodeType.PMEM
         }
 
         pmem_nodes_membw_ratio = {

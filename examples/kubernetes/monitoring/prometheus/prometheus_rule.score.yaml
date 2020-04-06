@@ -5,13 +5,13 @@ metadata:
     role: prometheus-rules
   name: prometheus-wca-score
   namespace: prometheus
-spec: 
+spec:
   groups:
 
   - name: score
 
     # ---- For nodes -----------------------
-    # New metrics with folowing dim=[cpu, mem, wss, mbw_write, mbw_read]
+    # New metrics with following dim=[cpu, mem, wss, mbw_write, mbw_read]
     # end following units: cpu, GB, GB, GBs, GBs
     # node_capacity 
     #   -> profile_node_by_cpu with memory=[1lm, 2lm]
@@ -85,6 +85,8 @@ spec:
     # ---------------------------- node nvm profile -----------------------------------------
     # nvm profile only catch pmm nodes!!!!
     # # and on(node) platform_mem_mode_size_bytes!=0
+
+    # Profile by cpu
     - record: profile_node_by_cpu
       expr: 'node_capacity{dim="mem"} / on (node) node_capacity{dim="cpu"}'
       labels:
@@ -102,13 +104,42 @@ spec:
       labels:
         index: mem_utilization
 
-    # By specifc nodes
+    # Profile by mem
+    - record: profile_node_by_mem
+      expr: 'node_capacity{dim="cpu"} / on (node) node_capacity{dim="mem"}'
+      labels:
+        index: cpu_density
+    - record: profile_node_by_mem
+      expr: 'node_capacity{dim="mbw_read"} / on (node) node_capacity{dim="mem"}'
+      labels:
+        index: mem_intensity_read
+    - record: profile_node_by_mem
+      expr: 'node_capacity{dim="mbw_write"} / on (node) node_capacity{dim="mem"}'
+      labels:
+        index: mem_intensity_write
+    - record: profile_node_by_mem
+      expr: 'node_capacity{dim="wss"} / on (node) node_capacity{dim="mem"}'
+      labels:
+        index: mem_utilization
+
+
+    # By specific nodes
+    # cpu
     - record: profile_nodes_by_cpu
       expr: 'avg(profile_node_by_cpu and on(node) platform_mem_mode_size_bytes==0) by (index)'
       labels:
         memory: 1lm
     - record: profile_nodes_by_cpu
       expr: 'avg(profile_node_by_cpu and on(node) platform_mem_mode_size_bytes!=0) by (index)'
+      labels:
+        memory: 2lm
+    # mem
+    - record: profile_nodes_by_mem
+      expr: 'avg(profile_node_by_mem and on(node) platform_mem_mode_size_bytes==0) by (index)'
+      labels:
+        memory: 1lm
+    - record: profile_nodes_by_mem
+      expr: 'avg(profile_node_by_mem and on(node) platform_mem_mode_size_bytes!=0) by (index)'
       labels:
         memory: 2lm
 
@@ -174,7 +205,7 @@ spec:
 
     # --------------------- Profiles APP -----------------------
 
-    # app profile
+    # app profile by cpu
     - record: profile_app_by_cpu
       expr: app_req{dim="mem"} / on(app) app_req{dim="cpu"}
       labels:
@@ -192,10 +223,30 @@ spec:
       labels:
         index: mem_utilization
 
+    # app profile by mem
+    - record: profile_app_by_mem
+      expr: app_req{dim="cpu"} / on(app) app_req{dim="mem"}
+      labels:
+        index: cpu_density
+    - record: profile_app_by_mem
+      expr: app_req{dim="mbw_read"} / on(app) app_req{dim="mem"}
+      labels:
+        index: mem_intensity_read
+    - record: profile_app_by_mem
+      expr: app_req{dim="mbw_write"} / on(app) app_req{dim="mem"}
+      labels:
+        index: mem_intensity_write
+    - record: profile_app_by_mem
+      expr: app_req{dim="wss"} / on(app) app_req{dim="mem"}
+      labels:
+        index: mem_utilization
+
 
     # ======================== normalization profile ========================
     - record: profile_app_by_cpu_norm
       expr: profile_app_by_cpu / on(index) group_left profile_nodes_by_cpu{memory="2lm"}
+    - record: profile_app_by_mem_norm
+      expr: profile_app_by_mem / on (index) group_left profile_nodes_by_mem{memory="2lm"}
 
     # ======================== SCORE calculation ==========================
     - record: profile_app_2lm_score_positive # higher is better for 2lm
@@ -214,6 +265,24 @@ spec:
 
     - record: drozdzan_test # higher is better for 2lm
       expr: profile_app_by_cpu
+
+    # ======================== SCORE2 calculation ==========================
+    - record: profile_app_2lm_score2_positive # higher is better for 2lm
+      expr: profile_app_by_mem_norm{index="cpu_density"}
+
+    - record: profile_app_2lm_score2_negative_sum # lower is better for 2lm
+      expr: sum(profile_app_by_mem_norm{index=~"mem_intensity_read|mem_intensity_write|mem_utilization"}) by (app)
+
+    - record: profile_app_2lm_score2_negative_max # lower is better for 2lm
+      expr: max(profile_app_by_mem_norm{index=~"mem_intensity_read|mem_intensity_write|mem_utilization"}) by (app)
+
+    - record: profile_app_2lm_score2_max # higher is better for 2lm
+      expr: profile_app_2lm_score2_positive - on(app) group_left() profile_app_2lm_score2_negative_max
+    - record: profile_app_2lm_score2_sum # higher is better for 2lm
+      expr: profile_app_2lm_score2_positive - on(app) group_left() profile_app_2lm_score2_negative_sum
+
+    - record: drozdzan_test # higher is better for 2lm
+      expr: profile_app_by_mem
 
   - name: cluster-score-data-provider
     rules:

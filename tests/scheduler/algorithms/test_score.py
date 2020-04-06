@@ -50,7 +50,7 @@ def test_get_app_node_type(apps_profile, app_name, score_target, result):
 
 @pytest.mark.parametrize('algorithm, expected', [
     (Score(data_provider=get_mocked_cluster_data_provider()),
-        (False, "'mysql-hammerdb-small' not prefered for pmem type of node")),
+        (False, "'mysql-hammerdb-small' not preferred for pmem type of node")),
     (Score(
         data_provider=get_mocked_cluster_data_provider(),
         score_target=SCORE_TARGET),
