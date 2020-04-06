@@ -286,7 +286,7 @@ def test_experiment_debug():
 def test_experiment_full(task_scale=1, cluster_scale=1):
     dim = DIM4
     experiments_iterator(
-        'intel_demo_local',
+        'full',
         [{}],
         [30 * task_scale],
         [

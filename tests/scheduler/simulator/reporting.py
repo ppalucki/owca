@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import csv
 import datetime
 import itertools
 import logging
@@ -310,6 +311,20 @@ def generate_charts(exp_name, exp_dir, subexp_name, extra_metrics, iterations_da
 
 
 def generate_experiment_report(stats_dicts, exp_dir):
+    if not stats_dicts:
+        return
+
+    # Save as csv.
+    # Group by keys.
+    def by_keys(d): return tuple(d.keys())
+    stats_dicts_sorted = list(sorted(stats_dicts, key=by_keys))
+    for i, (keys, rows) in enumerate(itertools.groupby(stats_dicts_sorted, key=by_keys)):
+        with open(os.path.join(exp_dir, 'summary_%i.csv' % i), 'w') as f:
+            w = csv.DictWriter(f, keys, lineterminator='\n')
+            w.writeheader()
+            w.writerows(rows)
+
+    # Format with pandas
     try:
         import pandas as pd
     except ImportError:
@@ -339,6 +354,7 @@ def generate_experiment_report(stats_dicts, exp_dir):
     print(output)
     df.reset_index()
 
+    # Format with pivottablejs
     def p(val, aggr):
         _pivot_ui(
             df,
