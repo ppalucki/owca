@@ -174,6 +174,7 @@ def test_experiment_static_assigner():
 
 
 # --- Long experiments (15 - 20 seconds) ---
+# to run without: pytest -m 'not long'
 
 @pytest.mark.scheduler_simulator
 @pytest.mark.long
