@@ -236,6 +236,7 @@ class MeasurementRunner(Runner):
 
         self._initialize_rdt_callback = None
         self._iterate_body_callback = None
+        self._cached_bandwidth = None
 
     def _set_initialize_rdt_callback(self, func):
         self._initialize_rdt_callback = func
@@ -506,7 +507,9 @@ class MeasurementRunner(Runner):
 
         # @TODO why not in platform module?
         extra_platform_measurements = self._uncore_get_measurements()
-        extra_platform_measurements.update(get_bandwidth())
+        if self._cached_bandwidth is None:
+            self._cached_bandwidth = get_bandwidth()
+        extra_platform_measurements.update(self._cached_bandwidth)
 
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(
