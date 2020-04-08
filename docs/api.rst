@@ -84,7 +84,15 @@ and store them in metrics_storage component.
 
     Attach following labels to all metrics:
     `sockets`, `cores`, `cpus`, `cpu_model`, `cpu_model_number` and `wca_version`
-    (defaults to False)
+
+- ``zoneinfo``: **Union[Str, Bool]** = True
+
+    True means use the sane default.
+    False means disable the collection.
+    If string is provided it is regexp to extract information from /proc/zoneinfo
+    (only matching regexp will be collected, with key from frist group and value from
+    second group).
+    (default value can parse values like "nr_pages 1234" *\s+([a-z_]+)\s+(\d+)*)
 
 
 
@@ -364,6 +372,10 @@ Arguments:
 - ``default_labels``: **Dict[Str, Str]** = *{}*
 - ``default_resources``: **Dict[Str, Union[Str, float, int]]** = *{}*
 - ``tasks_labels``: **Optional[Dict[str, Dict[str, str]]]** = *None*
+- ``directory``: **Optional[Path]** - automatic discovery extendes list of tasks
+
+If directory is specified we will try to automaticaly watch over all existing directories
+there.
 
 
 
