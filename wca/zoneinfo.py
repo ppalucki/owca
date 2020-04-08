@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-
 from typing import Pattern
 
 from wca.metrics import Measurements, MetricName
 
 log = logging.getLogger(__name__)
 
+DEFAULT_REGEXP = r'\s+([a-z_]+)\s+(\d+)'
 
-def get_zoneinfo_metrics(zoneinfo_regexp: Pattern) -> Measurements:
+
+def get_zoneinfo_measurements(zoneinfo_regexp: Pattern) -> Measurements:
     """ Read and parse zoneinfo only from normal ZONE
     (only expose simple fields with key value
-
     """
 
     measurements = {}

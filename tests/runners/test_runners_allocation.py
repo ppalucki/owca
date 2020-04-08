@@ -31,7 +31,6 @@ _os_tasks_allocations = {
 
 
 @prepare_runner_patches
-@patch('wca.cgroups.Cgroup.reset_counters')
 @patch('wca.containers.Container.get_allocations',    return_value=_os_tasks_allocations)
 @patch('wca.containers.ContainerSet.get_allocations', return_value=_os_tasks_allocations)
 @patch('wca.platforms.collect_platform_information', return_value=(platform_mock, [], {}))

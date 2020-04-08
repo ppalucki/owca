@@ -13,20 +13,21 @@
 # limitations under the License.
 
 import logging
-import time
-from typing import Dict, List, Optional
-
 import re
-import resource
+import time
 from abc import abstractmethod
+from typing import Dict, List, Optional, Union
+
+import resource
 from dataclasses import dataclass
 
 from wca import platforms, profiling
-from wca.config import ValidationError
 from wca import resctrl
 from wca import security
+from wca import zoneinfo as zoneinfo_module
 from wca.allocators import AllocationConfiguration
 from wca.config import Numeric, Str
+from wca.config import ValidationError
 from wca.containers import ContainerManager, Container
 from wca.detectors import TaskData, TasksData, TaskResource
 from wca.logger import trace, get_logging_metrics, TRACE
@@ -43,7 +44,6 @@ from wca.pmembw import get_bandwidth
 from wca.profiling import profiler
 from wca.runners import Runner
 from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
-from wca.zoneinfo import get_zoneinfo_metrics
 
 log = logging.getLogger(__name__)
 
@@ -166,12 +166,14 @@ class MeasurementRunner(Runner):
         Attach following labels to all metrics:
         `sockets`, `cores`, `cpus`, `cpu_model`, `cpu_model_number` and `wca_version`
 
-    - ``zoneinfo_regexp``: **str** = *\\s+([a-z_]+)\\s+(\\d+)*
+    - ``zoneinfo``: **Union[Str, Bool]** = True
 
-        Regexp to extract information from /proc/zoneinfo
+        True means use the sane default.
+        False means disable the collection.
+        If string is provided it is regexp to extract information from /proc/zoneinfo
         (only matching regexp will be collected, with key from frist group and value from
         second group).
-        (default value can parse values like "nr_pages 1234")
+        (default value can parse values like "nr_pages 1234" *\\s+([a-z_]+)\\s+(\\d+)*)
     """
 
     def __init__(
@@ -190,7 +192,7 @@ class MeasurementRunner(Runner):
             allocation_configuration: Optional[AllocationConfiguration] = None,
             wss_reset_interval: int = 0,
             include_optional_labels: bool = False,
-            zoneinfo_regexp: Str = r'\s+([a-z_]+)\s+(\d+)'
+            zoneinfo: Optional[Union[Str, bool]] = None,
 
     ):
 
@@ -248,13 +250,29 @@ class MeasurementRunner(Runner):
         self._iterate_body_callback = None
         self._cached_bandwidth = None
 
-        try:
-            self.zoneinfo_regexp_compiled = re.compile(zoneinfo_regexp)
-        except re.error as e:
-            raise ValidationError('zoneinfo_regexp_compile improper regexp: %s' % e)
+        self._zoneinfo_regexp_compiled = None
+        if zoneinfo is True:
+            self._zoneinfo = zoneinfo
+            zoneinfo_regexp = zoneinfo_module.DEFAULT_REGEXP
+            log.debug('Enabled zoneinfo collection')
+        elif zoneinfo is False:
+            self._zoneinfo = zoneinfo
+            log.debug('Disabled zoneinfo collection')
+            zoneinfo_regexp = None
+        else:
+            zoneinfo_regexp = zoneinfo
+            self._zoneinfo = True
 
-        if not self.zoneinfo_regexp_compiled.groups == 2:
-            raise ValidationError('zoneinfo_regexp_compile improper number of groups: should be 2')
+        # Validate regexp.
+        if zoneinfo:
+            try:
+                self._zoneinfo_regexp_compiled = re.compile(zoneinfo_regexp)
+            except re.error as e:
+                raise ValidationError('zoneinfo_regexp_compile improper regexp: %s' % e)
+
+            if not self._zoneinfo_regexp_compiled.groups == 2:
+                raise ValidationError(
+                    'zoneinfo_regexp_compile improper number of groups: should be 2')
 
     def _set_initialize_rdt_callback(self, func):
         self._initialize_rdt_callback = func
@@ -530,7 +548,9 @@ class MeasurementRunner(Runner):
         extra_platform_measurements.update(self._cached_bandwidth)
 
         # Zoneinfo from /proc/zoneinfo
-        extra_platform_measurements.update(get_zoneinfo_metrics(self.zoneinfo_regexp_compiled))
+        if self._zoneinfo:
+            extra_platform_measurements.update(
+                zoneinfo_module.get_zoneinfo_measurements(self._zoneinfo_regexp_compiled))
 
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(

@@ -29,7 +29,6 @@ from wca.runners.measurement import MeasurementRunner
 
 
 @prepare_runner_patches
-@patch('wca.cgroups.Cgroup.reset_counters')
 @pytest.mark.parametrize('subcgroups', ([], ['/T/c1'], ['/T/c1', '/T/c2']))
 def test_detection_runner(reset_counters_mock, subcgroups):
     # Tasks mock

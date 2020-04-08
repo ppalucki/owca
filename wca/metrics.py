@@ -13,12 +13,11 @@
 # limitations under the License.
 import logging
 import time
+from enum import Enum
+from operator import sub
 from typing import Dict, Union, List, Tuple, Callable, Optional
 
 from dataclasses import dataclass, field
-from enum import Enum
-from operator import sub
-
 
 log = logging.getLogger(__name__)
 
@@ -1045,10 +1044,10 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'Dynamic metric all keys based on /proc/zoneinfo group by node (only normal zone)',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
-            MetricSource.INTERNAL,
+            MetricSource.PROCFS,
             MetricGranularity.PLATFORM,
             ['numa_node', 'key'],
-            'yes'
+            'yes (zoneinfo option)'
         ),
     MetricName.PLATFORM_LAST_SEEN:
         MetricMetadata(
