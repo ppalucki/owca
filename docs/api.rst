@@ -85,7 +85,7 @@ and store them in metrics_storage component.
     Attach following labels to all metrics:
     `sockets`, `cores`, `cpus`, `cpu_model`, `cpu_model_number` and `wca_version`
 
-- ``zoneinfo``: **Union[Str, Bool]** = True
+- ``zoneinfo``: **Union[Str, bool]** = *True*
 
     True means use the sane default.
     False means disable the collection.

@@ -166,7 +166,7 @@ class MeasurementRunner(Runner):
         Attach following labels to all metrics:
         `sockets`, `cores`, `cpus`, `cpu_model`, `cpu_model_number` and `wca_version`
 
-    - ``zoneinfo``: **Union[Str, Bool]** = True
+    - ``zoneinfo``: **Union[Str, bool]** = *True*
 
         True means use the sane default.
         False means disable the collection.
@@ -192,7 +192,7 @@ class MeasurementRunner(Runner):
             allocation_configuration: Optional[AllocationConfiguration] = None,
             wss_reset_interval: int = 0,
             include_optional_labels: bool = False,
-            zoneinfo: Optional[Union[Str, bool]] = None,
+            zoneinfo: Union[Str, bool] = True,
 
     ):
 
@@ -250,7 +250,6 @@ class MeasurementRunner(Runner):
         self._iterate_body_callback = None
         self._cached_bandwidth = None
 
-        self._zoneinfo_regexp_compiled = None
         if zoneinfo is True:
             self._zoneinfo = zoneinfo
             zoneinfo_regexp = zoneinfo_module.DEFAULT_REGEXP
@@ -264,7 +263,9 @@ class MeasurementRunner(Runner):
             self._zoneinfo = True
 
         # Validate regexp.
-        if zoneinfo:
+        log.debug('zoneinfo=%r regexp=%r', self._zoneinfo, zoneinfo_regexp)
+        self._zoneinfo_regexp_compiled = None
+        if self._zoneinfo:
             try:
                 self._zoneinfo_regexp_compiled = re.compile(zoneinfo_regexp)
             except re.error as e:
