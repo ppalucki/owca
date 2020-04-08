@@ -137,7 +137,7 @@ Platform's metrics
 	"platform_dram_total_bytes_per_second", "TBD", "no (uncore_event_names: platform_cas_count_reads, platform_cas_count_writes and set enable_derived_metrics)", "numeric",  "gauge", "derived from perf uncore", "socket, pmu_type"
 	"platform_dram_hit_ratio", "TBD", "no (uncore_event_names: platform_cas_count_reads, platform_cas_count_writes and set enable_derived_metrics)", "numeric",  "gauge", "derived from perf uncore", "socket, pmu_type"
 	"platform_upi_bandwidth_bytes_per_second", "TBD", "no (uncore_event_names: platform_upi_txl_flits, platform_upi_rxl_flits and set enable_derived_metrics)", "numeric",  "counter", "derived from perf uncore", "socket, pmu_type"
-	"platform_zoneinfo", "Dynamic metric with "keys" based on fields from /proc/zoneinfo grouped by numa_node (only Normal zone)", "yes (zoneinfo option)", "numeric",  "gauge", "/proc filesystem", "numa_node, key"
+	"platform_zoneinfo", "Dynamic metric with many keys based on fields from /proc/zoneinfo grouped by numa_node (only Normal zone)", "yes (zoneinfo option)", "numeric",  "gauge", "/proc filesystem", "numa_node, key"
 	"platform_last_seen", "Timestamp the information about platform was last collected", "yes", "timestamp",  "counter", "internal", ""
 	"platform_capacity_per_nvdimm_bytes", "Platform capacity per NVDIMM", "yes", "bytes",  "gauge", "internal", ""
 	"platform_avg_power_per_nvdimm_watts", "Average power used by NVDIMM on the platform", "yes", "watts",  "gauge", "internal", ""
