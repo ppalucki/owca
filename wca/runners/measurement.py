@@ -22,6 +22,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 
 from wca import platforms, profiling
+from wca.config import ValidationError
 from wca import resctrl
 from wca import security
 from wca.allocators import AllocationConfiguration
@@ -42,6 +43,7 @@ from wca.pmembw import get_bandwidth
 from wca.profiling import profiler
 from wca.runners import Runner
 from wca.storage import DEFAULT_STORAGE, MetricPackage, Storage
+from wca.zoneinfo import get_zoneinfo_metrics
 
 log = logging.getLogger(__name__)
 
@@ -163,7 +165,13 @@ class MeasurementRunner(Runner):
 
         Attach following labels to all metrics:
         `sockets`, `cores`, `cpus`, `cpu_model`, `cpu_model_number` and `wca_version`
-        (defaults to False)
+
+    - ``zoneinfo_regexp``: **str** = *\\s+([a-z_]+)\\s+(\\d+)*
+
+        Regexp to extract information from /proc/zoneinfo
+        (only matching regexp will be collected, with key from frist group and value from
+        second group).
+        (default value can parse values like "nr_pages 1234")
     """
 
     def __init__(
@@ -181,7 +189,9 @@ class MeasurementRunner(Runner):
             task_label_generators: Optional[Dict[str, TaskLabelGenerator]] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
             wss_reset_interval: int = 0,
-            include_optional_labels: bool = False
+            include_optional_labels: bool = False,
+            zoneinfo_regexp: Str = r'\s+([a-z_]+)\s+(\d+)'
+
     ):
 
         self._node = node
@@ -237,6 +247,14 @@ class MeasurementRunner(Runner):
         self._initialize_rdt_callback = None
         self._iterate_body_callback = None
         self._cached_bandwidth = None
+
+        try:
+            self.zoneinfo_regexp_compiled = re.compile(zoneinfo_regexp)
+        except re.error as e:
+            raise ValidationError('zoneinfo_regexp_compile improper regexp: %s' % e)
+
+        if not self.zoneinfo_regexp_compiled.groups == 2:
+            raise ValidationError('zoneinfo_regexp_compile improper number of groups: should be 2')
 
     def _set_initialize_rdt_callback(self, func):
         self._initialize_rdt_callback = func
@@ -510,6 +528,9 @@ class MeasurementRunner(Runner):
         if self._cached_bandwidth is None:
             self._cached_bandwidth = get_bandwidth()
         extra_platform_measurements.update(self._cached_bandwidth)
+
+        # Zoneinfo from /proc/zoneinfo
+        extra_platform_measurements.update(get_zoneinfo_metrics(self.zoneinfo_regexp_compiled))
 
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(

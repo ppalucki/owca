@@ -138,6 +138,9 @@ class MetricName(str, Enum):
     # Based on UPI Flits
     PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND = 'platform_upi_bandwidth_bytes_per_second'
 
+    # Platform zoneinfo (dynamic)
+    PLATFORM_ZONEINFO = 'platform_zoneinfo'
+
     # Generic
     PLATFORM_LAST_SEEN = 'platform_last_seen'
     # ---------------- Internal -------------------------
@@ -1036,6 +1039,17 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'no (uncore_event_names: platform_upi_txl_flits, '
             'platform_upi_rxl_flits and set enable_derived_metrics)',
         ),
+    # --------------- platform zoneinfo -------------------
+    MetricName.PLATFORM_ZONEINFO:
+        MetricMetadata(
+            'Dynamic metric all keys based on /proc/zoneinfo group by node (only normal zone)',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.INTERNAL,
+            MetricGranularity.PLATFORM,
+            ['numa_node', 'key'],
+            'yes'
+        ),
     MetricName.PLATFORM_LAST_SEEN:
         MetricMetadata(
             'Timestamp the information about platform was last collected',
@@ -1149,6 +1163,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             ['socket'],
             'yes'
         ),
+
 }
 
 # Make sure the same order is used.
