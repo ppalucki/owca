@@ -32,26 +32,32 @@ def get_zoneinfo_measurements(zoneinfo_regexp: Pattern) -> Measurements:
         for line in f.readlines():
 
             if line.startswith('Node '):
+                numa_node = str(int(line.split()[1][:-1]))
                 if 'Normal' in line:
-                    numa_node = str(int(line.split()[1][:-1]))
-                else:
-                    numa_node = None
+                    zone = 'Normal'
+                if 'DMA32' in line:
+                    zone = 'DMA32'
+                elif 'DMA' in line:
+                    zone = 'DMA'
 
-            if numa_node is not None:
+                continue
 
-                match = zoneinfo_regexp.match(line)
-                if not match:
-                    continue
-                key = str(match.group(1))
 
-                try:
-                    value = float(match.group(2))
-                except ValueError:
-                    log.warning('cannot parse /proc/zoneinfo using regexp: %r', zoneinfo_regexp)
-                    continue
+            match = zoneinfo_regexp.match(line)
+            if not match:
+                continue
+            key = str(match.group(1))
 
-                if numa_node not in measurements:
-                    measurements[numa_node] = {}
-                measurements[numa_node][key] = value
+            try:
+                value = float(match.group(2))
+            except ValueError:
+                log.warning('cannot parse /proc/zoneinfo using regexp: %r', zoneinfo_regexp)
+                continue
+
+            if numa_node not in measurements:
+                measurements[numa_node] = {}
+            if zone not in measurements[numa_node]:
+                measurements[numa_node][zone] = {}
+            measurements[numa_node][zone][key] = value
 
     return {MetricName.PLATFORM_ZONEINFO: measurements}

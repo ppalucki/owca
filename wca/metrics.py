@@ -1042,12 +1042,12 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
     MetricName.PLATFORM_ZONEINFO:
         MetricMetadata(
             'Dynamic metric with many keys based on fields from '
-            '/proc/zoneinfo grouped by numa_node (only Normal zone)',
+            '/proc/zoneinfo grouped by numa_node and zone (only Normal zone)',
             MetricType.GAUGE,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
             MetricGranularity.PLATFORM,
-            ['numa_node', 'key'],
+            ['numa_node', 'zone', 'key'],
             'yes (zoneinfo option)'
         ),
     MetricName.PLATFORM_LAST_SEEN:
