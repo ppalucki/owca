@@ -189,6 +189,7 @@ def _parse_dmidecode_output(dmidecode_str):
     ram_dimm_size = 0
     ram_dimm_speed = 0
     units = {'GB': 1e9, 'MB': 1e6, 'B': 1}
+    ddr_types = ('DDR4', 'DDR3')
 
     found_memory_device = False
     memory_device_params = {}
@@ -201,7 +202,7 @@ def _parse_dmidecode_output(dmidecode_str):
             if 'Size:' in line:
                 memory_device_params.update(
                     {'size': {'value': split_line[1], 'unit': split_line[2]}})
-            elif 'Type:' in line and split_line[1] == 'DDR4':
+            elif 'Type:' in line and split_line[1] in ddr_types:
                 memory_device_params.update({'type': split_line[1]})
             elif 'Type Detail:' in line and 'Non-Volatile' in line:
                 memory_device_params.update({'type': 'Non-Volatile'})
@@ -211,7 +212,7 @@ def _parse_dmidecode_output(dmidecode_str):
         if memory_device_params.get('size', None) and \
                 memory_device_params.get('type', None) and \
                 memory_device_params.get('speed', None):
-            if memory_device_params['type'] == 'DDR4':
+            if memory_device_params['type'] in ddr_types:
                 ram_dimm_count += 1
                 ram_dimm_size += int(memory_device_params['size']['value']) * \
                     units[memory_device_params['size']['unit']]
@@ -262,6 +263,7 @@ def get_platform_static_information(strict_mode: bool) -> Measurements:
             dmidecode_str = dmidecode_raw.decode("utf-8")
             nvm_dimm_count, ram_dimm_count, nvm_dimm_size, \
                 ram_dimm_size, ram_dimm_speed = _parse_dmidecode_output(dmidecode_str)
+            print('debug:', nvm_dimm_count, ram_dimm_speed, nvm_dimm_size)
 
             _platform_static_information[MetricName.PLATFORM_DIMM_COUNT] = {}
             _platform_static_information[MetricName.PLATFORM_DIMM_COUNT]['ram'] = int(
