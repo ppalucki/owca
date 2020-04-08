@@ -42,7 +42,6 @@ def get_zoneinfo_measurements(zoneinfo_regexp: Pattern) -> Measurements:
 
                 continue
 
-
             match = zoneinfo_regexp.match(line)
             if not match:
                 continue
