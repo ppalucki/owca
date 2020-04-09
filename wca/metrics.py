@@ -136,6 +136,8 @@ class MetricName(str, Enum):
     PLATFORM_DRAM_HIT_RATIO = 'platform_dram_hit_ratio'
     # Based on UPI Flits
     PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND = 'platform_upi_bandwidth_bytes_per_second'
+    # Extra perf uncore based
+    PLATFORM_SCALING_UNCORE_FACTOR = 'platform_scaling_uncore_factor'
 
     # Platform zoneinfo (dynamic)
     PLATFORM_ZONEINFO = 'platform_zoneinfo'
@@ -1037,6 +1039,18 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             ['socket', 'pmu_type'],
             'no (uncore_event_names: platform_upi_txl_flits, '
             'platform_upi_rxl_flits and set enable_derived_metrics)',
+        ),
+    MetricName.PLATFORM_SCALING_UNCORE_FACTOR:
+        MetricMetadata(
+            'Perf uncore subsystem metric scaling factor'
+            '(value 1.0 is the best, meaning that there is no scaling at all '
+            'for any uncore metric)',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.PERF_SUBSYSTEM_UNCORE,
+            MetricGranularity.PLATFORM,
+            ['socket', 'pmu_type'],
+            'auto, (depending on uncore_event_names)'
         ),
     # --------------- platform zoneinfo -------------------
     MetricName.PLATFORM_ZONEINFO:
