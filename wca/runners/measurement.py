@@ -31,6 +31,7 @@ from wca.config import ValidationError
 from wca.containers import ContainerManager, Container
 from wca.detectors import TaskData, TasksData, TaskResource
 from wca.logger import trace, get_logging_metrics, TRACE
+from wca.external import External, MultiExternal
 from wca.metrics import Metric, MetricName, MissingMeasurementException, \
     export_metrics_from_measurements, METRICS_METADATA, MetricSource, MetricType, MetricUnit, \
     MetricGranularity, MetricMetadata, add_metric
@@ -88,6 +89,8 @@ class TaskLabelResourceGenerator(TaskLabelGenerator):
 
     def generate(self, task: Task) -> Optional[str]:
         return str(task.resources.get(self.resource_name, "unknown"))
+
+
 
 
 class MeasurementRunner(Runner):
@@ -193,7 +196,7 @@ class MeasurementRunner(Runner):
             wss_reset_interval: int = 0,
             include_optional_labels: bool = False,
             zoneinfo: Union[Str, bool] = True,
-
+            externals: List[Union[MultiExternal, External]] = [],
     ):
 
         self._node = node
@@ -274,6 +277,10 @@ class MeasurementRunner(Runner):
             if not self._zoneinfo_regexp_compiled.groups == 2:
                 raise ValidationError(
                     'zoneinfo_regexp_compile improper number of groups: should be 2')
+
+        self._externals = externals
+        for external in self._externals:
+            external.start()
 
     def _set_initialize_rdt_callback(self, func):
         self._initialize_rdt_callback = func
@@ -574,6 +581,12 @@ class MeasurementRunner(Runner):
         if self._iterate_body_callback is not None:
             self._iterate_body_callback(containers, platform, tasks_data, common_labels)
 
+        # External metrics
+        external_metrics = []
+        for external in self._externals:
+            external_metrics.extend(external.get_metrics())
+        # print(external_metrics)
+
         self._wait()
 
         iteration_duration = time.time() - iteration_start
@@ -586,6 +599,7 @@ class MeasurementRunner(Runner):
         metrics_package.add_metrics(_build_tasks_metrics(tasks_data))
         metrics_package.add_metrics(profiling.profiler.get_metrics())
         metrics_package.add_metrics(get_logging_metrics())
+        metrics_package.add_metrics(external_metrics)
         metrics_package.send(common_labels)
 
     def run(self) -> int:

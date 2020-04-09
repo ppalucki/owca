@@ -1,0 +1,139 @@
+# Copyright (c) 2018 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import List, Dict
+
+import subprocess
+import logging
+import time
+import threading
+import re
+from wca.logger import TRACE
+from dataclasses import dataclass
+
+from wca.metrics import Metric
+
+GROUP_LABEL_RE_PREFIX = 'LABEL_'
+GROUP_METRIC_RE_PREFIX = 'METRIC_'
+
+
+log = logging.getLogger(__name__)
+
+
+@dataclass
+class External:
+
+    args: List[str]
+    regexp: str
+    metric_base_name: str
+    labels: Dict[str, str]
+    restart_delay: int = 60  # seconds
+
+    def start(self):
+        self._thread = threading.Thread(target=self.measure, daemon=False)
+        self._process = None
+        self._regexp = re.compile(self.regexp)
+        self._metrics = []
+        self._thread.start()
+
+    def measure(self):
+        while True:
+            process_name = ' '.join(self.args)
+            log.debug('starting process: %r', process_name)
+            self._process = subprocess.Popen(
+                self.args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            alive = True
+            while alive:
+                if self._process.poll() is not None:
+                    log.debug('process %r is dead: rc=%r stderr=%r', process_name,
+                              self._process.returncode, self._process.stderr.read())
+                    alive = False
+                    # reset metrics
+                    self._metrics = []
+                    continue
+
+                line = self._process.stdout.readline().decode('utf8')
+                log.log(TRACE, 'found process=%r line: %r', process_name, line)
+                match = self._regexp.match(line)
+                if not match:
+                    continue
+
+                # Generate many matrics based on regexp results.
+                labels = dict(self.labels)
+                values = {}
+                found = match.groupdict()
+                for key_found, value_found in found.items():
+                    if key_found.startswith(GROUP_LABEL_RE_PREFIX):
+                        label_name = key_found.lstrip(GROUP_LABEL_RE_PREFIX)
+                        label_value = str(value_found)
+                        labels[label_name] = label_value
+
+                    if key_found.startswith(GROUP_METRIC_RE_PREFIX):
+                        metric_suffix = key_found.lstrip(GROUP_METRIC_RE_PREFIX)
+                        metric_value = float(value_found)
+                        values[metric_suffix] = metric_value
+
+                log.log(TRACE, 'process=%r labels=%r values=%r', process_name, labels, values)
+                metrics = [
+                    Metric(
+                        name=self.metric_base_name+metric_suffix,
+                        value=metric_value,
+                        labels=dict(labels)
+                    )
+                    for metric_suffix, metric_value in values.items()
+                ]
+                self._metrics = metrics
+
+            log.debug('waiting %ss to restart process %r', self.restart_delay, process_name)
+            time.sleep(self.restart_delay)
+
+    def get_metrics(self) -> List[Metric]:
+        return list(self._metrics)
+
+
+@dataclass
+class MultiExternal:
+
+    key: str
+    values: List[str]
+    # as for single external (the key will be replaced with values)
+    args: List[str]
+    regexp: str
+    metric_base_name: str
+    labels: Dict[str, str]
+    restart_delay: int = 60  # seconds
+
+    def __post_init__(self):
+        self._externals = []
+        for value in self.values:
+            self._externals.append(
+                External(
+                    args=[a.replace(self.key, value) for a in self.args],
+                    regexp=self.regexp.replace(self.key, value),
+                    metric_base_name=self.metric_base_name.replace(self.key, value),
+                    labels={l.replace(self.key, value): v.replace(self.key, value)
+                            for l, v in self.labels.items()},
+                    restart_delay=self.restart_delay
+                )
+            )
+
+    def start(self):
+        for external in self._externals:
+            external.start()
+
+    def get_metrics(self):
+        metrics = []
+        for external in self._externals:
+            metrics.extend(external.get_metrics())
+        return metrics

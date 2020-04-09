@@ -30,11 +30,14 @@ from wca import allocators
 from wca import mesos
 from wca import kubernetes
 from wca import storage
+from wca import external
 from wca.extra import static_node
 from wca.extra import numa_allocator
 from wca import security
 
 REGISTERED_COMPONENTS = [
+    external.External,
+    external.MultiExternal,
     measurement.MeasurementRunner,
     allocation.AllocationRunner,
     detection.DetectionRunner,
