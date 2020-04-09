@@ -1040,18 +1040,6 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             'no (uncore_event_names: platform_upi_txl_flits, '
             'platform_upi_rxl_flits and set enable_derived_metrics)',
         ),
-    # --------------- platform zoneinfo -------------------
-    MetricName.PLATFORM_ZONEINFO:
-        MetricMetadata(
-            'Dynamic metric with many keys based on fields from '
-            '/proc/zoneinfo grouped by numa_node and zone (only Normal zone)',
-            MetricType.GAUGE,
-            MetricUnit.NUMERIC,
-            MetricSource.PROCFS,
-            MetricGranularity.PLATFORM,
-            ['numa_node', 'zone', 'key'],
-            'yes (zoneinfo option)'
-        ),
     MetricName.PLATFORM_SCALING_UNCORE_FACTOR:
         MetricMetadata(
             'Perf uncore subsystem metric scaling factor'
@@ -1063,6 +1051,18 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             MetricGranularity.PLATFORM,
             ['socket', 'pmu_type'],
             'auto, (depending on uncore_event_names)'
+        ),
+    # --------------- platform zoneinfo -------------------
+    MetricName.PLATFORM_ZONEINFO:
+        MetricMetadata(
+            'Dynamic metric with many keys based on fields from '
+            '/proc/zoneinfo grouped by numa_node and zone (only Normal zone)',
+            MetricType.GAUGE,
+            MetricUnit.NUMERIC,
+            MetricSource.PROCFS,
+            MetricGranularity.PLATFORM,
+            ['numa_node', 'zone', 'key'],
+            'yes (zoneinfo option)'
         ),
     MetricName.PLATFORM_LAST_SEEN:
         MetricMetadata(
