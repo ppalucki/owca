@@ -30,8 +30,8 @@ from wca.config import Numeric, Str
 from wca.config import ValidationError
 from wca.containers import ContainerManager, Container
 from wca.detectors import TaskData, TasksData, TaskResource
-from wca.logger import trace, get_logging_metrics, TRACE
 from wca.external import External, MultiExternal
+from wca.logger import trace, get_logging_metrics, TRACE
 from wca.metrics import Metric, MetricName, MissingMeasurementException, \
     export_metrics_from_measurements, METRICS_METADATA, MetricSource, MetricType, MetricUnit, \
     MetricGranularity, MetricMetadata, add_metric
@@ -89,8 +89,6 @@ class TaskLabelResourceGenerator(TaskLabelGenerator):
 
     def generate(self, task: Task) -> Optional[str]:
         return str(task.resources.get(self.resource_name, "unknown"))
-
-
 
 
 class MeasurementRunner(Runner):
