@@ -15,7 +15,7 @@
 
 """Module for independent simple helper functions."""
 
-import contextlib
+import functools
 import json
 import os
 import time
@@ -296,41 +296,44 @@ TASK_CPU_USAGE = 23
 WCA_MEMORY_USAGE = 100
 
 
-@contextlib.contextmanager
 def prepare_runner_patches(func):
-    patches = [
-        patch('wca.cgroups.Cgroup.get_pids', return_value=['123']),
-        patch('wca.cgroups.Cgroup.set_quota'),
-        patch('wca.cgroups.Cgroup.set_shares'),
-        patch('wca.cgroups.Cgroup.get_measurements',
-              return_value={MetricName.TASK_CPU_USAGE_SECONDS: TASK_CPU_USAGE}),
-        patch('wca.resctrl.ResGroup.add_pids'),
-        patch('wca.resctrl.ResGroup.get_measurements'),
-        patch('wca.resctrl.ResGroup.get_mon_groups'),
-        patch('wca.resctrl.ResGroup.remove'),
-        patch('wca.resctrl.ResGroup.write_schemata'),
-        patch('wca.resctrl.read_mon_groups_relation', return_value={'': []}),
-        patch('wca.resctrl.check_resctrl', return_value=True),
-        patch('wca.resctrl.cleanup_resctrl'),
-        patch('wca.perf.PerfCounters'),
-        patch('time.time', return_value=12345.6),
-        patch('wca.platforms.collect_platform_information',
-              return_value=(platform_mock, [metric('platform-cpu-usage')], {})),
-        patch('wca.platforms.collect_topology_information', return_value=(1, 1, 1)),
-        patch('wca.security.are_privileges_sufficient', return_value=True),
-        patch('resource.getrusage', return_value=Mock(ru_maxrss=WCA_MEMORY_USAGE)),
-        patch('wca.perf_uncore.UncorePerfCounters._open'),
-        patch('wca.perf.PerfCounters._open'),
-        patch('wca.zoneinfo.get_zoneinfo_metrics'),
-        patch('wca.cgroups.Cgroup.reset_counters'),
-    ]
-    try:
-        for p in patches:
-            p.__enter__()
-        yield
-    finally:
-        for p in patches:
-            p.__exit__()
+    @functools.wraps(func)
+    def _inner(*args, **kw):
+        patches = [
+            patch('wca.cgroups.Cgroup.get_pids', return_value=['123']),
+            patch('wca.cgroups.Cgroup.set_quota'),
+            patch('wca.cgroups.Cgroup.set_shares'),
+            patch('wca.cgroups.Cgroup.get_measurements',
+                  return_value={MetricName.TASK_CPU_USAGE_SECONDS: TASK_CPU_USAGE}),
+            patch('wca.resctrl.ResGroup.add_pids'),
+            patch('wca.resctrl.ResGroup.get_measurements'),
+            patch('wca.resctrl.ResGroup.get_mon_groups'),
+            patch('wca.resctrl.ResGroup.remove'),
+            patch('wca.resctrl.ResGroup.write_schemata'),
+            patch('wca.resctrl.read_mon_groups_relation', return_value={'': []}),
+            patch('wca.resctrl.check_resctrl', return_value=True),
+            patch('wca.resctrl.cleanup_resctrl'),
+            patch('wca.perf.PerfCounters'),
+            patch('time.time', return_value=12345.6),
+            patch('wca.platforms.collect_platform_information',
+                  return_value=(platform_mock, [metric('platform-cpu-usage')], {})),
+            patch('wca.platforms.collect_topology_information', return_value=(1, 1, 1)),
+            patch('wca.security.are_privileges_sufficient', return_value=True),
+            patch('resource.getrusage', return_value=Mock(ru_maxrss=WCA_MEMORY_USAGE)),
+            patch('wca.perf_uncore.UncorePerfCounters._open'),
+            patch('wca.perf.PerfCounters._open'),
+            patch('wca.zoneinfo.get_zoneinfo_measurements'),
+            patch('wca.cgroups.Cgroup.reset_counters'),
+        ]
+        try:
+            for p in patches:
+                p.__enter__()
+            return func(*args, **kw)
+        finally:
+            for p in patches:
+                p.__exit__()
+
+    return _inner
 
 
 def assert_subdict(got_dict: dict, expected_subdict: dict):

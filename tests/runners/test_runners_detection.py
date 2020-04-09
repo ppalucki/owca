@@ -30,7 +30,7 @@ from wca.runners.measurement import MeasurementRunner
 
 @prepare_runner_patches
 @pytest.mark.parametrize('subcgroups', ([], ['/T/c1'], ['/T/c1', '/T/c2']))
-def test_detection_runner(reset_counters_mock, subcgroups):
+def test_detection_runner(subcgroups):
     # Tasks mock
     t1 = redis_task_with_default_labels('t1', subcgroups)
     t2 = redis_task_with_default_labels('t2', subcgroups)
