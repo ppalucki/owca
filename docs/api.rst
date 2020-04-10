@@ -551,6 +551,7 @@ or
 
     Number of seconds to wait between restarting process in case of failure.
 
+Please check ``configs/extra/external_measurements.yaml`` for more examples.
 
 
 
@@ -586,6 +587,8 @@ objects.
 
 
 Rest of arguments is described in ``External`` object above.
+
+Please check ``configs/extra/external_measurements.yaml`` for more examples.
 
 
 
