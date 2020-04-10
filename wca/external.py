@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+import re
+import subprocess
+import threading
+import time
 from typing import List, Dict
 
-import subprocess
-import logging
-import time
-import threading
-import re
-from wca.logger import TRACE
 from dataclasses import dataclass
 
-from wca.metrics import Metric
 from wca.config import Str
+from wca.logger import TRACE
+from wca.metrics import Metric
 
 GROUP_LABEL_RE_PREFIX = 'LABEL_'
 GROUP_METRIC_RE_PREFIX = 'METRIC_'
-
 
 log = logging.getLogger(__name__)
 
@@ -46,9 +45,9 @@ class External:
 
     Let's assume simple line ouf application output:
     qps read 123
-    and we want to use: qps as suffic, read as label and 123 as value, the regexp should look like 
+    and we want to use: qps as suffic, read as label and 123 as value, the regexp should look like
     this:
-    (\S+) (?P<LABEL_operation) (?P<METRIC_qps)
+    (\\S+) (?P<LABEL_operation) (?P<METRIC_qps>)
     if configured as metric_base_name: foo, will generate metric
     Metric(name='foo_qps', labels={'operation':'load', value=132)
 
@@ -65,9 +64,9 @@ class External:
         May containt "LABEL_" prefixed group to indicate location of value of label.
 
     - ``labels``: **Dict[Str, Str]**
-        
+
         Base labels to be added to every generated metric.
-    
+
     - ``restart_delay``: **int** = 60
 
         Number of seconds to wait between restarting process in case of failure.
@@ -127,7 +126,7 @@ class External:
                 log.log(TRACE, 'process=%r labels=%r values=%r', process_name, labels, values)
                 metrics = [
                     Metric(
-                        name=self.metric_base_name+metric_suffix,
+                        name=self.metric_base_name + metric_suffix,
                         value=metric_value,
                         labels=dict(labels)
                     )
@@ -147,13 +146,13 @@ class MultiExternal:
     """rst
 
     MultiExternal is helper over External object to generate many indentical External objects
-    which values of "args", "labels" and "regexp" or "metric_base_name" will be templated 
+    which values of "args", "labels" and "regexp" or "metric_base_name" will be templated
     by provided "key" and its values.
 
     For example:
 
     if External(args=['foo','barBAZbar'], ...) and wrapped by MultiExternal with
-    ``key``='BAZ' and ``values``=['_first_', '_second_'] effectively it will create two 
+    ``key``='BAZ' and ``values``=['_first_', '_second_'] effectively it will create two
     External objects:
 
     External(args=['foo','bar_first_bar'], ...)
@@ -162,7 +161,7 @@ class MultiExternal:
     and gather metrics from all.
 
 
-    - ``key``: **Str** 
+    - ``key``: **Str**
 
         The value of string, to be replaced by ``values``
 
