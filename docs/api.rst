@@ -508,17 +508,17 @@ External
 ========
 
 
-External is an abstration to provide source for generating metrics from "extrenal" source.
+External is an abstraction to provide source for generating metrics from "external" source.
 It runs "args" as subprocess, connects to its stdout output and parser every line using
 regexp. Each parsed line can generated many labeled metrics.
-Regexp uses groups to find metric value and extend metric to name with suffic and metric label
+Regexp uses groups to find metric value and extend metric to name with suffix and metric label
 "LABEL_" to extract label names and values.
 
 E.g.
 
-Let's assume simple line ouf application output:
+Let's assume simple line from application output:
 qps read 123
-and we want to use: qps as suffic, read as label and 123 as value, the regexp should look like
+and we want to use: qps as suffix, read as label and 123 as value, the regexp should look like
 this:
 (\S+) (?P<LABEL_operation) (?P<METRIC_qps>)
 if configured as metric_base_name: foo, will generate metric
@@ -532,9 +532,9 @@ Metric(name='foo_qps', labels={'operation':'load', value=132)
 - ``regexp``: **Str**
 
     Regexp to parse output from external process.
-    Has to containt "METRIC_" prefixed group to indicate location of value and suffix
+    Has to contain "METRIC_" prefixed group to indicate location of value and suffix
     that will be added to metric_base_name.
-    May containt "LABEL_" prefixed group to indicate location of value of label.
+    May contain "LABEL_" prefixed group to indicate location of value of label.
 
 - ``labels``: **Dict[Str, Str]**
 
@@ -574,9 +574,9 @@ and gather metrics from all.
 - ``values``: **List[Str]**
 
     Regexp to parse output from external process.
-    Has to containt "METRIC_" prefixed group to indicate location of value and suffix
+    Has to contain "METRIC_" prefixed group to indicate location of value and suffix
     that will be added to metric_base_name.
-    May containt "LABEL_" prefixed group to indicate location of value of label.
+    May contains "LABEL_" prefixed group to indicate location of value of label.
 
 
 Rest of arguments is described in ``External`` object above.
