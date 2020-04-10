@@ -504,3 +504,82 @@ Generate new label value based on other label value.
 
 
 
+External
+========
+
+
+External is an abstration to provide source for generating metrics from "extrenal" source.
+It runs "args" as subprocess, connects to its stdout output and parser every line using
+regexp. Each parsed line can generated many labeled metrics.
+Regexp uses groups to find metric value and extend metric to name with suffic and metric label
+"LABEL_" to extract label names and values.
+
+E.g.
+
+Let's assume simple line ouf application output:
+qps read 123
+and we want to use: qps as suffic, read as label and 123 as value, the regexp should look like
+this:
+(\S+) (?P<LABEL_operation) (?P<METRIC_qps>)
+if configured as metric_base_name: foo, will generate metric
+Metric(name='foo_qps', labels={'operation':'load', value=132)
+
+
+- `args`: **List[Str]**
+
+    Arguments to start external process, that output will be read to parse by regexp.
+
+- ``regexp``: **Str**
+
+    Regexp to parse output from external process.
+    Has to containt "METRIC_" prefixed group to indicate location of value and suffix
+    that will be added to metric_base_name.
+    May containt "LABEL_" prefixed group to indicate location of value of label.
+
+- ``labels``: **Dict[Str, Str]**
+
+    Base labels to be added to every generated metric.
+
+- ``restart_delay``: **int** = 60
+
+    Number of seconds to wait between restarting process in case of failure.
+
+
+
+
+MultiExternal
+=============
+
+
+MultiExternal is helper over External object to generate many indentical External objects
+which values of "args", "labels" and "regexp" or "metric_base_name" will be templated
+by provided "key" and its values.
+
+For example:
+
+if External(args=['foo','barBAZbar'], ...) and wrapped by MultiExternal with
+``key``='BAZ' and ``values``=['_first_', '_second_'] effectively it will create two
+External objects:
+
+External(args=['foo','bar_first_bar'], ...)
+External(args=['foo','bar_second_bar'], ...)
+
+and gather metrics from all.
+
+
+- ``key``: **Str**
+
+    The value of string, to be replaced by ``values``
+
+- ``values``: **List[Str]**
+
+    Regexp to parse output from external process.
+    Has to containt "METRIC_" prefixed group to indicate location of value and suffix
+    that will be added to metric_base_name.
+    May containt "LABEL_" prefixed group to indicate location of value of label.
+
+
+Rest of arguments is described in ``External`` object above.
+
+
+
