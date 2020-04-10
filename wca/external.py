@@ -41,18 +41,25 @@ class External:
     Regexp uses groups to find metric value and extend metric to name with suffix and metric label
     "LABEL_" to extract label names and values.
 
-    E.g.
+    E.g. let's assume simple line from application output:
 
-    Let's assume simple line from application output:
-    qps read 123
-    and we want to use: qps as suffix, read as label and 123 as value, the regexp should look like
-    this:
-    (\\S+) (?P<LABEL_operation) (?P<METRIC_qps>)
-    if configured as metric_base_name: foo, will generate metric
-    Metric(name='foo_qps', labels={'operation':'load', value=132)
+    ``qps read 123``
+
+    and we want to extract: ``qps`` as suffix, ``read`` as label and ``123`` as value, 
+    then regexp should look like this:
+
+    ``(\\S+) (?P<LABEL_operation) (?P<METRIC_qps>)``
+
+    When configured as ``metric_base_name: foo``, will generate metric
+
+    ``Metric(name='foo_qps', labels={'operation':'load', value=132)``
+
+    or
+    
+    ``foo_qps{operation="load"} 132.0``
 
 
-    - `args`: **List[Str]**
+    - ``args``: **List[Str]**
 
         Arguments to start external process, that output will be read to parse by regexp.
 
