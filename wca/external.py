@@ -21,7 +21,7 @@ from typing import List, Dict
 
 from dataclasses import dataclass
 
-from wca.config import Str
+from wca.config import Str, ValidationError
 from wca.logger import TRACE
 from wca.metrics import Metric
 
@@ -35,17 +35,17 @@ log = logging.getLogger(__name__)
 class External:
     """rst
 
-    External is an abstration to provide source for generating metrics from "extrenal" source.
+    External is an abstraction to provide source for generating metrics from "external" source.
     It runs "args" as subprocess, connects to its stdout output and parser every line using
     regexp. Each parsed line can generated many labeled metrics.
-    Regexp uses groups to find metric value and extend metric to name with suffic and metric label
+    Regexp uses groups to find metric value and extend metric to name with suffix and metric label
     "LABEL_" to extract label names and values.
 
     E.g.
 
-    Let's assume simple line ouf application output:
+    Let's assume simple line from application output:
     qps read 123
-    and we want to use: qps as suffic, read as label and 123 as value, the regexp should look like
+    and we want to use: qps as suffix, read as label and 123 as value, the regexp should look like
     this:
     (\\S+) (?P<LABEL_operation) (?P<METRIC_qps>)
     if configured as metric_base_name: foo, will generate metric
@@ -59,9 +59,9 @@ class External:
     - ``regexp``: **Str**
 
         Regexp to parse output from external process.
-        Has to containt "METRIC_" prefixed group to indicate location of value and suffix
+        Has to contain "METRIC_" prefixed group to indicate location of value and suffix
         that will be added to metric_base_name.
-        May containt "LABEL_" prefixed group to indicate location of value of label.
+        May contain "LABEL_" prefixed group to indicate location of value of label.
 
     - ``labels``: **Dict[Str, Str]**
 
@@ -79,10 +79,29 @@ class External:
     labels: Dict[Str, Str]
     restart_delay: int = 60  # seconds
 
+    def __post_init__(self):
+        # parse regexp
+        try:
+            self._regexp = re.compile(self.regexp)
+        except re.error as e:
+            raise ValidationError('broken regexp: %s' % e)
+
+        valid_prefix = all(
+            (k.startswith(GROUP_LABEL_RE_PREFIX) or k.startswith(GROUP_METRIC_RE_PREFIX))
+            for k in self._regexp.groupindex.keys())
+        if not valid_prefix:
+            raise ValidationError('all External regexp groups should start with %s or %s prefix' %
+                                  (GROUP_METRIC_RE_PREFIX, GROUP_METRIC_RE_PREFIX))
+
+        with_metric_perfix = len(
+            [k for k in self._regexp.groupindex.keys() if k.startswith(GROUP_METRIC_RE_PREFIX)])
+        if with_metric_perfix < 1:
+            raise ValidationError('External regexp requires at least on group with %s prefix' %
+                                  GROUP_METRIC_RE_PREFIX)
+
     def start(self):
         self._thread = threading.Thread(target=self.measure, daemon=False)
         self._process = None
-        self._regexp = re.compile(self.regexp)
         self._metrics = []
         self._thread.start()
 
@@ -108,7 +127,7 @@ class External:
                 if not match:
                     continue
 
-                # Generate many matrics based on regexp results.
+                # Generate many metrics based on regexp results.
                 labels = dict(self.labels)
                 values = {}
                 found = match.groupdict()
@@ -168,9 +187,9 @@ class MultiExternal:
     - ``values``: **List[Str]**
 
         Regexp to parse output from external process.
-        Has to containt "METRIC_" prefixed group to indicate location of value and suffix
+        Has to contain "METRIC_" prefixed group to indicate location of value and suffix
         that will be added to metric_base_name.
-        May containt "LABEL_" prefixed group to indicate location of value of label.
+        May contains "LABEL_" prefixed group to indicate location of value of label.
 
 
     Rest of arguments is described in ``External`` object above.
