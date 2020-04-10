@@ -36,8 +36,6 @@ from wca.extra import numa_allocator
 from wca import security
 
 REGISTERED_COMPONENTS = [
-    external.External,
-    external.MultiExternal,
     measurement.MeasurementRunner,
     allocation.AllocationRunner,
     detection.DetectionRunner,
@@ -55,6 +53,8 @@ REGISTERED_COMPONENTS = [
     static_allocator.StaticAllocator,
     security.SSL,
     measurement.TaskLabelRegexGenerator,
+    external.External,
+    external.MultiExternal,
 ]
 
 
