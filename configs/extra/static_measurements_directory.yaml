@@ -1,19 +1,6 @@
 runner: !MeasurementRunner
-  interval: 1.0
   node: !StaticNode
     tasks: []
-    # Will look for tasks in /sys/fs/cgroup/cpu/docker/[task_ids]
+    # Will look for tasks(dynamic cgroups) in /sys/fs/cgroup/cpu/docker/[task_ids]
     directory: docker
-  metrics_storage: !LogStorage
-    output_filename: metrics.prom
-    overwrite: true
-  externals:
-    - !MultiExternal
-        key: INSTANCE
-        values: ['1','2']
-        args: ['docker', 'logs', '-f', '--tail=0', 'mutilate-stress-INSTANCE']
-        metric_base_name: memcached_
-        regexp: '^(?P<LABEL_type>\S+)\s+(?P<METRIC_latency_us_avg>\d+\.\d+)\s+(?P<METRIC_latency_us_min>\d+\.\d+)\s+(?P<METRIC_latency_us_1st>\d+\.\d+)\s+(?P<METRIC_latency_us_5th>\d+\.\d+)\s+(?P<METRIC_latency_us_10th>\d+\.\d+)\s+(?P<METRIC_latency_us_90th>\d+\.\d+)\s+(?P<METRIC_latency_us_95th>\d+\.\d+)\s+(?P<METRIC_latency_us_99th>\d+\.\d+)\s+(?P<METRIC_qps>\d+\.\d+)\s+(?P<METRIC_target>\d+)$'
-        labels: {'stress_id': 'INSTANCE'}
-        restart_delay: 60
     
