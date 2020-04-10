@@ -566,8 +566,8 @@ For example: if ``External(args=['foo','barBAZbar'], ...)`` is wrapped by ``Mult
 with ``key: 'BAZ'`` and ``values: ['_first_', '_second_']``, then ``MultiExternal`` will create 
 and manage two ``External`` objects:
 
-- External(args=['foo','bar_first_bar'], ...)
-- External(args=['foo','bar_second_bar'], ...)
+- ``External(args=['foo','bar_first_bar'], ...)``
+- ``External(args=['foo','bar_second_bar'], ...)``
 
 Metrics gathered from ``MultiExternal`` is an union of all metrics from all the ``External`` 
 objects.
