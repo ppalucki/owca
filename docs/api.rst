@@ -525,7 +525,7 @@ then regexp should look like this:
 
 When configured as ``metric_base_name: foo``, will generate metric
 
-``Metric(name='foo_qps', labels={'operation':'load', value=132)``
+``Metric(name='foo_qps', labels={'operation':'read', value=132)``
 
 or
 
@@ -558,25 +558,24 @@ MultiExternal
 =============
 
 
-MultiExternal is helper over External object to generate many indentical External objects
-which values of "args", "labels" and "regexp" or "metric_base_name" will be templated
-by provided "key" and its values.
+MultiExternal is helper over External object to generate many indentical ``External`` objects
+where values of "args", "labels" and "regexp" or "metric_base_name" will be templated
+by provided ``key`` and its ``values``.
 
-For example:
+For example: if ``External(args=['foo','barBAZbar'], ...)`` is wrapped by ``MultiExternal`` 
+with ``key: 'BAZ'`` and ``values: ['_first_', '_second_']``, then ``MultiExternal`` will create 
+and manage two ``External`` objects:
 
-if External(args=['foo','barBAZbar'], ...) and wrapped by MultiExternal with
-``key``='BAZ' and ``values``=['_first_', '_second_'] effectively it will create two
-External objects:
+- External(args=['foo','bar_first_bar'], ...)
+- External(args=['foo','bar_second_bar'], ...)
 
-External(args=['foo','bar_first_bar'], ...)
-External(args=['foo','bar_second_bar'], ...)
-
-and gather metrics from all.
+Metrics gathered from ``MultiExternal`` is an union of all metrics from all the ``External`` 
+objects.
 
 
 - ``key``: **Str**
 
-    The value of string, to be replaced by ``values``
+    The value of string, to be replaced by ``values`` (e.g. field.replace(key, value))
 
 - ``values``: **List[Str]**
 
