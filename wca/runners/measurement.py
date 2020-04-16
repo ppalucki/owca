@@ -168,12 +168,12 @@ class MeasurementRunner(Runner):
 
     - ``zoneinfo``: **Union[Str, bool]** = *True*
 
-        True means use the sane default.
-        False means disable the collection.
-        If string is provided it is regexp to extract information from /proc/zoneinfo
-        (only matching regexp will be collected, with key from frist group and value from
-        second group).
-        (default value can parse values like "nr_pages 1234" *\\s+([a-z_]+)\\s+(\\d+)*)
+        By default when zoneinfo is enabled, all the metrics matching to '{name} {value}'
+        will be collected.  False means disable the collection.
+
+        If string is provided it will be used as regexp to extract information from /proc/zoneinfo
+        (only matching regexp will be collected). Regexp should contains two groups. When zoneinfo
+        is True default value for this regexp can parse values like "nr_pages 1234".
     """
 
     def __init__(
