@@ -45,7 +45,7 @@ class External:
 
     ``qps read 123``
 
-    and we want to extract: ``qps`` as suffix, ``read`` as label and ``123`` as value, 
+    and we want to extract: ``qps`` as suffix, ``read`` as label and ``123`` as value,
     then regexp should look like this:
 
     ``(\\S+) (?P<LABEL_operation) (?P<METRIC_qps>)``
@@ -55,7 +55,7 @@ class External:
     ``Metric(name='foo_qps', labels={'operation':'read', value=132)``
 
     or
-    
+
     ``foo_qps{operation="load"} 132.0``
 
 
@@ -176,14 +176,14 @@ class MultiExternal:
     where values of "args", "labels" and "regexp" or "metric_base_name" will be templated
     by provided ``key`` and its ``values``.
 
-    For example: if ``External(args=['foo','barBAZbar'], ...)`` is wrapped by ``MultiExternal`` 
-    with ``key: 'BAZ'`` and ``values: ['_first_', '_second_']``, then ``MultiExternal`` will create 
+    For example: if ``External(args=['foo','barBAZbar'], ...)`` is wrapped by ``MultiExternal``
+    with ``key: 'BAZ'`` and ``values: ['_first_', '_second_']``, then ``MultiExternal`` will create
     and manage two ``External`` objects:
 
     - ``External(args=['foo','bar_first_bar'], ...)``
     - ``External(args=['foo','bar_second_bar'], ...)``
 
-    Metrics gathered from ``MultiExternal`` is an union of all metrics from all the ``External`` 
+    Metrics gathered from ``MultiExternal`` is an union of all metrics from all the ``External``
     objects.
 
 
