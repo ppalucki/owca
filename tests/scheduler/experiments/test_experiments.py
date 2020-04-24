@@ -317,12 +317,12 @@ def test_experiment_full(task_scale=1, cluster_scale=1):
             # (BAR, dict(dimensions=DIM2)),
             (HierBAR, dict(dimensions=DIM2, alias='HierBAR-2D')),
             (HierBAR, dict(dimensions=DIM2, alias='HierBAR-4D')),
-            (LeastUsedBAR, dict(alias='Kubernetes', dimensions=DIM2)),  # noqa
-            (LeastUsedBAR, dict(alias='BAR__LU_OFF', dimensions=DIM4, least_used_weight=0)),   # noqa
-            (LeastUsedBAR, dict(alias='BAR__LU_ON__WEIGHTS_EQUAL', dimensions=DIM4, least_used_weight=1)),  # noqa
-            (LeastUsedBAR, dict(alias='BAR__LU_ON__WEIGHTS_UNEQUAL', dimensions=DIM4, least_used_weight=1, bar_weights={MEM: 0.5})),  # noqa
+            (LeastUsedBAR, dict(alias='Kubernetes-2D', dimensions=DIM2)),  # noqa
+            # (LeastUsedBAR, dict(alias='BAR__LU_OFF', dimensions=DIM4, least_used_weight=0)),   # noqa
+            # (LeastUsedBAR, dict(alias='BAR__LU_ON__WEIGHTS_EQUAL', dimensions=DIM4, least_used_weight=1)),  # noqa
+            (LeastUsedBAR, dict(alias='BAR-4D-memory-focused', dimensions=DIM4, least_used_weight=1, bar_weights={MEM: 0.5})),  # noqa
             # (Score, dict(dimensions=dim)),
-            (LeastUsedBARScore, dict(dimensions=DIM4, alias='current_score_CPUnorm', strict_mode_placement=True, data_provider_args=dict(normalization_dimension=CPU))),
-            (LeastUsedBARScore, dict(dimensions=DIM4, alias='current_score_MEMnorm', strict_mode_placement=True, data_provider_args=dict(normalization_dimension=MEM)))
+            (LeastUsedBARScore, dict(dimensions=DIM4, alias='current_score_CPUnorm', strict_mode_placement=False, data_provider_args=dict(normalization_dimension=CPU))),
+            (LeastUsedBARScore, dict(dimensions=DIM4, alias='current_score_MEMnorm', strict_mode_placement=False, data_provider_args=dict(normalization_dimension=MEM)))
         ],
     )
