@@ -35,9 +35,9 @@ from wca.scheduler.types import WSS, MEM, CPU, MEMBW_WRITE, MEMBW_READ
 
 log = logging.getLogger(__name__)
 
+DIM2 = {CPU, MEM}
 DIM5 = {CPU, MEM, MEMBW_READ, MEMBW_WRITE, WSS}
 DIM4 = {CPU, MEM, MEMBW_READ, MEMBW_WRITE}
-DIM2 = {CPU, MEM}
 
 
 @pytest.mark.scheduler_simulator
@@ -288,49 +288,37 @@ def test_experiment_full(task_scale=1, cluster_scale=1):
     dim = DIM4
     experiments_iterator(
         'full',
-        [{}],
-        [30 * task_scale],
         [
-            (TaskGeneratorEqual,
-             dict(task_definitions=TASKS_3TYPES, replicas=10 * task_scale, dimensions=dim)),
-            (TaskGeneratorClasses, dict(task_definitions=TASKS_3TYPES,
-                                        counts=dict(mbw=3 * task_scale, cpu=12 * task_scale,
-                                                    mem=15 * task_scale), dimensions=dim)),
-            (TaskGeneratorClasses, dict(task_definitions=TASKS_3TYPES,
-                                        counts=dict(mbw=20 * task_scale, cpu=5 * task_scale,
-                                                    mem=5 * task_scale), dimensions=dim)),
-            (TaskGeneratorClasses, dict(task_definitions=TASKS_3TYPES,
-                                        counts=dict(mbw=30 * task_scale, cpu=0 * task_scale,
-                                                    mem=0 * task_scale), dimensions=dim)),
-            (TaskGeneratorClasses, dict(task_definitions=TASKS_3TYPES,
-                                        counts=dict(mbw=0 * task_scale, cpu=0 * task_scale,
-                                                    mem=30 * task_scale), dimensions=dim)),
+            dict(retry_scheduling=True, data_provider_args=dict(normalization_dimension=CPU)),
+            # dict(retry_scheduling=True, data_provider_args=dict(normalization_dimension=MEM)),
+        ],
+        [60 * task_scale],
+        [
+            (TaskGeneratorEqual,   dict(task_definitions=TASKS_3TYPES, replicas=10 * task_scale, dimensions=dim)),  # noqa
+            (TaskGeneratorClasses, dict(task_definitions=TASKS_3TYPES, counts=dict(mbw= 3 * task_scale, cpu=12 * task_scale, mem=15 * task_scale), dimensions=dim)),  # noqa
+            (TaskGeneratorClasses, dict(task_definitions=TASKS_3TYPES, counts=dict(mbw=20 * task_scale, cpu= 5 * task_scale, mem= 5 * task_scale), dimensions=dim)),  # noqa
+            (TaskGeneratorClasses, dict(task_definitions=TASKS_3TYPES, counts=dict(mbw=30 * task_scale, cpu= 0 * task_scale, mem= 0 * task_scale), dimensions=dim)),  # noqa
+            (TaskGeneratorClasses, dict(task_definitions=TASKS_3TYPES, counts=dict(mbw= 0 * task_scale, cpu= 0 * task_scale, mem=30 * task_scale), dimensions=dim)),  # noqa
         ],
         [
-            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=0, dram=6 * cluster_scale),
-                          dim),
-            prepare_nodes(NODES_DEFINITIONS_2TYPES,
-                          dict(aep=2 * cluster_scale, dram=6 * cluster_scale), dim),
-            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=0, dram=8 * cluster_scale),
-                          dim),
-            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=cluster_scale, dram=cluster_scale),
-                          dim, ),
+            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=0 * cluster_scale, dram=8 * cluster_scale), dim),  # noqa
+            prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=2 * cluster_scale, dram=8 * cluster_scale), dim),  # noqa
+            # prepare_nodes(NODES_DEFINITIONS_2TYPES, dict(aep=cluster_scale, dram=cluster_scale), dim, ),       # noqa
         ],
         [
             (NOPAlgorithm, {}),
             (Fit, dict(dimensions=DIM2)),
             (Fit, dict(dimensions=DIM4)),
+            # (Fit, dict(dimensions=DIM5)),
             (LeastUsed, dict(dimensions=DIM2)),
             (LeastUsed, dict(dimensions=DIM4)),
+            # (LeastUsed, dict(dimensions=DIM5)),
             (BAR, dict(dimensions=DIM2)),
             (HierBAR, dict(dimensions=DIM2)),
-            (LeastUsedBAR,
-             dict(alias='kubernetes_baseline', dimensions={CPU, MEM})),
-            (LeastUsedBAR, dict(alias='BAR__LU_OFF', dimensions=DIM4, least_used_weight=0)),
-            (LeastUsedBAR,
-             dict(alias='BAR__LU_ON__WEIGHTS_EQUAL', dimensions=DIM4, least_used_weight=1)),
-            (LeastUsedBAR,
-             dict(alias='BAR__LU_ON__WEIGHTS_UNEQUAL', dimensions=DIM4, least_used_weight=1,
-                  bar_weights={MEM: 0.5})),
+            (LeastUsedBAR, dict(alias='kubernetes_baseline', dimensions=DIM2)),  # noqa
+            # (LeastUsedBAR, dict(alias='BAR__LU_OFF', dimensions=DIM4, least_used_weight=0)),   # noqa
+            (LeastUsedBAR, dict(alias='BAR__LU_ON__WEIGHTS_EQUAL', dimensions=DIM4, least_used_weight=1)),  # noqa
+            (LeastUsedBAR, dict(alias='BAR__LU_ON__WEIGHTS_UNEQUAL', dimensions=DIM4, least_used_weight=1, bar_weights={MEM: 0.5})),  # noqa
+            (Score, dict(dimensions=dim)),
         ],
     )
