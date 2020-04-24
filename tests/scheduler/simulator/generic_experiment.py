@@ -107,7 +107,8 @@ def perform_one_experiment(
 
     # Back reference between data proxy and simulator.
     only_simulator_args = dict(simulator_args)
-    data_provider_args = only_simulator_args.pop('data_provider_args', {})
+    data_provider_args = only_simulator_args.pop('data_provider_args',
+                                                 algorithm_args.pop('data_provider_args', {}))
     simulator = ClusterSimulator(tasks=[], nodes=nodes, algorithm=None, **only_simulator_args)
     data_proxy = ClusterSimulatorDataProvider(simulator, **data_provider_args)
     simulator.algorithm = algorithm_class(data_provider=data_proxy, **algorithm_args)

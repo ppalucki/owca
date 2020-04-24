@@ -206,7 +206,7 @@ def generate_subexperiment_report(
     stats['TASKS'] = str(task_gen)  # sum(total_tasks_dict.values())
     stats['NODES'] = '%s(%s)' % (total_nodes, nodes_info)
     stats['ALGO'] = str(algorithm)
-    stats['balance'] = 1 - util_var
+    stats['balance%'] = (1 - util_var) * 100
 
     for rt, value in last_iteration_resource_usage_data.items():
         stats['%s_util%%' % rt.value] = value * 100
@@ -335,20 +335,22 @@ def generate_experiment_report(stats_dicts, exp_dir):
     pd.set_option('display.width', 200)
     df = pd.DataFrame(stats_dicts)
     output = df.to_string(formatters={
-        'balance': '{:,.2f}'.format,
-        'assigned_broken%': '{:,.0f}%'.format,
-        'assigned%': '{:,.0f}%'.format,
-        'cpu_util(AEP)%': '{:,.0f}%'.format,
-        'mem_util(AEP)%': '{:,.0f}%'.format,
-        'bw_util(AEP)%': '{:,.0f}%'.format,
-        'cpu_util%': '{:,.0f}%'.format,
-        'mem_util%': '{:,.0f}%'.format,
-        'bw_util%': '{:,.0f}%'.format,
+        'balance%': '{:,.0f}'.format,
+        'assigned_broken%': '{:,.0f}'.format,
+        'assigned%': '{:,.0f}'.format,
+        'cpu_util(AEP)%': '{:,.0f}'.format,
+        'mem_util(AEP)%': '{:,.0f}'.format,
+        'membw_read_util(AEP)%': '{:,.0f}'.format,
+        'membw_write_util(AEP)%': '{:,.0f}'.format,
+        'membw_read_util%': '{:,.0f}'.format,
+        'membw_write_util%': '{:,.0f}'.format,
+        'cpu_util%': '{:,.0f}'.format,
+        'mem_util%': '{:,.0f}'.format,
         'scheduled': '{:,.0f}'.format,
         'util_var_avg': '{:,.0%}'.format,
         'util_avg_var': '{:,.0%}'.format,
         'util_var': '{:,.0%}'.format,
-        'utilization%': '{:,.0f}%'.format,
+        'utilization%': '{:,.0f}'.format,
     })
     print(output, file=open(os.path.join(exp_dir, 'summary.txt'), 'w'))
     print(output)
@@ -371,9 +373,7 @@ def generate_experiment_report(stats_dicts, exp_dir):
             )
         )
 
-    p('utilization%', 'Average')
-    p('balance', 'Average')
-    p('broken%', 'Average')
+    p('assigned_broken%', 'Maximum')
 
 
 def wrapper_iteration_finished_callback(iterations_data: List[IterationData]):
