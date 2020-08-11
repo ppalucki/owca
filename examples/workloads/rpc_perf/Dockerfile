@@ -23,6 +23,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
 
 RUN yum install -y gcc git make wget patch
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl https://sh.rustup.rs -sSf | \
     sh -s -- --default-toolchain $RUST_VERSION -y
 

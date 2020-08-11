@@ -11,12 +11,14 @@ images:
   newTag: latest
 
 configMapGenerator:
-  - name: wca-scheduler-server
-    files:
-      - wca-scheduler-server.conf
   - name: wca-scheduler-config
     files:
       - config.yaml
   - name: wca-scheduler-env
     literals:
       - config_file=config.yaml
+
+secretGenerator:
+- name: wca-scheduler-server-conf
+  files:
+    - wca-scheduler-server.conf

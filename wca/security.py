@@ -198,22 +198,10 @@ class SSL:
 
 
 SECURE_CIPHERS = ':'.join([
-    #   Commented algorithms are not supported in Centos7
     'ECDHE-ECDSA-AES128-GCM-SHA256',
-    'ECDHE-RSA-AES128-GCM-SHA256',
-    'DHE-RSA-AES128-GCM-SHA256',
-    #   'ECDHE-ECDSA-AES128-CCM',
     'ECDHE-ECDSA-AES128-SHA256',
+    'ECDHE-RSA-AES128-GCM-SHA256',
     'ECDHE-RSA-AES128-SHA256',
-    #   'ECDHE-ECDSA-AES256-CCM',
-    #   'DHE-RSA-AES128-CCM',
-    'DHE-RSA-AES128-SHA256',
-    #   'DHE-RSA-AES256-CCM',
-    'DHE-RSA-AES256-SHA256',
-    'DHE-DSS-AES128-GCM-SHA256',
-    'DHE-DSS-AES128-SHA256',
-    'DHE-DSS-AES256-SHA256',
-    #   '@SECLEVEL=2',
     ])
 
 # Disable unsecure protocols.

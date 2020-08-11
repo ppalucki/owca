@@ -19,9 +19,8 @@ RUN yum -y update
 RUN yum -y install epel-release
 RUN yum -y install python36 python-pip python36-pip which make git mysql
 
-RUN pip3 install mysql-connector-python
+RUN pip3 install mysql-connector-python==8.0.19
 
 WORKDIR /mysql-tpm-gauge
 
 COPY mysql_tpm_gauge.py .
-#COPY /dist/mysql_tpm_gauge_wrapper.pex /usr/bin/

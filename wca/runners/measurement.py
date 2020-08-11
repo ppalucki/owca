@@ -161,6 +161,11 @@ class MeasurementRunner(Runner):
         (defaults to 0, which means that metric is not collected, e.g. when set to 1
         ``clear_refs`` will be reset every measurement iteration defined by ``interval`` option.)
 
+    - ``wss_stable_duration``: **int** = *30*
+
+        Number of stable cycles after which wss is considered stable. Will not have any impact
+        unless wss_reset_interval is greater than 0
+
     - ``include_optional_labels``: **bool** = *False*
 
         Attach following labels to all metrics:
@@ -191,9 +196,9 @@ class MeasurementRunner(Runner):
             task_label_generators: Optional[Dict[str, TaskLabelGenerator]] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
             wss_reset_interval: int = 0,
+            wss_stable_duration: int = 30,
             include_optional_labels: bool = False,
             zoneinfo: Union[Str, bool] = True,
-
     ):
 
         self._node = node
@@ -243,6 +248,7 @@ class MeasurementRunner(Runner):
         self._task_label_generators = task_label_generators or {}
 
         self._wss_reset_interval = wss_reset_interval
+        self._wss_stable_duration = wss_stable_duration
 
         self._uncore_pmu = None
 
@@ -383,6 +389,7 @@ class MeasurementRunner(Runner):
             event_names=self._event_names,
             enable_derived_metrics=self._enable_derived_metrics,
             wss_reset_interval=self._wss_reset_interval,
+            wss_stable_duration=self._wss_stable_duration,
             perf_aggregate_cpus=self._perf_aggregate_cpus
         )
 

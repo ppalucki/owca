@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: cadvisor
+  namespace: cadvisor
+  labels:
+    name: cadvisor
+spec:
+  selector:
+    name: cadvisor
+  ports:
+    - name: cadvisor
+      port: 9101
+      targetPort: 9101

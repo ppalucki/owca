@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from typing import Iterable, Dict, Tuple
+from typing import Iterable, Dict, Tuple, List
 
 from wca.scheduler.algorithms.base import divide_resources, calculate_read_write_ratio
 from wca.scheduler.algorithms.hierbar import _calc_average_resources
@@ -67,7 +67,7 @@ def _calculate_score_for_apps(app_requested_resources, dimensions, node_capaciti
                                for app, app_profile
                                in app_profile_norm_by_resource.items()}
 
-    # and calculate score accroding following formula:
+    # and calculate score according to following formula:
     # MEM - max(BW_READ, BW_WRITE, WSS)
     if normalization_dimension == CPU:
         def score(r):
@@ -79,7 +79,7 @@ def _calculate_score_for_apps(app_requested_resources, dimensions, node_capaciti
         def score(r):
             negatives = [r[d] for d in [CPU, MEMBW_READ, MEMBW_WRITE, WSS] if d in r]
             negative = max(negatives) if negatives else 0
-            return -negative
+            return negative
     else:
         def score(_):
             return 0
@@ -90,7 +90,7 @@ def _calculate_score_for_apps(app_requested_resources, dimensions, node_capaciti
 
 class ClusterSimulatorDataProvider(ClusterScoreDataProvider):
 
-    def __init__(self, simulator: ClusterSimulator, normalization_dimension: ResourceType = CPU):
+    def __init__(self, simulator: ClusterSimulator, normalization_dimension: ResourceType = MEM):
         self.simulator = simulator
         self.normalization_dimension = normalization_dimension
 
@@ -155,3 +155,7 @@ class ClusterSimulatorDataProvider(ClusterScoreDataProvider):
     def get_dram_hit_ratio(self) -> Dict[NodeName, float]:
         """Returns dram_hit_ratio for node"""
         return defaultdict(lambda: 1)
+
+    def get_pmem_nodes(self) -> List[NodeName]:
+        """Returns Memory Mode nodes in cluster"""
+        return []

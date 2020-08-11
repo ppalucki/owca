@@ -13,13 +13,16 @@
 # limitations under the License.
 
 import logging
+from copy import deepcopy
 from typing import Tuple, List
 
 from wca.metrics import Metric
 from wca.scheduler.algorithms import DataMissingException, RescheduleResult
 from wca.scheduler.algorithms.base import (
-        BaseAlgorithm, sum_resources, used_free_requested,
-        QueryDataProviderInfo, enough_resources_on_node)
+    BaseAlgorithm, sum_resources, used_free_requested,
+    QueryDataProviderInfo, enough_resources_on_node, DEFAULT_DIMENSIONS)
+from wca.scheduler.data_providers import DataProvider
+from wca.scheduler.types import ResourceType
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +35,7 @@ def app_fits(node_name, app_name, dimensions, nodes_capacities,
                             nodes_capacities, assigned_apps, apps_spec)
     metrics.extend(metrics)
 
-    # SUBTRACT: "free" after simulated assigment of requested
+    # SUBTRACT: "free" after simulated assignment of requested
     try:
         requested_and_used = sum_resources(requested, used)
     except ValueError as e:
@@ -63,11 +66,28 @@ class Fit(BaseAlgorithm):
        Supporting any number of dimensions.
        Treats MEMBW_READ and MEMBW_WRITE differently than other dimensions."""
 
+    def __init__(self, data_provider: DataProvider,
+                 dimensions: List[ResourceType] = DEFAULT_DIMENSIONS,
+                 max_node_score: float = 10.0,
+                 alias: str = None,
+                 cpu_scale_factor: float = 1.0):
+        BaseAlgorithm.__init__(self, data_provider, dimensions, max_node_score, alias)
+        self.cpu_scale_factor = cpu_scale_factor
+        self.pmem_nodes = self.data_provider.get_pmem_nodes()
+
     def app_fit_node(self, node_name, app_name, data_provider_queried) -> Tuple[bool, str]:
         nodes_capacities, assigned_apps, apps_spec, _ = data_provider_queried
+
+        # Scaling factor for cpu
+        new_nodes_capacities = deepcopy(nodes_capacities)
+        for node in nodes_capacities:
+            if node in self.pmem_nodes:
+                new_nodes_capacities[node][ResourceType.CPU] = \
+                    nodes_capacities[node][ResourceType.CPU] * self.cpu_scale_factor
+
         fits, message, metrics = app_fits(
             node_name, app_name, self.dimensions,
-            nodes_capacities, assigned_apps, apps_spec)
+            new_nodes_capacities, assigned_apps, apps_spec)
         self.metrics.extend(metrics)
         return fits, message
 

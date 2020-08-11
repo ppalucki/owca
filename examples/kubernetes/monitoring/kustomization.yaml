@@ -5,6 +5,7 @@ bases:
 - wca
 - kube-state-metrics
 - dashboard
+- cadvisor
 
 resources:
 - kube-system/service_monitor.yaml

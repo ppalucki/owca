@@ -287,7 +287,7 @@ class Cgroup:
             with open(os.path.join(self.cgroup_cpu_fullpath, file)) as file:
                 return list(file.read().splitlines())
         except FileNotFoundError:
-            log.debug('Soft warning: cgroup disappeard during sync, ignore it.')
+            log.debug('Soft warning: cgroup disappeared during sync, ignore it.')
             return []
 
     def set_shares(self, normalized_shares: float):

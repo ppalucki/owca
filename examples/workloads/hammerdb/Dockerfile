@@ -34,6 +34,7 @@ RUN wget https://repo.mysql.com/yum/mysql-5.7-community/el/7/x86_64/mysql-commun
 RUN yum install -y mysql-community-client-5.7.24-1.el7.x86_64.rpm
 
 RUN echo 'export LD_LIBRARY_PATH=/usr/lib64/mysql/' >> ~/.bashrc
+# hadolint ignore=SC2039
 RUN source ~/.bashrc
 
 RUN wget -O /HammerDB-3.2.tar.gz https://sourceforge.net/projects/hammerdb/files/HammerDB/HammerDB-3.2/HammerDB-3.2-Linux.tar.gz/download
@@ -45,4 +46,4 @@ RUN rm proj-4.8.0-4.el7.x86_64.rpm \
     HammerDB-3.2.tar.gz
 
 WORKDIR /HammerDB-3.2
-ENTRYPOINT ./hammerdbcli auto
+ENTRYPOINT ["./hammerdbcli auto"]

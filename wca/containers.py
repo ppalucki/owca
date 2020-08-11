@@ -116,6 +116,7 @@ class ContainerSet(ContainerInterface):
                  event_names: List[str] = None,
                  enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
+                 wss_stable_duration: int = 30,
                  perf_aggregate_cpus: bool = True
                  ):
         self._cgroup_path = cgroup_path
@@ -141,8 +142,12 @@ class ContainerSet(ContainerInterface):
                 event_names=event_names,
                 enable_derived_metrics=enable_derived_metrics,
                 wss_reset_interval=wss_reset_interval,
+                wss_stable_duration=wss_stable_duration,
                 perf_aggregate_cpus=perf_aggregate_cpus
             )
+
+    def get_subcontainers(self):
+        return self._subcontainers.values()
 
     def reset_counters(self):
         for container in self._subcontainers.values():
@@ -181,16 +186,8 @@ class ContainerSet(ContainerInterface):
 
     def get_measurements(self) -> Measurements:
         measurements = dict()
-
         # Merge cgroup and perf_counters measurements. As we set rdt_enabled to False
         #   for subcontainers, it will ignore rdt measurements.
-        measurements_list: List[Measurements] = [container.get_measurements()
-                                                 for container in
-                                                 self._subcontainers.values()]
-
-        merged_measurements = merge_measurements(measurements_list)
-        measurements.update(merged_measurements)
-
         # Resgroup management is entirely done in this class.
         if self._platform.rdt_information and \
                 self._platform.rdt_information.is_monitoring_enabled():
@@ -201,6 +198,15 @@ class ContainerSet(ContainerInterface):
                     self._name,
                     self._platform.rdt_information.rdt_mb_monitoring_enabled,
                     self._platform.rdt_information.rdt_cache_monitoring_enabled))
+
+        merged_measurements = []
+        for container in self.get_subcontainers():
+            container.parent_measurements = measurements
+            merged_measurements.append(container.get_measurements())
+
+        merged_measurements = merge_measurements(
+            [container.get_measurements() for container in self.get_subcontainers()])
+        measurements.update(merged_measurements)
 
         return measurements
 
@@ -263,7 +269,9 @@ class Container(ContainerInterface):
                  event_names: List[MetricName] = None,
                  enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
-                 perf_aggregate_cpus: bool = True
+                 wss_stable_duration: int = 30,
+                 perf_aggregate_cpus: bool = True,
+                 interval: int = 5
                  ):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
@@ -273,6 +281,7 @@ class Container(ContainerInterface):
         self._resgroup = resgroup
         self._event_names = event_names
         self._perf_aggregate_cpus = perf_aggregate_cpus
+        self.parent_measurements = None
 
         self._cgroup = cgroups.Cgroup(
             cgroup_path=self._cgroup_path,
@@ -280,7 +289,7 @@ class Container(ContainerInterface):
             allocation_configuration=allocation_configuration)
 
         if wss_reset_interval > 0:
-            self.wss = wss.WSS(self.get_pids, wss_reset_interval)
+            self.wss = wss.WSS(self.get_pids, wss_reset_interval, interval, wss_stable_duration)
         else:
             self.wss = None
 
@@ -364,7 +373,10 @@ class Container(ContainerInterface):
             rdt_measurements = {}
 
         if self.wss:
-            wss_measurements = self.wss.get_measurements()
+            if self._resgroup:
+                wss_measurements = self.wss.get_measurements(rdt_measurements)
+            else:
+                wss_measurements = self.wss.get_measurements(self.parent_measurements)
         else:
             wss_measurements = {}
 
@@ -402,7 +414,9 @@ class ContainerManager:
                  allocation_configuration: Optional[AllocationConfiguration],
                  event_names: List[str], enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
+                 wss_stable_duration: int = 30,
                  perf_aggregate_cpus: bool = True,
+                 interval: int = 5
                  ):
         self.containers: Dict[Task, ContainerInterface] = {}
         self._platform = platform
@@ -410,7 +424,9 @@ class ContainerManager:
         self._event_names = event_names
         self._enable_derived_metrics = enable_derived_metrics
         self._wss_reset_interval = wss_reset_interval
+        self._wss_stable_duration = wss_stable_duration
         self._perf_aggregate_cpus = perf_aggregate_cpus
+        self._interval = interval
 
     def _create_container(self, task: Task) -> ContainerInterface:
         """Check whether the task groups multiple containers,
@@ -425,6 +441,7 @@ class ContainerManager:
                 event_names=self._event_names,
                 enable_derived_metrics=self._enable_derived_metrics,
                 wss_reset_interval=self._wss_reset_interval,
+                wss_stable_duration=self._wss_stable_duration,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
             )
         else:
@@ -435,9 +452,11 @@ class ContainerManager:
                 event_names=self._event_names,
                 enable_derived_metrics=self._enable_derived_metrics,
                 wss_reset_interval=self._wss_reset_interval,
-                perf_aggregate_cpus=self._perf_aggregate_cpus
+                wss_stable_duration=self._wss_stable_duration,
+                perf_aggregate_cpus=self._perf_aggregate_cpus,
+                interval=self._interval
             )
-        # Every initialization aor reinitializaiotn should reset managed counters.
+        # Every initialization aor reinitialization should reset managed counters.
         container.reset_counters()
         return container
 

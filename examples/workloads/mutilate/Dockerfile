@@ -23,7 +23,7 @@ RUN yum install -y wget git which && \
     yum install -y gcc-c++ libevent-devel
 
 RUN git clone https://github.com/leverich/mutilate.git
-WORKDIR mutilate
+WORKDIR /mutilate
 RUN scons
 
 COPY /dist/mutilate_wrapper.pex /usr/bin/mutilate_wrapper.pex

@@ -8,5 +8,5 @@ spec:
       app: wca-scheduler
   podMetricsEndpoints:
     - path: /metrics
-      port: wca-scheduler
+      port: scheduler-http
       interval: 1s

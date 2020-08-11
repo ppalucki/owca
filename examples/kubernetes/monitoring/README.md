@@ -66,9 +66,25 @@ https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/cre
 
 **Dashboard**  is exposed at: https://worker-node:6443/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#
 
-**Prometheus** is exposed at: http://worker-node:30900/graph
+**Prometheus** can be exposed by kubectl proxy
+`kubectl port-forward --namespace prometheus service/prometheus 8090:9090`.
+It will be available at: `localhost:8090`.
 
-**Grafana** is exposed at: http://worker-node:32135
+**Grafana** can be exposed by kubectl proxy
+`kubectl port-forward --namespace grafana deployment/grafana 8091:3000`.
+It will be available at: `localhost:8091`.
+
+For debug purpose, it might be usefully exposed this service as NodePort. An example is below. It is not recommended for production deployment.
+```
+kubectl expose pod prometheus-prometheus-0 --type=NodePort --port=9090 --name=prometheus-nodeport-service --namespace prometheus
+kubectl patch service prometheus-nodeport-service --namespace=prometheus --type='json' --patch='[
+{"op": "replace", "path": "/spec/ports/0/nodePort", "value":30900}]'
+
+kubectl expose deployment grafana --type=NodePort --port=3000 --name=grafana-nodeport-service --namespace grafana
+kubectl patch service grafana-nodeport-service  --namespace=grafana --type='json' --patch='[
+{"op": "replace", "path": "/spec/ports/0/nodePort", "value":32135}]'
+```
+
 Log in using default credentials:
 ``
 user: admin``,

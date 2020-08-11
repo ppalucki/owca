@@ -200,6 +200,14 @@ class ResGroup:
             else:
                 log.debug("Directory: {} already removed. Ignoring!".format(dir_to_remove))
 
+    def get_socket_dirs(self, mongroup_name):
+        return os.listdir(os.path.join(self.fullpath, MON_GROUPS,
+                                       mongroup_name, MON_DATA))
+
+    def get_event_file(self, socket_dir, event_name, mongroup_name):
+        return os.path.join(self.fullpath, MON_GROUPS, mongroup_name,
+                            MON_DATA, socket_dir, event_name)
+
     def get_measurements(self, mongroup_name, mb_monitoring_enabled,
                          cache_monitoring_enabled) -> Measurements:
         """
@@ -215,22 +223,20 @@ class ResGroup:
         mbm_local = 0
         llc_occupancy = 0
 
-        def _get_event_file(socket_dir, event_name):
-            return os.path.join(self.fullpath, MON_GROUPS, mongroup_name,
-                                MON_DATA, socket_dir, event_name)
-
         # Iterate over sockets to gather data:
         try:
-            for socket_dir in os.listdir(os.path.join(self.fullpath,
-                                                      MON_GROUPS, mongroup_name, MON_DATA)):
+            for socket_dir in self.get_socket_dirs(mongroup_name):
                 if mb_monitoring_enabled:
-                    with open(_get_event_file(socket_dir, MBM_TOTAL)) as mbm_total_file:
+                    with open(self.get_event_file(socket_dir, MBM_TOTAL,
+                                                  mongroup_name)) as mbm_total_file:
                         mbm_total += int(mbm_total_file.read())
-                    with open(_get_event_file(socket_dir, MBM_LOCAL)) as mbm_local_file:
+                    with open(self.get_event_file(socket_dir, MBM_LOCAL,
+                                                  mongroup_name)) as mbm_local_file:
                         mbm_local += int(mbm_local_file.read())
 
                 if cache_monitoring_enabled:
-                    with open(_get_event_file(socket_dir, LLC_OCCUPANCY)) as llc_occupancy_file:
+                    with open(self.get_event_file(socket_dir, LLC_OCCUPANCY,
+                                                  mongroup_name)) as llc_occupancy_file:
                         llc_occupancy += int(llc_occupancy_file.read())
         except FileNotFoundError as e:
             raise MissingMeasurementException(

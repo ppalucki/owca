@@ -1,0 +1,32 @@
+{
+  "core": {
+    "events": [
+      ["instructions"],
+      ["cycles"],
+      ["offcore_requests.demand_data_rd"],
+      ["offcore_requests.demand_rfo"]
+    ]
+  },
+  "uncore": {
+    "events": [
+      ["uncore_imc/pmm_bandwidth_reads"],
+      ["uncore_imc/pmm_bandwidth_writes"],
+      ["uncore_imc/unc_m_cas_count.rd"],
+      ["uncore_imc/unc_m_cas_count.wr"]
+    ],
+    "custom_events": [
+      {
+        "config": [
+          "0xe3"
+        ],
+        "name": "uncore_imc/pmm_bandwidth_reads"
+      },
+      {
+        "config": [
+          "0xe7"
+        ],
+        "name": "uncore_imc/pmm_bandwidth_writes"
+      }
+    ]
+  }
+}

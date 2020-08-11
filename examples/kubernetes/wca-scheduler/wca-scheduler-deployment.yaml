@@ -1,3 +1,20 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wca-scheduler-service
+spec:
+  selector:
+    app: wca-scheduler
+  ports:
+    - name: wca-scheduler
+      port: 30180
+      targetPort: 30180
+    - name: scheduler-http
+      port: 30181
+      targetPort: 30181
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,7 +33,6 @@ spec:
       labels:
         app: wca-scheduler
     spec:
-      hostNetwork: true
       serviceAccountName: wca-scheduler
       terminationGracePeriodSeconds: 1
       # nodeName: node36
@@ -32,6 +48,7 @@ spec:
       containers:
         - name: wca-scheduler
           image: 100.64.176.12:80/wca-scheduler:latest
+          imagePullPolicy: Always
           envFrom:
           - configMapRef:
               name: wca-scheduler-env
@@ -47,10 +64,7 @@ spec:
 
         - name: nginx
           image: nginx:latest
-          ports:
-            - name: wca-scheduler
-              containerPort: 30180
-              hostPort: 30180
+          imagePullPolicy: Always
           volumeMounts:
             - name: wca-scheduler-socket
               mountPath: /var/run/wca
@@ -64,8 +78,9 @@ spec:
         - name: wca-scheduler-socket
           emptyDir: {}
         - name: wca-scheduler-server
-          configMap:
-            name: wca-scheduler-server 
+          secret:
+            secretName: wca-scheduler-server-conf
+            defaultMode: 0640
         - name: wca-scheduler-config
           configMap:
             name: wca-scheduler-config

@@ -1,0 +1,79 @@
+apiVersion: apps/v1 # for Kubernetes versions before 1.9.0 use apps/v1beta2
+kind: DaemonSet
+metadata:
+  name: cadvisor
+  namespace: cadvisor
+spec:
+  selector:
+    matchLabels:
+      name: cadvisor
+  template:
+    metadata:
+      labels:
+        name: cadvisor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9101"
+    spec:
+      serviceAccountName: cadvisor
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: monitoring
+                  operator: In
+                  values:
+                  - cadvisor
+                  - wca_cadvisor
+      containers:
+      - name: cadvisor
+        image: cadvisor
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: 1
+        args:
+          - --perf_events_config=/etc/config/perf-hmem-cascadelake.json
+          - --v=5
+          # below are metrics disabled by default + metric aggregation over CPU + some metrics not required to limit amount of data
+          - --disable_metrics=referenced_memory,advtcp,process,sched,hugetlb,cpu_topology,resctrl,tcp,udp,percpu,accelerator,disk,diskIO,network
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+        - name: var-run
+          mountPath: /var/run
+        - name: sys
+          mountPath: /sys
+        - name: docker
+          mountPath: /var/lib/docker
+        - name: disk
+          mountPath: /dev/disk
+        - name: perf-volume
+          mountPath: /etc/config/
+        ports:
+          - containerPort: 9101
+            hostPort: 9101
+            protocol: TCP
+      automountServiceAccountToken: false
+      volumes:
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: var-run
+        hostPath:
+          path: /var/run
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: docker
+        hostPath:
+          path: /var/lib/docker
+      - name: disk
+        hostPath:
+          path: /dev/disk
+      - name: perf-volume
+        configMap:
+          name: cadvisor-config

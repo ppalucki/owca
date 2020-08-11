@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cadvisor
+  labels:
+    team: monitoring
+spec:
+  selector:
+    matchLabels:
+      name: cadvisor
+  endpoints:
+  - port: cadvisor
+    # This is a tricky parameter. If you try to scrap too often, this will lead to a lot of timeouts
+    interval: 10s
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_endpoint_node_name]
+      action: replace
+      targetLabel: nodename

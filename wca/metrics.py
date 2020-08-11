@@ -73,6 +73,7 @@ class MetricName(str, Enum):
 
     # /proc/PID/based
     TASK_WSS_REFERENCED_BYTES = 'task_wss_referenced_bytes'
+    TASK_WORKING_SET_SIZE_BYTES = 'task_working_set_size_bytes'
 
     # From Kubernetes/Mesos or other orchestrator system.
     # From Kubernetes (requested) or Mesos (resources)
@@ -609,14 +610,29 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
     MetricName.TASK_WSS_REFERENCED_BYTES:
         MetricMetadata(
             'Task referenced bytes during last measurements cycle based on /proc/smaps '
-            'Referenced field, with /proc/PIDs/clear_refs set to 1 accordinn wss_reset_interval.'
+            'Referenced field, with /proc/PIDs/clear_refs set to after task gets stable.'
             'Warning: this is intrusive collection, '
             'because can influence kernel page reclaim policy and add latency.'
             'Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more '
             'details.',
             MetricType.GAUGE,
             MetricUnit.BYTES,
-            '/procs/PIDS/smaps',
+            '/proc/PIDS/smaps',
+            MetricGranularity.TASK,
+            [],
+            'yes',
+        ),
+    MetricName.TASK_WORKING_SET_SIZE_BYTES:
+        MetricMetadata(
+            'Task referenced bytes during last stable measurements cycle based on /proc/smaps '
+            'Referenced field, with /proc/PIDs/clear_refs set to after task gets stable.'
+            'Warning: this is intrusive collection, '
+            'because can influence kernel page reclaim policy and add latency.'
+            'Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more '
+            'details.',
+            MetricType.GAUGE,
+            MetricUnit.BYTES,
+            '/proc/PIDS/smaps',
             MetricGranularity.TASK,
             [],
             'yes',

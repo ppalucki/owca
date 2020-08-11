@@ -14,7 +14,7 @@
 
 #### Multistage Dockerfile
 # to build wca in three flavors:
-# 1. devel: development version (without verision)
+# 1. devel: development version (without version)
 # 2. pex: pex based Dockerfile that includes version number based on .git repo
 # 3. standalone: empty image with just and not any development tools
 
@@ -34,11 +34,11 @@ RUN yum -y update && yum -y install python36 python-pip which make git wget
 # The official way to build impctl is used below,
 # based on instruction from https://github.com/intel/ipmctl#build,
 # where ndctl, libsafec is dependency of ipmctl
-RUN (cd /etc/yum.repos.d/; \
-        wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo; \
-        wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo)
+WORKDIR /etc/yum.repos.d
+RUN wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo
+RUN wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo
 RUN yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl dmidecode
-# --- TODO: consider moving that to init container just responsilbe for preparing this data
+# --- TODO: consider moving that to init container just responsible for preparing this data
 
 WORKDIR /wca
 
@@ -83,9 +83,9 @@ RUN yum -y install python36 which wget
 # The official way to build impctl is used below,
 # based on instruction from https://github.com/intel/ipmctl#build,
 # where ndctl, libsafec is dependency of ipmctl
-RUN (cd /etc/yum.repos.d/; \
-        wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo; \
-        wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo)
-RUN yum -y update && yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl dmidecode
+WORKDIR /etc/yum.repos.d
+RUN wget https://copr.fedorainfracloud.org/coprs/jhli/ipmctl/repo/epel-7/jhli-ipmctl-epel-7.repo
+RUN wget https://copr.fedorainfracloud.org/coprs/jhli/safeclib/repo/epel-7/jhli-safeclib-epel-7.repo
+RUN yum install -y ndctl ndctl-libs ndctl-devel libsafec ipmctl dmidecode
 COPY --from=pex /wca/dist/wca.pex /usr/bin/
 ENTRYPOINT ["/usr/bin/wca.pex"]

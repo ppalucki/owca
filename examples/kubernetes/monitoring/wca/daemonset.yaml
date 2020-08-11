@@ -17,6 +17,16 @@ spec:
         prometheus.io/port: "9100"
     spec:
       priorityClassName: high-priority
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: monitoring
+                  operator: In
+                  values:
+                  - wca
+                  - wca_cadvisor
       # nodeSelector:
       #   #kubernetes.io/hostname: node11
       #   # kubectl get nodes --show-labels
@@ -51,7 +61,9 @@ spec:
             mountPath: /etc/wca/
           - name: proc
             mountPath: /proc
-        # Use default entrypoint that is different for 
+          - name: devices
+            mountPath: /sys/devices
+        # Use default entrypoint that is different for
         # devel and standalone based images.
         # command:
         #   - /usr/bin/wca.pex
@@ -105,6 +117,9 @@ spec:
         - name: dev-cpu
           hostPath:
             path: /dev/cpu
+        - name: devices
+          hostPath:
+            path: /sys/devices
 
         # Paths for nodeexporter to collect metrics
         - name: proc

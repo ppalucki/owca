@@ -20,8 +20,8 @@ RUN yum install -y gcc git make wget patch
 RUN wget https://github.com/ColinIanKing/stress-ng/archive/V0.10.08.tar.gz
 RUN tar -xzf V0.10.08.tar.gz
 WORKDIR /stress-ng-0.10.08
-ADD APM.patch APM.patch
-RUN cat APM.patch | patch -p 1
+COPY APM.patch APM.patch
+RUN patch -p 1 < APM.patch
 RUN make
 
 # Builing final container that consists of workloads only.

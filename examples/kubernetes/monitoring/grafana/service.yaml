@@ -7,11 +7,10 @@ metadata:
     k8s-app: Grafana
     kubernetes.io/name: grafana
 spec:
-  type: NodePort
   ports:
   - name: web
-    nodePort: 32135
     port: 3000
+    targetPort: 3000
     protocol: TCP
   selector:
     name: grafana

@@ -1,35 +1,33 @@
 loggers:
+  wca: DEBUG
   wca.scheduler.server: INFO
   wca.scheduler.algorithms: TRACE
+  wca.scheduler.data_providers: DEBUG
+
 kubeapi: &kubeapi !Kubeapi
   host: !Env KUBERNETES_SERVICE_HOST
   port: !Env KUBERNETES_SERVICE_PORT
-# reschedule_interval: 5
 algorithm: !Score
-  score_target: -3.0
+  score_target: 1.5
   max_node_score: 10000.
   dimensions:
     - mem
     - cpu
-    - membw_write
-    - membw_read
+    - membw_flat
     - wss
   data_provider: !ClusterScoreDataProvider
     kubeapi: *kubeapi
     prometheus: !Prometheus
-      host: http://100.64.176.36
-      port: 30900
+      # Note: our internal cluster address.
+      host: http://prometheus.prometheus.svc.cluster.local
+      port: 9090
       timeout: 5.0
-      time: "1586245624"  # Date: 2020-04-07 07:47:04
     queries: !Queries
       APP_REQUESTED_RESOURCES_QUERY_MAP:
-            cpu: 'ceil(max(max_over_time(task_requested_cpus[10m])) by (app))'
-            mem: 'ceil(max(max_over_time(task_requested_mem_bytes[10m])) by (app) / 1e9)'
-            membw_read: 'ceil(max(max_over_time (task_membw_reads_bytes_per_second[10m])) by (app) / 1e9)'
-            membw_write: 'ceil(max(max_over_time (task_membw_writes_bytes_per_second[10m])) by (app) / 1e9)'
-            wss: 'ceil(max(max_over_time(task_wss_referenced_bytes[10m])) by (app) / 1e9)'
-      MEMBW_CAPACITY_READ: 'ceil(sum(platform_nvdimm_read_bandwidth_bytes_per_second) by (nodename) / 1e9)*0.7'
-      MEMBW_CAPACITY_WRITE: 'ceil(sum(platform_nvdimm_write_bandwidth_bytes_per_second) by (nodename) / 1e9)*0.7'
-      NODES_PMM_MEMORY_MODE: 'sum(platform_mem_mode_size_bytes) by (nodename) != 0'
-      NODE_CAPACITY_MEM_WSS: '(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (nodename) / 1e9)*0.3'
-      NODE_CAPACITY_DRAM_MEMBW: 'ceil(platform_dimm_speed_bytes_per_second / 1e9)'
+        cpu: 'app_req{dim="cpu"}'
+        mem: 'app_req{dim="mem"}'
+        membw_flat: 'app_req{dim="mbw_flat"}'
+        wss: 'app_req{dim="wss"}'
+      NODE_CAPACITY_RESOURCES_QUERY_MAP:
+        membw_flat: 'node_capacity{dim="mbw_flat"}'
+        wss: 'node_capacity{dim="wss"}'

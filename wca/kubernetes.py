@@ -269,7 +269,8 @@ class KubernetesNode(Node):
                               .format(pod_id, pod_name, container.get('name'), container_state))
                     break
 
-                container_id = container.get('containerID').split('docker://')[1]
+                # Here can be containerd:// or docker://, but no more difference for id
+                container_id = container.get('containerID').split('://')[1]
                 containers_cgroups.append(
                     _build_cgroup_path(self.cgroup_driver, qos,
                                        pod_id, container_id))
@@ -298,6 +299,8 @@ class MissingCgroupException(Exception):
 def _build_cgroup_path(cgroup_driver, qos: str, pod_id: str, container_id=''):
     """If cgroup for pod needed set container_id to empty string."""
     result: str = ""
+    # containers from runtime containerd work with cgroupfs driver
+    # TODO: check that systemd cgroup driver works with containerd
     if cgroup_driver == CgroupDriverType.SYSTEMD:
         pod_id = pod_id.replace("-", "_")
         if container_id != "":

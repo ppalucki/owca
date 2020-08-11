@@ -37,8 +37,7 @@ define execute_in_venv
 	source env/bin/activate && $(1) && deactivate
 endef
 
-
-# Do not really on artifacts created by make for all targets.
+# Do not rely on artifacts created by make for all targets.
 .PHONY: all venv flake8 unit wca_package bandit_pex wrapper_package clean tests check dist
 
 all: venv check dist generate_docs
@@ -58,19 +57,19 @@ check_outdated:
 
 unit:
 	@echo "Running unit tests (not ssl and not long)."
-	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/test_wca_metrics.py -m "not long and not ssl")
+	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/ -m "not long and not ssl")
 
 unit_not_long:
 	@echo "Running unit tests (not long)."
-	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/test_wca_metrics.py -m "not long")
+	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/ -m "not long")
 
 unit_all:
 	@echo "Running unit tests (all)."
-	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/test_wca_metrics.py)
+	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --ignore=tests/e2e/)
 
 junit:
 	@echo "Running unit tests."
-	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --junitxml=unit_results.xml -vvv -s --ignore=tests/e2e/test_wca_metrics.py)
+	$(call execute_in_venv, env PYTHONPATH=.:examples/workloads/wrapper pytest --cov-report term-missing --cov=wca tests --junitxml=unit_results.xml -vvv -s --ignore=tests/e2e/)
 
 wca_package_in_docker: DOCKER_OPTIONS ?=
 wca_package_in_docker: WCA_IMAGE ?= wca
@@ -201,3 +200,10 @@ tester:
 generate_docs:
 	@echo Generate documentation.
 	$(call execute_in_venv, env PYTHONPATH=. python util/docs.py)
+
+hadolint_check:
+	@echo Hadolint check
+	for line in `find . -name Dockerfile`; do \
+        echo "Checking $$line" && \
+        sudo docker run --rm -i hadolint/hadolint < $$line; \
+    done
