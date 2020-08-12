@@ -28,7 +28,7 @@ def get_zoneinfo_measurements(zoneinfo_regexp: Pattern) -> Measurements:
 
     measurements = {}
     prev_zone = None
-    PER_NODE_STATS='per-node-stats'
+    PER_NODE_STATS = 'per-node-stats'
 
     with open('/proc/zoneinfo') as f:
         for line in f.readlines():
@@ -48,7 +48,7 @@ def get_zoneinfo_measurements(zoneinfo_regexp: Pattern) -> Measurements:
             if line.startswith('  pages'):
                 # remove '  pages' prefix to get "free" an additional space
                 line = ' '+line.lstrip('  pages')
-                if zone==PER_NODE_STATS:
+                if zone == PER_NODE_STATS:
                     # restore zone
                     assert prev_zone is not None, 'should only happen after per-node stats'
                     zone = prev_zone
@@ -57,7 +57,6 @@ def get_zoneinfo_measurements(zoneinfo_regexp: Pattern) -> Measurements:
             if not match:
                 continue
             key = str(match.group(1))
-
 
             try:
                 value = float(match.group(2))

@@ -23,12 +23,15 @@ from wca.zoneinfo import get_zoneinfo_measurements, DEFAULT_REGEXP
     "/proc/zoneinfo": open(relative_module_path(__file__, 'fixtures/proc-zoneinfo.txt')).read(),
 }))
 def test_parse_proc_zoneinfo(*mocks):
-    zoneinfo_measurements = get_zoneinfo_measurements(re.compile(DEFAULT_REGEXP))[MetricName.PLATFORM_ZONEINFO]
-    ### USE THIS TO GET RVALUE for assertion
+    zoneinfo_measurements = get_zoneinfo_measurements(
+        re.compile(DEFAULT_REGEXP))[MetricName.PLATFORM_ZONEINFO]
+    # USE THIS TO GET RVALUE for assertion
     # import pprint
     # pprint.pprint(zoneinfo_measurements)
     assert zoneinfo_measurements == {
-'0': {'DMA': {'free': 3867.0,
+        '0': {
+             'DMA': {
+               'free': 3867.0,
                'high': 6.0,
                'hmem_autonuma_promote_dst': 0.0,
                'hmem_autonuma_promote_src': 0.0,
@@ -64,7 +67,8 @@ def test_parse_proc_zoneinfo(*mocks):
                'present': 3999.0,
                'spanned': 4095.0,
                'toptier': 773.0},
-       'DMA32': {'free': 423157.0,
+           'DMA32': {
+                 'free': 423157.0,
                  'high': 868.0,
                  'hmem_autonuma_promote_dst': 0.0,
                  'hmem_autonuma_promote_src': 0.0,
@@ -100,7 +104,8 @@ def test_parse_proc_zoneinfo(*mocks):
                  'present': 441081.0,
                  'spanned': 1044480.0,
                  'toptier': 84776.0},
-       'Device': {'free': 0.0,
+           'Device': {
+                  'free': 0.0,
                   'high': 0.0,
                   'low': 0.0,
                   'managed': 0.0,
@@ -108,7 +113,8 @@ def test_parse_proc_zoneinfo(*mocks):
                   'present': 0.0,
                   'spanned': 132120576.0,
                   'toptier': 0.0},
-       'Movable': {'free': 0.0,
+           'Movable': {
+                   'free': 0.0,
                    'high': 0.0,
                    'low': 0.0,
                    'managed': 0.0,
@@ -116,7 +122,8 @@ def test_parse_proc_zoneinfo(*mocks):
                    'present': 0.0,
                    'spanned': 0.0,
                    'toptier': 0.0},
-       'Normal': {'free': 21182724.0,
+           'Normal': {
+                  'free': 21182724.0,
                   'high': 49232.0,
                   'hmem_autonuma_promote_dst': 0.0,
                   'hmem_autonuma_promote_src': 0.0,
@@ -152,7 +159,8 @@ def test_parse_proc_zoneinfo(*mocks):
                   'present': 24379392.0,
                   'spanned': 24379392.0,
                   'toptier': 4796251.0},
-       'per-node-stats': {'nr_accessed': 52673413.0,
+           'per-node-stats': {
+                          'nr_accessed': 52673413.0,
                           'nr_active_anon': 63788.0,
                           'nr_active_file': 36524.0,
                           'nr_anon_pages': 69794.0,
@@ -190,7 +198,9 @@ def test_parse_proc_zoneinfo(*mocks):
                           'workingset_nodes': 0.0,
                           'workingset_refault': 0.0,
                           'workingset_restore': 0.0}},
- '1': {'DMA': {'free': 0.0,
+        '1': {
+            'DMA': {
+               'free': 0.0,
                'high': 0.0,
                'low': 0.0,
                'managed': 0.0,
@@ -198,7 +208,8 @@ def test_parse_proc_zoneinfo(*mocks):
                'present': 0.0,
                'spanned': 0.0,
                'toptier': 0.0},
-       'DMA32': {'free': 0.0,
+            'DMA32': {
+                 'free': 0.0,
                  'high': 0.0,
                  'low': 0.0,
                  'managed': 0.0,
@@ -206,7 +217,8 @@ def test_parse_proc_zoneinfo(*mocks):
                  'present': 0.0,
                  'spanned': 0.0,
                  'toptier': 0.0},
-       'Device': {'free': 0.0,
+            'Device': {
+                  'free': 0.0,
                   'high': 0.0,
                   'low': 0.0,
                   'managed': 0.0,
@@ -214,7 +226,8 @@ def test_parse_proc_zoneinfo(*mocks):
                   'present': 0.0,
                   'spanned': 0.0,
                   'toptier': 0.0},
-       'Movable': {'free': 0.0,
+            'Movable': {
+                   'free': 0.0,
                    'high': 0.0,
                    'low': 0.0,
                    'managed': 0.0,
@@ -222,7 +235,8 @@ def test_parse_proc_zoneinfo(*mocks):
                    'present': 0.0,
                    'spanned': 0.0,
                    'toptier': 0.0},
-       'Normal': {'free': 3122809.0,
+            'Normal': {
+                  'free': 3122809.0,
                   'high': 50850.0,
                   'hmem_autonuma_promote_dst': 0.0,
                   'hmem_autonuma_promote_src': 0.0,
@@ -258,7 +272,8 @@ def test_parse_proc_zoneinfo(*mocks):
                   'present': 25165824.0,
                   'spanned': 25165824.0,
                   'toptier': 4953993.0},
-       'per-node-stats': {'nr_accessed': 5245474.0,
+            'per-node-stats': {
+                          'nr_accessed': 5245474.0,
                           'nr_active_anon': 19239370.0,
                           'nr_active_file': 10230.0,
                           'nr_anon_pages': 19242205.0,
@@ -296,7 +311,9 @@ def test_parse_proc_zoneinfo(*mocks):
                           'workingset_nodes': 0.0,
                           'workingset_refault': 0.0,
                           'workingset_restore': 0.0}},
- '2': {'DMA': {'free': 0.0,
+        '2': {
+           'DMA': {
+               'free': 0.0,
                'high': 0.0,
                'low': 0.0,
                'managed': 0.0,
@@ -304,7 +321,8 @@ def test_parse_proc_zoneinfo(*mocks):
                'present': 0.0,
                'spanned': 0.0,
                'toptier': 0.0},
-       'DMA32': {'free': 0.0,
+           'DMA32': {
+                 'free': 0.0,
                  'high': 0.0,
                  'low': 0.0,
                  'managed': 0.0,
@@ -312,7 +330,8 @@ def test_parse_proc_zoneinfo(*mocks):
                  'present': 0.0,
                  'spanned': 0.0,
                  'toptier': 0.0},
-       'Device': {'free': 0.0,
+           'Device': {
+                  'free': 0.0,
                   'high': 0.0,
                   'low': 0.0,
                   'managed': 0.0,
@@ -320,7 +339,8 @@ def test_parse_proc_zoneinfo(*mocks):
                   'present': 0.0,
                   'spanned': 0.0,
                   'toptier': 0.0},
-       'Movable': {'free': 0.0,
+           'Movable': {
+                   'free': 0.0,
                    'high': 0.0,
                    'low': 0.0,
                    'managed': 0.0,
@@ -328,7 +348,8 @@ def test_parse_proc_zoneinfo(*mocks):
                    'present': 0.0,
                    'spanned': 0.0,
                    'toptier': 0.0},
-       'Normal': {'free': 130023387.0,
+           'Normal': {
+                  'free': 130023387.0,
                   'high': 266935.0,
                   'hmem_autonuma_promote_dst': 0.0,
                   'hmem_autonuma_promote_src': 0.0,
@@ -364,7 +385,8 @@ def test_parse_proc_zoneinfo(*mocks):
                   'present': 130023424.0,
                   'spanned': 130023424.0,
                   'toptier': 26004684.0},
-       'per-node-stats': {'nr_accessed': 0.0,
+           'per-node-stats': {
+                          'nr_accessed': 0.0,
                           'nr_active_anon': 0.0,
                           'nr_active_file': 0.0,
                           'nr_anon_pages': 0.0,
@@ -402,7 +424,9 @@ def test_parse_proc_zoneinfo(*mocks):
                           'workingset_nodes': 0.0,
                           'workingset_refault': 0.0,
                           'workingset_restore': 0.0}},
- '3': {'DMA': {'free': 0.0,
+        '3': {
+             'DMA': {
+               'free': 0.0,
                'high': 0.0,
                'low': 0.0,
                'managed': 0.0,
@@ -410,7 +434,8 @@ def test_parse_proc_zoneinfo(*mocks):
                'present': 0.0,
                'spanned': 0.0,
                'toptier': 0.0},
-       'DMA32': {'free': 0.0,
+             'DMA32': {
+                 'free': 0.0,
                  'high': 0.0,
                  'low': 0.0,
                  'managed': 0.0,
@@ -418,7 +443,8 @@ def test_parse_proc_zoneinfo(*mocks):
                  'present': 0.0,
                  'spanned': 0.0,
                  'toptier': 0.0},
-       'Device': {'free': 0.0,
+             'Device': {
+                  'free': 0.0,
                   'high': 0.0,
                   'low': 0.0,
                   'managed': 0.0,
@@ -426,7 +452,8 @@ def test_parse_proc_zoneinfo(*mocks):
                   'present': 0.0,
                   'spanned': 0.0,
                   'toptier': 0.0},
-       'Movable': {'free': 0.0,
+             'Movable': {
+                   'free': 0.0,
                    'high': 0.0,
                    'low': 0.0,
                    'managed': 0.0,
@@ -434,7 +461,8 @@ def test_parse_proc_zoneinfo(*mocks):
                    'present': 0.0,
                    'spanned': 0.0,
                    'toptier': 0.0},
-       'Normal': {'free': 130023140.0,
+             'Normal': {
+                  'free': 130023140.0,
                   'high': 266935.0,
                   'hmem_autonuma_promote_dst': 0.0,
                   'hmem_autonuma_promote_src': 0.0,
@@ -470,7 +498,8 @@ def test_parse_proc_zoneinfo(*mocks):
                   'present': 130023424.0,
                   'spanned': 130023424.0,
                   'toptier': 26004684.0},
-       'per-node-stats': {'nr_accessed': 0.0,
+             'per-node-stats': {
+                          'nr_accessed': 0.0,
                           'nr_active_anon': 0.0,
                           'nr_active_file': 0.0,
                           'nr_anon_pages': 0.0,
