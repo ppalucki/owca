@@ -27,25 +27,36 @@ def get_zoneinfo_measurements(zoneinfo_regexp: Pattern) -> Measurements:
     """
 
     measurements = {}
+    prev_zone = None
+    PER_NODE_STATS='per-node-stats'
 
     with open('/proc/zoneinfo') as f:
         for line in f.readlines():
 
             if line.startswith('Node '):
-                numa_node = str(int(line.split()[1][:-1]))
-                if 'Normal' in line:
-                    zone = 'Normal'
-                if 'DMA32' in line:
-                    zone = 'DMA32'
-                elif 'DMA' in line:
-                    zone = 'DMA'
-
+                parts = line.split()
+                numa_node = str(int(parts[1].rstrip(',')))
+                zone = parts[3].rstrip(',')
                 continue
+
+            if line.startswith('  per-node stats'):
+                # Parsing per node stats
+                prev_zone = zone
+                zone = PER_NODE_STATS
+                continue
+
+            if zone==PER_NODE_STATS and line.startswith('  pages'):
+                # remove '  pages' prefix to get free value
+                line = line.lstrip('  pages')
+                # restore zone
+                assert prev_zone is not None, 'should only happen after per-node stats'
+                zone = prev_zone
 
             match = zoneinfo_regexp.match(line)
             if not match:
                 continue
             key = str(match.group(1))
+
 
             try:
                 value = float(match.group(2))
