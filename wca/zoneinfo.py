@@ -45,12 +45,13 @@ def get_zoneinfo_measurements(zoneinfo_regexp: Pattern) -> Measurements:
                 zone = PER_NODE_STATS
                 continue
 
-            if zone==PER_NODE_STATS and line.startswith('  pages'):
-                # remove '  pages' prefix to get free value
-                line = line.lstrip('  pages')
-                # restore zone
-                assert prev_zone is not None, 'should only happen after per-node stats'
-                zone = prev_zone
+            if line.startswith('  pages'):
+                # remove '  pages' prefix to get "free" an additional space
+                line = ' '+line.lstrip('  pages')
+                if zone==PER_NODE_STATS:
+                    # restore zone
+                    assert prev_zone is not None, 'should only happen after per-node stats'
+                    zone = prev_zone
 
             match = zoneinfo_regexp.match(line)
             if not match:
