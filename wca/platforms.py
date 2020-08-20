@@ -27,6 +27,7 @@ from enum import Enum
 from wca.metrics import Metric, MetricName, Measurements, export_metrics_from_measurements
 from wca.profiling import profiler
 from wca.logger import TRACE
+from wca import vmstat
 
 try:
     from pkg_resources import get_distribution, DistributionNotFound
@@ -666,6 +667,9 @@ def collect_platform_information(rdt_enabled: bool = True,
     platform_measurements.update(platform_static_information)
 
     platform_measurements.update(parse_proc_vmstat())
+
+    platform_measurements.update(vmstat.parse_node_vmstat_keys())
+    platform_measurements.update(vmstat.parse_proc_vmstat_keys())
 
     platform = Platform(
         sockets=no_of_sockets,
