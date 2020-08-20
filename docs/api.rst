@@ -99,6 +99,13 @@ and store them in metrics_storage component.
     (only matching regexp will be collected). Regexp should contains two groups. When zoneinfo
     is True default value for this regexp can parse values like "nr_pages 1234".
 
+- ``vmstat``: **Union[Str, bool]** = *True*
+
+    By default when vmstat is enabled, all the metrics matching to '{name} {value}'
+    will be collected.  False means disable the collection.
+
+    If string is provided it will be used as regexp to match key.
+
 
 
 AllocationRunner

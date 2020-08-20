@@ -154,8 +154,6 @@ def test_parse_node_distances(*mocks):
 @patch('wca.platforms.read_proc_meminfo', return_value='does not matter, because parse is mocked')
 @patch('wca.platforms.parse_proc_stat', return_value={0: 100, 1: 200})
 @patch('wca.platforms.parse_node_cpus', return_value={})
-@patch('wca.vmstat.parse_node_vmstat_keys', return_value={})
-@patch('wca.vmstat.parse_proc_vmstat_keys', return_value={})
 @patch('wca.platforms.parse_proc_vmstat',
        return_value={MetricName.PLATFORM_VMSTAT_NUMA_PAGES_MIGRATED: 5})
 @patch('wca.platforms.parse_node_distances', return_value={})

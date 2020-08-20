@@ -13,15 +13,20 @@
 # limitations under the License.
 import os
 
-from typing import Dict
+from typing import Dict, Pattern, Optional
 from wca.metrics import MetricName, Measurements
 
+DEFAULT_VMSTAT_KEY_REGEXP = r'.*'
 
-def _parse_vmstat(vmstat_filename) -> Dict[str, int]:
+
+def _parse_vmstat(vmstat_filename: str, regexp: Optional[Pattern]) -> Dict[str, int]:
     measurements = {}
     with open(vmstat_filename) as f:
         for line in f.readlines():
             key, value = line.split()
+            if regexp is not None and not regexp.match(key):
+                # Skip unmatching keys.
+                continue
             measurements[key] = int(value)
     return measurements
 
@@ -29,7 +34,7 @@ def _parse_vmstat(vmstat_filename) -> Dict[str, int]:
 BASE_SYSFS_NODES_PATH = '/sys/devices/system/node'
 
 
-def parse_node_vmstat_keys() -> Measurements:
+def parse_node_vmstat_keys(regexp: Optional[Pattern]) -> Measurements:
     """Parses /sys/devices/system/node/node*/vmstat
     """
     measurements = {}
@@ -37,10 +42,10 @@ def parse_node_vmstat_keys() -> Measurements:
         if nodedir.startswith('node'):
             node_id = int(nodedir[4:])
             vmstat_filename = os.path.join(BASE_SYSFS_NODES_PATH, nodedir, 'vmstat')
-            measurements[node_id] = _parse_vmstat(vmstat_filename)
+            measurements[node_id] = _parse_vmstat(vmstat_filename, regexp)
     return {MetricName.PLATFORM_NODE_VMSTAT: measurements}
 
 
-def parse_proc_vmstat_keys() -> Measurements:
+def parse_proc_vmstat_keys(regexp: Pattern) -> Measurements:
     """Parses /proc/vmstat """
-    return {MetricName.PLATFORM_VMSTAT: _parse_vmstat('/proc/vmstat')}
+    return {MetricName.PLATFORM_VMSTAT: _parse_vmstat('/proc/vmstat', regexp)}

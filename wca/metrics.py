@@ -871,23 +871,24 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         ),
     MetricName.PLATFORM_VMSTAT:
         MetricMetadata(
-            'Virtual Memory stats based on /proc/vmstat - all possible keys',
+            'Virtual Memory stats based on /proc/vmstat - all possible keys or matching regexp',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
             MetricGranularity.PLATFORM,
             ['key'],
-            'yes'
+            'yes (vmstat)'
         ),
     MetricName.PLATFORM_NODE_VMSTAT:
         MetricMetadata(
-            'Virtual Memory stats based on /sys/devices/system/node/nodeX/vmstat',
+            'Virtual Memory stats based on /sys/devices/system/node/nodeX/vmstat'
+            ' all keys or matching regexp',
             MetricType.COUNTER,
             MetricUnit.NUMERIC,
             MetricSource.PROCFS,
             MetricGranularity.PLATFORM,
             ['numa_node', 'key'],
-            'yes'
+            'yes (vmstat)'
         ),
     # Perf uncore
     MetricName.PLATFORM_PMM_BANDWIDTH_READS:

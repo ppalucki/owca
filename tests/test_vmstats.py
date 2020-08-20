@@ -14,7 +14,7 @@
 from unittest.mock import patch
 
 from tests.testing import create_open_mock, relative_module_path
-from wca import vmstat
+from wca import vmstats
 
 
 @patch('builtins.open', new=create_open_mock({
@@ -25,7 +25,7 @@ from wca import vmstat
 }))
 @patch('os.listdir', return_value=['node0', 'node1'])
 def test_parse_node_meminfo(*mocks):
-    measurements = vmstat.parse_node_vmstat_keys()
+    measurements = vmstats.parse_node_vmstat_keys(None)
     assert measurements == {
         'platform_node_vmstat':
             {0: {'nr_bar': 30, 'nr_foo': 20},
@@ -37,5 +37,5 @@ def test_parse_node_meminfo(*mocks):
     "/proc/vmstat": open(relative_module_path(__file__, 'fixtures/proc-vmstat-simple.txt')).read(),
 }))
 def test_parse_proc_vmstat_keys(*mocks):
-    measurements = vmstat.parse_proc_vmstat_keys()
+    measurements = vmstats.parse_proc_vmstat_keys(None)
     assert measurements == {'platform_vmstat': {'nr_bar': 30, 'nr_foo': 20}}

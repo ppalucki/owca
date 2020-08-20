@@ -25,6 +25,7 @@ from wca import platforms, profiling
 from wca import resctrl
 from wca import security
 from wca import zoneinfo as zoneinfo_module
+from wca import vmstats
 from wca.allocators import AllocationConfiguration
 from wca.config import Numeric, Str
 from wca.config import ValidationError
@@ -179,6 +180,13 @@ class MeasurementRunner(Runner):
         If string is provided it will be used as regexp to extract information from /proc/zoneinfo
         (only matching regexp will be collected). Regexp should contains two groups. When zoneinfo
         is True default value for this regexp can parse values like "nr_pages 1234".
+
+    - ``vmstat``: **Union[Str, bool]** = *True*
+
+        By default when vmstat is enabled, all the metrics matching to '{name} {value}'
+        will be collected.  False means disable the collection.
+
+        If string is provided it will be used as regexp to match key.
     """
 
     def __init__(
@@ -199,6 +207,7 @@ class MeasurementRunner(Runner):
             wss_stable_duration: int = 30,
             include_optional_labels: bool = False,
             zoneinfo: Union[Str, bool] = True,
+            vmstat: Union[Str, bool] = True,
     ):
 
         self._node = node
@@ -268,7 +277,7 @@ class MeasurementRunner(Runner):
             zoneinfo_regexp = zoneinfo
             self._zoneinfo = True
 
-        # Validate regexp.
+        # Validate zoneinfo regexp.
         log.debug('zoneinfo=%r regexp=%r', self._zoneinfo, zoneinfo_regexp)
         self._zoneinfo_regexp_compiled = None
         if self._zoneinfo:
@@ -280,6 +289,16 @@ class MeasurementRunner(Runner):
             if not self._zoneinfo_regexp_compiled.groups == 2:
                 raise ValidationError(
                     'zoneinfo_regexp_compile improper number of groups: should be 2')
+
+        # Validate config and vmstat regexp.
+        if vmstat in (True, False):
+            self._vmstat = vmstat
+        else:
+            # Got regexp - compile and check...
+            try:
+                self._vmstat = re.compile(vmstat)
+            except re.error as e:
+                raise ValidationError('vmstat_regexp_compile improper regexp: %s' % e)
 
     def _set_initialize_rdt_callback(self, func):
         self._initialize_rdt_callback = func
@@ -565,6 +584,14 @@ class MeasurementRunner(Runner):
         if self._zoneinfo:
             extra_platform_measurements.update(
                 zoneinfo_module.get_zoneinfo_measurements(self._zoneinfo_regexp_compiled))
+
+        # Zoneinfo from /proc/zoneinfo
+        if self._vmstat:
+            _vmstat_regexp = None if self._vmstat in (True, False) else self._vmstat
+            extra_platform_measurements.update(
+                vmstats.parse_node_vmstat_keys(_vmstat_regexp))
+            extra_platform_measurements.update(
+                vmstats.parse_proc_vmstat_keys(_vmstat_regexp))
 
         # Platform information
         platform, platform_metrics, platform_labels = platforms.collect_platform_information(
