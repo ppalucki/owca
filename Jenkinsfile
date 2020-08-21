@@ -18,7 +18,6 @@ pipeline {
       booleanParam defaultValue: true, description: 'Run all pre-checks.', name: 'PRECHECKS'
       booleanParam defaultValue: true, description: 'Build WCA image.', name: 'BUILD_WCA_IMAGE'
       booleanParam defaultValue: true, description: 'Build wrappers and workload images.', name: 'BUILD_IMAGES'
-      booleanParam defaultValue: true, description: 'E2E for Mesos.', name: 'E2E_MESOS'
       booleanParam defaultValue: true, description: 'E2E for Kubernetes.', name: 'E2E_K8S'
       booleanParam defaultValue: true, description: 'E2E for Kubernetes as Daemonset.', name: 'E2E_K8S_DS'
       booleanParam defaultValue: true, description: 'E2E for wca-scheduler', name: 'E2E_WCA_SCHEDULER'
@@ -407,24 +406,6 @@ pipeline {
                         HOST_INVENTORY='tests/e2e/demo_scenarios/common/inventory-kubernetes.yaml'
                         CERT='true'
                         KUBECONFIG="${HOME}/admin.conf"
-                    }
-                    steps {
-                        wca_and_workloads_check()
-                    }
-                    post {
-                        always {
-                            clean()
-                        }
-                    }
-                }
-                stage('WCA E2E for Mesos') {
-                    when {expression{return params.E2E_MESOS}}
-                    agent { label 'mesos' }
-                    environment {
-                        MESOS_AGENT='100.64.176.14'
-                        CONFIG = 'wca_config_mesos.yaml'
-                        HOST_INVENTORY='tests/e2e/demo_scenarios/common/inventory-mesos.yaml'
-                        CERT='false'
                     }
                     steps {
                         wca_and_workloads_check()
