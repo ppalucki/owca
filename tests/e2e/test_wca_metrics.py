@@ -99,16 +99,13 @@ def test_wca(workload_name, metrics):
     assert 'PROMETHEUS' in os.environ, 'prometheus host to connect'
     assert 'BUILD_NUMBER' in os.environ
     assert 'BUILD_COMMIT' in os.environ
-    assert ('KUBERNETES_HOST' in os.environ) or ('MESOS_AGENT' in os.environ)
+    assert 'KUBERNETES_HOST' in os.environ
 
     prometheus = os.environ['PROMETHEUS']
     build_number = int(os.environ['BUILD_NUMBER'])
     build_commit = os.environ['BUILD_COMMIT']
 
-    if os.environ.get('KUBERNETES_HOST'):
-        env_uniq_id = os.environ['KUBERNETES_HOST'].split('.')[3]
-    else:
-        env_uniq_id = os.environ['MESOS_AGENT'].split('.')[3]
+    env_uniq_id = os.environ['KUBERNETES_HOST'].split('.')[3]
 
     tags = dict(build_number=build_number,
                 build_commit=build_commit,
