@@ -11,10 +11,26 @@ configMapGenerator:
   behavior: merge
   literals:
     - clients=50
-    - threads=8
-    - keymaximum_gen=800000   # 800k
-    - keymaximum_load=800000  # 800k
-    - datasize=50000          # 40GB (50kB one entry)
+    - threads=4
+    - keymaximum_gen=1000000   # 1M
+    - keymaximum_load=1000000  # 1M
+    - datasize=60000          # 60GB 
+    - extra='--key_stddev=50000' # 99% hits keys are within 300k keys (1/3 of 1M) ~ resulting workingset is around 16/17GB
 
 patchesStrategicMerge:
   - resources.yaml
+
+images:
+- name: memtier_benchmark
+  newName: 100.64.176.12:80/wca/memtier_benchmark
+  newTag: master
+
+commonAnnotations:
+  toptierlimit.cri-resource-manager.intel.com/pod: "10000000000"
+  cri-resource-manager.intel.com/memory-type: |
+    pmbench: dram,pmem
+  cri-resource-manager.intel.com/anti-affinity: |
+    redis: [ memtier ]
+  cri-resource-manager.intel.com/cold-start: |
+    pmbench:
+      duration: 60s
