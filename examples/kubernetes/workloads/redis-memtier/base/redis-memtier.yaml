@@ -87,6 +87,7 @@ spec:
 
               # Loading
               
+              stdbuf -e0 -o0
               memtier_benchmark 
               --run-count=9999 
               --requests=10000000000 
@@ -98,7 +99,8 @@ spec:
               --data-size=$datasize 
               --key-pattern=G:G 
               --key-maximum=$keymaximum_load 
-              --ratio $ratio %extra 2>&1
+              --ratio $ratio %extra 
+              2>&1 | stdbuf -e0 -o0 awk 'BEGIN { RS = "\r" } { print $0; fflush(); system("") }'system
               
 
           volumeMounts:
