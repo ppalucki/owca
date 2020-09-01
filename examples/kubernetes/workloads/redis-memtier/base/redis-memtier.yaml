@@ -65,7 +65,7 @@ spec:
                 sleep 5;
               done
 
-              # Preparing data
+              # preparing data
 
               memtier_benchmark
               --run-count=1
@@ -85,23 +85,24 @@ spec:
 
               echo "[RUN #0 0%,   0 secs]  0 threads:           0 ops,       0 (avg:       0) ops/sec, 0.00KB/sec (avg: 0.00KB/sec),  0.00 (avg:  0.00) msec latency";
 
-              # Loading
-              
+              # loading
+
               stdbuf -e0 -o0
-              memtier_benchmark 
-              --run-count=9999 
-              --requests=10000000000 
-              --server=127.0.0.1 
-              --threads=$threads 
-              --hide-histogram 
-              --clients=$clients 
-              --pipeline=$pipeline 
-              --data-size=$datasize 
-              --key-pattern=G:G 
-              --key-maximum=$keymaximum_load 
-              --ratio $ratio %extra 
-              2>&1 | stdbuf -e0 -o0 awk 'BEGIN { RS = "\r" } { print $0; fflush(); system("") }'system
-              
+              memtier_benchmark
+              --run-count=9999
+              --requests=10000000000
+              --server=$target
+              --threads=$threads
+              --hide-histogram
+              --clients=$clients
+              --pipeline=$pipeline
+              --data-size=$datasize
+              --key-pattern=G:G
+              --key-maximum=$keymaximum_load
+              --ratio $ratio $extra
+              2>&1 | stdbuf -e0 -o0 awk 'BEGIN { RS = "\r" } { print $0; fflush(); system("") }'
+
+
 
           volumeMounts:
             - name: var-log-wrapper
