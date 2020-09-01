@@ -17,8 +17,8 @@ spec:
         - name: memtier
           resources:
             requests:
-              cpu: 8
+              cpu: 2
               memory: 5G
             limits:
-              cpu: 8
+              cpu: 2
               memory: 5G

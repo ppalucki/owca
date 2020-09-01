@@ -10,10 +10,10 @@ spec:
           resources:
             requests:
               cpu: 2
-              memory: 75G
+              memory: 10G
             limits:
               cpu: 2
-              memory: 75G
+              memory: 10G
         - name: memtier
           resources:
             requests:

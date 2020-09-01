@@ -1,6 +1,8 @@
 bases:
 - small
+- small-wss
 - medium
+- medium-wss
 - big
 - big-wss
 
@@ -12,3 +14,14 @@ images:
 - name: memtier_benchmark
   newName: 100.64.176.12:80/wca/memtier_benchmark
   newTag: master
+
+commonAnnotations:
+  #toptierlimit.cri-resource-manager.intel.com/pod: "10000000000"
+  cri-resource-manager.intel.com/memory-type: |
+    pmbench: dram,pmem
+  cri-resource-manager.intel.com/anti-affinity: |
+    redis: [ memtier ]
+  cri-resource-manager.intel.com/affinity: |
+    redis: [ redis ]
+  #cri-resource-manager.intel.com/cold-start: |
+  #  pmbench: {duration: 60s}

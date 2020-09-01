@@ -4,17 +4,14 @@ bases:
 
 commonLabels:
   app: redis-memtier-big
-  size: big
 
 configMapGenerator:
 - name: memtier
   behavior: merge
   literals:
-    - clients=50
-    - threads=4
-    - keymaximum_gen=60000000   # 60M
-    - keymaximum_load=60000000  # 60M
-    - datasize=1024             # ~ 100GB
+    - keymaximum_gen=1000000
+    - keymaximum_load=1000000
+    - extra='--key-stddev=50000'
 
 patchesStrategicMerge:
   - resources.yaml

@@ -65,6 +65,8 @@ spec:
                 sleep 5;
               done
 
+              echo Preparing data ...
+
               # preparing data
 
               memtier_benchmark
@@ -81,17 +83,19 @@ spec:
               --ratio 1:0
               &> /dev/null
 
+              echo Start ...
+
               # Clear possible output from previous job on the same node
 
               echo "[RUN #0 0%,   0 secs]  0 threads:           0 ops,       0 (avg:       0) ops/sec, 0.00KB/sec (avg: 0.00KB/sec),  0.00 (avg:  0.00) msec latency";
 
-              # loading
+              # Loading
 
               stdbuf -e0 -o0
               memtier_benchmark
               --run-count=9999
               --requests=10000000000
-              --server=$target
+              --server=127.0.0.1
               --threads=$threads
               --hide-histogram
               --clients=$clients

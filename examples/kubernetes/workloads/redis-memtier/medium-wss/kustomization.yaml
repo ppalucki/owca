@@ -1,11 +1,10 @@
-nameSuffix: -medium
+nameSuffix: -medium-wss
 
 bases:
 - ../base
 
 commonLabels:
-  app: redis-memtier-medium
-  size: medium
+  app: redis-memtier-medium-wss
 
 configMapGenerator:
 - name: memtier
@@ -13,7 +12,7 @@ configMapGenerator:
   literals:
     - keymaximum_gen=500000
     - keymaximum_load=500000
-    - extra='--key-stddev=25000'
+    - extra='--key-stddev=500000'
 
 patchesStrategicMerge:
   - resources.yaml
