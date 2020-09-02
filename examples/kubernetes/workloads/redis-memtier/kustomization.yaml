@@ -1,11 +1,11 @@
 bases:
-# - small
-# - small-wss
-# - medium
-# - medium-wss
-# - big
-# - big-wss
-- hmem
+- small
+- small-wss
+- medium
+- medium-wss
+- big
+- big-wss
+# - hmem
 
 commonLabels:
   workload: redis-memtier

@@ -1,5 +1,5 @@
 bases:
-- ../../../big
+- ../../../small
 
 namePrefix: toptier-
 

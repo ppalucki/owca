@@ -1,5 +1,5 @@
 bases:
-- ../../../big-wss
+- ../../../small-wss
 
 namePrefix: toptier-
 

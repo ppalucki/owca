@@ -1,4 +1,8 @@
 bases:
+- small
+- small-wss
+- medium
+- medium-wss
 - big
 - big-wss
 
