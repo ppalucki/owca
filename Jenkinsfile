@@ -389,7 +389,7 @@ pipeline {
                     post {
                         always {
                             print('Cleaning workloads and wca...')
-                            sh "kubectl delete -k ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD} --wait=false"
+                            sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD} | kubectl delete -f -  --wait=false"
                             sh "kubectl delete -k ${WORKSPACE}/${KUSTOMIZATION_MONITORING} --wait=false"
                             sh "kubectl delete svc prometheus-nodeport-service --namespace prometheus"
                             junit 'unit_results.xml'
