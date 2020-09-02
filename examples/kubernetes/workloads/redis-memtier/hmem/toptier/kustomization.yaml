@@ -1,0 +1,9 @@
+bases:
+- big
+- big-wss
+
+commonAnnotations:
+  cri-resource-manager.intel.com/memory-type: |
+    pmbench: dram,pmem
+  cri-resource-manager.intel.com/cold-start: |
+    pmbench: {duration: 120s}

@@ -1,0 +1,13 @@
+bases:
+- ../../small
+- ../../small-wss
+- ../../medium
+- ../../medium-wss
+- ../../big
+- ../../big-wss
+
+namePrefix: dram-
+
+commonAnnotations:
+  cri-resource-manager.intel.com/memory-type: |
+    pmbench: dram
