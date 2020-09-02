@@ -1,5 +1,0 @@
-bases:
-- dram-pmem
-- dram
-- pmem
-- toptier

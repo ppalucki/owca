@@ -1,11 +1,11 @@
-bases:
+resources:
 - small
 - small-wss
 - medium
 - medium-wss
 - big
 - big-wss
-# - hmem
+- _hmem
 
 commonLabels:
   workload: redis-memtier
@@ -15,14 +15,14 @@ images:
   newName: 100.64.176.12:80/wca/memtier_benchmark
   newTag: master
 
-commonAnnotations:
   #toptierlimit.cri-resource-manager.intel.com/pod: "10000000000"
   # moved to hmem/dram-only and hmem-pmem-only
   #cri-resource-manager.intel.com/memory-type: |
   #  pmbench: dram,pmem
-  cri-resource-manager.intel.com/anti-affinity: |
-    redis: [ memtier ]
+commonAnnotations:
   cri-resource-manager.intel.com/affinity: |
     redis: [ redis ]
-  #cri-resource-manager.intel.com/cold-start: |
-  #  pmbench: {duration: 60s}
+  cri-resource-manager.intel.com/anti-affinity: |
+    redis: [ memtier ]
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization

@@ -1,0 +1,13 @@
+nameSuffix: -coldstart
+
+bases:
+- ../small
+- ../small-wss
+- ../big-wss
+- ../big
+- ../medium-wss
+- ../medium
+
+commonAnnotations:
+  cri-resource-manager.intel.com/cold-start: |
+    pmbench: {duration: 120s}

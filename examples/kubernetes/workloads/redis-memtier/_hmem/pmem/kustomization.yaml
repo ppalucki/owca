@@ -1,0 +1,14 @@
+nameSuffix: -pmem
+
+bases:
+- ../../small
+- ../../small-wss
+- ../../medium
+- ../../medium-wss
+- ../../big
+- ../../big-wss
+
+
+commonAnnotations:
+  cri-resource-manager.intel.com/memory-type: |
+    pmbench: pmem

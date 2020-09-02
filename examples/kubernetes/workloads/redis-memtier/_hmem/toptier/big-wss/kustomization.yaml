@@ -1,0 +1,5 @@
+bases:
+- ../../../big-wss
+
+commonAnnotations:
+  toptierlimit.cri-resource-manager.intel.com/pod: "80G"

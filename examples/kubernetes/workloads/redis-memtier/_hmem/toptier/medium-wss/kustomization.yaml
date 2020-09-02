@@ -1,0 +1,5 @@
+bases:
+- ../../../medium-wss
+
+commonAnnotations:
+  toptierlimit.cri-resource-manager.intel.com/pod: "40G"

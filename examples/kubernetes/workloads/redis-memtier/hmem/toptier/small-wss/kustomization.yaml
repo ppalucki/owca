@@ -1,7 +1,0 @@
-bases:
-- ../../../small-wss
-
-namePrefix: toptier-
-
-commonAnnotations:
-  toptierlimit.cri-resource-manager.intel.com/pod: "20G"

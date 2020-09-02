@@ -1,0 +1,5 @@
+bases:
+- ../../../medium
+
+commonAnnotations:
+  toptierlimit.cri-resource-manager.intel.com/pod: "20G"
