@@ -538,7 +538,7 @@ def kustomize_wca_and_workloads_check() {
         {\"op\": \"replace\", \"path\": \"/spec/ports/0/nodePort\", \"value\":30900}]'"
 
     print('Deploy workloads...')
-    sh "kubectl apply -k ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD}"
+    sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD} | kubectl apply -f -"
 
     print('Scale up workloads...')
     def list = ["mysql-hammerdb", "stress-stream", "redis-memtier", "sysbench-memory", "memcached-mutilate", "specjbb-preset"]
