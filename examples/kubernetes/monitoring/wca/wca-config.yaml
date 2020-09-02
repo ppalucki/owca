@@ -4,6 +4,8 @@
 # - KUBERNETES_SERVICE_PORT - provided by default by Kubernetes
 # - HOST_IP - need to explicitly enabled in Pod spec using downward-api
 # - HOSTNAME - default provided by OS
+loggers:
+  wca.wss: debug
 
 runner: !MeasurementRunner
   interval: 5.0
