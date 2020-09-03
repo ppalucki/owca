@@ -18,12 +18,16 @@ images:
   newName: 100.64.176.12:80/wca/memtier_benchmark
   newTag: master
 
+commonAnnotations:
   #toptierlimit.cri-resource-manager.intel.com/pod: "10000000000"
   # moved to hmem/dram-only and hmem-pmem-only
-  #cri-resource-manager.intel.com/memory-type: |
-  #  pmbench: dram,pmem
-commonAnnotations:
+  # cri-resource-manager.intel.com/affinity: |
+  #   redis: [ redis ]
+
   cri-resource-manager.intel.com/affinity: |
-    redis: [ redis ]
-  cri-resource-manager.intel.com/anti-affinity: |
     redis: [ memtier ]
+    memtier: [ redis ]
+  
+  # cri-resource-manager.intel.com/memory-type: |
+  #   pmbench: dram,pmem
+  topologyhints.cri-resource-manager.intel.com/pod: "false"

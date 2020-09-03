@@ -108,13 +108,13 @@ spec:
 
 
 
-          volumeMounts:
-            - name: var-log-wrapper
-              mountPath: /var/log/wrapper
-
-      volumes:
-        - name: var-log-wrapper
-          emptyDir: {}
+      #     volumeMounts:
+      #       - name: var-log-wrapper
+      #         mountPath: /var/log/wrapper
+      #
+      # volumes:
+      #   - name: var-log-wrapper
+      #     emptyDir: {}
 
   # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
   # when using commonLabels

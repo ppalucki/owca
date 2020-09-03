@@ -37,8 +37,9 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_interval: 60000  # never
+  wss_reset_interval: 480  # never 240 * 5s = 1200s = 20mins
   wss_stable_duration: 0 
-  # interval is set to 5s
+  # stable_cycles_goal=30, threshold_divider=100
+  # interval is set to 5s - hardcoded should match internval
   
   gather_hw_mm_topology: True
