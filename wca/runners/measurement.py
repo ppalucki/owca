@@ -205,6 +205,7 @@ class MeasurementRunner(Runner):
             allocation_configuration: Optional[AllocationConfiguration] = None,
             wss_reset_interval: int = 0,
             wss_stable_duration: int = 30,
+            wss_threshold_divider: int = 100,
             include_optional_labels: bool = False,
             zoneinfo: Union[Str, bool] = True,
             vmstat: Union[Str, bool] = True,
@@ -258,6 +259,7 @@ class MeasurementRunner(Runner):
 
         self._wss_reset_interval = wss_reset_interval
         self._wss_stable_duration = wss_stable_duration
+        self._wss_threshold_divider = wss_threshold_divider
 
         self._uncore_pmu = None
 
@@ -409,6 +411,7 @@ class MeasurementRunner(Runner):
             enable_derived_metrics=self._enable_derived_metrics,
             wss_reset_interval=self._wss_reset_interval,
             wss_stable_duration=self._wss_stable_duration,
+            wss_threshold_divider=self._wss_threshold_divider,
             perf_aggregate_cpus=self._perf_aggregate_cpus,
             interval=self._interval
         )

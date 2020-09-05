@@ -55,6 +55,8 @@ class WSS:
         self.prev_referenced = None  # [B]
         self.prev_membw = None  # [B/s]
 
+        self.membw_counter_prev = None  # [B]
+
         # Keep last value of metric TASK_WORKING_SET_SIZE_BYTES
         self.last_stable__task_working_set_size_bytes = None  # [B]
 
@@ -82,9 +84,8 @@ class WSS:
                 float(curr_referenced - self.prev_referenced) / self.cycle_duration_s
             curr_membw_delta = float(curr_membw - self.prev_membw) / self.cycle_duration_s
 
-            threshould_divider = 100
-            membw_threshold = curr_membw_delta / threshould_divider
-            referenced_threshold = curr_referenced / threshould_divider
+            membw_threshold = curr_membw_delta / self.threshold_divider
+            referenced_threshold = curr_referenced / self.threshold_divider
 
             log.debug(
                 '[%3.0fs] '
@@ -161,15 +162,22 @@ class WSS:
         measurements[MetricName.TASK_WSS_REFERENCED_BYTES] = referenced
 
         if rdt_measurements and MetricName.TASK_MEM_BANDWIDTH_BYTES in rdt_measurements:
-            self._update_stable_counter(
-                rdt_measurements.get(MetricName.TASK_MEM_BANDWIDTH_BYTES),
-                referenced)
+            membw_counter = rdt_measurements[MetricName.TASK_MEM_BANDWIDTH_BYTES]
+
+            if self.membw_counter_prev is not None:
+                curr_membw = (membw_counter - self.membw_counter_prev) / self.cycle_duration_s
+                self.membw_counter_prev = membw_counter
+                self._update_stable_counter(curr_membw, referenced)
+            else:
+                self.membw_counter_prev = membw_counter
+                log.warning('task_mem_bandwidth_bytes (one time)! Not measuring WSS!')
+                return {}
         else:
             log.warning('task_mem_bandwidth_bytes missing! Not measuring WSS!')
             return {}
 
         if self.stable_cycles_goal != 0 and self.stable_cycles_counter == self.stable_cycles_goal:
-            log.debug('setting new last_stable__task_working_set_size_bytes=%d',
+            log.debug('setting new last_stable__task_working_set_size_bytes=%r',
                       self.last_stable__task_working_set_size_bytes)
             self.stable_cycles_counter = 0
             should_reset = True

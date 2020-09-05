@@ -35,8 +35,14 @@ def test_get_measurements(*mocks):
             {**smaps, **clear_refs, '/dev/null': '0'})) as files:
         wss = WSS(cycle_duration_s=5, get_pids=mock_get_pids, dummy_reset_interval=1)
 
+
         # In megabytes: ( 1 + 2 + 3 + 4 + 5 ) * 1024 / 1024
-        assert wss.get_measurements({'task_mem_bandwidth_bytes': 1234567}) == \
+        result1 = wss.get_measurements({'task_mem_bandwidth_bytes': 1234567}) 
+        assert result1 == {}
+
+        result2 = wss.get_measurements({'task_mem_bandwidth_bytes': 2234567}) 
+
+        assert result2 == \
             {MetricName.TASK_WSS_REFERENCED_BYTES: 15360000, 'task_working_set_size_bytes': 0}
 
         # Check if gets info from smaps
