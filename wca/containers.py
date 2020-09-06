@@ -118,7 +118,8 @@ class ContainerSet(ContainerInterface):
                  wss_reset_interval: int = 0,
                  wss_stable_duration: int = 30,
                  wss_threshold_divider: int = 100,
-                 perf_aggregate_cpus: bool = True
+                 perf_aggregate_cpus: bool = True,
+                 interval: int = 5,
                  ):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
@@ -145,7 +146,8 @@ class ContainerSet(ContainerInterface):
                 wss_reset_interval=wss_reset_interval,
                 wss_stable_duration=wss_stable_duration,
                 wss_threshold_divider=wss_threshold_divider,
-                perf_aggregate_cpus=perf_aggregate_cpus
+                perf_aggregate_cpus=perf_aggregate_cpus,
+                interval=interval,
             )
 
     def get_subcontainers(self):
@@ -201,10 +203,9 @@ class ContainerSet(ContainerInterface):
                     self._platform.rdt_information.rdt_mb_monitoring_enabled,
                     self._platform.rdt_information.rdt_cache_monitoring_enabled))
 
-        merged_measurements = []
+        # Dirty hack, to get access from container to parent container measurments :(
         for container in self.get_subcontainers():
             container.parent_measurements = measurements
-            merged_measurements.append(container.get_measurements())
 
         merged_measurements = merge_measurements(
             [container.get_measurements() for container in self.get_subcontainers()])

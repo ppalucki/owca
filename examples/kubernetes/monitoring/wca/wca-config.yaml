@@ -8,7 +8,7 @@ loggers:
   wca.wss: debug
 
 runner: !MeasurementRunner
-  interval: 5.0
+  interval: 15.0
   node: !KubernetesNode
     cgroup_driver: cgroupfs
     monitored_namespaces: ["default"]
@@ -37,9 +37,12 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_interval: 480  # never 240 * 5s = 1200s = 20mins
-  wss_stable_duration: 0 
+  wss_reset_interval: -1  # -1 disable cyccli
+  wss_stable_duration: 60  #  5s * 30 = stable for 30 cycles about (150seconds)
+  wss_threshold_divider: 500 # 0.5% 
   # stable_cycles_goal=30, threshold_divider=100
-  # interval is set to 5s - hardcoded should match internval
+  # cycle_duration_s = interval
+  # dummy_reset_interval=wss_reset_interval, - may be set to -1
+  # stable_cycles_goal=wss_stable_duration)
   
   gather_hw_mm_topology: True
