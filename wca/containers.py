@@ -456,6 +456,7 @@ class ContainerManager:
                 wss_stable_duration=self._wss_stable_duration,
                 wss_threshold_divider=self._wss_threshold_divider,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
+                interval=self._interval,
             )
         else:
             container = Container(
