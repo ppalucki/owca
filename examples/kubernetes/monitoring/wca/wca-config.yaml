@@ -37,12 +37,8 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_interval: -1  # -1 disable cyccli
-  wss_stable_duration: 60  #  5s * 30 = stable for 30 cycles about (150seconds)
-  wss_threshold_divider: 500 # 0.5% 
-  # stable_cycles_goal=30, threshold_divider=100
-  # cycle_duration_s = interval
-  # dummy_reset_interval=wss_reset_interval, - may be set to -1
-  # stable_cycles_goal=wss_stable_duration)
+  wss_reset_interval: -1  # -1 disable cyclic reset - None - means disable wss collection at all
+  wss_stable_duration: 120  #  15s * 120 = 1800s = 30 mi
+  wss_threshold_divider: 500  # 0.5% of increase of currently referenced or 
   
   gather_hw_mm_topology: True

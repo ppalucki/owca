@@ -294,11 +294,11 @@ class Container(ContainerInterface):
 
         if wss_reset_interval != 0:
             self.wss = wss.WSS(
-                cycle_duration_s=interval,
+                interval=interval,
                 get_pids=self.get_pids,
-                dummy_reset_interval=wss_reset_interval,
-                stable_cycles_goal=wss_stable_duration,
-                threshold_divider=wss_threshold_divider,
+                wss_reset_interval=wss_reset_interval,
+                wss_stable_duration=wss_stable_duration,
+                wss_threshold_divider=wss_threshold_divider,
             )
         else:
             self.wss = None
