@@ -17,6 +17,7 @@ import logging
 import os
 
 from wca.metrics import Measurements, MetricName
+from wca.logger import TRACE
 
 log = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class WSS:
         curr_membw: [B/s], curr_referenced: [B]
         """
 
-        log.debug(
+        log.log(TRACE,
             '[%s] cycle=%d, curr_referenced[MB]=%d '
             'stable_cycles_counter=%d',
             pids_s, self.cycle, curr_referenced/MB, self.stable_cycles_counter)
@@ -89,11 +90,11 @@ class WSS:
             referenced_threshold = float(curr_referenced) / self.wss_threshold_divider
 
             log.debug(
-                '[%s] '
+                '[%s] %ds'
                 'REFERENCED[MB]: curr=%.2f/delta=%.2f/threshold=%.2f | '
                 'MEMBW[MB/s]: curr=%.2f/delta=%.2f/threshold=%.2f '
                 '-> stable_cycles_counter=%d',
-                pids_s,
+                pids_s, time.time() - self.started,
                 curr_referenced/MB, curr_referenced_delta/MB, referenced_threshold/MB,
                 curr_membw/MB, curr_membw_delta/MB, membw_threshold/MB,
                 self.stable_cycles_counter)
@@ -104,20 +105,18 @@ class WSS:
                 if curr_referenced_delta < membw_threshold \
                         or curr_referenced_delta < referenced_threshold:
                     self.stable_cycles_counter += 1
-                    log.debug('[%s] Incrementing stable_cycles_counter+=1', pids_s)
+                    log.log(TRACE, '[%s] Incrementing stable_cycles_counter+=1', pids_s)
                 else:
                     self.stable_cycles_counter = 0
                     log.debug('[%s] one of thresholds (membw, wss) was exceeded;'
                               'resettings stable_cycles_counter', pids_s)
             else:
                 self.stable_cycles_counter = 0
-                log.debug('[%s] curr_referenced_delta smaller than 0 and '
+                log.warn('[%s] curr_referenced_delta smaller than 0 and '
                           'abs(curr_re...) < curr_referenced/max_decrease_divider; '
                           'resetting stable_cycles_counter', pids_s)
-                log.debug('[%s] curr_referenced=%d, prev_referenced=%d, curr_membw_delta=%d',
-                          pids_s, curr_referenced, self.prev_referenced, curr_referenced_delta)
         else:
-            log.debug('[%s] previous value of membw or referenced not available -'
+            log.log(TRACE, '[%s] previous value of membw or referenced not available -'
                       ' resetting stable_cycles_counter', pids_s)
 
         self.prev_membw = curr_membw
@@ -160,7 +159,6 @@ class WSS:
         pids_s = ','.join(map(str, pids))
         referenced = self._get_referenced(pids)
         measurements[MetricName.TASK_WSS_REFERENCED_BYTES] = referenced
-        log.debug('[%s] -> wss.get_measurements', pids_s)
 
         # Update measurements (including membw calculation)
         # and if thresholds are met, increament stable counter (stable_cycles_counter).
@@ -169,7 +167,7 @@ class WSS:
 
             if self.membw_counter_prev is not None:
                 curr_membw = (membw_counter - self.membw_counter_prev) / self.interval
-                log.debug('[%s] curr_membw=%s (counter=%s prev=%s)', pids_s, curr_membw,
+                log.log(TRACE, '[%s] curr_membw=%s (counter=%s prev=%s)', pids_s, curr_membw,
                           membw_counter, self.membw_counter_prev)
                 self.membw_counter_prev = membw_counter
                 self._update_stable_counter(curr_membw, referenced, pids_s)
