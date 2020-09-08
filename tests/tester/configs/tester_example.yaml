@@ -5,7 +5,7 @@ runner: !AllocationRunner
      command: 'sleep 300' # if task has long time to exit, they are race with delete cgruop and pid
     interval: 5.
     metrics_storage: *tester
-    rdt_enabled: True
+    rdt_enabled: False
     event_names:
       - 'task_cycles'
       - 'task_instructions'

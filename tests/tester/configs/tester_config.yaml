@@ -64,14 +64,15 @@ tests:
         name: task_mem_bandwidth_remote_bytes
         labels:
           task_id: wcatask2
-      - !MetricCheck
-        name: task_wss_referenced_bytes
-        labels:
-          task_id: wcatask1
-      - !MetricCheck
-        name: task_wss_referenced_bytes
-        labels:
-          task_id: wcatask2
+      ## Those metrics requires second cycle to be available.
+      #- !MetricCheck
+      #  name: task_wss_referenced_bytes
+      #  labels:
+      #    task_id: wcatask1
+      #- !MetricCheck
+      #  name: task_wss_referenced_bytes
+      #  labels:
+      #    task_id: wcatask2
       - !FileCheck
         path: /sys/fs/resctrl/test/tasks
       - !FileCheck
@@ -222,14 +223,15 @@ tests:
         name: task_mem_bandwidth_remote_bytes
         labels:
           task_id: wcatask4
-      - !MetricCheck
-        name: task_wss_referenced_bytes
-        labels:
-          task_id: wcatask2
-      - !MetricCheck
-        name: task_wss_referenced_bytes
-        labels:
-          task_id: wcatask4
+      ## Those metrics requires second cycle to be available.
+      # - !MetricCheck
+      #   name: task_wss_referenced_bytes
+      #   labels:
+      #     task_id: wcatask2
+      # - !MetricCheck
+      #   name: task_wss_referenced_bytes
+      #   labels:
+      #     task_id: wcatask4
       - !MetricCheck
         name: allocation_cpuset_cpus_number_of_cpus
         labels:
