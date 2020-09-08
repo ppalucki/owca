@@ -431,6 +431,13 @@ pipeline {
                     WCA_SCHEDULER_PATH='examples/kubernetes/wca-scheduler/'
                 }
                 steps {
+                    print('Build image')
+
+
+                    sh '''
+                        docker build -t ${DOCKER_REPOSITORY_URL}/wca-scheduler:latest -f examples/kubernetes/wca-scheduler/Dockerfile .
+                        docker push ${DOCKER_REPOSITORY_URL}/wca-scheduler:latest
+                    '''
 
                     print('Set configs wca-wcheduler...')
                     sh "sed -i 's#/var/run/secrets/kubernetes.io/serviceaccount/ca.crt;#/var/run/secrets/kubernetes.io/cert/CA.crt;#g' ${WORKSPACE}/${WCA_SCHEDULER_PATH}wca-scheduler-server.conf"
