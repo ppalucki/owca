@@ -27,9 +27,11 @@ runner: !MeasurementRunner
     - task_cycles # do not remove: USED BY E2E tests
     - task_instructions
     - task_offcore_requests_demand_data_rd # required fro R/W characterization
-    - task_offcore_requests_demand_rfo
+    # - task_offcore_requests_demand_rfo
     - task_offcore_requests_l3_miss_demand_data_rd__rB010
-    - task_offcore_requests_outstanding_l3_miss_demand_data_rd__r6010
+    # - task_offcore_requests_outstanding_l3_miss_demand_data_rd__r6010
+    - task_mem_load_l3_miss_retired_all__rD3FF
+    - task_mem_load_retired_l3_miss__rD120
   enable_derived_metrics: True
   uncore_event_names:
     - platform_cas_count_reads

@@ -51,7 +51,7 @@ class WSS:
 
         self.wss_reset_interval = wss_reset_interval if wss_reset_interval != -1 else None
 
-        self.wss_stable_duration = wss_stable_duration # in cycles
+        self.wss_stable_duration = wss_stable_duration  # in cycles
         self.stable_cycles_counter = 0
 
         self.prev_referenced = None  # [B]
@@ -76,9 +76,9 @@ class WSS:
         """
 
         log.log(TRACE,
-            '[%s] cycle=%d, curr_referenced[MB]=%d '
-            'stable_cycles_counter=%d',
-            pids_s, self.cycle, curr_referenced/MB, self.stable_cycles_counter)
+                '[%s] cycle=%d, curr_referenced[MB]=%d '
+                'stable_cycles_counter=%d',
+                pids_s, self.cycle, curr_referenced/MB, self.stable_cycles_counter)
 
         if self.prev_referenced is not None and self.prev_membw is not None:
             curr_referenced_delta = \
@@ -90,7 +90,7 @@ class WSS:
             referenced_threshold = float(curr_referenced) / self.wss_threshold_divider
 
             log.debug(
-                '[%s] %ds'
+                '[%s] %6ds '
                 'REFERENCED[MB]: curr=%.2f/delta=%.2f/threshold=%.2f | '
                 'MEMBW[MB/s]: curr=%.2f/delta=%.2f/threshold=%.2f '
                 '-> stable_cycles_counter=%d',
@@ -113,11 +113,12 @@ class WSS:
             else:
                 self.stable_cycles_counter = 0
                 log.warn('[%s] curr_referenced_delta smaller than 0 and '
-                          'abs(curr_re...) < curr_referenced/max_decrease_divider; '
-                          'resetting stable_cycles_counter', pids_s)
+                         'abs(curr_re...) < curr_referenced/max_decrease_divider; '
+                         'resetting stable_cycles_counter', pids_s)
         else:
-            log.log(TRACE, '[%s] previous value of membw or referenced not available -'
-                      ' resetting stable_cycles_counter', pids_s)
+            log.log(TRACE,
+                    '[%s] previous value of membw or referenced not available -'
+                    ' resetting stable_cycles_counter', pids_s)
 
         self.prev_membw = curr_membw
         self.prev_referenced = curr_referenced
@@ -168,7 +169,7 @@ class WSS:
             if self.membw_counter_prev is not None:
                 curr_membw = (membw_counter - self.membw_counter_prev) / self.interval
                 log.log(TRACE, '[%s] curr_membw=%s (counter=%s prev=%s)', pids_s, curr_membw,
-                          membw_counter, self.membw_counter_prev)
+                        membw_counter, self.membw_counter_prev)
                 self.membw_counter_prev = membw_counter
                 self._update_stable_counter(curr_membw, referenced, pids_s)
             else:
