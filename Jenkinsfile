@@ -433,11 +433,20 @@ pipeline {
                 steps {
                     print('Build image')
 
-
                     sh '''
-                        docker build -t ${DOCKER_REPOSITORY_URL}/wca-scheduler:latest -f examples/kubernetes/wca-scheduler/Dockerfile .
-                        docker push ${DOCKER_REPOSITORY_URL}/wca-scheduler:latest
+                        IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca-scheduler:${GIT_COMMIT}
+                        BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca-scheduler:${GIT_BRANCH}
+                        IMAGE_DIR=examples/kubernetes/wca-scheduler
+
+                        # with git_commit as version
+                        docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
+                        docker push ${IMAGE_NAME}
+
+                        # with branch as version
+                        docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                        docker push ${BRANCH_IMAGE_NAME}
                     '''
+                    image_check("wca-scheduler")
 
                     print('Set configs wca-wcheduler...')
                     sh "sed -i 's#/var/run/secrets/kubernetes.io/serviceaccount/ca.crt;#/var/run/secrets/kubernetes.io/cert/CA.crt;#g' ${WORKSPACE}/${WCA_SCHEDULER_PATH}wca-scheduler-server.conf"
