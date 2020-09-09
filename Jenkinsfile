@@ -18,7 +18,7 @@ pipeline {
       booleanParam defaultValue: true, description: 'Run all pre-checks.', name: 'PRECHECKS'
       booleanParam defaultValue: true, description: 'Build WCA image.', name: 'BUILD_WCA_IMAGE'
       booleanParam defaultValue: true, description: 'Build wrappers and workload images.', name: 'BUILD_IMAGES'
-      booleanParam defaultValue: true, description: 'E2E for Kubernetes.', name: 'E2E_K8S'
+      booleanParam defaultValue: false, description: 'E2E for Kubernetes.', name: 'E2E_K8S'
       booleanParam defaultValue: true, description: 'E2E for Kubernetes as Daemonset.', name: 'E2E_K8S_DS'
       booleanParam defaultValue: true, description: 'E2E for wca-scheduler', name: 'E2E_WCA_SCHEDULER'
       string defaultValue: '300', description: 'Sleep time for E2E tests', name: 'SLEEP_TIME'
