@@ -77,18 +77,6 @@ pipeline {
                 '''
             }
         }
-        stage("Build pex files") {
-            when {expression{return params.BUILD_IMAGES}}
-            steps {
-                sh '''
-                  # speed up pex wrapper build time
-                  # requieres .pex-build already filled with requirments
-                  #export ADDITIONAL_PEX_OPTIONS='--no-index --cache-ttl=604800'
-                  make _unsafe_wrapper_package
-                '''
-                archiveArtifacts(artifacts: "dist/**")
-            }
-        }
         stage("Check code with bandit") {
             when {expression{return params.PRECHECKS}}
              steps {
@@ -371,8 +359,7 @@ pipeline {
                 INVENTORY="tests/e2e/demo_scenarios/common/inventory.yaml"
                 TAGS = "stress_ng,redis_rpc_perf,twemcache_rpc_perf,twemcache_mutilate,specjbb"
             }
-            failFast true
-            parallel {
+            steps {
                 stage('WCA Daemonset E2E for Kubernetes') {
                     when {expression{return params.E2E_K8S_DS}}
                     agent { label 'Daemonset' }
@@ -393,26 +380,6 @@ pipeline {
                             sh "kubectl delete -k ${WORKSPACE}/${KUSTOMIZATION_MONITORING} --wait=false"
                             sh "kubectl delete svc prometheus-nodeport-service --namespace prometheus"
                             junit 'unit_results.xml'
-                        }
-                    }
-                }
-                stage('WCA E2E for Kubernetes') {
-                    when {expression{return params.E2E_K8S}}
-                    agent { label 'kubernetes' }
-                    environment {
-                        KUBERNETES_HOST='100.64.176.17'
-                        CRT_PATH = '/etc/kubernetes/ssl'
-                        CONFIG = 'wca_config_kubernetes.yaml'
-                        HOST_INVENTORY='tests/e2e/demo_scenarios/common/inventory-kubernetes.yaml'
-                        CERT='true'
-                        KUBECONFIG="${HOME}/admin.conf"
-                    }
-                    steps {
-                        wca_and_workloads_check()
-                    }
-                    post {
-                        always {
-                            clean()
                         }
                     }
                 }
@@ -476,38 +443,6 @@ pipeline {
 /*----------------------------------------------------------------------------------------------------------*/
 /* Helper function */
 /*----------------------------------------------------------------------------------------------------------*/
-def wca_and_workloads_check() {
-    print('-wca_and_workloads_check-')
-    sh "echo GIT_COMMIT=$GIT_COMMIT"
-    // stress_ng,redis_rpc_perf,twemcache_rpc_perf,twemcache_mutilate,specjbb
-    image_check("wca")
-    image_check("wca/stress_ng")
-    image_check("wca/rpc_perf")
-    image_check("wca/twemcache")
-    image_check("wca/mutilate")
-    image_check("wca/specjbb")
-    sh "make venv"
-    sh "make wca_package_in_docker_with_kafka"
-    sh "make hadolint_check"
-    print('Reconfiguring wca...')
-    copy_files("${WORKSPACE}/tests/e2e/demo_scenarios/common/${CONFIG}", "${WORKSPACE}/tests/e2e/demo_scenarios/common/wca_config.yml.tmp")
-    replace_in_config(CERT)
-    copy_files("${WORKSPACE}/tests/e2e/demo_scenarios/common/wca_config.yml.tmp", "/etc/wca/wca_config.yml", true)
-    sh "sudo chown wca /etc/wca/wca_config.yml"
-    copy_files("${WORKSPACE}/dist/wca.pex", "/usr/bin/wca.pex", true)
-    copy_files("${WORKSPACE}/tests/e2e/demo_scenarios/common/wca.service", "/etc/systemd/system/wca.service", true)
-    sh "sudo systemctl daemon-reload"
-    print('Start wca...')
-    start_wca()
-    copy_files("${WORKSPACE}/${HOST_INVENTORY}", "${WORKSPACE}/${INVENTORY}")
-    replace_commit()
-    print('Run workloads...')
-    run_workloads("${EXTRA_ANSIBLE_PARAMS}", "${LABELS}")
-    print('Sleeping...')
-    sleep RUN_WORKLOADS_SLEEP_TIME
-    print('Test E2E metrics...')
-    test_wca_metrics()
-}
 
 def kustomize_wca_and_workloads_check() {
     print('-kustomize_wca_and_workloads_check-')
@@ -609,96 +544,6 @@ def image_check(image_name) {
 }
 
 
-def clean() {
-    print('Cleaning: stopping WCA and workloads .')
-    stop_wca()
-    stop_workloads("${EXTRA_ANSIBLE_PARAMS}")
-    junit 'unit_results.xml'
-}
-
-def copy_files(src, dst, sudo=false) {
-    if(sudo){
-        sh "sudo cp -r ${src} ${dst}"
-    }
-    else{
-        sh "cp -r ${src} ${dst}"
-    }
-}
-
-
-def replace_commit() {
-        contentReplace(
-            configs: [
-                fileContentReplaceConfig(
-                    configs: [
-                        fileContentReplaceItemConfig( search: 'BUILD_COMMIT', replace: "${GIT_COMMIT}", matchCount: 0),
-                    ],
-                    fileEncoding: 'UTF-8',
-                    filePath: "${WORKSPACE}/tests/e2e/demo_scenarios/common/inventory.yaml")])
-}
-
-def replace_in_config(cert='false') {
-    if(cert == 'true') {
-        contentReplace(
-            configs: [
-                fileContentReplaceConfig(
-                    configs: [
-                        fileContentReplaceItemConfig( search: 'BUILD_COMMIT', replace: "${GIT_COMMIT}", matchCount: 0),
-                        fileContentReplaceItemConfig( search: 'BUILD_NUMBER', replace: "${BUILD_NUMBER}", matchCount: 0),
-                        fileContentReplaceItemConfig( search: 'CRT_PATH', replace: "${CRT_PATH}", matchCount: 0)
-                    ],
-                    fileEncoding: 'UTF-8',
-                    filePath: "${WORKSPACE}/tests/e2e/demo_scenarios/common/wca_config.yml.tmp")])
-    }
-    else {
-        contentReplace(
-            configs: [
-                fileContentReplaceConfig(
-                    configs: [
-                        fileContentReplaceItemConfig( search: 'BUILD_COMMIT', replace: "${GIT_COMMIT}", matchCount: 0),
-                        fileContentReplaceItemConfig( search: 'BUILD_NUMBER', replace: "${BUILD_NUMBER}", matchCount: 0)
-                    ],
-                    fileEncoding: 'UTF-8',
-                    filePath: "${WORKSPACE}/tests/e2e/demo_scenarios/common/wca_config.yml.tmp")])
-    }
-}
-
-
-def start_wca() {
-    print('Starting wca...')
-    sh "sudo systemctl restart wca"
-    sleep 5
-    sh "sudo systemctl status wca"
-}
-
-def stop_wca() {
-    print('Stopping wca...')
-    sh "sudo systemctl stop wca"
-    print('Stopped wca.')
-}
-
-def run_workloads(extra_params, labels) {
-    dir('workloads') {
-        print('Starting workloads...')
-        sh '''ansible-playbook ${extra_params} -i ${WORKSPACE}/tests/e2e/demo_scenarios/run_workloads/inventory.yaml -i ${WORKSPACE}/${INVENTORY} --tags=${TAGS} -e "${LABELS}" ${WORKSPACE}/${PLAYBOOK}'''
-    }
-}
-
-def stop_workloads(extra_params) {
-    print('Stopping all workloads...')
-    sh "ansible-playbook  ${extra_params}  -i ${WORKSPACE}/${INVENTORY} --tags=clean_jobs ${WORKSPACE}/${PLAYBOOK}"
-    sleep 5
-}
-
-def remove_file(path) {
-    sh "sudo rm -f ${path}"
-}
-
-def test_wca_metrics() {
-    sh "make venv; source env/bin/activate && \
-        pytest ${WORKSPACE}/tests/e2e/test_wca_metrics.py::test_wca_metrics --junitxml=unit_results.xml --log-level=debug --log-cli-level=debug -v && \
-        deactivate"
-}
 def if_perform_e2e() {
     /* Check whether in commit message there is [e2e-skip] substring: if so then skip e2e stage. */
     /* I'm not 100% sure if checking of parents count is needed: it may be possible that just to take original

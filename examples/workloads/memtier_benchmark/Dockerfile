@@ -49,14 +49,10 @@ WORKDIR /redis-5.0.8
 RUN make
 
 FROM base
-RUN yum install -y epel-release && \
-    yum makecache && \
-    yum install -y python36 python3-distutils
 
 RUN useradd -M memtier
 
 COPY --from=builder /usr/local/bin/memtier_benchmark /usr/local/bin/memtier_benchmark
-COPY /dist/memtier_benchmark_wrapper.pex /usr/bin/
 COPY --from=builder redis-5.0.8/src/redis-cli /usr/local/bin/
 
 ENTRYPOINT ["memtier_benchmark"]

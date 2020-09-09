@@ -25,5 +25,3 @@ RUN yum install -y wget git which && \
 RUN git clone https://github.com/leverich/mutilate.git
 WORKDIR /mutilate
 RUN scons
-
-COPY /dist/mutilate_wrapper.pex /usr/bin/mutilate_wrapper.pex
