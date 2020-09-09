@@ -17,8 +17,7 @@ pipeline {
     parameters {
       booleanParam defaultValue: true, description: 'Run all pre-checks.', name: 'PRECHECKS'
       booleanParam defaultValue: true, description: 'Build WCA image.', name: 'BUILD_WCA_IMAGE'
-      booleanParam defaultValue: true, description: 'Build wrappers and workload images.', name: 'BUILD_IMAGES'
-      booleanParam defaultValue: true, description: 'E2E for Kubernetes.', name: 'E2E_K8S'
+      booleanParam defaultValue: true, description: 'Build workload images.', name: 'BUILD_IMAGES'
       booleanParam defaultValue: true, description: 'E2E for Kubernetes as Daemonset.', name: 'E2E_K8S_DS'
       booleanParam defaultValue: true, description: 'E2E for wca-scheduler', name: 'E2E_WCA_SCHEDULER'
       string defaultValue: '300', description: 'Sleep time for E2E tests', name: 'SLEEP_TIME'
@@ -342,46 +341,27 @@ pipeline {
             }
         }
         stage('WCA E2E tests') {
-			/* If commit message contains substring [e2e-skip] then this stage is omitted. */
-            when {
-                expression {
-                    return if_perform_e2e()
-                }
-            }
+            agent { label 'Daemonset' }
+            when {expression{return params.E2E_K8S_DS}}
             environment {
-                /* For E2E tests. */
-                PLAYBOOK = 'examples/workloads/run_workloads.yaml'
-                PROMETHEUS = 'http://100.64.176.12:9090'
                 BUILD_COMMIT="${GIT_COMMIT}"
-                EXTRA_ANSIBLE_PARAMS = " "
-                LABELS="{additional_labels: {build_number: \"${BUILD_NUMBER}\", build_node_name: \"${NODE_NAME}\", build_commit: \"${GIT_COMMIT}\"}}"
                 RUN_WORKLOADS_SLEEP_TIME = "${params.SLEEP_TIME}"
-                INVENTORY="tests/e2e/demo_scenarios/common/inventory.yaml"
-                TAGS = "stress_ng,redis_rpc_perf,twemcache_rpc_perf,twemcache_mutilate,specjbb"
+                PROMETHEUS='http://100.64.176.18:30900'
+                KUBERNETES_HOST='100.64.176.32'
+                KUBECONFIG="${HOME}/.kube/admin.conf"
+                KUSTOMIZATION_MONITORING='examples/kubernetes/monitoring/'
+                KUSTOMIZATION_WORKLOAD='examples/kubernetes/workloads/'
             }
             steps {
-                stage('WCA Daemonset E2E for Kubernetes') {
-                    when {expression{return params.E2E_K8S_DS}}
-                    agent { label 'Daemonset' }
-                    environment {
-                        PROMETHEUS = 'http://100.64.176.18:30900'
-                        KUBERNETES_HOST='100.64.176.32'
-                        KUBECONFIG="${HOME}/.kube/admin.conf"
-                        KUSTOMIZATION_MONITORING='examples/kubernetes/monitoring/'
-                        KUSTOMIZATION_WORKLOAD='examples/kubernetes/workloads/'
-                    }
-                    steps {
-                        kustomize_wca_and_workloads_check()
-                    }
-                    post {
-                        always {
-                            print('Cleaning workloads and wca...')
-                            sh "kubectl delete -k ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD} --wait=false"
-                            sh "kubectl delete -k ${WORKSPACE}/${KUSTOMIZATION_MONITORING} --wait=false"
-                            sh "kubectl delete svc prometheus-nodeport-service --namespace prometheus"
-                            junit 'unit_results.xml'
-                        }
-                    }
+                kustomize_wca_and_workloads_check()
+            }
+            post {
+                always {
+                    print('Cleaning workloads and wca...')
+                    sh "kubectl delete -k ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD} --wait=false"
+                    sh "kubectl delete -k ${WORKSPACE}/${KUSTOMIZATION_MONITORING} --wait=false"
+                    sh "kubectl delete svc prometheus-nodeport-service --namespace prometheus"
+                    junit 'unit_results.xml'
                 }
             }
         }
@@ -543,29 +523,6 @@ def image_check(image_name) {
     }
 }
 
-
-def if_perform_e2e() {
-    /* Check whether in commit message there is [e2e-skip] substring: if so then skip e2e stage. */
-    /* I'm not 100% sure if checking of parents count is needed: it may be possible that just to take original
-       commit HEAD~1 is only needed.  */
-    parents_count = sh(returnStdout: true, script: "git show -s --pretty=%p HEAD | wc -w").trim()
-    print(parents_count)
-    if (parents_count == "1") {
-        result = sh(
-            returnStdout: true,
-            script: "git show HEAD | grep '\\[e2e-skip\\]' || true"
-        ).trim().split("\n").last().trim()
-        print(result)
-        return result == ""
-    } else {
-        result = sh(
-            returnStdout: true,
-            script: "git show HEAD~1 | grep '\\[e2e-skip\\]' || true"
-        ).trim().split("\n").last().trim()
-        print(result)
-        return result == ""
-    }
-}
 
 def generate_docs() {
     sh '''cp docs/metrics.rst docs/metrics.tmp.rst
