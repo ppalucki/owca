@@ -16,7 +16,7 @@
 FROM centos:7
 
 RUN yum -y update && yum -y install java-1.8.0-openjdk-devel wget git patch which epel-release nc
-RUN yum -y install python2-pip python36 && pip install cqlsh==5.0.4
+RUN yum -y install python2-pip && pip install cqlsh==5.0.4
 
 # Download Apache Maven.
 RUN wget -O /tmp/apache-maven-3.5.4-bin.tar.gz http://www-eu.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz
@@ -40,8 +40,5 @@ RUN /opt/maven/bin/mvn -pl com.yahoo.ycsb:core,com.yahoo.ycsb:cassandra-binding,
 
 RUN echo "export M2_HOME=/usr/local/maven" >> /etc/profile.d/maven.sh
 RUN echo "export PATH=${M2_HOME}/bin:${PATH}" >> /etc/profile.d/maven.sh
-
-# Adding YCSB wrapper
-COPY /dist/ycsb_wrapper.pex /usr/bin/
 
 ENTRYPOINT ["./bin/ycsb"]

@@ -36,5 +36,4 @@ RUN ./configure --enable-optimizations
 RUN make -j 8
 RUN make altinstall
 WORKDIR /
-COPY /dist/cassandra_stress_wrapper.pex /usr/bin/cassandra_stress_wrapper.pex
 RUN mkdir -p /stress

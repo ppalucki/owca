@@ -27,9 +27,5 @@ RUN make
 # Builing final container that consists of workloads only.
 FROM centos:7
 
-RUN yum install -y epel-release
-RUN yum makecache
-RUN yum install -y python36
 RUN useradd -M stress-ng
-COPY /dist/stress_ng_wrapper.pex /usr/bin/stress_ng_wrapper.pex
 COPY --from=stress-ng /stress-ng-0.10.08/stress-ng /usr/bin/stress-ng
