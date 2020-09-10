@@ -8,7 +8,7 @@ resources:
 images:
 - name: wca-scheduler
   newName: 100.64.176.12:80/wca-scheduler
-  newTag: latest
+  newTag: master
 
 configMapGenerator:
   - name: wca-scheduler-config

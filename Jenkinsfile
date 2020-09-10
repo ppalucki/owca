@@ -132,6 +132,21 @@ pipeline {
                     '''
                     }
                 }
+                stage("Build and push wca_scheduler Docker image") {
+                    when {expression{return params.BUILD_IMAGES}}
+                    steps {
+                    sh '''
+                    IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca-scheduler:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca-scheduler:${GIT_BRANCH}
+                    IMAGE_DIR=${WORKSPACE}/examples/kubernetes/wca-scheduler
+                    docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile .
+                    docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
+                    docker rmi ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    '''
+                    }
+                }
                 // memtier_benchmark
                 stage("Build and push memtier_benchmark Docker image") {
                     when {expression{return params.BUILD_IMAGES}}
@@ -383,6 +398,7 @@ pipeline {
                     sh "sed -i 's#/var/run/secrets/kubernetes.io/serviceaccount/ca.crt;#/var/run/secrets/kubernetes.io/cert/CA.crt;#g' ${WORKSPACE}/${WCA_SCHEDULER_PATH}wca-scheduler-server.conf"
                     sh "sed -i 's/node36/node18/g' ${WORKSPACE}/${WCA_SCHEDULER_PATH}wca-scheduler-deployment.yaml"
                     sh "sed -i 's/100.64.176.36/${KUBERNETES_HOST}/g' ${WORKSPACE}/${WCA_SCHEDULER_PATH}config.yaml"
+                    sh "sed -i 's/master/${GIT_COMMIT}/g' ${WORKSPACE}/${WCA_SCHEDULER_PATH}kustomization.yaml"
 
                     sh "kubectl --namespace wca-scheduler create secret generic wca-scheduler-cert \
                         --from-file ${WORKSPACE}/tests/e2e/nginx/server.crt \
