@@ -13,4 +13,6 @@ bases:
 
 commonAnnotations:
   cri-resource-manager.intel.com/cold-start: |
-    pmbench: {duration: 120s}
+    service: {duration: 120s}
+    generator: {duration: 120s}
+

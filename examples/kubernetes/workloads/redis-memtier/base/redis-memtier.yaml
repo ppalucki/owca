@@ -19,7 +19,7 @@ spec:
       nodeSelector:
         goal: service
       containers:
-        - name: redis
+        - name: service
           image: redis
           imagePullPolicy: Always
           securityContext:
@@ -42,7 +42,7 @@ spec:
               notice
               --databases 1
               $redis_extra
-        - name: memtier
+        - name: generator
           image: memtier_benchmark
           imagePullPolicy: Always
           securityContext:

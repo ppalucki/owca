@@ -13,4 +13,5 @@ bases:
 
 commonAnnotations:
   cri-resource-manager.intel.com/memory-type: |
-    pmbench: dram
+    service: dram
+    generator: dram
