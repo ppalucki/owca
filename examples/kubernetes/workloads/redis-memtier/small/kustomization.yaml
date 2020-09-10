@@ -1,3 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 nameSuffix: -small
 
 bases:
@@ -5,17 +8,14 @@ bases:
 
 commonLabels:
   app: redis-memtier-small
-  size: small
 
 configMapGenerator:
 - name: memtier
   behavior: merge
   literals:
-    - clients=30
-    - threads=4
-    - keymaximum_gen=1600000   # 200k
-    - keymaximum_load=1600000   # 200k
-    - datasize=1024       # 220-250M
+    - keymaximum_gen=250000
+    - keymaximum_load=250000
+    - extra='--key-stddev=12500'
 
 patchesStrategicMerge:
   - resources.yaml
