@@ -4,9 +4,11 @@
 # - KUBERNETES_SERVICE_PORT - provided by default by Kubernetes
 # - HOST_IP - need to explicitly enabled in Pod spec using downward-api
 # - HOSTNAME - default provided by OS
+loggers:
+  wca.wss: debug
 
 runner: !MeasurementRunner
-  interval: 5.0
+  interval: 15.0
   node: !KubernetesNode
     cgroup_driver: cgroupfs
     monitored_namespaces: ["default"]
@@ -25,7 +27,11 @@ runner: !MeasurementRunner
     - task_cycles # do not remove: USED BY E2E tests
     - task_instructions
     - task_offcore_requests_demand_data_rd # required fro R/W characterization
-    - task_offcore_requests_demand_rfo
+    # - task_offcore_requests_demand_rfo
+    - task_offcore_requests_l3_miss_demand_data_rd__rB010
+    # - task_offcore_requests_outstanding_l3_miss_demand_data_rd__r6010
+    - task_mem_load_l3_miss_retired_all__rD3FF
+    - task_mem_load_retired_l3_miss__rD120
   enable_derived_metrics: True
   uncore_event_names:
     - platform_cas_count_reads
@@ -33,5 +39,8 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_interval: 1
+  wss_reset_interval: -1  # -1 disable cyclic reset - None - means disable wss collection at all
+  wss_stable_duration: 240  #  15s * 120 = 3600s = 1h
+  wss_threshold_divider: 500  # 0.5% of increase of currently referenced or 
+  
   gather_hw_mm_topology: True

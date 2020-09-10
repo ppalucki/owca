@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    role: prometheus-rules
+  name: prometheus-wca-wss
+  namespace: prometheus
+spec:
+  groups:
+
+  - name: wss
+    rules:
+
+    - record: task_wss_referenced_bytes_rate
+      expr: rate(task_wss_referenced_bytes[1m])
+
+    - record: task_wss_referenced_bytes_deriv
+      expr: deriv(task_wss_referenced_bytes[1m])
+
+    - record: task_wss_referenced_bytes_2deriv
+      expr: deriv(task_wss_referenced_bytes_deriv[1m])
