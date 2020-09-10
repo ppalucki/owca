@@ -167,6 +167,13 @@ class MeasurementRunner(Runner):
         Number of stable cycles after which wss is considered stable. Will not have any impact
         unless wss_reset_interval is greater than 0
 
+    - ``wss_threshold_divider``: **int** = *100*
+
+        Value used to calculate threshold based on actual referenced bytes or memory bandwidth
+        to treat referenced value as stable.
+        Memory bandwidth or referenced bytes are divide by this value.
+        E.g. 100 means membw/100 which equals to 1% of memory bandwidth.
+
     - ``include_optional_labels``: **bool** = *False*
 
         Attach following labels to all metrics:
@@ -205,6 +212,7 @@ class MeasurementRunner(Runner):
             allocation_configuration: Optional[AllocationConfiguration] = None,
             wss_reset_interval: int = 0,
             wss_stable_duration: int = 30,
+            wss_threshold_divider: int = 100,
             include_optional_labels: bool = False,
             zoneinfo: Union[Str, bool] = True,
             vmstat: Union[Str, bool] = True,
@@ -258,6 +266,7 @@ class MeasurementRunner(Runner):
 
         self._wss_reset_interval = wss_reset_interval
         self._wss_stable_duration = wss_stable_duration
+        self._wss_threshold_divider = wss_threshold_divider
 
         self._uncore_pmu = None
 
@@ -409,6 +418,7 @@ class MeasurementRunner(Runner):
             enable_derived_metrics=self._enable_derived_metrics,
             wss_reset_interval=self._wss_reset_interval,
             wss_stable_duration=self._wss_stable_duration,
+            wss_threshold_divider=self._wss_threshold_divider,
             perf_aggregate_cpus=self._perf_aggregate_cpus,
             interval=self._interval
         )
