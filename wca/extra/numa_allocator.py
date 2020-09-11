@@ -484,7 +484,6 @@ def _get_most_free_memory_nodes(
             # if we can't fit into free memory, don't consider that node at all
             continue
         d[node] = round(math.log10(node_memory_free[node] - memory_limit), 1)
-    print(d)
     free_nodes = sorted(d.items(), reverse=True, key=lambda x: x[1])
     best_free_nodes = set()
     if len(free_nodes) > 0:

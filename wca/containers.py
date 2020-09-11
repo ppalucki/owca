@@ -117,7 +117,9 @@ class ContainerSet(ContainerInterface):
                  enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
                  wss_stable_duration: int = 30,
-                 perf_aggregate_cpus: bool = True
+                 wss_threshold_divider: int = 100,
+                 perf_aggregate_cpus: bool = True,
+                 interval: int = 5,
                  ):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
@@ -143,7 +145,9 @@ class ContainerSet(ContainerInterface):
                 enable_derived_metrics=enable_derived_metrics,
                 wss_reset_interval=wss_reset_interval,
                 wss_stable_duration=wss_stable_duration,
-                perf_aggregate_cpus=perf_aggregate_cpus
+                wss_threshold_divider=wss_threshold_divider,
+                perf_aggregate_cpus=perf_aggregate_cpus,
+                interval=interval,
             )
 
     def get_subcontainers(self):
@@ -199,10 +203,9 @@ class ContainerSet(ContainerInterface):
                     self._platform.rdt_information.rdt_mb_monitoring_enabled,
                     self._platform.rdt_information.rdt_cache_monitoring_enabled))
 
-        merged_measurements = []
+        # Dirty hack, to get access from container to parent container measurments :(
         for container in self.get_subcontainers():
             container.parent_measurements = measurements
-            merged_measurements.append(container.get_measurements())
 
         merged_measurements = merge_measurements(
             [container.get_measurements() for container in self.get_subcontainers()])
@@ -270,6 +273,7 @@ class Container(ContainerInterface):
                  enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
                  wss_stable_duration: int = 30,
+                 wss_threshold_divider: int = 100,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5
                  ):
@@ -289,7 +293,13 @@ class Container(ContainerInterface):
             allocation_configuration=allocation_configuration)
 
         if wss_reset_interval != 0:
-            self.wss = wss.WSS(interval, self.get_pids, wss_reset_interval, wss_stable_duration)
+            self.wss = wss.WSS(
+                interval=interval,
+                get_pids=self.get_pids,
+                wss_reset_interval=wss_reset_interval,
+                wss_stable_duration=wss_stable_duration,
+                wss_threshold_divider=wss_threshold_divider,
+            )
         else:
             self.wss = None
 
@@ -415,6 +425,7 @@ class ContainerManager:
                  event_names: List[str], enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
                  wss_stable_duration: int = 30,
+                 wss_threshold_divider: int = 100,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5
                  ):
@@ -425,6 +436,7 @@ class ContainerManager:
         self._enable_derived_metrics = enable_derived_metrics
         self._wss_reset_interval = wss_reset_interval
         self._wss_stable_duration = wss_stable_duration
+        self._wss_threshold_divider = wss_threshold_divider
         self._perf_aggregate_cpus = perf_aggregate_cpus
         self._interval = interval
 
@@ -442,7 +454,9 @@ class ContainerManager:
                 enable_derived_metrics=self._enable_derived_metrics,
                 wss_reset_interval=self._wss_reset_interval,
                 wss_stable_duration=self._wss_stable_duration,
+                wss_threshold_divider=self._wss_threshold_divider,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
+                interval=self._interval,
             )
         else:
             container = Container(
@@ -453,6 +467,7 @@ class ContainerManager:
                 enable_derived_metrics=self._enable_derived_metrics,
                 wss_reset_interval=self._wss_reset_interval,
                 wss_stable_duration=self._wss_stable_duration,
+                wss_threshold_divider=self._wss_threshold_divider,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
                 interval=self._interval
             )
