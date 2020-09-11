@@ -107,16 +107,3 @@ spec:
               2>&1 | stdbuf -e0 -o0 awk 'BEGIN { RS = "\r" } { print $0; fflush(); system("") }'
 
 
-
-      #     volumeMounts:
-      #       - name: var-log-wrapper
-      #         mountPath: /var/log/wrapper
-      #
-      # volumes:
-      #   - name: var-log-wrapper
-      #     emptyDir: {}
-
-  # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
-  # when using commonLabels
-  # fixed in 2.1.0 https://github.com/kubernetes-sigs/kustomize/commit/c470982ce5b96da82a757f088a842bb05d3bcdb4
-  volumeClaimTemplates: []
