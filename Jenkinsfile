@@ -373,9 +373,9 @@ pipeline {
             post {
                 always {
                     print('Cleaning workloads and wca...')
-                    sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD} | kubectl delete -f - --wait=false"
-                    sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_MONITORING} | kubectl delete -f -  --wait=false"
-                    sh "kubectl delete svc prometheus-nodeport-service --namespace prometheus"
+                    sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD} | kubectl delete -f - --wait=false || true"
+                    sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_MONITORING} | kubectl delete -f -  --wait=false || true"
+                    sh "kubectl delete svc prometheus-nodeport-service --namespace prometheus || true" 
                     junit 'unit_results.xml'
                 }
             }
@@ -423,9 +423,9 @@ pipeline {
                 post {
                     always {
                         print('Cleaning wca-scheduler...')
-                        sh "kustomize build ${WORKSPACE}/${WCA_SCHEDULER_PATH} | kubectl delete -f - --wait=false"
-                        sh "kubectl delete secret wca-scheduler-cert -n wca-scheduler"
-                        sh "kubectl delete svc wca-scheduler-nodeport-service --namespace wca-scheduler"
+                        sh "kustomize build ${WORKSPACE}/${WCA_SCHEDULER_PATH} | kubectl delete -f - --wait=false || true"
+                        sh "kubectl delete secret wca-scheduler-cert -n wca-scheduler || true"
+                        sh "kubectl delete svc wca-scheduler-nodeport-service --namespace wca-scheduler || true"
                         print('Asserting unit tests status...')
                         junit 'unit_results.xml'
                     }
