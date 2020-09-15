@@ -1,20 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 nameSuffix: -big-wss
 bases:
 - ../base
 
 commonLabels:
   app: redis-memtier-big-wss
-  size: big
 
 configMapGenerator:
 - name: memtier
   behavior: merge
   literals:
-    - clients=50
-    - threads=8
-    - keymaximum_gen=800000   # 800k
-    - keymaximum_load=800000  # 800k
-    - datasize=50000          # 40GB (50kB one entry)
+    - keymaximum_gen=1000000
+    - keymaximum_load=1000000
+    - extra='--key-stddev=1000000'
 
-patchesStrategicMerge:
-  - resources.yaml
+patches:
+- target:
+    kind: StatefulSet
+  patch: |-
+    apiVersion: foo
+    kind: foo
+    metadata:
+      name: foo
+    spec:
+      template:
+        spec:
+          containers:
+          - name: service
+            resources:
+              requests:
+                cpu: 2
+                memory: 75G
+              limits:
+                cpu: 2
+                memory: 75G
+          - name: generator
+            resources:
+              requests:
+                cpu: 2
+                memory: 2G
+              limits:
+                cpu: 2
+                memory: 2G

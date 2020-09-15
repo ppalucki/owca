@@ -6,6 +6,7 @@ spec:
   replicas: 0
   serviceName: redis-memtier
   podManagementPolicy: Parallel
+
   selector:
     matchLabels:
       app: redis-memtier
@@ -18,7 +19,7 @@ spec:
       nodeSelector:
         goal: service
       containers:
-        - name: redis
+        - name: service
           image: redis
           imagePullPolicy: Always
           securityContext:
@@ -41,7 +42,7 @@ spec:
               notice
               --databases 1
               $redis_extra
-        - name: memtier
+        - name: generator
           image: memtier_benchmark
           imagePullPolicy: Always
           securityContext:
@@ -57,10 +58,6 @@ spec:
             - bash
             - -c
             - >
-              shopt -s extglob;
-              identifier=${podname#memtier-};
-              service=${identifier%-+([[:digit:]])};
-              target='127.0.0.1';
               test=0;
               until [ "$test" = "PONG" ];
               do
@@ -68,12 +65,14 @@ spec:
                 sleep 5;
               done
 
+              echo Preparing data ...
+
               # preparing data
 
               memtier_benchmark
               --run-count=1
               --requests=allkeys
-              --server=$target
+              --server=127.0.0.1
               --threads=1
               --clients=1
               --pipeline=20000
@@ -84,17 +83,19 @@ spec:
               --ratio 1:0
               &> /dev/null
 
+              echo Start ...
+
               # Clear possible output from previous job on the same node
 
               echo "[RUN #0 0%,   0 secs]  0 threads:           0 ops,       0 (avg:       0) ops/sec, 0.00KB/sec (avg: 0.00KB/sec),  0.00 (avg:  0.00) msec latency";
 
-              # loading
+              # Loading
 
               stdbuf -e0 -o0
               memtier_benchmark
               --run-count=9999
               --requests=10000000000
-              --server=$target
+              --server=127.0.0.1
               --threads=$threads
               --hide-histogram
               --clients=$clients
@@ -102,18 +103,7 @@ spec:
               --data-size=$datasize
               --key-pattern=G:G
               --key-maximum=$keymaximum_load
-              --ratio $ratio
+              --ratio $ratio $extra
               2>&1 | stdbuf -e0 -o0 awk 'BEGIN { RS = "\r" } { print $0; fflush(); system("") }'
 
-          volumeMounts:
-            - name: var-log-wrapper
-              mountPath: /var/log/wrapper
 
-      volumes:
-        - name: var-log-wrapper
-          emptyDir: {}
-
-  # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
-  # when using commonLabels
-  # fixed in 2.1.0 https://github.com/kubernetes-sigs/kustomize/commit/c470982ce5b96da82a757f088a842bb05d3bcdb4
-  volumeClaimTemplates: []
