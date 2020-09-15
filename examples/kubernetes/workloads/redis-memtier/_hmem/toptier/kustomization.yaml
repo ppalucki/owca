@@ -3,7 +3,7 @@ kind: Kustomization
 
 nameSuffix: -toptier
 
-bases:
+resources:
 - _coldstart
 - small
 - small-wss

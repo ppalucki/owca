@@ -17,5 +17,31 @@ configMapGenerator:
     - keymaximum_load=500000
     - extra='--key-stddev=500000'
 
-patchesStrategicMerge:
-  - resources.yaml
+patches:
+- target:
+    kind: StatefulSet
+  patch: |-
+    apiVersion: foo
+    kind: foo
+    metadata:
+      name: foo
+    spec:
+      template:
+        spec:
+          containers:
+          - name: service
+            resources:
+              requests:
+                cpu: 2
+                memory: 38G
+              limits:
+                cpu: 2
+                memory: 38G
+          - name: generator
+            resources:
+              requests:
+                cpu: 2
+                memory: 2G
+              limits:
+                cpu: 2
+                memory: 2G

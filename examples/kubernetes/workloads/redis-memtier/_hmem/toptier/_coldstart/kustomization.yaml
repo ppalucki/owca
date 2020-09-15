@@ -3,7 +3,7 @@ kind: Kustomization
 
 nameSuffix: -coldstart
 
-bases:
+resources:
 - ../small
 - ../small-wss
 - ../big-wss

@@ -78,7 +78,7 @@ def test_wca_metrics(workload_name):
 
 @pytest.mark.parametrize('workload_name', [
     'stress',
-    # 'redis-memtier',
+    'redis-memtier',
     'sysbench-memory',
     'memcached-mutilate',
     'specjbb'

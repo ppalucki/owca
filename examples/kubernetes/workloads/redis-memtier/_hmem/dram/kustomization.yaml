@@ -3,7 +3,7 @@ kind: Kustomization
 
 nameSuffix: -dram
 
-bases:
+resources:
 - ../../small
 - ../../small-wss
 - ../../medium
