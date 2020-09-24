@@ -1,0 +1,41 @@
+diff --git a/pmbench.c b/pmbench.c
+index 8eb7edf..d99bd43 100644
+--- a/pmbench.c
++++ b/pmbench.c
+@@ -772,7 +772,11 @@ void* main_bm_thread(void* arg)
+     done_tsc = (uint64_t)p->duration_sec * freq_khz * 1000;
+     if (do_memstat) alarm_arm(tinfo->thread_num - 1, tsops->timestamp() + (done_tsc / 2), mem_info_oneshot, &mem_ctx);
+     done_tsc += sw_start(&sw);
+-
++
++    time_t now_time_print, last_time_print = time(0);
++    int delta_tenk, last_tenk = 0;
++    float bench_mean_us, numgen_mean_us, pure_lat;
++
+     while ((now = tsops->timestamp()) < done_tsc) {
+ 	alarm_check(now);
+ 	for (i = 0; i < 10000; ++i) {
+@@ -790,6 +794,23 @@ void* main_bm_thread(void* arg)
+ 	    if (p->delay > 10) sys_delay(p->delay);
+ 	}
+ 	tenk++;
++        now_time_print = time(0);
++        if ((now_time_print - last_time_print) > 0) {
++
++            last_time_print = now_time_print;
++
++            delta_tenk = tenk - last_tenk;
++            last_tenk = tenk;
++
++            //  calculating pure_lat is copied from function print_result
++            bench_mean_us = (((float)(sw.elapsed_sum + (now - sw.start_tsc)) / (tenk * 10000)) * 1000 /freq_khz);
++            numgen_mean_us = (((float)presult->total_numgen_clock / presult->total_numgen_count) * 1000 /freq_khz);
++            pure_lat = bench_mean_us - numgen_mean_us;
++
++            // Net average page latency(us) (Arith. mean)
++            prn("Thread [%d]; page access delta [%d]; page access all [%d]; Net average page latency(us) [%0.4f]; clks [%d];\n",
++                tinfo->thread_num, delta_tenk*10000, tenk*10000, pure_lat, us_to_clk(pure_lat));
++        }
+     	if (control.interrupted) break;
+     }
+     sw_stop(&sw);

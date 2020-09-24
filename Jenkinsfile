@@ -302,6 +302,22 @@ pipeline {
                     '''
                     }
                 }
+                // pmbench
+                stage("Build and push pmbench Docker image") {
+                    when {expression{return params.BUILD_IMAGES}}
+                    steps {
+                    sh '''
+                    IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/pmbench:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca/pmbench:${GIT_BRANCH}
+                    IMAGE_DIR=${WORKSPACE}/examples/workloads/pmbench
+                    docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile ${IMAGE_DIR}
+                    docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
+                    docker rmi ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    '''
+                    }
+                }
                 stage("Build and push mysql_tpm_gauge Docker image") {
                     when {expression{return params.BUILD_IMAGES}}
                     steps {

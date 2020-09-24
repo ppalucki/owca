@@ -9,6 +9,7 @@ configMapGenerator:
     - configurations/stress.conf
     - configurations/memtier.conf
     - configurations/mutilate.conf
+    - configurations/pmbench.conf
     - configurations/specjbb.conf
     - configurations/sysbench.conf
 

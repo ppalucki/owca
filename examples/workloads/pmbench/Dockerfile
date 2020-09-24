@@ -17,6 +17,9 @@ FROM centos:7
 RUN yum -y update
 RUN yum -y install epel-release git make gcc libuuid libuuid-devel libxml2-devel libxml2
 RUN git clone https://bitbucket.org/jisooy/pmbench
-RUN cd pmbench && make pmbench
+WORKDIR /pmbench
+ADD pmbench.patch .
+RUN git apply pmbench.patch
+RUN make pmbench
 
 RUN useradd -M pmbench
