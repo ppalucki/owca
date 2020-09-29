@@ -1,3 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 resources:
 - memcached-mutilate.yaml
 
@@ -18,6 +21,3 @@ configMapGenerator:
     - conns=1
     - time=10                  # seconds
     - extra=
-
-patchesStrategicMerge:
-  - resources.yaml
