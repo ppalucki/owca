@@ -1,41 +1,31 @@
 diff --git a/pmbench.c b/pmbench.c
-index 8eb7edf..ce8f3d1 100644
+index 8eb7edf..b14f724 100644
 --- a/pmbench.c
 +++ b/pmbench.c
-@@ -773,6 +773,10 @@ void* main_bm_thread(void* arg)
+@@ -773,6 +773,8 @@ void* main_bm_thread(void* arg)
      if (do_memstat) alarm_arm(tinfo->thread_num - 1, tsops->timestamp() + (done_tsc / 2), mem_info_oneshot, &mem_ctx);
      done_tsc += sw_start(&sw);
  	
-+    time_t now_time_print, last_time_print = time(0);
-+    int delta_tenk, last_tenk = 0;
-+    float bench_mean_us, numgen_mean_us, pure_lat;
-+
++    float bench_last_sec, delta_now;
++    uint64_t delta_tenk, prev_tenk = 0, prev_now=0;
      while ((now = tsops->timestamp()) < done_tsc) {
  	alarm_check(now);
  	for (i = 0; i < 10000; ++i) {
-@@ -790,6 +794,26 @@ void* main_bm_thread(void* arg)
+@@ -790,6 +792,18 @@ void* main_bm_thread(void* arg)
  	    if (p->delay > 10) sys_delay(p->delay);
  	}
  	tenk++;
-+	now_time_print = time(0);
-+        if ((now_time_print - last_time_print) > 0) {
-+            
-+            last_time_print = now_time_print;
-+            
-+            delta_tenk = tenk - last_tenk;
-+            last_tenk = tenk;
++	// delta_now in ms
++        if ((delta_now = (now - prev_now)/freq_khz) >= 1000) {
++	    prev_now = now;
++            delta_tenk = tenk - prev_tenk;
++            prev_tenk = tenk;
++		
++	    bench_last_sec = (delta_now / (delta_tenk * 10000)) * 1000;
 +
-+            //  calculating pure_lat is copied from function print_result
-+            bench_mean_us = (((float)(sw.elapsed_sum + (now - sw.start_tsc)) / (tenk * 10000)) * 1000 /freq_khz);
-+            numgen_mean_us = (((float)presult->total_numgen_clock / presult->total_numgen_count) * 1000 /freq_khz);
-+            pure_lat = bench_mean_us - numgen_mean_us;
-+
-+            // last second
-+            float d = (((float) 1.0 / (tenk * 10000)) * 1000 /freq_khz);
-+
-+            // Net average page latency(us) (Arith. mean)
-+            prn("Thread [%d]; page access delta [%d]; page access all [%d]; Net average page latency(us) [%0.4f]; clks [%d];\n", 
-+                tinfo->thread_num, delta_tenk*10000, tenk*10000, pure_lat, us_to_clk(pure_lat));
++            // average page latency(us) (Arith. mean) from last second; page access all, divided by 1000
++            prn("Thread [%d]; page access delta [%d]; page access all [%d]k; average page latency [%0.4f](us); clks [%d];\n", 
++                tinfo->thread_num, delta_tenk*10000, tenk*10, bench_last_sec, us_to_clk(bench_last_sec));
 +        }
      	if (control.interrupted) break;
      }
