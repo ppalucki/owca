@@ -85,13 +85,20 @@ and store them in metrics_storage component.
     Number of stable cycles after which wss is considered stable. Will not have any impact
     unless wss_reset_interval is greater than 0
 
-- ``wss_threshold_divider``: **int** = *100*
+- ``wss_mbw_fraction``: **Optional[float]** = *None*
 
-    Value used to calculate threshold based on actual referenced bytes or memory bandwidth
-    to treat referenced value as stable.
-    Memory bandwidth or referenced bytes are divide by this value.
-    E.g. 100 means membw/100 which equals to 1% of memory bandwidth.
-    
+    Value used to calculate threshold based on fraction memory bandwidth
+    to treat referenced value as stable and return WSS.
+    Memory bandwidth multiplied by this value and None means condition is ignored.
+    E.g. 0.1 means membw * 0.1 = which equals to 10% of memory bandwidth.
+
+- ``wss_ref_fraction``: **Optional[float]** = *None*
+
+    Value used to calculate threshold based on actual referenced bytes fraction
+    to treat referenced value as stable and return WSS.
+    Referenced value multiplied by this value and None means condition is ignored.
+    E.g. 0.01 means total referenced * 0.01 which equals to 1% of total referenced bytes.
+
 - ``include_optional_labels``: **bool** = *False*
 
     Attach following labels to all metrics:
