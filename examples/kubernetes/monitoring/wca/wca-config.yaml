@@ -39,8 +39,8 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_interval: -1  # -1 disable cyclic reset - None - means disable wss collection at all
-  wss_stable_duration: 240  #  15s * 120 = 3600s = 1h
-  wss_threshold_divider: 500  # 0.5% of increase of currently referenced or 
+  wss_reset_interval: -1   #  0 means disable WSS completly, -1 means just relay on thresholds
+  wss_mbw_fraction: 0.01 # if increase is less than then record 1%
+  wss_stable_duration: 4  #  15s * 4 - 1 minute
   
   gather_hw_mm_topology: True
