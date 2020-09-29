@@ -1,5 +1,5 @@
 nameSuffix: -big-wss
-bases:
+resources:
 - ../base
 
 commonLabels:

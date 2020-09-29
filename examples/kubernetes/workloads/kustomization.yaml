@@ -6,4 +6,3 @@ bases:
 - sysbench-memory
 - specjbb
 - pmbench
-

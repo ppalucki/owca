@@ -23,12 +23,12 @@ commonAnnotations:
   topologyhints.cri-resource-manager.intel.com/pod: "false"
 
   # TOGETHER
-  # cri-resource-manager.intel.com/affinity: |
-  #   redis: [ memtier ]
-  #   memtier: [ redis ]
-
-  # SEPARATE
-  cri-resource-manager.intel.com/anti-affinity: |
+  cri-resource-manager.intel.com/affinity: |
     redis: [ memtier ]
     memtier: [ redis ]
+
+  # SEPARATE
+  # cri-resource-manager.intel.com/anti-affinity: |
+  #   redis: [ memtier ]
+  #   memtier: [ redis ]
 

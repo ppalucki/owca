@@ -356,7 +356,7 @@ pipeline {
             }
         }
         stage('WCA E2E tests') {
-            agent { label 'Daemonset' }
+            agent { label 'Kubernetes' }
             when {expression{return params.E2E_K8S_DS}}
             environment {
                 BUILD_COMMIT="${GIT_COMMIT}"
@@ -382,7 +382,7 @@ pipeline {
         }
         stage('E2E wca-scheduler') {
                 when {expression{return params.E2E_WCA_SCHEDULER}}
-                agent { label 'kubernetes' }
+                agent { label 'Kubernetes' }
                 environment {
                     PROMETHEUS='http://100.64.176.18:30900'
                     KUBERNETES_HOST='100.64.176.18'
