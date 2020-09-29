@@ -1,19 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-nameSuffix: -big
+nameSuffix: -medium
 
 resources:
 - ../base
 
 commonLabels:
-  app: pmbench-big
+  app: pmbench-medium
 
 configMapGenerator:
 - name: pmbench
   behavior: merge
   literals:
-    - extra='--setsize 40000 --mapsize 80000 2000000 --initialize -a touch -j 16'
+    - extra='--setsize 20000 --mapsize 40000 2000000 --initialize -a touch -j 8'
 
 patches:
 - target:
@@ -30,8 +30,8 @@ patches:
           - name: generator
             resources:
               requests:
-                cpu: 32
-                memory: 90G
+                cpu: 16
+                memory: 45G
               limits:
-                cpu: 32
-                memory: 90G
+                cpu: 16
+                memory: 45G

@@ -1,19 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-nameSuffix: -big
+nameSuffix: -big-wss
 
 resources:
 - ../base
 
 commonLabels:
-  app: pmbench-big
+  app: pmbench-big-wss
 
 configMapGenerator:
 - name: pmbench
   behavior: merge
   literals:
-    - extra='--setsize 40000 --mapsize 80000 2000000 --initialize -a touch -j 16'
+    - extra='--setsize 80000 --mapsize 80000 2000000 --initialize -a touch -j 16'
 
 patches:
 - target:
