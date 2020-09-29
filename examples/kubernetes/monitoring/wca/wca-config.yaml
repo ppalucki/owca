@@ -33,5 +33,8 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_interval: 1
+  wss_reset_interval: -1   #  0 means disable WSS completly, -1 means just relay on thresholds
+  wss_mbw_fraction: 0.01 # if increase is less than then record 1%
+  wss_stable_duration: 4  #  15s * 4 - 1 minute
+  
   gather_hw_mm_topology: True

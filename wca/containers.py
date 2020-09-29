@@ -117,7 +117,8 @@ class ContainerSet(ContainerInterface):
                  enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
                  wss_stable_duration: int = 30,
-                 wss_threshold_divider: int = 100,
+                 wss_mbw_fraction: Optional[float] = None,
+                 wss_ref_fraction: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5,
                  ):
@@ -145,7 +146,8 @@ class ContainerSet(ContainerInterface):
                 enable_derived_metrics=enable_derived_metrics,
                 wss_reset_interval=wss_reset_interval,
                 wss_stable_duration=wss_stable_duration,
-                wss_threshold_divider=wss_threshold_divider,
+                wss_mbw_fraction=wss_mbw_fraction,
+                wss_ref_fraction=wss_ref_fraction,
                 perf_aggregate_cpus=perf_aggregate_cpus,
                 interval=interval,
             )
@@ -273,7 +275,8 @@ class Container(ContainerInterface):
                  enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
                  wss_stable_duration: int = 30,
-                 wss_threshold_divider: int = 100,
+                 wss_mbw_fraction: Optional[float] = None,
+                 wss_ref_fraction: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5
                  ):
@@ -298,7 +301,8 @@ class Container(ContainerInterface):
                 get_pids=self.get_pids,
                 wss_reset_interval=wss_reset_interval,
                 wss_stable_duration=wss_stable_duration,
-                wss_threshold_divider=wss_threshold_divider,
+                wss_mbw_fraction=wss_mbw_fraction,
+                wss_ref_fraction=wss_ref_fraction,
             )
         else:
             self.wss = None
@@ -425,7 +429,8 @@ class ContainerManager:
                  event_names: List[str], enable_derived_metrics: bool = False,
                  wss_reset_interval: int = 0,
                  wss_stable_duration: int = 30,
-                 wss_threshold_divider: int = 100,
+                 wss_mbw_fraction: Optional[float] = None,
+                 wss_ref_fraction: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5
                  ):
@@ -436,7 +441,8 @@ class ContainerManager:
         self._enable_derived_metrics = enable_derived_metrics
         self._wss_reset_interval = wss_reset_interval
         self._wss_stable_duration = wss_stable_duration
-        self._wss_threshold_divider = wss_threshold_divider
+        self._wss_mbw_fraction = wss_mbw_fraction
+        self._wss_ref_fraction = wss_ref_fraction
         self._perf_aggregate_cpus = perf_aggregate_cpus
         self._interval = interval
 
@@ -454,7 +460,8 @@ class ContainerManager:
                 enable_derived_metrics=self._enable_derived_metrics,
                 wss_reset_interval=self._wss_reset_interval,
                 wss_stable_duration=self._wss_stable_duration,
-                wss_threshold_divider=self._wss_threshold_divider,
+                wss_mbw_fraction=self._wss_mbw_fraction,
+                wss_ref_fraction=self._wss_ref_fraction,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
                 interval=self._interval,
             )
@@ -467,7 +474,8 @@ class ContainerManager:
                 enable_derived_metrics=self._enable_derived_metrics,
                 wss_reset_interval=self._wss_reset_interval,
                 wss_stable_duration=self._wss_stable_duration,
-                wss_threshold_divider=self._wss_threshold_divider,
+                wss_mbw_fraction=self._wss_mbw_fraction,
+                wss_ref_fraction=self._wss_ref_fraction,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
                 interval=self._interval
             )
