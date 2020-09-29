@@ -36,8 +36,9 @@ spec:
       hostIPC: true
       hostNetwork: true
       serviceAccountName: wca
+      tolerations:
+      - key: testwss
       containers:
-
       - name: wca
         imagePullPolicy: Always # for debugging purpose and stream the development!
         image: wca
