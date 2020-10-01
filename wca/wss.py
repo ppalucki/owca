@@ -27,8 +27,8 @@ MB = 1000000
 
 class WSS:
     def __init__(self, interval, get_pids,
-                 wss_reset_interval=-1,
-                 wss_stable_duration=30,
+                 wss_reset_cycles=-1,
+                 wss_stable_cycles=30,
                  wss_mbw_fraction: Optional[float] = None,
                  wss_ref_fraction: Optional[float] = None,
                  ):
@@ -42,9 +42,9 @@ class WSS:
         @Args:
         interval
             duration of single cycle in seconds
-        wss_reset_interval
+        wss_reset_cycles
             despite everything just reset referenced [number of cycles]
-        wss_stable_duration
+        wss_stable_cycles
             how many stable measurements of >>referenced<< must happen [number of cycles]
             before setting TASK_WORKING_SET_SIZE_BYTES
         wss_mbw_fraction
@@ -63,9 +63,9 @@ class WSS:
         self.wss_mbw_fraction = wss_mbw_fraction
         self.wss_ref_fraction = wss_ref_fraction
 
-        self.wss_reset_interval = wss_reset_interval if wss_reset_interval != -1 else None
+        self.wss_reset_cycles = wss_reset_cycles if wss_reset_cycles != -1 else None
 
-        self.wss_stable_duration = wss_stable_duration  # in cycles
+        self.wss_stable_cycles = wss_stable_cycles  # in cycles
 
         # Membw calculation
         self.membw_counter_prev = None  # [B]
@@ -227,7 +227,7 @@ class WSS:
             return {}
 
         # Stability check of stable_cycles_counter and generate task_working_set_size_bytes.
-        if self.wss_stable_duration != 0 and self.stable_cycles_counter == self.wss_stable_duration:
+        if self.wss_stable_cycles != 0 and self.stable_cycles_counter == self.wss_stable_cycles:
             log.debug('[%s] setting new last_stable__task_working_set_size[MB] =%.2f',
                       pids_s, referenced/MB)
             self.stable_cycles_counter = 0
@@ -243,7 +243,7 @@ class WSS:
                 measurements[MetricName.TASK_WORKING_SET_SIZE_BYTES] = 0
 
         # Cyclic reset interval
-        if (self.wss_reset_interval is not None and self.cycle % self.wss_reset_interval == 0):
+        if (self.wss_reset_cycles is not None and self.cycle % self.wss_reset_cycles == 0):
             log.debug('[%s] wss: dummy reset interval hit cycle - reset the pids', pids_s)
             should_reset = True
 

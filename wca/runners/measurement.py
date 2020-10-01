@@ -156,16 +156,16 @@ class MeasurementRunner(Runner):
         Allows fine grained control over allocations.
         (defaults to AllocationConfiguration() instance)
 
-    - ``wss_reset_interval``: **int** = *0*
+    - ``wss_reset_cycles``: **int** = *0*
 
         Interval of resetting WSS (WorkingSetSize).
         (defaults to 0, which means that metric is not collected, e.g. when set to 1
         ``clear_refs`` will be reset every measurement iteration defined by ``interval`` option.)
 
-    - ``wss_stable_duration``: **int** = *30*
+    - ``wss_stable_cycles``: **int** = *30*
 
         Number of stable cycles after which wss is considered stable. Will not have any impact
-        unless wss_reset_interval is greater than 0
+        unless wss_reset_cycles is greater than 0
 
     - ``wss_mbw_fraction``: **Optional[float]** = *None*
 
@@ -217,8 +217,8 @@ class MeasurementRunner(Runner):
             uncore_event_names: List[Union[List[str], str]] = [],
             task_label_generators: Optional[Dict[str, TaskLabelGenerator]] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
-            wss_reset_interval: int = 0,
-            wss_stable_duration: int = 30,
+            wss_reset_cycles: int = 0,
+            wss_stable_cycles: int = 30,
             wss_mbw_fraction: Optional[float] = None,
             wss_ref_fraction: Optional[float] = None,
             include_optional_labels: bool = False,
@@ -272,8 +272,8 @@ class MeasurementRunner(Runner):
 
         self._task_label_generators = task_label_generators or {}
 
-        self._wss_reset_interval = wss_reset_interval
-        self._wss_stable_duration = wss_stable_duration
+        self._wss_reset_cycles = wss_reset_cycles
+        self._wss_stable_cycles = wss_stable_cycles
         self._wss_mbw_fraction = wss_mbw_fraction
         self._wss_ref_fraction = wss_ref_fraction
 
@@ -425,8 +425,8 @@ class MeasurementRunner(Runner):
             allocation_configuration=self._allocation_configuration,
             event_names=self._event_names,
             enable_derived_metrics=self._enable_derived_metrics,
-            wss_reset_interval=self._wss_reset_interval,
-            wss_stable_duration=self._wss_stable_duration,
+            wss_reset_cycles=self._wss_reset_cycles,
+            wss_stable_cycles=self._wss_stable_cycles,
             wss_mbw_fraction=self._wss_mbw_fraction,
             wss_ref_fraction=self._wss_ref_fraction,
             perf_aggregate_cpus=self._perf_aggregate_cpus,
