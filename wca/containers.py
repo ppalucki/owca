@@ -115,7 +115,7 @@ class ContainerSet(ContainerInterface):
                  resgroup: ResGroup = None,
                  event_names: List[str] = None,
                  enable_derived_metrics: bool = False,
-                 wss_reset_cycles: int = 0,
+                 wss_reset_cycles: Optional[int] = None,
                  wss_stable_cycles: int = 30,
                  wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
@@ -270,7 +270,7 @@ class Container(ContainerInterface):
                  Optional[AllocationConfiguration] = None,
                  event_names: List[MetricName] = None,
                  enable_derived_metrics: bool = False,
-                 wss_reset_cycles: int = 0,
+                 wss_reset_cycles: Optional[int] = 0,
                  wss_stable_cycles: int = 30,
                  wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
@@ -291,7 +291,7 @@ class Container(ContainerInterface):
             platform=platform,
             allocation_configuration=allocation_configuration)
 
-        if wss_reset_cycles != 0:
+        if wss_reset_cycles is not None:
             self.wss = wss.WSS(
                 interval=interval,
                 get_pids=self.get_pids,
@@ -422,7 +422,7 @@ class ContainerManager:
     def __init__(self, platform: Platform,
                  allocation_configuration: Optional[AllocationConfiguration],
                  event_names: List[str], enable_derived_metrics: bool = False,
-                 wss_reset_cycles: int = 0,
+                 wss_reset_cycles: Optional[int] = None,
                  wss_stable_cycles: int = 30,
                  wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
