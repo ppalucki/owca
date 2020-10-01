@@ -56,7 +56,8 @@ class WSS:
         self.prev_membw_counter = None  # [B]
 
         # Internal state, cleared aftre reset.
-        self.started = time.time()
+        self.started_cycle = time.time()
+        self.started_total = self.started_cycle
 
         # Used to remember first stable referenced and last measured after reset.
         self.stable_cycles_counter = 0
@@ -117,7 +118,7 @@ class WSS:
             'REFER: delta=%dMB|rate=%.2fMBs '
             'MEMBW: delta=%dMB|rate=%.2fMBs|threshold=(%d%%)%.2fMB%s '
             '-> stable_counter=%d',
-            pids_s, time.time() - self.started,
+            pids_s, time.time() - self.started_cycle,
             curr_referenced_delta/MB, curr_referenced_delta/self.interval/MB,
             curr_membw_delta/MB, curr_membw_delta/self.interval/MB,
             int(self.wss_membw_threshold * 100), membw_threshold_bytes/MB,
@@ -166,10 +167,10 @@ class WSS:
         measurements[MetricName.TASK_WSS_REFERENCED_BYTES] = curr_referenced
         measurements[MetricName.TASK_WSS_MEASURE_OVERHEAD_SECONDS] = self.overhead_seconds
 
-        overhead_ratio = (self.overhead_seconds / (time.time() - self.started))
+        overhead_ratio = (self.overhead_seconds / (time.time() - self.started_total))
         log.debug(
                 '[%s] %4ds cycle=%d curr_refer=%dMB (took %.2fs, overhead=%.2fs(%.2f%%))',
-                pids_s, time.time() - self.started, self.cycle,
+                pids_s, time.time() - self.started_cycle, self.cycle,
                 curr_referenced/MB, rduration, self.overhead_seconds,
                 overhead_ratio * 100)
 
@@ -237,6 +238,6 @@ class WSS:
             # Restart stablity check
             self.stable_cycles_counter = 0
             self.prev_referenced = None
-            self.started = time.time()
+            self.started_cycle = time.time()
 
         return measurements
