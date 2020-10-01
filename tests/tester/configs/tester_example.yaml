@@ -12,7 +12,7 @@ runner: !AllocationRunner
       - 'task_cache_misses'
       - 'task_cache_references'
       - 'task_offcore_requests_l3_miss_demand_data_rd'
-    wss_reset_interval: 1
+    wss_reset_cycles: 0
   anomalies_storage: *tester
   allocations_storage: *tester
   allocator: *tester
