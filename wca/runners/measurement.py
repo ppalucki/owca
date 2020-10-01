@@ -441,6 +441,7 @@ class MeasurementRunner(Runner):
             perf_aggregate_cpus=self._perf_aggregate_cpus,
             interval=self._interval
         )
+        log.log(TRACE, 'container manager config: %s', self._containers_manager.__dict__)
 
         self._init_uncore_pmu_events(self._enable_derived_metrics, self._uncore_events, platform)
 

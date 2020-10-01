@@ -116,7 +116,7 @@ class ContainerSet(ContainerInterface):
                  event_names: List[str] = None,
                  enable_derived_metrics: bool = False,
                  wss_reset_cycles: Optional[int] = None,
-                 wss_stable_cycles: int = 30,
+                 wss_stable_cycles: int = 0,
                  wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5,
@@ -145,6 +145,7 @@ class ContainerSet(ContainerInterface):
                 enable_derived_metrics=enable_derived_metrics,
                 wss_reset_cycles=wss_reset_cycles,
                 wss_stable_cycles=wss_stable_cycles,
+                wss_membw_threshold=wss_membw_threshold,
                 perf_aggregate_cpus=perf_aggregate_cpus,
                 interval=interval,
             )
@@ -270,8 +271,8 @@ class Container(ContainerInterface):
                  Optional[AllocationConfiguration] = None,
                  event_names: List[MetricName] = None,
                  enable_derived_metrics: bool = False,
-                 wss_reset_cycles: Optional[int] = 0,
-                 wss_stable_cycles: int = 30,
+                 wss_reset_cycles: Optional[int] = None,
+                 wss_stable_cycles: int = 0,
                  wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5
@@ -292,6 +293,10 @@ class Container(ContainerInterface):
             allocation_configuration=allocation_configuration)
 
         if wss_reset_cycles is not None:
+            log.debug('Enable WSS measurments: interval=%s '
+                      'wss_reset_cycles=%s wss_stable_cycles=%s wss_membw_threshold=%s',
+                      interval, wss_reset_cycles, wss_stable_cycles, wss_membw_threshold)
+
             self.wss = wss.WSS(
                 interval=interval,
                 get_pids=self.get_pids,
@@ -443,6 +448,7 @@ class ContainerManager:
         """Check whether the task groups multiple containers,
            is so use ContainerSet class, otherwise Container class.
            ContainerSet shares interface with Container."""
+
         if len(task.subcgroups_paths):
             container = ContainerSet(
                 cgroup_path=task.cgroup_path,
