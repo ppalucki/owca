@@ -41,6 +41,7 @@ class WSS:
         For arguments description see: MeasurementRunner class docstring.
         """
 
+        self.overhead_seconds = 0
         self.get_pids = get_pids
 
         self.cycle = 0
@@ -97,26 +98,29 @@ class WSS:
             if curr_referenced_delta < membw_threshold_bytes:
                 if self.stable_cycles_counter == 0:
                     self.first_stable_referenced = curr_referenced
-                    decision += ' store first referenced=%dMB'%(self.first_stable_referenced/MB)
+                    decision += ' remember %dMB' % (
+                        self.first_stable_referenced/MB)
                 self.stable_cycles_counter += 1
-                decision += ' inc stable counter (%.2f<%.2f)'%(curr_referenced_delta/MB, membw_threshold_bytes/MB)
+                decision += ' inc stable (%.2f<%.2f)' % (
+                    curr_referenced_delta/MB, membw_threshold_bytes/MB)
             else:
                 self.stable_cycles_counter = 0
-                decision += ' reset (%.2f<%.2f)'%(curr_referenced_delta/MB, membw_threshold_bytes/MB)
+                decision += ' reset (%.2f<%.2f)' % (
+                    curr_referenced_delta/MB, membw_threshold_bytes/MB)
 
         else:
             self.stable_cycles_counter = 0
-            decision += ' reset (curr_referenced_delta(%.2fMB)<0)'%(curr_referenced_delta/MB)
+            decision += ' reset (refer_delta(%.2fMB)<0)' % (curr_referenced_delta/MB)
 
         log.debug(
             '[%s] %4ds '
-            'REFERENCED: delta=%dMB|rate=%.2fMBs '
-            'MEMBW: delta=%dMB|rate=%.2fMBs|threshold=(%d%%)%.2fMB %s '
-            '-> stable_cycles_counter=%d',
+            'REFER: delta=%dMB|rate=%.2fMBs '
+            'MEMBW: delta=%dMB|rate=%.2fMBs|threshold=(%d%%)%.2fMB%s '
+            '-> stable_counter=%d',
             pids_s, time.time() - self.started,
             curr_referenced_delta/MB, curr_referenced_delta/self.interval/MB,
             curr_membw_delta/MB, curr_membw_delta/self.interval/MB,
-            int(self.wss_membw_threshold * 100), membw_threshold_bytes/MB, 
+            int(self.wss_membw_threshold * 100), membw_threshold_bytes/MB,
             decision,
             self.stable_cycles_counter)
 
@@ -158,12 +162,16 @@ class WSS:
         rstart = time.time()
         curr_referenced = self._get_referenced(pids)
         rduration = time.time() - rstart
+        self.overhead_seconds += rduration
         measurements[MetricName.TASK_WSS_REFERENCED_BYTES] = curr_referenced
+        measurements[MetricName.TASK_WSS_MEASURE_OVERHEAD_SECONDS] = self.overhead_seconds
 
+        overhead_ratio = (self.overhead_seconds / (time.time() - self.started))
         log.debug(
-                '[%s] %4ds cycle=%d curr_referenced=%dMB (took %.2fs)',
+                '[%s] %4ds cycle=%d curr_refer=%dMB (took %.2fs, overhead=%.2fs(%.2f%%))',
                 pids_s, time.time() - self.started, self.cycle,
-                curr_referenced/MB, rduration)
+                curr_referenced/MB, rduration, self.overhead_seconds,
+                overhead_ratio * 100)
 
         should_reset = False
         # Stability reset based on wss_stable_cycles and wss_membw_threshold
@@ -203,7 +211,6 @@ class WSS:
                     should_reset = True
                     log.debug('[%s] Referenced bytes STABLE reseting...', pids_s)
 
-
             # If we have any stable working set size
             if self.last_stable_wss is not None:
                 measurements[MetricName.TASK_WORKING_SET_SIZE_BYTES] = self.last_stable_wss
@@ -215,11 +222,13 @@ class WSS:
             should_reset = True
 
         if should_reset:
-            log.log(TRACE, '[%s] resetting referenced bytes for %s pids ...', pids_s, len(pids))
+            log.log(TRACE, '[%s] Resetting referenced bytes for %s pids ...', pids_s, len(pids))
             rstart = time.time()
             self._clear_refs(pids)
+            rduration = time.time() - rstart
             log.debug('[%s] Reset referenced bytes for %s pids done in %0.2fs',
-                      len(pids), time.time() - rstart)
+                      pids_s, len(pids), rduration)
+            self.overhead_seconds += rduration
 
             # Restart stablity check
             self.stable_cycles_counter = 0
