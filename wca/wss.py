@@ -18,6 +18,7 @@ import os
 from typing import Optional
 
 from wca.metrics import Measurements, MetricName
+from wca.logger import TRACE
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +65,6 @@ class WSS:
                   'wss_reset_cycles=%s wss_stable_cycles=%s wss_membw_threshold=%s',
                   interval, wss_reset_cycles, wss_stable_cycles, wss_membw_threshold)
 
-
     def _discover_pids(self):
         pids = set(self.get_pids(include_threads=False))
         all_pids = os.listdir('/proc')
@@ -85,18 +85,8 @@ class WSS:
         # eg. 16 GB/s take 1% of it ~ 160 MB/s
         membw_threshold_bytes = float(curr_membw_delta) * self.wss_membw_threshold
 
-        log.debug(
-            '[%s] %4ds '
-            'REFERENCED: curr=%dMB|delta=%dMB|rate=%.2fMBs '
-            'MEMBW: curr=%dMB|delta=%dMB|rate=%.2fMBs|threshold=(%d%%)%.2fMB '
-            '-> stable_cycles_counter=%d',
-            pids_s, time.time() - self.started,
-            curr_referenced/MB, curr_referenced_delta/MB, curr_referenced_delta/self.interval/MB,
-            curr_membw_counter/MB, curr_membw_delta/MB, curr_membw_delta/self.interval/MB,
-            int(self.wss_membw_threshold * 100), membw_threshold_bytes/MB,
-            self.stable_cycles_counter)
-
         max_decrease_divider = 50  # 2%, sometimes referenced for some unknown reason goes down
+        decision = ''
         if curr_referenced_delta >= 0 or \
                 abs(curr_referenced_delta) < curr_referenced / max_decrease_divider:
 
@@ -107,22 +97,28 @@ class WSS:
             if curr_referenced_delta < membw_threshold_bytes:
                 if self.stable_cycles_counter == 0:
                     self.first_stable_referenced = curr_referenced
-                    log.debug('[%s] Store first stable referenced(MB)=%d',
-                              pids_s, self.first_stable_referenced/MB)
+                    decision += ' store first referenced=%dMB'%(self.first_stable_referenced/MB)
                 self.stable_cycles_counter += 1
-                log.debug('[%s] Incrementing stable_cycles_counter+=1 '
-                          'curr_referenced_delta < membw_threshold_bytes = True (%.2f<%.2f)',
-                          pids_s, curr_referenced_delta/MB, membw_threshold_bytes/MB)
+                decision += ' inc stable counter (%.2f<%.2f)'%(curr_referenced_delta/MB, membw_threshold_bytes/MB)
             else:
                 self.stable_cycles_counter = 0
-                log.debug('[%s] Reset stable_cycles_counter=0 '
-                          'curr_referenced_delta < membw_threshold_bytes = False (%.2f<%.2f)',
-                          pids_s, curr_referenced_delta/MB, membw_threshold_bytes/MB)
+                decision += ' reset (%.2f<%.2f)'%(curr_referenced_delta/MB, membw_threshold_bytes/MB)
+
         else:
             self.stable_cycles_counter = 0
-            log.warn('[%s] curr_referenced_delta smaller than 0 and '
-                     'abs(curr_re...) < curr_referenced/max_decrease_divider; '
-                     'resetting stable_cycles_counter', pids_s)
+            decision += ' reset (curr_referenced_delta(%.2fMB)<0)'%(curr_referenced_delta/MB)
+
+        log.debug(
+            '[%s] %4ds '
+            'REFERENCED: delta=%dMB|rate=%.2fMBs '
+            'MEMBW: delta=%dMB|rate=%.2fMBs|threshold=(%d%%)%.2fMB %s '
+            '-> stable_cycles_counter=%d',
+            pids_s, time.time() - self.started,
+            curr_referenced_delta/MB, curr_referenced_delta/self.interval/MB,
+            curr_membw_delta/MB, curr_membw_delta/self.interval/MB,
+            int(self.wss_membw_threshold * 100), membw_threshold_bytes/MB, 
+            decision,
+            self.stable_cycles_counter)
 
     @staticmethod
     def _get_referenced(pids):
@@ -158,14 +154,14 @@ class WSS:
         measurements = {}
         self.cycle += 1
         pids = list(self._discover_pids())
-        pids_s = ','.join(map(str, pids)) if len(pids) < 5 else '%s,...,%s' % (pids[0], pids[-1])
+        pids_s = ','.join(map(str, pids)) if len(pids) < 5 else '%s,...(%s)' % (pids[0], len(pids))
         rstart = time.time()
         curr_referenced = self._get_referenced(pids)
         rduration = time.time() - rstart
         measurements[MetricName.TASK_WSS_REFERENCED_BYTES] = curr_referenced
 
         log.debug(
-                '[%s] %4ds cycle=%d, curr_referenced[MB]=%d (took %.2fs)'
+                '[%s] %4ds cycle=%d curr_referenced=%dMB (took %.2fs)',
                 pids_s, time.time() - self.started, self.cycle,
                 curr_referenced/MB, rduration)
 
@@ -184,25 +180,29 @@ class WSS:
                 self.prev_referenced = curr_referenced
                 self.prev_membw_counter = curr_membw_counter
             else:
-                log.warning('task_mem_bandwidth_bytes is missing (RDT or MBW not available?)!'
-                            ' Do not calculate derived task_working_set_size_bytes!')
+                log.warning('task_mem_bandwidth_bytes metric is missing! '
+                            '(please enable RDT and MBW!) '
+                            ' task_working_set_size_bytes metric will not be measured!')
                 return measurements
 
             # Stability check of stable_cycles_counter and generate task_working_set_size_bytes.
             if self.wss_stable_cycles != 0 and \
                     self.stable_cycles_counter == abs(self.wss_stable_cycles):
+
+                # Calculate average of referenced bytes in stable period.
+                self.last_stable_wss = (self.first_stable_referenced + curr_referenced) / 2
+
+                log.debug('[%s] WSS is stable = (%.2f+%.2f)/2 = %.2f MB ',
+                          pids_s, self.first_stable_referenced/MB, curr_referenced/MB,
+                          self.last_stable_wss/MB)
+
                 # Additionaly if cycling reseting is disabled, then
                 # we should reset referenced bytes when stable.
                 # And restart stability check.
                 if self.wss_reset_cycles == 0 and self.wss_stable_cycles > 0:
                     should_reset = True
-                    self.stable_cycles_counter = 0
+                    log.debug('[%s] Referenced bytes STABLE reseting...', pids_s)
 
-                self.last_stable_wss = (self.first_stable_referenced + curr_referenced) / 2
-
-                log.debug('[%s] Calculate last_stable_wss = (%.2f+%.2f)/2 = %.2f MB ',
-                          pids_s, self.first_stable_referenced/MB, curr_referenced/MB,
-                          self.last_stable_wss/MB)
 
             # If we have any stable working set size
             if self.last_stable_wss is not None:
@@ -211,14 +211,15 @@ class WSS:
         # Cyclic reset interval based on wss_reset_cycles
         if (self.wss_reset_cycles is not None and self.wss_reset_cycles > 0
                 and self.cycle % self.wss_reset_cycles == 0):
-            log.debug('[%s] wss: wss_reset_cycles hit - reset the referenced bytes', pids_s)
+            log.debug('[%s] Referenced bytes CYCLIC reseting...', pids_s)
             should_reset = True
 
         if should_reset:
-            log.debug('[%s] wss: resetting pids ...', pids_s)
+            log.log(TRACE, '[%s] resetting referenced bytes for %s pids ...', pids_s, len(pids))
             rstart = time.time()
             self._clear_refs(pids)
-            log.debug('[%s] wss: resetting pids done in %0.2fs', pids_s, time.time() - rstart)
+            log.debug('[%s] Reset referenced bytes for %s pids done in %0.2fs',
+                      len(pids), time.time() - rstart)
 
             # Restart stablity check
             self.stable_cycles_counter = 0
