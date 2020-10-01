@@ -25,7 +25,7 @@ smaps = {'/proc/{}/smaps'.format(pid): 'Referenced: {}'.format(str(1024*int(pid)
 clear_refs = {'/proc/{}/clear_refs'.format(pid): pid for pid in pids}
 
 
-@patch('wca.wss.WSS._update_stable_counter')
+@patch('wca.wss.WSS._check_stability')
 @patch('os.listdir', return_value=pids)
 def test_get_measurements(*mocks):
     mock_get_pids = Mock()
@@ -37,7 +37,7 @@ def test_get_measurements(*mocks):
 
         # In megabytes: ( 1 + 2 + 3 + 4 + 5 ) * 1024 / 1024
         result1 = wss.get_measurements({'task_mem_bandwidth_bytes': 1234567})
-        assert result1 == {}
+        assert result1 == {MetricName.TASK_WSS_REFERENCED_BYTES: 15360000}
 
         result2 = wss.get_measurements({'task_mem_bandwidth_bytes': 2234567})
 

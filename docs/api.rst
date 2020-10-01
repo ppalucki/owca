@@ -74,30 +74,27 @@ and store them in metrics_storage component.
     Allows fine grained control over allocations.
     (defaults to AllocationConfiguration() instance)
 
-- ``wss_reset_interval``: **int** = *0*
+- ``wss_reset_cycles``: **int** = *0*
 
     Interval of resetting WSS (WorkingSetSize).
-    (defaults to 0, which means that metric is not collected, e.g. when set to 1
-    ``clear_refs`` will be reset every measurement iteration defined by ``interval`` option.)
+    (defaults to 0, which means that metric is not collected at, e.g. when set to 1
+    ``clear_refs`` will be reset every measurement iteration defined by global ``interval`` 
+    option.)
 
-- ``wss_stable_duration``: **int** = *30*
+- ``wss_stable_cycles``: **int** = *30*
 
-    Number of stable cycles after which wss is considered stable. Will not have any impact
-    unless wss_reset_interval is greater than 0
+    Number of stable cycles after which wss is considered stable. 
+    Will not have any impact unless wss_reset_cycles is greater than 0.
+    Additionally if above "wss_reset_cycles" is set to special value "-1" then
+    after achieving stability "referenced bytes" will be reset.
 
-- ``wss_mbw_fraction``: **Optional[float]** = *None*
+- ``wss_membw_threshold``: **Optional[float]** = *None*
 
-    Value used to calculate threshold based on fraction memory bandwidth
+    Value used to calculate threshold based on fraction of memory bandwidth (transfered bytes)
     to treat referenced value as stable and return WSS.
     Memory bandwidth multiplied by this value and None means condition is ignored.
     E.g. 0.1 means membw * 0.1 = which equals to 10% of memory bandwidth.
-
-- ``wss_ref_fraction``: **Optional[float]** = *None*
-
-    Value used to calculate threshold based on actual referenced bytes fraction
-    to treat referenced value as stable and return WSS.
-    Referenced value multiplied by this value and None means condition is ignored.
-    E.g. 0.01 means total referenced * 0.01 which equals to 1% of total referenced bytes.
+    
 
 - ``include_optional_labels``: **bool** = *False*
 
