@@ -156,30 +156,42 @@ class MeasurementRunner(Runner):
         Allows fine grained control over allocations.
         (defaults to AllocationConfiguration() instance)
 
-    - ``wss_reset_interval``: **int** = *0*
+    - ``wss_reset_cycles``: **Optional[int]** = *None*
 
         Interval of resetting WSS (WorkingSetSize).
-        (defaults to 0, which means that metric is not collected, e.g. when set to 1
-        ``clear_refs`` will be reset every measurement iteration defined by ``interval`` option.)
+        (defaults to None, which means that metric is not collected at all, e.g. when set to 1
+        ``clear_refs`` will be reset every measurement iteration defined by global ``interval``
+        option.)
+        If set to 0, referenced bytes will be collected but will not be reset in cycling manner.
 
-    - ``wss_stable_duration``: **int** = *30*
+    - ``wss_stable_cycles``: **int** = *0*
 
-        Number of stable cycles after which wss is considered stable. Will not have any impact
-        unless wss_reset_interval is greater than 0
+        Number of stable cycles after which "referenced bytes rate" is considered stable.
+        Optionaly if postive and wss_reset_cycles is 0, then after stabilization period
+        will reset "referenced bytes".
 
-    - ``wss_mbw_fraction``: **Optional[float]** = *None*
+        It's behavior depends on wss_reset_cycles:
+        - completly ignored if wss_reset_cycles is None (referenced bytes and WSS is disabled).
+        - if "wss_reset_cycles" is set to special value "0" and "wss_stable_cycles" is positive then
+          after achieving stability "referenced bytes" will be reset (to restart cycle).
 
-        Value used to calculate threshold based on fraction memory bandwidth
+        Can be specified as neagtive number which means that stabililty check is enabled
+        but after stabilization the "referenced bytes" will not bet reset
+        (relay on wss_reset_cycles to be positive and reset).
+
+        Expressed in number of WCA measurements intervals (cycles).
+        E.g. if global interval is set to 15s and wss_stable_cycles is set to 40 cycles,
+        the "stability condition" is met in consecutive 40 cycles (about 600s = 10 minutes).
+
+
+    - ``wss_membw_threshold``: **Optional[float]** = *None*
+
+        Value used to calculate threshold based on fraction of memory bandwidth (transferred bytes)
         to treat referenced value as stable and return WSS.
-        Memory bandwidth multiplied by this value and None means condition is ignored.
+        Memory bandwidth multiplied by this value.  None means condition is ignored and
+        task_working_set_size_bytes metric will not be collected.
+
         E.g. 0.1 means membw * 0.1 = which equals to 10% of memory bandwidth.
-
-    - ``wss_ref_fraction``: **Optional[float]** = *None*
-
-        Value used to calculate threshold based on actual referenced bytes fraction
-        to treat referenced value as stable and return WSS.
-        Referenced value multiplied by this value and None means condition is ignored.
-        E.g. 0.01 means total referenced * 0.01 which equals to 1% of total referenced bytes.
 
     - ``include_optional_labels``: **bool** = *False*
 
@@ -217,10 +229,9 @@ class MeasurementRunner(Runner):
             uncore_event_names: List[Union[List[str], str]] = [],
             task_label_generators: Optional[Dict[str, TaskLabelGenerator]] = None,
             allocation_configuration: Optional[AllocationConfiguration] = None,
-            wss_reset_interval: int = 0,
-            wss_stable_duration: int = 30,
-            wss_mbw_fraction: Optional[float] = None,
-            wss_ref_fraction: Optional[float] = None,
+            wss_reset_cycles: Optional[int] = None,
+            wss_stable_cycles: int = 0,
+            wss_membw_threshold: Optional[float] = None,
             include_optional_labels: bool = False,
             zoneinfo: Union[Str, bool] = True,
             vmstat: Union[Str, bool] = True,
@@ -272,10 +283,9 @@ class MeasurementRunner(Runner):
 
         self._task_label_generators = task_label_generators or {}
 
-        self._wss_reset_interval = wss_reset_interval
-        self._wss_stable_duration = wss_stable_duration
-        self._wss_mbw_fraction = wss_mbw_fraction
-        self._wss_ref_fraction = wss_ref_fraction
+        self._wss_reset_cycles = wss_reset_cycles
+        self._wss_stable_cycles = wss_stable_cycles
+        self._wss_membw_threshold = wss_membw_threshold
 
         self._uncore_pmu = None
 
@@ -425,10 +435,9 @@ class MeasurementRunner(Runner):
             allocation_configuration=self._allocation_configuration,
             event_names=self._event_names,
             enable_derived_metrics=self._enable_derived_metrics,
-            wss_reset_interval=self._wss_reset_interval,
-            wss_stable_duration=self._wss_stable_duration,
-            wss_mbw_fraction=self._wss_mbw_fraction,
-            wss_ref_fraction=self._wss_ref_fraction,
+            wss_reset_cycles=self._wss_reset_cycles,
+            wss_stable_cycles=self._wss_stable_cycles,
+            wss_membw_threshold=self._wss_membw_threshold,
             perf_aggregate_cpus=self._perf_aggregate_cpus,
             interval=self._interval
         )
