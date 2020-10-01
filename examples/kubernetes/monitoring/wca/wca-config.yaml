@@ -33,8 +33,8 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_cycles: 0      # 0 means never 
-  wss_membw_threshold: 0.01    # if increase is less than then record 1%
+  wss_reset_cycles: 0       # 0 means never and relay "on stability condition"
+  wss_membw_threshold: 0.01 # if referenced increase is less than then 1% transfered bytes, treat as stable
   wss_stable_cycles: 4      # 15s * 4 - 1 minute
   
   gather_hw_mm_topology: True
