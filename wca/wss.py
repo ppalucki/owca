@@ -211,6 +211,10 @@ class WSS:
                     should_reset = True
                     log.debug('[%s] Referenced bytes STABLE reseting...', pids_s)
 
+                # move stable counter above a limit to catch stable just once,
+                # case above (reset) will reset it anyway
+                self.stable_cycles_counter += 1
+
             # If we have any stable working set size
             if self.last_stable_wss is not None:
                 measurements[MetricName.TASK_WORKING_SET_SIZE_BYTES] = self.last_stable_wss
