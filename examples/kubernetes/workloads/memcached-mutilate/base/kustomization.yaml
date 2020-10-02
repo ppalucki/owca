@@ -8,7 +8,7 @@ configMapGenerator:
 - name: memcached
   literals:
   - memory=200000 # MB a.k.a. 200G
-  - threads=4
+  - threads=2
   - extra=
 
 - name: mutilate

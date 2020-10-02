@@ -34,16 +34,16 @@ patches:
           - name: service
             resources:
               requests:
-                cpu: 8
-                memory: 85G
+                cpu: 2
+                memory: 22G
               limits:
-                cpu: 8
-                memory: 85G
+                cpu: 2
+                memory: 22G
           - name: generator
             resources:
               requests:
-                cpu: 8
+                cpu: 6
                 memory: 1G
               limits:
-                cpu: 8
+                cpu: 6
                 memory: 1G
