@@ -15,7 +15,7 @@ configMapGenerator:
   literals:
     - keymaximum_gen=500000
     - keymaximum_load=500000
-    - extra='--key-stddev=25000'
+    - extra='--key-stddev=41666'  # 1/12
 
 patches:
 - target:

@@ -29,6 +29,7 @@ spec:
       containers:
       - name: fluentd
         image: fluent/fluentd-kubernetes-daemonset:v1.11-debian-forward-1
+        imagePullPolicy: Always
         resources:
           limits:
             memory: 1Gi

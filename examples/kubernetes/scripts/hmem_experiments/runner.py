@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 
 import shutil
 import os
@@ -497,7 +497,7 @@ def tune_stage(workloads: List[str], sleep_time: int = 25 * MINUTE):
 
 
 def modify_configmap(regexes: List[(str)], experiment_index: int, experiment_root_dir: str):
-    path = '../wca-scheduler/'
+    path = '../../wca-scheduler/'
     config_name = 'config.yaml'
 
     # Replace text in config
@@ -646,7 +646,7 @@ def experimentset_test(experiment_root_dir='results/__test__'):
         os.makedirs(experiment_root_dir)
 
     _, workloads, _ = random_with_total_utilization_specified(
-        cpu_limit=(0.25, 0.41), mem_limit=(0.65, 0.9),
+        cpu_limit=(0.25, 0.41), mem_limit=(0.65, 2.9),
         nodes_capacities=ClusterInfoLoader.get_instance().get_nodes(),
         workloads_set=ClusterInfoLoader.get_instance().get_workloads())
     single_3stage_experiment(experiment_id=0,
@@ -677,8 +677,8 @@ if __name__ == "__main__":
         # 10: [(r'score_target: -\d.\d', 'score_target: -2.5'), ],
     }
 
-    # experimentset_test()
+    experimentset_test()
     # tune_stage(ClusterInfoLoader.get_instance().get_workloads_names())
     # experimentset_single_workload_at_once(experiment_root_dir='results/2020-05-13__stepping_single_workloads')
-    experimentset_main(iterations=10, configmap_regex_parameters=regexs_map,
-                       experiment_root_dir='results/final-demo-2lm')
+    # experimentset_main(iterations=10, configmap_regex_parameters=regexs_map,
+    #                     experiment_root_dir='results/final-demo-2lm')
