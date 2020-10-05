@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pmbench
+spec:
+  template:
+    metadata:
+      annotations:
+        cri-resource-manager.intel.com/memory-type: |
+          pmbench: dram,pmem
+        toptierlimit.cri-resource-manager.intel.com/pod: "10000000000"
+        cri-resource-manager.intel.com/cold-start: |
+          pmbench:
+            duration: 60s
+    spec:
+      containers:
+        - name: pmbench
+          resources:
+            requests:
+              cpu: 9
+              memory: 100G
+            limits:
+              cpu: 9
+              memory: 100G
+      nodeSelector:
+        kubernetes.io/hostname: node38

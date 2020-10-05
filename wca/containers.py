@@ -115,9 +115,9 @@ class ContainerSet(ContainerInterface):
                  resgroup: ResGroup = None,
                  event_names: List[str] = None,
                  enable_derived_metrics: bool = False,
-                 wss_reset_interval: int = 0,
-                 wss_stable_duration: int = 30,
-                 wss_threshold_divider: int = 100,
+                 wss_reset_cycles: Optional[int] = None,
+                 wss_stable_cycles: int = 0,
+                 wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5,
                  ):
@@ -143,9 +143,9 @@ class ContainerSet(ContainerInterface):
                 allocation_configuration=allocation_configuration,
                 event_names=event_names,
                 enable_derived_metrics=enable_derived_metrics,
-                wss_reset_interval=wss_reset_interval,
-                wss_stable_duration=wss_stable_duration,
-                wss_threshold_divider=wss_threshold_divider,
+                wss_reset_cycles=wss_reset_cycles,
+                wss_stable_cycles=wss_stable_cycles,
+                wss_membw_threshold=wss_membw_threshold,
                 perf_aggregate_cpus=perf_aggregate_cpus,
                 interval=interval,
             )
@@ -271,9 +271,9 @@ class Container(ContainerInterface):
                  Optional[AllocationConfiguration] = None,
                  event_names: List[MetricName] = None,
                  enable_derived_metrics: bool = False,
-                 wss_reset_interval: int = 0,
-                 wss_stable_duration: int = 30,
-                 wss_threshold_divider: int = 100,
+                 wss_reset_cycles: Optional[int] = None,
+                 wss_stable_cycles: int = 0,
+                 wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5
                  ):
@@ -292,13 +292,17 @@ class Container(ContainerInterface):
             platform=platform,
             allocation_configuration=allocation_configuration)
 
-        if wss_reset_interval != 0:
+        if wss_reset_cycles is not None:
+            log.debug('Enable WSS measurments: interval=%s '
+                      'wss_reset_cycles=%s wss_stable_cycles=%s wss_membw_threshold=%s',
+                      interval, wss_reset_cycles, wss_stable_cycles, wss_membw_threshold)
+
             self.wss = wss.WSS(
                 interval=interval,
                 get_pids=self.get_pids,
-                wss_reset_interval=wss_reset_interval,
-                wss_stable_duration=wss_stable_duration,
-                wss_threshold_divider=wss_threshold_divider,
+                wss_reset_cycles=wss_reset_cycles,
+                wss_stable_cycles=wss_stable_cycles,
+                wss_membw_threshold=wss_membw_threshold,
             )
         else:
             self.wss = None
@@ -423,9 +427,9 @@ class ContainerManager:
     def __init__(self, platform: Platform,
                  allocation_configuration: Optional[AllocationConfiguration],
                  event_names: List[str], enable_derived_metrics: bool = False,
-                 wss_reset_interval: int = 0,
-                 wss_stable_duration: int = 30,
-                 wss_threshold_divider: int = 100,
+                 wss_reset_cycles: Optional[int] = None,
+                 wss_stable_cycles: int = 30,
+                 wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5
                  ):
@@ -434,9 +438,9 @@ class ContainerManager:
         self._allocation_configuration = allocation_configuration
         self._event_names = event_names
         self._enable_derived_metrics = enable_derived_metrics
-        self._wss_reset_interval = wss_reset_interval
-        self._wss_stable_duration = wss_stable_duration
-        self._wss_threshold_divider = wss_threshold_divider
+        self._wss_reset_cycles = wss_reset_cycles
+        self._wss_stable_cycles = wss_stable_cycles
+        self._wss_membw_threshold = wss_membw_threshold
         self._perf_aggregate_cpus = perf_aggregate_cpus
         self._interval = interval
 
@@ -444,6 +448,7 @@ class ContainerManager:
         """Check whether the task groups multiple containers,
            is so use ContainerSet class, otherwise Container class.
            ContainerSet shares interface with Container."""
+
         if len(task.subcgroups_paths):
             container = ContainerSet(
                 cgroup_path=task.cgroup_path,
@@ -452,9 +457,9 @@ class ContainerManager:
                 allocation_configuration=self._allocation_configuration,
                 event_names=self._event_names,
                 enable_derived_metrics=self._enable_derived_metrics,
-                wss_reset_interval=self._wss_reset_interval,
-                wss_stable_duration=self._wss_stable_duration,
-                wss_threshold_divider=self._wss_threshold_divider,
+                wss_reset_cycles=self._wss_reset_cycles,
+                wss_stable_cycles=self._wss_stable_cycles,
+                wss_membw_threshold=self._wss_membw_threshold,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
                 interval=self._interval,
             )
@@ -465,9 +470,9 @@ class ContainerManager:
                 allocation_configuration=self._allocation_configuration,
                 event_names=self._event_names,
                 enable_derived_metrics=self._enable_derived_metrics,
-                wss_reset_interval=self._wss_reset_interval,
-                wss_stable_duration=self._wss_stable_duration,
-                wss_threshold_divider=self._wss_threshold_divider,
+                wss_reset_cycles=self._wss_reset_cycles,
+                wss_stable_cycles=self._wss_stable_cycles,
+                wss_membw_threshold=self._wss_membw_threshold,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
                 interval=self._interval
             )

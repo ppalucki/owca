@@ -74,6 +74,7 @@ class MetricName(str, Enum):
     # /proc/PID/based
     TASK_WSS_REFERENCED_BYTES = 'task_wss_referenced_bytes'
     TASK_WORKING_SET_SIZE_BYTES = 'task_working_set_size_bytes'
+    TASK_WSS_MEASURE_OVERHEAD_SECONDS = 'task_wss_measure_overhead_seconds'
 
     # From Kubernetes/Mesos or other orchestrator system.
     # From Kubernetes (requested) or Mesos (resources)
@@ -622,7 +623,7 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             '/proc/PIDS/smaps',
             MetricGranularity.TASK,
             [],
-            'yes',
+            'no (wss_reset_cycles)',
         ),
     MetricName.TASK_WORKING_SET_SIZE_BYTES:
         MetricMetadata(
@@ -637,7 +638,18 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             '/proc/PIDS/smaps',
             MetricGranularity.TASK,
             [],
-            'yes',
+            'no (wss_reset_cycles)',
+        ),
+    MetricName.TASK_WSS_MEASURE_OVERHEAD_SECONDS:
+        MetricMetadata(
+            'Seconds that WCA agent spent (kernel time) waiting for /proc/smaps'
+            'or reseting accessed_bits ',
+            MetricType.COUNTER,
+            MetricUnit.SECONDS,
+            '/proc/PIDS/smaps /proc/PIDS/clear_refs',
+            MetricGranularity.TASK,
+            [],
+            'no (wss_reset_cycles)',
         ),
 
     # Generic or from orchestration

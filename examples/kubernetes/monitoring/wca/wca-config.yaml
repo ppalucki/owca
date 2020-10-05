@@ -6,7 +6,7 @@
 # - HOSTNAME - default provided by OS
 
 runner: !MeasurementRunner
-  interval: 5.0
+  interval: 15.0
   node: !KubernetesNode
     cgroup_driver: cgroupfs
     monitored_namespaces: ["default"]
@@ -33,5 +33,8 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_interval: 1
+  wss_reset_cycles: 60       # 0 means never and relay "on stability condition", 60 means=15 minutes
+  wss_membw_threshold: 0.01 # if referenced increase is less than then 1% transfered bytes, treat as stable
+  wss_stable_cycles: -12      # 15s * 4 - 3 minutes
+  
   gather_hw_mm_topology: True
