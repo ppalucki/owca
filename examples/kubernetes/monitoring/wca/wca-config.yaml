@@ -36,8 +36,10 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_cycles: 20       # 0 means never and relay "on stability condition",  20 cycles = 20 minutes
-  wss_membw_threshold: 0.01  # if referenced increase is less than then 1% transfered bytes, assume stable
-  wss_stable_cycles: -5      # 5 minutes, but will not reset the referenced bytes
+  # WorkingSetSize configuration: reset every 20 minutes, require 5 minutes of stable increase less then 1%)
+  # (assuming 1 minute collection interval).
+  wss_reset_cycles: 20
+  wss_membw_threshold: 0.01
+  wss_stable_cycles: -5
   
   gather_hw_mm_topology: True
