@@ -200,7 +200,7 @@ class WSS:
                     self.stable_cycles_counter == abs(self.wss_stable_cycles):
 
                 if self.first_wss:
-                    log.debug('[%s] WSS is stable bit first is ignored) = (first=%.2f last=%.2f)',
+                    log.debug('[%s] WSS is stable but first is ignored) = (first=%.2f last=%.2f)',
                               pids_s, self.first_stable_referenced/MB, curr_referenced/MB)
                     self.first_wss = False
                 else:
