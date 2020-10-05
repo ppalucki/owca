@@ -13,11 +13,11 @@ configMapGenerator:
 - name: mutilate
   behavior: merge
   literals:
-  - threads=8
-  - load_records=17575000 # 70.3M   # 1.5M
+  - threads=6
+  - load_records=17575000
   - records=8787500
-  - value=1000      # keys 30B + value 1000B = 0.00103 MB * 20M <=  22733 # 80kB * 1.5M  <= 120GB
-  - qps=300000        # 13k
+  - value=1000
+  - qps=200000
 
 patches:
 - target:

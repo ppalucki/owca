@@ -13,11 +13,11 @@ configMapGenerator:
 - name: mutilate
   behavior: merge
   literals:
-  - threads=8
-  - load_records=20000000 # 20M   # 1.5M
-  - records=10000000
-  - value=1000      # 1kB * 20M <=  # 80kB * 1.5M  <= 120GB
-  - qps=13000        # 13k
+  - threads=6
+  - load_records=35150000
+  - records=17575000
+  - value=1000
+  - qps=200000
 
 patches:
 - target:
@@ -34,16 +34,16 @@ patches:
           - name: service
             resources:
               requests:
-                cpu: 8
-                memory: 85G
+                cpu: 2
+                memory: 45G
               limits:
-                cpu: 8
-                memory: 85G
+                cpu: 2
+                memory: 45G
           - name: generator
             resources:
               requests:
-                cpu: 8
+                cpu: 6
                 memory: 1G
               limits:
-                cpu: 8
+                cpu: 6
                 memory: 1G
