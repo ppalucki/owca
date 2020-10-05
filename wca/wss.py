@@ -63,6 +63,7 @@ class WSS:
         self.stable_cycles_counter = 0
         self.first_stable_referenced = None
         self.last_stable_wss = None
+        self.first_wss = True
         log.debug('Enable WSS measurments: interval=%ss '
                   'wss_reset_cycles=%s wss_stable_cycles=%s wss_membw_threshold=%s',
                   interval, wss_reset_cycles, wss_stable_cycles, wss_membw_threshold)
@@ -115,11 +116,11 @@ class WSS:
 
         log.debug(
             '[%s] %4ds '
-            'REFER: delta=%dMB|rate=%.2fMBs '
-            'MEMBW: delta=%dMB|rate=%.2fMBs|threshold=(%d%%)%.2fMB%s '
+            'REFER:curr=%dMB|delta=%dMB|rate=%.2fMBs '
+            'MEMBW:delta=%dMB|rate=%.2fMBs|threshold=(%.2f%%)%.2fMB%s '
             '-> stable_counter=%d',
             pids_s, time.time() - self.started_cycle,
-            curr_referenced_delta/MB, curr_referenced_delta/self.interval/MB,
+            curr_referenced/MB, curr_referenced_delta/MB, curr_referenced_delta/self.interval/MB,
             curr_membw_delta/MB, curr_membw_delta/self.interval/MB,
             int(self.wss_membw_threshold * 100), membw_threshold_bytes/MB,
             decision,
@@ -159,7 +160,7 @@ class WSS:
         measurements = {}
         self.cycle += 1
         pids = list(self._discover_pids())
-        pids_s = ','.join(map(str, pids)) if len(pids) < 5 else '%s,...(%s)' % (pids[0], len(pids))
+        pids_s = ','.join(map(str, pids)) if len(pids) < 6 else '%s,...(%s)' % (pids[0], len(pids))
         rstart = time.time()
         curr_referenced = self._get_referenced(pids)
         rduration = time.time() - rstart
@@ -198,12 +199,16 @@ class WSS:
             if self.wss_stable_cycles != 0 and \
                     self.stable_cycles_counter == abs(self.wss_stable_cycles):
 
-                # Calculate average of referenced bytes in stable period.
-                self.last_stable_wss = (self.first_stable_referenced + curr_referenced) / 2
-
-                log.debug('[%s] WSS is stable = (%.2f+%.2f)/2 = %.2f MB ',
-                          pids_s, self.first_stable_referenced/MB, curr_referenced/MB,
-                          self.last_stable_wss/MB)
+                if self.first_wss:
+                    log.debug('[%s] WSS is stable bit first is ignored) = (first=%.2f last=%.2f)',
+                              pids_s, self.first_stable_referenced/MB, curr_referenced/MB)
+                    self.first_wss = False
+                else:
+                    # Calculate average of referenced bytes in stable period.
+                    log.debug('[%s] WSS is stable (first time ignored)= (%.2f+%.2f)/2 = %.2f MB ',
+                              pids_s, self.first_stable_referenced/MB, curr_referenced/MB,
+                              self.last_stable_wss/MB)
+                    self.last_stable_wss = (self.first_stable_referenced + curr_referenced) / 2
 
                 # Additionaly if cycling reseting is disabled, then
                 # we should reset referenced bytes when stable.

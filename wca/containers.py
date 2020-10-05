@@ -133,6 +133,22 @@ class ContainerSet(ContainerInterface):
             cgroup_path=self._cgroup_path,
             platform=platform,
             allocation_configuration=allocation_configuration)
+        self.wss = None
+
+        if wss_reset_cycles is not None:
+            log.debug('Enable WSS measurments: interval=%s '
+                      'wss_reset_cycles=%s wss_stable_cycles=%s wss_membw_threshold=%s',
+                      interval, wss_reset_cycles, wss_stable_cycles, wss_membw_threshold)
+
+            self.wss = wss.WSS(
+                interval=interval,
+                get_pids=self.get_pids,
+                wss_reset_cycles=wss_reset_cycles,
+                wss_stable_cycles=wss_stable_cycles,
+                wss_membw_threshold=wss_membw_threshold,
+            )
+        else:
+            self.wss = None
 
         # Create Cgroup objects for children.
         self._subcontainers: Dict[str, Container] = {}
@@ -143,9 +159,6 @@ class ContainerSet(ContainerInterface):
                 allocation_configuration=allocation_configuration,
                 event_names=event_names,
                 enable_derived_metrics=enable_derived_metrics,
-                wss_reset_cycles=wss_reset_cycles,
-                wss_stable_cycles=wss_stable_cycles,
-                wss_membw_threshold=wss_membw_threshold,
                 perf_aggregate_cpus=perf_aggregate_cpus,
                 interval=interval,
             )
@@ -203,9 +216,8 @@ class ContainerSet(ContainerInterface):
                     self._platform.rdt_information.rdt_mb_monitoring_enabled,
                     self._platform.rdt_information.rdt_cache_monitoring_enabled))
 
-        # Dirty hack, to get access from container to parent container measurments :(
-        for container in self.get_subcontainers():
-            container.parent_measurements = measurements
+        if self.wss is not None:
+            measurements.update(self.wss.get_measurements(measurements))
 
         merged_measurements = merge_measurements(
             [container.get_measurements() for container in self.get_subcontainers()])
@@ -285,7 +297,6 @@ class Container(ContainerInterface):
         self._resgroup = resgroup
         self._event_names = event_names
         self._perf_aggregate_cpus = perf_aggregate_cpus
-        self.parent_measurements = None
 
         self._cgroup = cgroups.Cgroup(
             cgroup_path=self._cgroup_path,
@@ -389,8 +400,6 @@ class Container(ContainerInterface):
         if self.wss:
             if self._resgroup:
                 wss_measurements = self.wss.get_measurements(rdt_measurements)
-            else:
-                wss_measurements = self.wss.get_measurements(self.parent_measurements)
         else:
             wss_measurements = {}
 
