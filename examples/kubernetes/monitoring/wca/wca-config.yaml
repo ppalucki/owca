@@ -18,7 +18,6 @@ runner: !MeasurementRunner
     kubeapi_port: !Env KUBERNETES_SERVICE_PORT
     node_ip: !Env HOST_IP
 
-
   metrics_storage: !LogStorage
     overwrite: True
     output_filename: /var/lib/wca/metrics.prom
