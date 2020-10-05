@@ -5,8 +5,12 @@
 # - HOST_IP - need to explicitly enabled in Pod spec using downward-api
 # - HOSTNAME - default provided by OS
 
+# Example to enable WSS heuristic debugging.
+#loggers:
+#  wca.wss: debug
+
 runner: !MeasurementRunner
-  interval: 15.0
+  interval: 60.0 
   node: !KubernetesNode
     cgroup_driver: cgroupfs
     monitored_namespaces: ["default"]
@@ -33,8 +37,8 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  wss_reset_cycles: 60       # 0 means never and relay "on stability condition", 60 means=15 minutes
-  wss_membw_threshold: 0.01 # if referenced increase is less than then 1% transfered bytes, treat as stable
-  wss_stable_cycles: -12      # 15s * 4 - 3 minutes
+  wss_reset_cycles: 20       # 0 means never and relay "on stability condition",  20 cycles = 20 minutes
+  wss_membw_threshold: 0.01  # if referenced increase is less than then 1% transfered bytes, assume stable
+  wss_stable_cycles: -5      # 5 minutes, but will not reset the referenced bytes
   
   gather_hw_mm_topology: True
