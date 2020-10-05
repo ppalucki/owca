@@ -206,7 +206,7 @@ class WSS:
                 else:
                     # Calculate average of referenced bytes in stable period.
                     self.last_stable_wss = (self.first_stable_referenced + curr_referenced) / 2
-                    log.debug('[%s] WSS is stable (first time ignored)= (%.2f+%.2f)/2 = %.2f MB ',
+                    log.debug('[%s] WSS is stable = (%.2f+%.2f)/2 = %.2f MB ',
                               pids_s, self.first_stable_referenced/MB, curr_referenced/MB,
                               self.last_stable_wss/MB)
 

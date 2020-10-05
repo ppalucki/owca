@@ -34,7 +34,7 @@ def test_get_measurements(*mocks):
             {**smaps, **clear_refs, '/dev/null': '0'})) as files:
         wss = WSS(interval=5,
                   get_pids=mock_get_pids,
-                  wss_reset_cycles=2,
+                  wss_reset_cycles=0,
                   wss_stable_cycles=2,
                   wss_membw_threshold=0.1,
                   )
@@ -59,6 +59,16 @@ def test_get_measurements(*mocks):
         assert_subdict(
             result3,
             {MetricName.TASK_WSS_REFERENCED_BYTES: 15360000}
+        )
+
+        # After reset last_stable was reset and is not retunred
+        # We need more cycles to get stable result
+        wss.get_measurements({'task_mem_bandwidth_bytes': 4234567})
+        wss.get_measurements({'task_mem_bandwidth_bytes': 5234567})
+        result4 = wss.get_measurements({'task_mem_bandwidth_bytes': 6234567})
+        assert_subdict(
+            result4,
+            {MetricName.TASK_WORKING_SET_SIZE_BYTES: 15360000}
         )
 
         # Check if gets info from smaps
