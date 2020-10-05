@@ -1,74 +1,78 @@
 Getting started
 ===============
 
-To run wca in daemon set: 
+Below instruction is about run wca as DaemonSet in a cluster. This method uses kustomize to deploy all components.
+Kustomize is available from kubectl 1.14 or as sperate binary from https://kustomize.io/.
 
-1. Build image(from main project repo) and push to your registry
+1. Prepare cluster
 
-```
-make REPO=$registry:80/ _wca_docker_devel
-sudo docker push $registry:80/wca:devel
-```
+   Workload Collocation Agent requires existing `wca` namespace and label `monitoring=wca` on nodes,
+   where it will be deployed.
 
+   1. Create `wca` namespace
+   
+      Namespace can be crated by using kubectl by the following command:
+      
+      ```bash
+          kubectl create namespace wca
+      ```
 
-
-2. (optionally) Overwrite image name to your local repository in kustomization.yaml
-
-```yaml
-...
-# kustomization.yaml
-images:
-  - name: wca
-    newName: REPO/wca
-    newTag: devel
-```
-
-Note the default image (from **kustomization.yaml**) is using private repository in testing cluster and **master** tag.
-
-3. (optionally) Choose (**disable the default goal=service**) nodes to deploy owca using node selector
-
-```yaml
-# daemonset.yaml
-spec:
-    node-selector:
-        kubernetes.io/hostname: node12
-
-```
-
-Optionally, you can use token to connect to Kube API Server, while WCA is using outside pod.
-Save Bearer token and CA cert to enable connection. Set their path in wca configuration.  
-
-```
-SERVICE_ACCOUNT=wca
-
-# Get the serviceaccount token secret name
-SECRET=$(kubectl get serviceaccount ${SERVICE_ACCOUNT} -o json | jq -Mr '.secrets[].name | select(contains("token"))')
-
-# Extract the Bearer token from the Secret and decode
-kubectl get secret ${SECRET} -o json | jq -Mr '.data.token' | base64 -d > token
-
-# Extract ca.crt from the Secret and decode
-kubectl get secret ${SECRET} -o json | jq -Mr '.data["ca.crt"]' | base64 -d > ca.crt
-
-# Get the API Server location
-echo https://$(kubectl -n default get endpoints kubernetes --no-headers | awk '{ print $2 }') > server
-```
-
-Example config for wca:
-
-```
-node: !KubernetesNode
-  client_token_path: "/home/user/wca/cert/token"
-  server_cert_ca_path: "/home/user/wca/cert/ca.crt"
-  kubeapi_host: "123.45.123.45"
-  kubeapi_port: "6443"
-  node_ip: "123.45.123.46"
-```
+   2. Choose monitoring node 
+      
+      Label can be crated by using kubectl by the following command:
+      
+      ```bash
+          kubectl label nodes node100 node101 node102 monitoring=wca
+      ```
+      
+      Where names `node100 node101 node102` should be replaced by your kubernetes node names.
+      If you want to deploy wca on all nodes, you can delete affinity in daemonset spec.
 
 
-Additionally, you can use following variables to connect to Kube API Server.
-```
-TOKEN=$(cat token)
-APISERVER=$(cat server)
-curl -s $APISERVER/openapi/v2  --header "Authorization: Bearer $TOKEN" --cacert ca.crt | less
-```
+2. Build image (from main project repo) and push to your registry
+
+   Build Docker image and push to private repo. Like in example below.
+   You have to replace `DOCKER_REPOSITORY_URL` variable to your own docker registry.
+   
+   ```bash
+       WCA_IMAGE=${DOCKER_REPOSITORY_URL}/wca
+       WCA_TAG=master
+       sudo docker build --build-arg MAKE_WCA_PACKAGE=yes --network host --target standalone -f Dockerfile -t $WCA_IMAGE:$WCA_TAG .
+       docker push $WCA_IMAGE:$WCA_TAG
+   ```
+   
+3. Overwrite docker image name to your local repository in examples/kubernetes/monitoring/wca/kustomization.yaml
+
+   In kustomization.yaml, you can find field **images**. You have to replace `DOCKER_REPOSITORY_URL` variable to yours own docker registry.
+   
+   ```yaml
+       ...
+       images:
+         - name: wca
+           newName: ${DOCKER_REPOSITORY_URL}/wca
+           newTag: master
+       ...
+   ```
+   
+   Note the default image (from **kustomization.yaml**) is using private repository in testing cluster and **master** tag.
+
+4. (Optionally) Adjust the wca configuration
+
+   Workload Collocation Agent requires configuration file. 
+   You can use an example [wca config using by Daemonset](wca-config.yaml) or modify them.
+
+5. Deploy wca
+   Finally use the command below to deploy all wca components.
+   
+   ```bash
+       kubectl apply -k examples/kubernetes/monitoring/wca
+   ```
+
+
+After deploying wca, you can deploy Prometheus operator to collect metrics from wca and visual them in Prometheus.
+Create `prometheus` namespace and deploy using kustomize `kubectl apply -k examples/kubernetes/monitoring/prometheus`.
+More information you'll find in `examples/kubernetes/monitoring/README.md`.
+
+[README](DEVEL.md) for more advance wca configuration.
+
+

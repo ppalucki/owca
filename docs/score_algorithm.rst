@@ -22,7 +22,8 @@ The value of score depends only on workload innate features and resources capaci
 
 But what the algorithm considers a **workload**? The solution treats a Kubernetes
 **statefulset** or a **deployment** as a workload. All pods of a statefulset/deployment are treated as instances
-of the same workload.
+of the same workload (assuming that there exists a common label,
+for detail please read paragraph **Workload identification**).
 
 The algorithm is implemented as a set of **Prometheus rules**. Thanks to that, it can be easily visualized,
 simply understood and tweaked by a cluster operator.
@@ -79,10 +80,19 @@ Workloads characterization
 For each workload the heuristic approximates (among others):
 
 - peak **memory bandwidth** used (traffic from caches to RAM memory) with division on read/write,
+  **what must be noted Intel RDT** is required to be enabled on the node for this to work,
 - peak **working set size** (number of touched memory pages in a period of time).
 
 All this is calculated based on historical data (as default history window is set to 7 days).
 Please refer to `prometheus_rule.score.yaml <../examples/kubernetes/monitoring/prometheus/prometheus_rule.score.yaml>`_.
+
+Workload identification
+#######################
+
+The algorithm requires that there will be a way to identify all instances of a workload. E.g. a common
+label on all pods identifying the workload they belong to (notice **"app"** label being used in the rules file).
+In the case, that there is no uniform, common label available across many workloads,
+one can use built-in controllers labels as described [here.](https://github.com/kubernetes/kubernetes/issues/47554)
 
 Setting cut-off Score value
 ###########################
@@ -110,39 +120,8 @@ The score is calculated based on the metrics provided by `WCA` or `cAdvisor`.
 WCA
 ***
 For calculating Score some metrics provided by WCA agent are needed.
-Please use below defined configuration file for WCA agent as a template.
-
-.. code-block:: yaml
-
-  runner: !MeasurementRunner
-  interval: 5.0
-  node: !KubernetesNode
-    cgroup_driver: cgroupfs
-    monitored_namespaces: ["default"]
-    kubeapi_host: !Env KUBERNETES_SERVICE_HOST
-    kubeapi_port: !Env KUBERNETES_SERVICE_PORT
-    node_ip: !Env HOST_IP
-
-  metrics_storage: !LogStorage
-    overwrite: True
-    output_filename: /var/lib/wca/metrics.prom
-
-  extra_labels:
-    node: !Env HOSTNAME
-  event_names:
-    - task_cycles
-    - task_instructions
-    - task_offcore_requests_demand_data_rd
-    - task_offcore_requests_demand_rfo
-  enable_derived_metrics: True
-  uncore_event_names:
-    - platform_cas_count_reads
-    - platform_cas_count_writes
-    - platform_pmm_bandwidth_reads
-    - platform_pmm_bandwidth_writes
-
-  wss_reset_interval: 1
-  gather_hw_mm_topology: True
+File `wca-config <../examples/kubernetes/monitoring/wca/wca-config.yaml>` defines proper
+configuration for defined in this file usage.
 
 ``node`` and ``metrics_storage`` should not be changed. Node is responsible for communication with the Kubernetes API,
 and metric storage for displaying metrics in the Prometheus format.
@@ -210,10 +189,11 @@ as peak value using **max** and **quantile_over_time** prometheus functions:
     - record: app_mbw_flat
       expr: 'max(quantile_over_time(0.95, task_mbw_flat[7d:2m])) by (app)'
     - record: app_wss
-      expr: 'max(quantile_over_time(0.95, task_wss_referenced_bytes[7d:2m])) by (app) / 1e9'
+      expr: 'max(quantile_over_time(0.9, task_working_set_size_bytes[7d:2m])) by (app) / 1e9'
 
 By default the period length is set to 7 days, but can be changed using
-`generator_prometheus_rules.py script <../examples/kubernetes/scripts/generator_prometheus_rules.py>`_ or manually.
+`generator_prometheus_rules.py script <../examples/kubernetes/scripts/generator_prometheus_rules.py>`_
+or manually simply by using find/replace command.
 
 .. code-block:: shell
 
@@ -234,8 +214,6 @@ Limitations
 
 There are few limitations of our solution, which depending on usage can constitute a problem:
 
-- no support for **versions** of statefulset/deployment, which means, that a statefulset/deployment is considered as
-    the same workload as long as the **name** of the statefulset/deployment matches.
 - requirements of some workload can be overestimated,
     e.g. if workload is wrongly configured and keeps restarting after a short period of time
 - we support only workloads with defined CPU/MEM requirements.

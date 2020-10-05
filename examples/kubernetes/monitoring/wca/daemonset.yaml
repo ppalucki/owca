@@ -27,6 +27,7 @@ spec:
                   values:
                   - wca
                   - wca_cadvisor
+      # for debugging purpose, alternative way to nodeAffinity selection nodes
       # nodeSelector:
       #   #kubernetes.io/hostname: node11
       #   # kubectl get nodes --show-labels
