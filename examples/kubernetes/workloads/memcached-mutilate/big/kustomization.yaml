@@ -15,9 +15,9 @@ configMapGenerator:
   literals:
   - threads=6
   - load_records=70300000 # 70.3M
-  - records=35150000
-  - value=1000      # keys 30B + value 1000B = 0.00103 MB * 20M <=  22733 # 80kB * 1.5M  <= 120GB
-  - qps=200000
+  - records=35150000      # 35.1M
+  - value=1000            # keys 30B + value 1000B = 0.00103 MB * 70.3M <= 80GB
+  - qps=140000            # MAX QPS. For max number workloads (8 small): 140000.  For single instance: 200000.
 
 patches:
 - target:

@@ -14,10 +14,10 @@ configMapGenerator:
   behavior: merge
   literals:
   - threads=6
-  - load_records=70300000
-  - records=70300000
-  - value=1000
-  - qps=200000
+  - load_records=70300000 # 70.3M
+  - records=70300000      # 70.3M
+  - value=1000            # keys 30B + value 1000B = 0.00103 MB * 70.3M <= 80GB
+  - qps=140000            # MAX QPS. For max number workloads (8 small): 140000.  For single instance: 200000.
 
 patches:
 - target:

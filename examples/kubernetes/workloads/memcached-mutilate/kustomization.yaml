@@ -24,12 +24,10 @@ commonAnnotations:
 
   # TOGETHER
   cri-resource-manager.intel.com/affinity: |
-    memcached: [ mutilate ]
-    mutilate: [ memcached ]
     generator: [ service ]
     service: [ generator ]
 
   # SEPARATE
   # cri-resource-manager.intel.com/anti-affinity: |
-  #   memcached: [ mutilate ]
-  #   mutilate: [ memcached ]
+  #   service: [ generator ]
+  #   generator: [ service ]

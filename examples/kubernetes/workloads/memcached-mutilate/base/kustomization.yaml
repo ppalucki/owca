@@ -14,10 +14,10 @@ configMapGenerator:
 - name: mutilate
   literals:
     - threads=6
-    - value=10000              # 10k
-    - load_records=1000000     # 1M = 10GB
-    - records=100000           # 100k
-    - qps=1000000              # 1M
+    - value=1000              # 1k      size value
+    - load_records=17575000   # 17,5M   number loaded records
+    - records=17575000        # 17,5M   number testing records
+    - qps=140000              # MAX QPS. For max number workloads (8 small): 140000.  For single instance: 200000.
     - conns=1
-    - time=10                  # seconds
+    - time=10                 # seconds
     - extra=
