@@ -1,0 +1,5 @@
+resources:
+- dram-pmem
+- dram
+- pmem
+- toptier

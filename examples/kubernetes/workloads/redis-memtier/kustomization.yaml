@@ -8,7 +8,6 @@ resources:
 - medium-wss
 - big
 - big-wss
-- _hmem
 
 commonLabels:
   workload: redis-memtier

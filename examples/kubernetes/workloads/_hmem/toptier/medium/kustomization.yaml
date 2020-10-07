@@ -1,0 +1,7 @@
+
+resources:
+- ../../../memcached-mutilate/medium
+- ../../../redis-memtier/medium
+
+commonAnnotations:
+  toptierlimit.cri-resource-manager.intel.com/pod: "20G"

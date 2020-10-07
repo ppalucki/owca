@@ -1,0 +1,6 @@
+resources:
+- ../../../memcached-mutilate/small-wss
+- ../../../redis-memtier/small-wss
+
+commonAnnotations:
+  toptierlimit.cri-resource-manager.intel.com/pod: "20G"
