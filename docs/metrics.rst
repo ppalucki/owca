@@ -90,7 +90,7 @@ Task's metrics
 	"task_working_set_size_bytes", "Task referenced bytes during last stable measurements cycle based on /proc/smaps Referenced field, with /proc/PIDs/clear_refs set to after task gets stable.Warning: this is intrusive collection, because can influence kernel page reclaim policy and add latency.Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more details.", "no (wss_reset_cycles)", "bytes",  "gauge", "/proc/PIDS/smaps", ""
 	"task_wss_measure_overhead_seconds", "Seconds that WCA agent spent (kernel time) waiting for /proc/smapsor reseting accessed_bits ", "no (wss_reset_cycles)", "seconds",  "counter", "/proc/PIDS/smaps /proc/PIDS/clear_refs", ""
 	"task_sched_stat", "Aggregated statistics for all pids in task from all pids from /proc/PID/sched. Each field is represented by its own "key" label", "no (sched)", "None",  "counter", "/proc/PIDS/sched", "key"
-	"task_sched_stat_numa_faults", "Aggregated statistics for all pids in task from /proc/PID/sched only numa_faultsDifferent numa_fault fields are represented by "type" label and numa_node", "no (sched)", "None",  "counter", "/proc/PIDS/sched", "numa_node, fault_type"
+	"task_sched_stat_numa_faults", "Aggregated statistics for all pids in task from /proc/PID/sched only numa_faults. Different numa_fault fields are represented by "type" label and numa_node", "no (sched)", "None",  "counter", "/proc/PIDS/sched", "numa_node, fault_type"
 	"task_requested_cpus", "Tasks resources cpus initial requests.", "yes", "numeric",  "gauge", "orchestrator", ""
 	"task_requested_mem_bytes", "Tasks resources memory initial requests.", "yes", "bytes",  "gauge", "orchestrator", ""
 	"task_last_seen", "Time the task was last seen.", "yes", "timestamp",  "counter", "internal", ""

@@ -666,8 +666,8 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         ),
     MetricName.TASK_SCHED_STAT_NUMA_FAULTS:
         MetricMetadata(
-            'Aggregated statistics for all pids in task from /proc/PID/sched only numa_faults'
-            'Different numa_fault fields are represented by "type" label and numa_node',
+            'Aggregated statistics for all pids in task from /proc/PID/sched only numa_faults.'
+            ' Different numa_fault fields are represented by "type" label and numa_node',
             MetricType.COUNTER,
             None,
             '/proc/PIDS/sched',
