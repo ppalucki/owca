@@ -41,5 +41,8 @@ runner: !MeasurementRunner
   wss_reset_cycles: 20
   wss_membw_threshold: 0.01
   wss_stable_cycles: -5
+
+  # Collect metrics from proc/PID/sched to debug numa issues
+  sched: True
   
   gather_hw_mm_topology: True

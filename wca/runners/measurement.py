@@ -16,7 +16,7 @@ import logging
 import re
 import time
 from abc import abstractmethod
-from typing import Dict, List, Optional, Union, Pattern
+from typing import Dict, List, Optional, Union
 
 import resource
 from dataclasses import dataclass
@@ -213,6 +213,16 @@ class MeasurementRunner(Runner):
         will be collected.  False means disable the collection.
 
         If string is provided it will be used as regexp to match key.
+
+    - ``sched``: **Union[Str, bool]** = *False*
+
+        Responsible for collecting data from /proc/PID/sched metric:
+        - task_sched_stat (lines with ':'),
+        - task_sched_stat_numa_faults (numa_faults field).
+        By default sched is enabled and all metrics (lines from /proc/PID/sched containg ':')
+        will be collected.  False means disable the collection.
+
+        If string is provided it will be used as regexp to match key (string before ':')
     """
 
     def __init__(
@@ -235,7 +245,7 @@ class MeasurementRunner(Runner):
             include_optional_labels: bool = False,
             zoneinfo: Union[Str, bool] = True,
             vmstat: Union[Str, bool] = True,
-            sched: Union[Str, bool] = True,
+            sched: Union[Str, bool] = False,
     ):
 
         self._node = node
@@ -714,8 +724,7 @@ def append_additional_labels_to_tasks(task_label_generators: Dict[str, TaskLabel
 
 @profiler.profile_duration('prepare_tasks_data')
 @trace(log, verbose=False)
-def _prepare_tasks_data(containers: Dict[Task, Container],
-                        sched: Union[bool, Pattern]) -> TasksData:
+def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
     """Prepare all resource usage and resource allocation information and
     creates container-specific labels for all the generated metrics.
     """

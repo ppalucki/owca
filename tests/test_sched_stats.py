@@ -28,9 +28,19 @@ def test_parse_proc_vmstat_keys(*mocks):
     measurements = sched_stats.get_pids_sched_measurements([1, 2], pattern)
     assert measurements == {
         MetricName.TASK_SCHED_STAT: {
-                'mm->numa_scan_seq': 27, 
+                'mm->numa_scan_seq': 27,
                 'numa_pages_migrated': 10.5,
                 'numa_preferred_nid': -3.0,
                 'total_numa_faults': 0,
-            }
+                },
+        MetricName.TASK_SCHED_STAT_NUMA_FAULTS: {
+            '0': {'group_private': 330,
+                  'group_shared': 440,
+                  'task_private': 110,
+                  'task_shared': 220},
+            '1': {'group_private': 670,
+                  'group_shared': 780,
+                  'task_private': 450,
+                  'task_shared': 560}
         }
+    }

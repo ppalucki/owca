@@ -76,6 +76,7 @@ class MetricName(str, Enum):
     TASK_WORKING_SET_SIZE_BYTES = 'task_working_set_size_bytes'
     TASK_WSS_MEASURE_OVERHEAD_SECONDS = 'task_wss_measure_overhead_seconds'
     TASK_SCHED_STAT = 'task_sched_stat'
+    TASK_SCHED_STAT_NUMA_FAULTS = 'task_sched_stat_numa_faults'
 
     # From Kubernetes/Mesos or other orchestrator system.
     # From Kubernetes (requested) or Mesos (resources)
@@ -654,13 +655,25 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
         ),
     MetricName.TASK_SCHED_STAT:
         MetricMetadata(
-            'Per pid statistics by key aggregated over all pids from /proc/PID/sched file',
+            'Aggregated statistics for all pids in task from all pids from /proc/PID/sched.'
+            ' Each field is represented by its own "key" label',
             MetricType.COUNTER,
             None,
             '/proc/PIDS/sched',
             MetricGranularity.TASK,
             ['key'],
-            'no (sched_stat_regexp)',
+            'no (sched)',
+        ),
+    MetricName.TASK_SCHED_STAT_NUMA_FAULTS:
+        MetricMetadata(
+            'Aggregated statistics for all pids in task from /proc/PID/sched only numa_faults'
+            'Different numa_fault fields are represented by "type" label and numa_node',
+            MetricType.COUNTER,
+            None,
+            '/proc/PIDS/sched',
+            MetricGranularity.TASK,
+            ['numa_node', 'fault_type'],
+            'no (sched)',
         ),
     # Generic or from orchestration
     MetricName.TASK_REQUESTED_CPUS:
@@ -1337,6 +1350,9 @@ def _list_leveled_metrics(aggregated_metric, new_metric, max_depth, depth=0):
             else:
                 aggregated_metric[key] = [value]
         else:
+            # With some specific number of levels we need first to create an empty dict.
+            if key not in aggregated_metric:
+                aggregated_metric[key] = {}
             _list_leveled_metrics(aggregated_metric[key], value, max_depth, depth + 1)
 
 

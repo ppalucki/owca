@@ -23,6 +23,7 @@ from wca import cgroups, wss
 from wca import logger
 from wca import perf
 from wca import resctrl
+from wca import sched_stats
 from wca.allocators import AllocationConfiguration, TaskAllocations, AllocationType
 from wca.logger import TRACE
 from wca.metrics import Measurements, merge_measurements, \
@@ -407,10 +408,11 @@ class Container(ContainerInterface):
         else:
             wss_measurements = {}
 
-        if self._sched is not None:
-            pids = self._cgroup.get_pids()
-            sched_regexp = None if self._sched in (False, True) else self._sched
-            sched_measurements = sched_stats.get_measurments(pids, regexp=sched_regexp)
+        if self._sched is not False:
+            pids = list(map(int, self._cgroup.get_pids(include_threads=False)))
+            sched_pattern = None if self._sched in (False, True) else self._sched
+            sched_measurements = sched_stats.get_pids_sched_measurements(
+                pids, pattern=sched_pattern)
         else:
             sched_measurements = {}
 
@@ -419,7 +421,7 @@ class Container(ContainerInterface):
             rdt_measurements,
             perf_measurements,
             wss_measurements,
-            sched_mesurements,
+            sched_measurements,
         ])
 
     def cleanup(self):
