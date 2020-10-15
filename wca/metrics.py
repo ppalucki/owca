@@ -75,6 +75,7 @@ class MetricName(str, Enum):
     TASK_WSS_REFERENCED_BYTES = 'task_wss_referenced_bytes'
     TASK_WORKING_SET_SIZE_BYTES = 'task_working_set_size_bytes'
     TASK_WSS_MEASURE_OVERHEAD_SECONDS = 'task_wss_measure_overhead_seconds'
+    TASK_SCHED_STAT = 'task_sched_stat'
 
     # From Kubernetes/Mesos or other orchestrator system.
     # From Kubernetes (requested) or Mesos (resources)
@@ -651,7 +652,16 @@ METRICS_METADATA: Dict[MetricName, MetricMetadata] = {
             [],
             'no (wss_reset_cycles)',
         ),
-
+    MetricName.TASK_SCHED_STAT:
+        MetricMetadata(
+            'Per pid statistics by key aggregated over all pids from /proc/PID/sched file',
+            MetricType.COUNTER,
+            None,
+            '/proc/PIDS/sched',
+            MetricGranularity.TASK,
+            ['key'],
+            'no (sched_stat_regexp)',
+        ),
     # Generic or from orchestration
     MetricName.TASK_REQUESTED_CPUS:
         MetricMetadata(

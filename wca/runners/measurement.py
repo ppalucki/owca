@@ -16,7 +16,7 @@ import logging
 import re
 import time
 from abc import abstractmethod
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Pattern
 
 import resource
 from dataclasses import dataclass
@@ -235,6 +235,7 @@ class MeasurementRunner(Runner):
             include_optional_labels: bool = False,
             zoneinfo: Union[Str, bool] = True,
             vmstat: Union[Str, bool] = True,
+            sched: Union[Str, bool] = True,
     ):
 
         self._node = node
@@ -327,6 +328,16 @@ class MeasurementRunner(Runner):
                 self._vmstat = re.compile(vmstat)
             except re.error as e:
                 raise ValidationError('vmstat_regexp_compile improper regexp: %s' % e)
+
+        # Validate config and sched regexp.
+        if sched in (True, False):
+            self._sched = sched
+        else:
+            # Got regexp - compile and check...
+            try:
+                self._sched = re.compile(sched)
+            except re.error as e:
+                raise ValidationError('sched regex compile improper regexp: %s' % e)
 
     def _set_initialize_rdt_callback(self, func):
         self._initialize_rdt_callback = func
@@ -615,7 +626,7 @@ class MeasurementRunner(Runner):
             extra_platform_measurements.update(
                 zoneinfo_module.get_zoneinfo_measurements(self._zoneinfo_regexp_compiled))
 
-        # Zoneinfo from /proc/zoneinfo
+        # vmstate from /proc/vmstat and /sys/devices/system/node
         if self._vmstat:
             _vmstat_regexp = None if self._vmstat in (True, False) else self._vmstat
             extra_platform_measurements.update(
@@ -703,7 +714,8 @@ def append_additional_labels_to_tasks(task_label_generators: Dict[str, TaskLabel
 
 @profiler.profile_duration('prepare_tasks_data')
 @trace(log, verbose=False)
-def _prepare_tasks_data(containers: Dict[Task, Container]) -> TasksData:
+def _prepare_tasks_data(containers: Dict[Task, Container],
+                        sched: Union[bool, Pattern]) -> TasksData:
     """Prepare all resource usage and resource allocation information and
     creates container-specific labels for all the generated metrics.
     """

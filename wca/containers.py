@@ -15,7 +15,7 @@
 
 import logging
 import pprint
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union, Pattern
 
 from abc import ABC, abstractmethod
 
@@ -120,6 +120,7 @@ class ContainerSet(ContainerInterface):
                  wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
                  interval: int = 5,
+                 sched: Union[bool, Pattern] = False,
                  ):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
@@ -161,6 +162,7 @@ class ContainerSet(ContainerInterface):
                 enable_derived_metrics=enable_derived_metrics,
                 perf_aggregate_cpus=perf_aggregate_cpus,
                 interval=interval,
+                sched=sched,
             )
 
     def get_subcontainers(self):
@@ -287,7 +289,8 @@ class Container(ContainerInterface):
                  wss_stable_cycles: int = 0,
                  wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
-                 interval: int = 5
+                 interval: int = 5,
+                 sched: Union[bool, Pattern] = False,
                  ):
         self._cgroup_path = cgroup_path
         self._name = _sanitize_cgroup_path(self._cgroup_path)
@@ -297,6 +300,7 @@ class Container(ContainerInterface):
         self._resgroup = resgroup
         self._event_names = event_names
         self._perf_aggregate_cpus = perf_aggregate_cpus
+        self._sched = sched
 
         self._cgroup = cgroups.Cgroup(
             cgroup_path=self._cgroup_path,
@@ -403,11 +407,19 @@ class Container(ContainerInterface):
         else:
             wss_measurements = {}
 
+        if self._sched is not None:
+            pids = self._cgroup.get_pids()
+            sched_regexp = None if self._sched in (False, True) else self._sched
+            sched_measurements = sched_stats.get_measurments(pids, regexp=sched_regexp)
+        else:
+            sched_measurements = {}
+
         return flatten_measurements([
             cgroup_measurements,
             rdt_measurements,
             perf_measurements,
             wss_measurements,
+            sched_mesurements,
         ])
 
     def cleanup(self):
@@ -440,7 +452,8 @@ class ContainerManager:
                  wss_stable_cycles: int = 30,
                  wss_membw_threshold: Optional[float] = None,
                  perf_aggregate_cpus: bool = True,
-                 interval: int = 5
+                 interval: int = 5,
+                 sched: Union[bool, Pattern] = False,
                  ):
         self.containers: Dict[Task, ContainerInterface] = {}
         self._platform = platform
@@ -452,6 +465,7 @@ class ContainerManager:
         self._wss_membw_threshold = wss_membw_threshold
         self._perf_aggregate_cpus = perf_aggregate_cpus
         self._interval = interval
+        self._sched = sched
 
     def _create_container(self, task: Task) -> ContainerInterface:
         """Check whether the task groups multiple containers,
@@ -471,6 +485,7 @@ class ContainerManager:
                 wss_membw_threshold=self._wss_membw_threshold,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
                 interval=self._interval,
+                sched=self._sched,
             )
         else:
             container = Container(
@@ -483,7 +498,8 @@ class ContainerManager:
                 wss_stable_cycles=self._wss_stable_cycles,
                 wss_membw_threshold=self._wss_membw_threshold,
                 perf_aggregate_cpus=self._perf_aggregate_cpus,
-                interval=self._interval
+                interval=self._interval,
+                sched=self._sched,
             )
         # Every initialization aor reinitialization should reset managed counters.
         container.reset_counters()
