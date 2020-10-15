@@ -460,7 +460,8 @@ class MeasurementRunner(Runner):
             wss_stable_cycles=self._wss_stable_cycles,
             wss_membw_threshold=self._wss_membw_threshold,
             perf_aggregate_cpus=self._perf_aggregate_cpus,
-            interval=self._interval
+            interval=self._interval,
+            sched=self._sched,
         )
         log.log(TRACE, 'container manager config: %s', self._containers_manager.__dict__)
 

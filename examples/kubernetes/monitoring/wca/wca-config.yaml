@@ -43,6 +43,6 @@ runner: !MeasurementRunner
   wss_stable_cycles: -5
 
   # Collect metrics from proc/PID/sched to debug numa issues
-  sched: True
+  # sched: True
   
   gather_hw_mm_topology: True

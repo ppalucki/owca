@@ -1,6 +1,7 @@
 runner: !MeasurementRunner
   zoneinfo: false
   vmstat: 'nr_active.*|nr_free_pages'
+  sched: True
   node: !StaticNode
     tasks:
       - task1

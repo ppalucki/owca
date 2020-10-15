@@ -25,6 +25,9 @@ def _parse_proc_sched(sched_filename: str,
     with open(sched_filename) as f:
         for line in f.readlines():
 
+            if '#threads' in line:
+                continue
+
             if line.startswith('numa_faults '):
                 # Only supported format is for kernel > 4.x
                 # numa_faults node=0 task_private=0 task_shared=0 group_private=0 group_shared=0
