@@ -409,7 +409,8 @@ class Container(ContainerInterface):
             wss_measurements = {}
 
         if self._sched is not False:
-            pids = list(map(int, self._cgroup.get_pids(include_threads=False)))
+            # sched debugs stats are collected per thread (krenel task) basis
+            pids = list(map(int, self._cgroup.get_pids(include_threads=True)))
             sched_pattern = None if self._sched in (False, True) else self._sched
             sched_measurements = sched_stats.get_pids_sched_measurements(
                 pids, pattern=sched_pattern)
