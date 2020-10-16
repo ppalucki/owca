@@ -137,8 +137,8 @@ and store them in metrics_storage component.
     Responsible for collecting data from /proc/PID/sched metric:
     - task_sched_stat (lines with ':'),
     - task_sched_stat_numa_faults (numa_faults field).
-    By default "sched stats" are disabled no metrics.
-    will be collected.  True enables metrics collection.
+    By default sched is enabled and all metrics (lines from /proc/PID/sched containg ':')
+    will be collected.  False means disable the collection.
 
     If string is provided it will be used as regexp to match key (string before ':')
 
@@ -549,4 +549,6 @@ TaskLabelRegexGenerator
 =======================
 
 Generate new label value based on other label value.
+
+
 
