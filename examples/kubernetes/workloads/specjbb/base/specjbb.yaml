@@ -14,8 +14,6 @@ spec:
       labels:
         app: specjbb
     spec:
-      nodeSelector:
-        goal: service
       terminationGracePeriodSeconds: 0
       initContainers:
         - name: prepare-names

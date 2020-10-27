@@ -15,8 +15,6 @@ spec:
         app: memcached-mutilate
     spec:
       terminationGracePeriodSeconds: 0
-      nodeSelector:
-        goal: service
       containers:
         - name: service
           image: memcached

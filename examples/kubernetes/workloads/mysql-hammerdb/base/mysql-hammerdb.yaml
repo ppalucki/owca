@@ -15,8 +15,6 @@ spec:
         app: mysql-hammerdb
     spec:
       terminationGracePeriodSeconds: 0
-      nodeSelector:
-        goal: service
       initContainers:
       - name: change-config-workload
         image: busybox
