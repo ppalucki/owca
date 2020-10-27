@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: prometheus-wss-cadvisor
+  namespace: prometheus
+spec:
+  groups:
+    - name: wss-cadvisor
+      # TODO:
+      # add missing mapping from cadvisor to referenced_bytes and mem_bandwidth per pod
+      # record: task_wss_referenced_bytes_cadvisor
+      # record: task_mem_bandwidth_bytes_cadvisor
+  
+      # v4
+      - record: wss_referenced
+        expr: avg by (app)(task_wss_referenced_bytes_cadvisor) 
+        labels:
+          source: cadvisor
+      - record: wss_miss_ratio
+        expr: avg by (app)(delta(task_wss_referenced_bytes_cadvisor[5s])) / avg by (app)(delta(task_mem_bandwidth_bytes_cadvisor[5s])) > 0
+        labels:
+          source: cadvisor
+      - record: wss_ok_ratio
+        expr: wss_miss_ratio < wss_miss_ratio_th
+        labels:
+          source: cadvisor
+      - record: wss_referenced_with_ok_ratio
+        expr: wss_referenced and wss_ok_ratio
+        labels:
+          source: cadvisor
+  

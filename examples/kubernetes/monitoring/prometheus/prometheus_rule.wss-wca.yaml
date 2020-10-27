@@ -1,0 +1,70 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: prometheus-wss-wca
+  namespace: wca
+spec:
+  groups:
+    - name: wss-wca-debug
+      rules:
+      - record: dr
+        expr: delta(task_wss_referenced_bytes[4m])
+        labels:
+          o: '0'
+      - record: dr
+        expr: delta(task_wss_referenced_bytes[4m] offset 20m)
+        labels:
+          o: '20m'
+      - record: dr
+        expr: delta(task_wss_referenced_bytes[4m] offset 40m)
+        labels:
+          o: '40m'
+      - record: dr
+        expr: delta(task_wss_referenced_bytes[4m] offset 60m)
+        labels:
+          o: '60m'
+      - record: dt
+        expr: delta(task_mem_bandwidth_bytes[4m])
+        labels:
+          o: '0'
+      - record: dt
+        expr: delta(task_mem_bandwidth_bytes[4m] offset 20m)
+        labels:
+          o: '20m'
+      - record: dt
+        expr: delta(task_mem_bandwidth_bytes[4m] offset 40m)
+        labels:
+          o: '40m'
+      - record: dt
+        expr: delta(task_mem_bandwidth_bytes[4m] offset 60m)
+        labels:
+          o: '60m'
+
+    - name: wss-wca
+      rules:
+      # v3
+      - record: wss_miss_ratio_th
+        expr: "0.01"
+      - record: wssv3
+        expr: | 
+          (
+            avg(task_wss_referenced_bytes) by (app)) 
+            and on(app) 
+            ( 
+              ( 
+                sort( avg( delta(task_wss_referenced_bytes[5s]) ) by (app)) 
+                / 
+                avg( delta(task_mem_bandwidth_bytes[5s])) by (app)
+              ) < wss_miss_ratio_th
+            ) > 0
+
+      # v4
+      - record: wss_referenced
+        expr: avg by (app)(task_wss_referenced_bytes) 
+      - record: wss_miss_ratio
+        expr: avg by (app)(delta(task_wss_referenced_bytes[5s])) / avg by (app)(delta(task_mem_bandwidth_bytes[5s])) > 0
+      - record: wss_ok_ratio
+        expr: wss_miss_ratio < wss_miss_ratio_th
+      - record: wss_referenced_with_ok_ratio
+        expr: wss_referenced and wss_ok_ratio
+  

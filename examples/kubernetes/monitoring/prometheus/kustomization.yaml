@@ -17,3 +17,5 @@ resources:
   - operator/service.yaml
   - storage_class.yaml
   - persistent_volume.yaml
+  - prometheus_rule.wss-wca.yaml
+  - prometheus_rule.wss-cadvisor.yaml
