@@ -195,6 +195,10 @@ def generate_docs(csv=False):
             levels
         )
 
+        if '"' in metadata.help or '"' in metadata.enabled or '"' in metadata.source:
+            raise Exception('help or enabled or source fields cannot contain " '
+                            'character! metric=%s' % metric)
+
         if metadata.granularity == MetricGranularity.TASK:
             task_data.append(data)
         elif metadata.granularity == MetricGranularity.PLATFORM:
