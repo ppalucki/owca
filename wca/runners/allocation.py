@@ -184,7 +184,7 @@ class AllocationRunner(Runner):
 
         Storage to store serialized anomalies and extra metrics.
 
-    - ``allocations_storage``: **tdwiboolype** = `DEFAULT_STORAGE`
+    - ``allocations_storage``: **Storage** = `DEFAULT_STORAGE`
 
         Storage to store serialized resource allocations.
 
