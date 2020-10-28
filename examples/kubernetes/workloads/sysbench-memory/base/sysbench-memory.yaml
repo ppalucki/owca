@@ -14,8 +14,6 @@ spec:
       labels:
         app: sysbench-memory
     spec:
-      nodeSelector:
-        goal: service
       terminationGracePeriodSeconds: 0
       containers:
         - name: sysbench
