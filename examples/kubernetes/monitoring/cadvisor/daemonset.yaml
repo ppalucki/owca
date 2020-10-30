@@ -27,6 +27,7 @@ spec:
                   values:
                   - cadvisor
                   - wca_cadvisor
+      # hostNetwork: true
       containers:
       - name: cadvisor
         image: cadvisor
@@ -37,15 +38,15 @@ spec:
           requests:
             cpu: 1
         args:
-          - --perf_events_config=/etc/config/perf-hmem-cascadelake.json
-          - --v=5
+          - --v=1
           # below are metrics disabled by default + metric aggregation over CPU + some metrics not required to limit amount of data
           - --disable_metrics=advtcp,process,sched,hugetlb,cpu_topology,tcp,udp,percpu,accelerator,disk,diskIO,network
           - --port=9101
-          - --referenced_read_interval=15s
+          - --referenced_read_interval=5s
           - --referenced_reset_interval=600s
           - --store_container_labels=true
           - --raw_cgroup_prefix_whitelist=kubepods
+          # - --perf_events_config=/etc/config/perf-hmem-cascadelake.json
         volumeMounts:
         - name: rootfs
           mountPath: /rootfs

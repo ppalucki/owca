@@ -11,7 +11,7 @@ spec:
   endpoints:
   - port: cadvisor
     # This is a tricky parameter. If you try to scrap too often, this will lead to a lot of timeouts
-    interval: 10s
+    interval: 5s
     relabelings:
     - sourceLabels: [__meta_kubernetes_endpoint_node_name]
       action: replace
