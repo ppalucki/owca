@@ -21,6 +21,8 @@ from workload_runner import run_experiment, experiment_to_json
 from scenarios import Scenario, REDIS_SCENARIOS, BASE_REDIS_SCENARIOS, \
     PMBENCH_SCENARIOS, BASE_PMBENCH_SCENARIOS, \
     MEMCACHED_MUTILATE_SCENARIOS, BASE_MEMCACHED_MUTILATE_SCENARIOS
+from kernel_parameters import show_frequency, set_necessary_parameters,\
+    check_if_pmem_nodes_are_present
 
 
 def run_scenario(scenario: Scenario, save_dir):
@@ -35,6 +37,10 @@ def run_scenario(scenario: Scenario, save_dir):
 
 
 def main():
+    # Settings and checks before running experiments
+    show_frequency()
+    check_if_pmem_nodes_are_present()
+    set_necessary_parameters()
 
     date = datetime.today().strftime('%Y-%m-%d-%H-%M')
     # pmbench

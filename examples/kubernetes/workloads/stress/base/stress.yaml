@@ -14,8 +14,6 @@ spec:
       labels:
         app: stress
     spec:
-      nodeSelector:
-        goal: service
       terminationGracePeriodSeconds: 0
       containers:
         - name: stress

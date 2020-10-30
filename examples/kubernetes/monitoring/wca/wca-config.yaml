@@ -44,5 +44,4 @@ runner: !MeasurementRunner
 
   # Collect metrics from proc/PID/sched to debug numa issues
   # sched: True
-
   gather_hw_mm_topology: True
