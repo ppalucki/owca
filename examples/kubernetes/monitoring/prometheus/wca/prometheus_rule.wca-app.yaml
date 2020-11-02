@@ -1,12 +1,12 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
+
 metadata:
-  labels:
-    role: prometheus-rules
-  name: prometheus-wca-app
+  name: wca-app
+
 spec:
   groups:
-    - name: app
+    - name: wca-app
       # simple/straightforward rules (task raw date aggregation)
       rules:
         - record: app_memory_access_rate
@@ -68,7 +68,7 @@ spec:
           expr: app_wss / app_mem * 100
 
 # ----------------------------- TASK_DERIVED -------------------------------------
-    - name: wca_task_derived
+    - name: wca-app-task-derived
       rules:
         - record: task_dram_hit
           expr: rate(task_mem_load_retired_local_dram[15s]) / (rate(task_mem_load_retired_local_pmm[15s]) + rate(task_mem_load_retired_local_dram[15s]))
@@ -82,7 +82,8 @@ spec:
           expr: rate(task_offcore_requests_demand_rfo[30s]) * 64
 
 # ----------------------------- APPNODE -------------------------------------
-    - name: aep_appnode
+# Deprecated used by some dashboard.
+    - name: wca-app-aep-appnode
       rules:
         - record: appnode_count
           expr: count(task_up) by (app, node)

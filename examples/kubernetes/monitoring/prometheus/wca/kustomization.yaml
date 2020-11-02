@@ -1,0 +1,9 @@
+namespace: prometheus
+
+resources:
+- prometheus_rule.wca-node-pmem.yaml
+- prometheus_rule.wca-node.yaml
+- prometheus_rule.wca-app.yaml
+# - prometheus_rule.wca-score.yaml
+# - prometheus_rule.wca-wss.yaml
+

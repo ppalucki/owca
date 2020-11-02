@@ -1,0 +1,43 @@
+# Rules needed for calculating score if on the cluster there is no
+# PMEM nodes. Adds virtual PMEM node.
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cadvisor-node-pmem
+spec:
+  groups:
+  - name: cadvisor-node-pmem
+    rules:
+    # ======================== example node pmem "virtual_node_pmem" ===============================
+    # Xeon Gold 6230R, 26 core;
+    # 2-2-1, 8x128GB, 1T; 192 DRAM;
+    # mbw_read 54.4, mbw_write 14.8;
+    # dim: cpu, mem, wss, mbw_flat
+    - record: node_capacity_unsafe
+      expr: '104'
+      labels:
+        dim: cpu
+        node: 'virtual_node_pmem'
+        source: 'cadvisor'
+    - record: node_capacity_unsafe
+      expr: '1024'
+      labels:
+        dim: mem
+        node: 'virtual_node_pmem'
+        source: 'cadvisor'
+    - record: node_capacity_unsafe
+      expr: '96'
+      labels:
+        dim: wss
+        node: 'virtual_node_pmem'
+        source: 'cadvisor'
+    - record: node_capacity_unsafe
+      expr: '54'
+      labels:
+        dim: mbw_flat
+        node: 'virtual_node_pmem'
+        source: 'cadvisor'
+
+
+

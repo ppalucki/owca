@@ -1,8 +1,11 @@
+# Requires:
+# - container_referenced_bytes_extended
+# - container_memory_bandwidth_bytes_extended
+# defined by cadvisor/prometheus_rule.app.yaml
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: prometheus-wss-cadvisor
-  namespace: prometheus
+  name: cadvisor-wss
 spec:
   groups:
     - name: wss-cadvisor
@@ -13,11 +16,11 @@ spec:
   
       # v4
       - record: wss_referenced
-        expr: avg by (app)(task_wss_referenced_bytes_cadvisor) 
+        expr: avg by (app)(container_referenced_bytes_extended) 
         labels:
           source: cadvisor
       - record: wss_miss_ratio
-        expr: avg by (app)(delta(task_wss_referenced_bytes_cadvisor[5s])) / avg by (app)(delta(task_mem_bandwidth_bytes_cadvisor[5s])) > 0
+        expr: avg by (app)(delta(container_referenced_bytes_extended[5s])) / avg by (app)(delta(container_memory_bandwidth_bytes_extended[5s])) > 0
         labels:
           source: cadvisor
       - record: wss_ok_ratio

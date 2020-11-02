@@ -15,6 +15,14 @@ configMapGenerator:
   literals:
     - extra='--setsize 40000 --mapsize 80000 2000000 --initialize -a touch -j 4'
 
+images:
+- name: pmbench
+  newName: 100.64.176.12:80/wca/pmbench
+  newTag: master
+
+commonAnnotations:
+  topologyhints.cri-resource-manager.intel.com/pod: "false"
+
 patches:
 - target:
     kind: StatefulSet

@@ -1,0 +1,7 @@
+namespace: prometheus
+
+resources:
+- prometheus_rule.cadvisor-node-pmem.yaml
+- prometheus_rule.cadvisor-node.yaml
+- prometheus_rule.cadvisor-app.yaml
+# - prometheus_rule.cadvisor-wss.yaml 

@@ -1,11 +1,15 @@
+# Requires:
+# - task_wss_referenced_bytes
+# - task_mem_bandwidth_bytes
+# provided by WCA
+
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: prometheus-wss-wca
-  namespace: wca
+  name: wca-wss
 spec:
   groups:
-    - name: wss-wca-debug
+    - name: wca-wss-debug
       rules:
       - record: dr
         expr: delta(task_wss_referenced_bytes[4m])
@@ -40,7 +44,7 @@ spec:
         labels:
           o: '60m'
 
-    - name: wss-wca
+    - name: wca-wss
       rules:
       # v3
       - record: wss_miss_ratio_th

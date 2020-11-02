@@ -1,0 +1,101 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: score-common
+spec:
+  groups:
+
+  # ---------------------------- common cluster 
+  # ONLY WORKS FOR WCA 
+  - name: score-common-cluster-score-data-provider
+    rules:
+    - record: node_type
+      expr: 'platform_mem_mode_size_bytes > 0'
+      labels:
+        nodetype: pmem
+
+    - record: node_type
+      expr: 'platform_mem_mode_size_bytes == 0'
+      labels:
+        nodetype: dram
+
+    - record: node_type
+      expr: 'platform_mem_mode_size_bytes < 0'
+      labels:
+        nodetype: unknown
+
+    # FIXME: BROKEN! profile_app_2lm_score_max does not exists!
+    - record: app_profile
+      expr: 'profile_app_2lm_score_max'
+
+  # ---------------------------- node profile -----------------------------------------
+  - name: score-common-node-profile
+    rules:
+    # Profile by mem
+    - record: profile_node_by_mem
+      expr: 'node_capacity{dim="cpu"} / on (node, source) node_capacity{dim="mem"}'
+      labels:
+        index: cpu
+    - record: profile_node_by_mem
+      expr: 'node_capacity{dim="mbw_flat"} / on (node, source) node_capacity{dim="mem"}'
+      labels:
+        index: mbw_flat
+    - record: profile_node_by_mem
+      expr: 'node_capacity{dim="wss"} / on (node, source) node_capacity{dim="mem"}'
+      labels:
+        index: wss
+    # Note: average (avg) all PMEM nodes
+    - record: profile_nodes_by_mem
+      expr: 'avg(profile_node_by_mem and on(node, source) platform_mem_mode_size_bytes != 0) by (index, source)'
+      labels:
+        memory: 2lm
+
+  # ---------------------------- app profile -----------------------------------------
+  - name: score-common-app-profile
+    rules:
+    - record: app_req
+      expr: 'app_cpu'
+      labels:
+        dim: cpu
+    - record: app_req
+      expr: 'app_mem'
+      labels:
+        dim: mem
+    - record: app_req
+      expr: 'app_mbw_flat'
+      labels:
+        dim: mbw_flat
+    - record: app_req
+      expr: 'app_wss'
+      labels:
+        dim: wss
+
+    # --------------------- Profiles APP -----------------------
+    #
+    # app profile by mem
+    - record: profile_app_by_mem
+      expr: 'app_req{dim="cpu"} / on(label_app, source) app_req{dim="mem"}'
+      labels:
+        index: cpu
+    - record: profile_app_by_mem
+      expr: 'app_req{dim="mbw_flat"} / on(label_app, source) app_req{dim="mem"}'
+      labels:
+        index: mbw_flat
+    - record: profile_app_by_mem
+      expr: 'app_req{dim="wss"} / on(label_app, source) app_req{dim="mem"}'
+      labels:
+        index: wss
+
+  - name: cadvisor-score-sourced
+    rules:
+    # ======================== normalization profile ========================
+    - record: profile_app_by_mem_norm
+      expr: 'profile_app_by_mem / on (index, source) group_left profile_nodes_by_mem{memory="2lm"}'
+
+    # Must contains all 3 dimensions: cpu, wss, membw.
+    - record: profile_app_by_mem_norm_3dim
+      expr: 'profile_app_by_mem_norm and on(label_app, source) count(profile_app_by_mem_norm) by (label_app, source) == 3'
+
+    # ======================== SCORE calculation ==========================
+    - record: profile_app_score_max # lower is better for 2lm
+      expr: 'max(profile_app_by_mem_norm_3dim{index=~"cpu|mbw_flat|wss",source="cadvisor"}) by (label_app, source)'
