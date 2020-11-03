@@ -1,4 +1,4 @@
-# Should generate metrics:
+# Outputs:
 # - app_cpu
 # - app_mem
 # - app_mbw_flat
@@ -155,18 +155,22 @@ spec:
 
 
     # =================== FINAL app_RESOURCE metrics =====================
+    # --- cpu
     - record: app_cpu
       expr: 'label_replace(app_cpu_, "app", "$1", "label_app", "(.*)+$")'
       labels:
         source: cadvisor
+    # --- mem
     - record: app_mem
       expr: 'label_replace(app_mem_, "app", "$1", "label_app", "(.*)+$")'
       labels:
         source: cadvisor
+    # --- mbw_flat
     - record: app_mbw_flat
       expr: 'label_replace(app_mbw_flat_, "app", "$1", "label_app", "(.*)+$")'
       labels:
         source: cadvisor
+    # --- wss
     - record: app_wss
       expr: 'label_replace(app_wss_, "app", "$1", "label_app", "(.*)+$")'
       labels:
