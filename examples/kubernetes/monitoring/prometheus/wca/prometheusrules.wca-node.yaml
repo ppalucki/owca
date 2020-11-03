@@ -35,46 +35,52 @@ spec:
     rules:
 
     # ============================ node ===================================
-    # dim: cpu
+    # --------------- dim: cpu
     - record: node_capacity_unsafe
       expr: 'sum(platform_topology_cpus) by (node)'
       labels:
         dim: cpu
         source: wca
-    # dim: mem
+    # --------------- dim: mem
+    # for 2lm
     - record: node_capacity_unsafe
       expr: 'ceil((sum(platform_mem_mode_size_bytes) by (node) / 1e9)) and on(node) platform_mem_mode_size_bytes!=0'
       labels:
         dim: mem
         source: wca
+    # for 1lm
     - record: node_capacity_unsafe
       expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes==0'
       labels:
         dim: mem
         source: wca
-    # dim: mbw
+    # --------------- dim: mbw
+    # for 2lm
     - record: node_capacity_unsafe
       expr: 'ceil(sum(platform_nvdimm_read_bandwidth_bytes_per_second) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes!=0'
       labels:
         dim: mbw_flat
         source: wca
+    # for 1lm
     - record: node_capacity_unsafe
       expr: 'ceil(sum(platform_dimm_speed_bytes_per_second) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes==0'
       labels:
         dim: mbw_flat
         source: wca
-    # dim: wss
+    # --------------- dim: wss
     # -- 2LM:  0.5, NOTE: wss devaluated to 50% because of direct mapping (that is approximated by us unsafe maximum)
     # -- HMEM: 1.0, NOTE: kernel based managing of DRAM memory
     - record: pmem_mode_wss_weight
       expr: '0.5' # pmem_mode_wss_weight
-    # wss
+      labels:
+        source: wca
+    # for 2lm
     - record: node_capacity_unsafe
-      expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) * on() group_left pmem_mode_wss_weight / 1e9) and on(node) platform_mem_mode_size_bytes!=0'
+      expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) * on() group_left pmem_mode_wss_weight{source="wca"} / 1e9) and on(node) platform_mem_mode_size_bytes!=0'
       labels:
         dim: wss
         source: wca
-    # wss on 1lm nodes is just capacity of ram
+    # for 1lm: wss on 1lm nodes is just capacity of ram
     - record: node_capacity_unsafe
       expr: 'ceil(sum(platform_dimm_total_size_bytes{dimm_type="ram"}) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes==0'
       labels:
@@ -108,15 +114,11 @@ spec:
       expr: node_capacity_unsafe{source="wca"} * on(dim) group_left safety_weights{source="wca"}
 
 
-
-
-    # ----- Additional metric: read/write assymetry ratio (on 1lm equal to 1, on 2lm ~= 4)
-    # used: by task_mbw_read
-    - record: node_mbw_write_weight
-      expr: '(avg(ceil(sum(platform_nvdimm_read_bandwidth_bytes_per_second)  by (node)) and on(node) platform_mem_mode_size_bytes!=0) by (node)) /
-             (avg(ceil(sum(platform_nvdimm_write_bandwidth_bytes_per_second) by (node)) and on(node) platform_mem_mode_size_bytes!=0) by (node))'
+    # ------------------------------------  profile_nodes_by_mem uses generic rules from score
+    # Note: average (avg) all PMEM nodes
+    - record: node_mem_mode_size_bytes
+      expr: 'platform_mem_mode_size_bytes'
       labels:
-        memory: 2lm
         source: wca
 
 

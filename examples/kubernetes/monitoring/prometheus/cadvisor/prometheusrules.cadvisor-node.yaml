@@ -1,3 +1,7 @@
+# Outputs:
+# - node_capacity
+# - node_mem_mode_size_bytes
+
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 
@@ -6,36 +10,10 @@ metadata:
 
 spec:
   groups:
-  # - name: cadvisor-node-virtual-mock
-  #   rules:
-    # VIRUTAL NODE MOCK TO test node_capacity derived metrics
-    # # ??? ---- 
-    # - record: platform_mem_mode_size_bytes
-    #   expr: '1085958258688'
-    #   labels:
-    #     node: 'virtual_node_pmem'
-    #     source: 'cadvisor'
-    # - record: platform_nvdimm_write_bandwidth_bytes_per_second
-    #   expr: '14800000000'
-    #   labels:
-    #     node: 'virtual_node_pmem'
-    #     source: 'cadvisor'
-    # - record: platform_nvdimm_read_bandwidth_bytes_per_second
-    #   expr: '54400000000'
-    #   labels:
-    #     node: 'virtual_node_pmem'
-    #     source: 'cadvisor'
-    #
-    # # ??? ------- on
-    # - record: machine_nvm_capacity
-    #   expr: '1085958258688'
-    #   labels:
-    #     node: 'virtual_node_pmem'
-    #     mode: "memory_mode"
-    #     source: 'cadvisor'
 
   - name: cadvisor-node
     rules:
+
     # ============================ node ===================================
     # dim: cpu
     - record: node_capacity_unsafe
@@ -45,26 +23,29 @@ spec:
         source: cadvisor
 
     # dim: mem
+    # for 2LM
     - record: node_capacity_unsafe
       expr: 'ceil((sum(machine_nvm_capacity{mode="memory_mode"}) by (node) / 1e9)) and on(node) machine_nvm_capacity{mode="memory_mode"}!=0'
       labels:
         dim: mem
         source: cadvisor
+    # for 1LM
     - record: node_capacity_unsafe
       expr: 'ceil(sum(machine_dimm_capacity_bytes{type=~".+DDR.+"}) by (node) / 1e9) and on(node) machine_nvm_capacity{mode="memory_mode"}==0'
       labels:
         dim: mem
         source: cadvisor
 
-    # dim: mbw_flat TODO: FIXME: should use:  machine_nvm_avg_power_budget_watts,  machine_nvm_capacity, machine_dimm_capacity_bytes, machine_dimm_count
-    # And a table defined in wca/pmembw (FOR NOW IT USES DATA PROVIDED BY WCA)
+    # dim: mbw_flat NOTE:: uses mocks only
+    # TODO: should use:  machine_nvm_avg_power_budget_watts,  machine_nvm_capacity, machine_dimm_capacity_bytes, machine_dimm_count
+    # and a table defined in wca/pmembw (FOR NOW IT USES DATA PROVIDED BY WCA)
     - record: node_capacity_unsafe
-      expr: 'ceil(sum(platform_nvdimm_read_bandwidth_bytes_per_second) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes!=0'
+      expr: 'ceil(sum(machine_nvdimm_read_bandwidth_bytes_per_second{source="cadvisor"}) by (node) / 1e9) and on(node) machine_nvm_capacity{mode="memory_mode"}!=0'
       labels:
         dim: mbw_flat
         source: cadvisor
     - record: node_capacity_unsafe
-      expr: 'ceil(sum(platform_dimm_speed_bytes_per_second) by (node) / 1e9) and on(node) platform_mem_mode_size_bytes==0'
+      expr: 'ceil(sum(machine_dimm_speed_bytes_per_second{source="cadvisor"}) by (node) / 1e9) and on(node) machine_nvm_capacity{mode="memory_mode"}==0'
       labels:
         dim: mbw_flat
         source: cadvisor
@@ -73,10 +54,12 @@ spec:
     # -- 2LM:  0.5, NOTE: wss devaluated to 50% because of direct mapping (that is approximated by us unsafe maximum)
     # -- HMEM: 1.0, NOTE: kernel based managing of DRAM memory
     - record: pmem_mode_wss_weight
-      expr: '0.5' # pmem_mode_wss_weight
+      expr: '0.5'
+      labels:
+        source: cadvisor
     # -- wss on 2lm is devaulated to 30% because of direct mapping (that is approximated by us unsafe maximum)
     - record: node_capacity_unsafe
-      expr: 'ceil(sum(machine_dimm_capacity_bytes{type=~".+DDR.+"}) by (node) * on() group_left pmem_mode_wss_weight / 1e9) and on(node) machine_nvm_capacity{mode="memory_mode"}!=0'
+      expr: 'ceil(sum(machine_dimm_capacity_bytes{type=~".+DDR.+"}) by (node) * on() group_left pmem_mode_wss_weight{source="cadvisor"} / 1e9) and on(node) machine_nvm_capacity{mode="memory_mode"}!=0'
       labels:
         dim: wss
         source: cadvisor
@@ -113,16 +96,9 @@ spec:
     - record: node_capacity
       expr: node_capacity_unsafe{source="cadvisor"} * on(dim) group_left safety_weights{source="cadvisor"}
 
-    # ---------------------------- node PMEM profile -----------------------------------------
-
-
-
-
-    # ------ Additional metric: read/write assymetry ratio (on 1lm equal to 1, on 2lm ~= 4)
-    # used: by task_mbw_read
-    - record: node_mbw_write_weight
-      expr: '(avg(ceil(sum(platform_nvdimm_read_bandwidth_bytes_per_second{source="cadvisor"})  by (node)) and on(node) machine_nvm_capacity{mode="memory_mode",source="cadvisor"}!=0) by (node)) /
-             (avg(ceil(sum(platform_nvdimm_write_bandwidth_bytes_per_second{source="cadvisor"}) by (node)) and on(node) machine_nvm_capacity{mode="memory_mode",source="cadvisor"}!=0) by (node))'
+    # ------------------------------------  node_mem_mode_size_bytes
+    - record: node_mem_mode_size_bytes
+      expr: 'machine_nvm_capacity{mode="memory_mode"}'
       labels:
-        memory: 2lm
         source: cadvisor
+

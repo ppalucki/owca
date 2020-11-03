@@ -3,17 +3,19 @@ kind: Kustomization
 namespace: prometheus
 
 resources:
-  - prometheus.yaml
-  - service_account.yaml
-  - service.yaml
-  - operator/deployment.yaml
-  - operator/service_account.yaml
-  - operator/service.yaml
-  - storage_class.yaml
-  - persistent_volume.yaml
+  # - prometheus.yaml
+  # - service_account.yaml
+  # - service.yaml
+  # - operator/deployment.yaml
+  # - operator/service_account.yaml
+  # - operator/service.yaml
+  # - storage_class.yaml
+  # - persistent_volume.yaml
 
   # RULES - generic/other
-  - prometheus_rule.16-compatibility-rules-new-to-old.yaml
-  - prometheus_rule.apm.yaml
+  # - prometheusrules.16-compatibility-rules-new-to-old.yaml
+  # - prometheusrules.apm.yaml
+  # - prometheusrules.scheduler.yaml  # e.g. node_type
   - wca
   - cadvisor
+  - prometheusrules.score.yaml  # uses data from wca/cadvisor

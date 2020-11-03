@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: scheduler
+spec:
+  groups:
+
+  # ---------------------------- common cluster 
+  # ONLY WORKS FOR WCA 
+  - name: scheduler-cluster-score-data-provider
+    rules:
+    - record: node_type
+      expr: 'platform_mem_mode_size_bytes > 0'
+      labels:
+        nodetype: pmem
+
+    - record: node_type
+      expr: 'platform_mem_mode_size_bytes == 0'
+      labels:
+        nodetype: dram
+
+    - record: node_type
+      expr: 'platform_mem_mode_size_bytes < 0'
+      labels:
+        nodetype: unknown

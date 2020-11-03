@@ -1,0 +1,48 @@
+# Rules needed for calculating score if on the cluster there is no
+# PMEM nodes. Adds virtual PMEM node.
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: wca-node-pmem
+spec:
+  groups:
+  # ======================== example node pmem "virtual_node_pmem" ===============================
+  # Xeon Gold 6230R, 26 core with HT enabled (52 cpus) 
+  # 2-2-1, 8x128GB, 1T; 192 DRAM;
+  # mbw_read 54.4, mbw_write 14.8;
+
+  - name: wca-node-pmem-virtual-data
+    rules:
+    - record: platform_nvdimm_write_bandwidth_bytes_per_second
+      expr: '14.8e9'  # 14 GB/s
+      labels:
+        node: 'virtual_node_pmem'
+        source: 'wca'
+    - record: platform_nvdimm_read_bandwidth_bytes_per_second
+      expr: '54.4e9'  # 54 GB/s
+      labels:
+        node: 'virtual_node_pmem'
+        source: 'wca'
+
+    # Virtual PMEM node is configured 2LM (memory mode)
+    # WCA reports this metric in per socket granularity - but it is not needed for virtual node
+    - record: platform_mem_mode_size_bytes
+      expr: '1085958258688'  # 1TB
+      labels:
+        node: 'virtual_node_pmem'
+        source: 'wca'
+
+    - record: platform_dimm_total_size_bytes
+      expr: '206158430208'  # 192 GB
+      labels:
+        node: 'virtual_node_pmem'
+        source: 'wca'
+        dimm_type: 'ram'
+
+    - record: platform_topology_cpus
+      expr: '104'  # 26 cores * 2HT * 2 sockets
+      labels:
+        node: 'virtual_node_pmem'
+        source: 'wca'
+

@@ -7,37 +7,52 @@ metadata:
   name: cadvisor-node-pmem
 spec:
   groups:
+  # ======================== example node pmem "virtual_node_pmem" ===============================
+  # Xeon Gold 6230R, 26 core;
+  # 2-2-1, 8x128GB, 1T; 192 DRAM;
+  # mbw_read 54.4, mbw_write 14.8;
+
+  # ---------------------  virtual_node_pmem mocks
+  # Used for:
+  # "app profile": node_mbw_write_weight -> task_mbw_write -> task_mbw_flat -> app_mbw_flat -> app_req -> app_profile
+  # "node profile": 
+  #   - node_capacity_unsafe{dim="mbw_flat"}
+  #   - node_capacity_unsafe{dim="wss"}
   - name: cadvisor-node-pmem
     rules:
-    # ======================== example node pmem "virtual_node_pmem" ===============================
-    # Xeon Gold 6230R, 26 core;
-    # 2-2-1, 8x128GB, 1T; 192 DRAM;
-    # mbw_read 54.4, mbw_write 14.8;
-    # dim: cpu, mem, wss, mbw_flat
-    - record: node_capacity_unsafe
-      expr: '104'
+    # --- to calculate node_capacity{dim="cpu"}
+    - record: machine_cpu_cores
+      expr: '104' # 26 * 2 (HT) * 2 (SOCKETS)
       labels:
-        dim: cpu
-        node: 'virtual_node_pmem'
-        source: 'cadvisor'
-    - record: node_capacity_unsafe
-      expr: '1024'
-      labels:
-        dim: mem
-        node: 'virtual_node_pmem'
-        source: 'cadvisor'
-    - record: node_capacity_unsafe
-      expr: '96'
-      labels:
-        dim: wss
-        node: 'virtual_node_pmem'
-        source: 'cadvisor'
-    - record: node_capacity_unsafe
-      expr: '54'
-      labels:
-        dim: mbw_flat
         node: 'virtual_node_pmem'
         source: 'cadvisor'
 
+    # --- to calculate node_capacity dim=mem
+    # for 2lm
+    - record: machine_nvm_capacity
+      expr: '1085958258688' # 1 TB
+      labels:
+        node: 'virtual_node_pmem'
+        mode: "memory_mode"
+        source: 'cadvisor'
 
+    # ---- dim: mbw_flat
+    - record: machine_nvdimm_write_bandwidth_bytes_per_second
+      expr: '14.8e9'
+      labels:
+        node: 'virtual_node_pmem'
+        source: 'cadvisor'
+    - record: machine_nvdimm_read_bandwidth_bytes_per_second
+      expr: '54.4e9'
+      labels:
+        node: 'virtual_node_pmem'
+        source: 'cadvisor'
+        
 
+    # ---- dim="wss"
+    - record: machine_dimm_capacity_bytes
+      expr: '206158430208' # 192 GB
+      labels:
+        type: 'Unbuffered-DDR4'
+        node: 'virtual_node_pmem'
+        source: 'cadvisor'
