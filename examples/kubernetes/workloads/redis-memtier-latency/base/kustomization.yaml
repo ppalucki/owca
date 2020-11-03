@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- redis-memtier-latency.yaml
+
+configMapGenerator:
+- name: redis
+  literals:
+  - extra=
+
+- name: memtier
+  literals:
+    - extra=
+    - test_time=7200         # 7200 (overrides --requests)
+    - pipeline=1             # defaults from memtire
+    - ratio=1:10             # defaults from memtire
+    - threads=4
+    - clients=50
+    - datasize=65000
+    - keymaximum_gen=1000000
+    - keymaximum_load=1000000
+

@@ -120,6 +120,7 @@ pipeline {
                     '''
                     }
                 }
+                // wca scheduler
                 stage("Build and push wca_scheduler Docker image") {
                     when {expression{return params.BUILD_IMAGES}}
                     steps {
@@ -127,6 +128,21 @@ pipeline {
                     IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca-scheduler:${GIT_COMMIT}
                     BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/wca-scheduler:${GIT_BRANCH}
                     IMAGE_DIR=${WORKSPACE}/examples/kubernetes/wca-scheduler
+                    docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile .
+                    docker push ${IMAGE_NAME}
+                    docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    docker push ${BRANCH_IMAGE_NAME}
+                    docker rmi ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
+                    '''
+                    }
+                }
+                // admission controller
+                stage("Build and push webhook Docker image") {
+                    steps {
+                    sh '''
+                    IMAGE_NAME=${DOCKER_REPOSITORY_URL}/webhook:${GIT_COMMIT}
+                    BRANCH_IMAGE_NAME=${DOCKER_REPOSITORY_URL}/webhook:${GIT_BRANCH}
+                    IMAGE_DIR=${WORKSPACE}/examples/kubernetes/admission-controller
                     docker build -t ${IMAGE_NAME} -f ${IMAGE_DIR}/Dockerfile .
                     docker push ${IMAGE_NAME}
                     docker tag ${IMAGE_NAME} ${BRANCH_IMAGE_NAME}
@@ -384,7 +400,9 @@ pipeline {
                 }
             }
         }
-        stage('E2E wca-scheduler') {
+        // This stage require PKI TEST FILES in '/jenkins_home/PKI_TEST' on agent labeled 'Kubernetes';
+        // Copy of files are in installer repo
+        stage('E2E wca-scheduler nginx ssl configuration') {
                 when {expression{return params.E2E_WCA_SCHEDULER}}
                 agent { label 'Kubernetes' }
                 environment {
@@ -395,6 +413,7 @@ pipeline {
                     KUSTOMIZATION_MONITORING='examples/kubernetes/monitoring/'
                     KUSTOMIZATION_WORKLOAD='examples/kubernetes/workloads/'
                     WCA_SCHEDULER_PATH='examples/kubernetes/wca-scheduler/'
+                    PKI_TEST_FILES_PATH='/jenkins_home/PKI_TEST_FILES'
                 }
                 steps {
 
@@ -405,9 +424,9 @@ pipeline {
                     sh "sed -i 's/master/${GIT_COMMIT}/g' ${WORKSPACE}/${WCA_SCHEDULER_PATH}kustomization.yaml"
 
                     sh "kubectl --namespace wca-scheduler create secret generic wca-scheduler-cert \
-                        --from-file ${WORKSPACE}/tests/e2e/nginx/server.crt \
-                        --from-file ${WORKSPACE}/tests/e2e/nginx/server-key.pem \
-                        --from-file ${WORKSPACE}/tests/e2e/nginx/CA.crt"
+                        --from-file ${PKI_TEST_FILES_PATH}/server.crt \
+                        --from-file ${PKI_TEST_FILES_PATH}/server-key.pem \
+                        --from-file ${PKI_TEST_FILES_PATH}/CA.crt"
 
                     print('Starting wca-wcheduler...')
                     sh "kustomize build ${WORKSPACE}/${WCA_SCHEDULER_PATH} | kubectl apply -f - "
@@ -417,10 +436,10 @@ pipeline {
                         kubectl patch service wca-scheduler-nodeport-service --namespace=wca-scheduler --type='json' --patch='[ \
                         {\"op\": \"replace\", \"path\": \"/spec/ports/0/nodePort\", \"value\":32180}]'"
 
-                    wait_for_wca_wcheduler()
+                    wait_for_wca_scheduler()
 
                     sh "make venv; source env/bin/activate && \
-                        pytest ${WORKSPACE}/tests/e2e/nginx/test_wca_nginx_ssl.py::test_wca_nginx_ssl_incorrect_cert --junitxml=unit_results.xml --log-level=debug --log-cli-level=debug -v && \
+                        pytest ${WORKSPACE}/tests/e2e/test_wca_nginx_ssl.py::test_wca_nginx_ssl_incorrect_cert --junitxml=unit_results.xml --log-level=debug --log-cli-level=debug -v && \
                         deactivate"
 
                 }
@@ -554,7 +573,7 @@ def generate_docs() {
           rm docs/metrics.tmp.csv'''
 }
 
-def wait_for_wca_wcheduler() {
+def wait_for_wca_scheduler() {
     def count = 1
     while(count <= 15) {
         check_image = sh(script: "kubectl -n wca-scheduler get pod | grep wca-scheduler | awk '{ print \$3 }'", returnStdout: true).trim()

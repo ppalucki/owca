@@ -112,6 +112,54 @@ REDIS_SCENARIOS = [
              workloads_count=[{REDIS_MEMTIER_BIG_COLDSTART_TOPTIER: 4}],
              sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER_WITH_COLDSTART)
 ]
+REDIS_WSS_SCENARIOS = [
+    # Dram redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-dram',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_DRAM: 1}, {REDIS_MEMTIER_BIG_WSS_DRAM: 2}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.DRAM,
+             reset_workloads_between_steps=False),
+    # Pmem redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-pmem',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_PMEM: 1}, {REDIS_MEMTIER_BIG_WSS_PMEM: 2}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.PMEM,
+             reset_workloads_between_steps=False),
+    # First touch policy redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-first-touch-policy',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 1},
+                              {REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 2},
+                              {REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 3},
+                              {REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 4}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.HMEM_NO_NUMA_BALANCING,
+             reset_workloads_between_steps=False),
+    # Numa balancing redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-numa-balancing',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 4}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.HMEM_NUMA_BALANCING),
+    # Numa balancing redis memtier big wss run one by one
+    Scenario(name='redis-memtier-big-wss-numa-balancing-one-by-one',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 1},
+                              {REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 2},
+                              {REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 3},
+                              {REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 4}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.HMEM_NUMA_BALANCING,
+             reset_workloads_between_steps=False),
+    # Toptier limit redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-toptier-limit',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_TOPTIER: 4}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER),
+    # Toptier limit redis memtier big wss run one by one
+    Scenario(name='redis-memtier-big-wss-toptier-limit-one-by-one',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_TOPTIER: 1},
+                              {REDIS_MEMTIER_BIG_WSS_TOPTIER: 2},
+                              {REDIS_MEMTIER_BIG_WSS_TOPTIER: 3},
+                              {REDIS_MEMTIER_BIG_WSS_TOPTIER: 4}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER,
+             reset_workloads_between_steps=False),
+    # Toptier with coldstart redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-toptier-coldstart',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_COLDSTART_TOPTIER: 4}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER_WITH_COLDSTART)
+]
 BASE_REDIS_SCENARIOS = [    # Dram redis memtier big
     Scenario(name='redis-memtier-big-dram',
              workloads_count=[{REDIS_MEMTIER_BIG_DRAM: 1}],
@@ -136,6 +184,33 @@ BASE_REDIS_SCENARIOS = [    # Dram redis memtier big
     # Toptier with coldstart redis memtier big
     Scenario(name='redis-memtier-toptier-coldstart',
              workloads_count=[{REDIS_MEMTIER_BIG_COLDSTART_TOPTIER: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER_WITH_COLDSTART)]
+
+BASE_REDIS_WSS_SCENARIOS = [
+    # Dram redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-dram',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_DRAM: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.DRAM),
+    # Pmem redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-pmem',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_PMEM: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.PMEM),
+    # First touch policy redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-first-touch-policy',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.HMEM_NO_NUMA_BALANCING,
+             reset_workloads_between_steps=False),
+    # Numa balancing redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-numa-balancing',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_DRAM_PMEM: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.HMEM_NUMA_BALANCING),
+    # Toptier limit redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-toptier-limit',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_TOPTIER: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER),
+    # Toptier with coldstart redis memtier big wss
+    Scenario(name='redis-memtier-big-wss-toptier-coldstart',
+             workloads_count=[{REDIS_MEMTIER_BIG_WSS_COLDSTART_TOPTIER: 1}],
              sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER_WITH_COLDSTART)]
 
 # ----------------- PMBENCH WORKLOADS --------------------------

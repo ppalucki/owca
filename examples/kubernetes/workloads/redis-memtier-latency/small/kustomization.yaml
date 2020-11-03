@@ -1,0 +1,48 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+nameSuffix: -small
+
+resources:
+- ../base
+
+commonLabels:
+  app: redis-memtier-latency-small
+
+configMapGenerator:
+- name: memtier
+  behavior: merge
+  literals:
+    - keymaximum_gen=250000
+    - keymaximum_load=250000
+    - extra='--key-stddev=20833'  # 1/12
+
+patches:
+- target:
+    kind: StatefulSet
+  patch: |-
+    apiVersion: foo
+    kind: foo
+    metadata:
+      name: foo
+    spec:
+      template:
+        spec:
+          containers:
+          - name: service
+            resources:
+              requests:
+                cpu: 2
+                memory: 20G
+              limits:
+                cpu: 2
+                memory: 20G
+          - name: generator
+            resources:
+              requests:
+                cpu: 0.5
+                memory: 2G
+              limits:
+                cpu: 0.5
+                memory: 2G
+

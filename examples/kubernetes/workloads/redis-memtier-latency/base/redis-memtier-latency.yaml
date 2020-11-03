@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-memtier-latency
+spec:
+  replicas: 0
+  serviceName: redis-memtier-latency
+  podManagementPolicy: Parallel
+
+  selector:
+    matchLabels:
+      app: redis-memtier-latency
+  template:
+    metadata:
+      labels:
+        app: redis-memtier-latency
+    spec:
+      terminationGracePeriodSeconds: 0
+      nodeSelector:
+        goal: service
+      containers:
+        - name: service
+          image: redis
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          envFrom:
+            - configMapRef:
+                name: redis
+          env:
+            - name: podname
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          command:
+            - sh
+            - -c
+            - >
+              echo 1024 >/proc/sys/net/core/somaxconn
+
+              redis-server
+              --save ''
+              --loglevel
+              notice
+              --databases 1
+              $redis_extra
+        - name: generator
+          image: memtier_benchmark
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          envFrom:
+            - configMapRef:
+                name: memtier
+          env:
+            - name: podname
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          tty: true
+          command:
+            - bash
+            - -c
+            - >
+              test=0;
+              until [ "$test" = "PONG" ];
+              do
+                test=$(redis-cli PING);
+                sleep 5;
+              done
+
+              # preparing data
+
+              memtier_benchmark
+              --run-count=1
+              --requests=allkeys
+              --server=127.0.0.1
+              --threads=1
+              --clients=1
+              --pipeline=20000
+              --data-size=$datasize
+              --hide-histogram
+              --key-pattern=P:P
+              --key-maximum=$keymaximum_gen
+              --ratio 1:0
+              &> /dev/null
+
+              echo Start ...
+
+              # Clear possible output from previous job on the same node
+
+              echo "[RUN #0 0%,   0 secs]  0 threads:           0 ops,       0 (avg:       0) ops/sec, 0.00KB/sec (avg: 0.00KB/sec),  0.00 (avg:  0.00) msec latency";
+
+              # Loading
+
+              while true; do
+                memtier_benchmark \
+                --test-time=15 \
+                --distinct-client-seed \
+                --randomize \
+                --run-count=1 \
+                --server=127.0.0.1 \
+                --threads=$threads \
+                --clients=$clients \
+                --pipeline=$pipeline \
+                --data-size=$datasize \
+                --key-pattern=G:G \
+                --key-maximum=$keymaximum_load \
+                --ratio $ratio $extra
+              done
+

@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- small
+- small-wss
+- medium
+- medium-wss
+- big
+- big-wss
+- _hmem
+
+commonLabels:
+  workload: redis-memtier-latency-latency
+  domain: test
+
+images:
+- name: memtier_benchmark
+  newName: 100.64.176.12:80/wca/memtier_benchmark
+  newTag: master
+
+commonAnnotations:
+  topologyhints.cri-resource-manager.intel.com/pod: "false"
+
+  # TOGETHER
+  cri-resource-manager.intel.com/affinity: |
+    generator: [ service ]
+    service: [ generator ]
+
+  # SEPARATE
+  # cri-resource-manager.intel.com/anti-affinity: |
+  #   redis: [ memtier ]
+  #   memtier: [ redis ]
+

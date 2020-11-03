@@ -137,7 +137,7 @@ Legend
 - **Type**: only possible types are `gauge` and `counter` as described 
   in `Prometheus metric types <https://prometheus.io/docs/concepts/metric_types/>`_.	
 - **Source**: short description about mechanics that was used to collect metric,	
-  for more detailed information check out `Metric sources documenation <metric_sources.rst>`_.	
+  for more detailed information check out `Metric sources documenation <metrics_sources.rst>`_.	
 - **Enabled** - column describes if metric is enabled by default and 
   how to enable (option in ``MeasurementRunner`` responsible for configuring it. 
   Please refer to `metrics sources documentation <metrics_sources.rst>`_ for more details.)	
@@ -194,6 +194,10 @@ def generate_docs(csv=False):
             metadata.source,
             levels
         )
+
+        if '"' in metadata.help or '"' in metadata.enabled or '"' in metadata.source:
+            raise Exception('help or enabled or source fields cannot contain " '
+                            'character! metric=%s' % metric)
 
         if metadata.granularity == MetricGranularity.TASK:
             task_data.append(data)

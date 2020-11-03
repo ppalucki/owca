@@ -28,7 +28,7 @@ Legend
 - **Type**: only possible types are `gauge` and `counter` as described 
   in `Prometheus metric types <https://prometheus.io/docs/concepts/metric_types/>`_.	
 - **Source**: short description about mechanics that was used to collect metric,	
-  for more detailed information check out `Metric sources documenation <metric_sources.rst>`_.	
+  for more detailed information check out `Metric sources documenation <metrics_sources.rst>`_.	
 - **Enabled** - column describes if metric is enabled by default and 
   how to enable (option in ``MeasurementRunner`` responsible for configuring it. 
   Please refer to `metrics sources documentation <metrics_sources.rst>`_ for more details.)	
@@ -89,8 +89,8 @@ Task's metrics
 	"task_wss_referenced_bytes", "Task referenced bytes during last measurements cycle based on /proc/smaps Referenced field, with /proc/PIDs/clear_refs set to after task gets stable.Warning: this is intrusive collection, because can influence kernel page reclaim policy and add latency.Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more details.", "no (wss_reset_cycles)", "bytes",  "gauge", "/proc/PIDS/smaps", ""
 	"task_working_set_size_bytes", "Task referenced bytes during last stable measurements cycle based on /proc/smaps Referenced field, with /proc/PIDs/clear_refs set to after task gets stable.Warning: this is intrusive collection, because can influence kernel page reclaim policy and add latency.Refer to https://github.com/brendangregg/wss#wsspl-referenced-page-flag for more details.", "no (wss_reset_cycles)", "bytes",  "gauge", "/proc/PIDS/smaps", ""
 	"task_wss_measure_overhead_seconds", "Seconds that WCA agent spent (kernel time) waiting for /proc/smapsor reseting accessed_bits ", "no (wss_reset_cycles)", "seconds",  "counter", "/proc/PIDS/smaps /proc/PIDS/clear_refs", ""
-	"task_sched_stat", "Aggregated statistics for all pids in task (sum from all pids) from /proc/PID/sched. Each field is represented by its own "key" label", "no (sched)", "None",  "counter", "/proc/PIDS/sched", "key"
-	"task_sched_stat_numa_faults", "Aggregated statistics for all pids in task from /proc/PID/sched only but only numa_faults line (sum is used as default aggregation function). Different numa_fault fields are represented by "fault_type" and "numa_node" labels", "no (sched)", "None",  "counter", "/proc/PIDS/sched", "numa_node, fault_type"
+	"task_sched_stat", "Aggregated statistics for all pids in task (sum from all pids) from /proc/PID/sched. Each field is represented by its own key label", "no (sched)", "None",  "counter", "/proc/PIDS/sched", "key"
+	"task_sched_stat_numa_faults", "Aggregated statistics for all pids in task from /proc/PID/sched only but only numa_faults line (sum is used as default aggregation function). Different numa_fault fields are represented by fault_type and numa_node labels", "no (sched)", "None",  "counter", "/proc/PIDS/sched", "numa_node, fault_type"
 	"task_requested_cpus", "Tasks resources cpus initial requests.", "yes", "numeric",  "gauge", "orchestrator", ""
 	"task_requested_mem_bytes", "Tasks resources memory initial requests.", "yes", "bytes",  "gauge", "orchestrator", ""
 	"task_last_seen", "Time the task was last seen.", "yes", "timestamp",  "counter", "internal", ""

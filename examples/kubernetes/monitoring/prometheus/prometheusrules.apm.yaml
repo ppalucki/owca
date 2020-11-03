@@ -32,11 +32,20 @@ spec:
           expr: avg_over_time(apm_memtier_scan_ops_sec[1m]) and apm_memtier_alive
         - record: apm_memtier_latency
           expr: avg_over_time(apm_memtier_scan_latency[1m]) and apm_memtier_alive
+        # intermediary for 98 percentile
+        # 98 percentile is similar for 99 percentile, which is harder to parse by fluetnd form memtier
+        # buckets are not round percentiles (ex. 94,34%), so parser get the biggest (ex. 94,98)
+        - record: apm_memtier_alive_98
+          expr: label_replace(apm_memtier_alive, "percentile", "98", "", "")
+        - record:  apm_memtier_latency_histogram_98
+          expr: avg_over_time(apm_memtier_get_histogram{percentile="98"}[1m]) and apm_memtier_alive_98
         # common apm metrics
         - record: apm_redis_latency  # msec latency
           expr: apm_memtier_latency * on(task_name) group_right() task_up
         - record: apm_redis_qps
           expr: apm_memtier_ops * on(task_name) group_right() task_up
+        - record: apm_redis_latency_histogram_98  # msec latency
+          expr: apm_memtier_latency_histogram_98 * on(task_name) group_right() task_up
         # T & L per app
         - record: apm_throughput
           expr: apm_redis_qps
