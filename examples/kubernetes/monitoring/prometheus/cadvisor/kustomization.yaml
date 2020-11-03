@@ -1,7 +1,7 @@
 namespace: prometheus
 
 resources:
+- prometheusrules.cadvisor-app.yaml
 - prometheusrules.cadvisor-node-pmem.yaml
 - prometheusrules.cadvisor-node.yaml
-- prometheusrules.cadvisor-app.yaml
 #- prometheusrules.cadvisor-wss.yaml 

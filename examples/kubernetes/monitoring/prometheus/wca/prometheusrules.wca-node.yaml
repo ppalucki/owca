@@ -3,6 +3,12 @@
 # Especially:
 # interval=60.0 [seconds],
 # wss_membw_threshold=0.01.
+# Input:
+# - any raw data provided by wca monitoring agent
+# - or mock data for virtual pmem node
+# Output:
+# - node_capacity
+# - node_mem_mode_size_bytes
 
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -11,30 +17,10 @@ metadata:
 spec:
   groups:
 
-  # - name: wca-node-virtual-mock
-  #   rules:
-    # VIRUTAL NODE MOCK TO test node_capacity derived metrics
-    # # ???
-    # - record: platform_mem_mode_size_bytes
-    #   expr: '1085958258688'
-    #   labels:
-    #     node: 'virtual_node_pmem'
-    #     source: 'wca'
-    # - record: platform_nvdimm_write_bandwidth_bytes_per_second
-    #   expr: '14800000000'
-    #   labels:
-    #     node: 'virtual_node_pmem'
-    #     source: 'wca'
-    # - record: platform_nvdimm_read_bandwidth_bytes_per_second
-    #   expr: '54400000000'
-    #   labels:
-    #     node: 'virtual_node_pmem'
-    #     source: 'wca'
-
   - name: wca-node
     rules:
 
-    # ============================ node ===================================
+    # ============================ node_capacity_unsafe ===================================
     # --------------- dim: cpu
     - record: node_capacity_unsafe
       expr: 'sum(platform_topology_cpus) by (node)'
@@ -87,7 +73,7 @@ spec:
         dim: wss
         source: wca
 
-    # ----------------------------------- SAFETY WEIGHTS ------------------------
+    # =================================== SAFETY WEIGHTS ========================
     # safety weights: we don't want to fill any resource to it limit;
     - record: safety_weights
       expr: '0.7'
@@ -110,12 +96,14 @@ spec:
         dim: wss
         source: wca
 
+    # =================================== Final: node_capacity ========================
     - record: node_capacity
       expr: node_capacity_unsafe{source="wca"} * on(dim) group_left safety_weights{source="wca"}
 
-
-    # ------------------------------------  profile_nodes_by_mem uses generic rules from score
-    # Note: average (avg) all PMEM nodes
+    # =================================== node_mem_mode_size_bytes ====================
+    # used by:
+    # - profile_nodes_by_mem uses (for generic score)
+    # - node_type (for scheduler)
     - record: node_mem_mode_size_bytes
       expr: 'platform_mem_mode_size_bytes'
       labels:

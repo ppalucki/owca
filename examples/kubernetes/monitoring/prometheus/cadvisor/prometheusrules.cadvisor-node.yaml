@@ -1,3 +1,13 @@
+# The rules are adjusted for parameters of monitoring tool WCA defined in
+# examples/kubernetes/monitoring/wca/wca-config.yaml
+# Especially:
+# interval=60.0 [seconds],
+# wss_membw_threshold=0.01.
+# Input:
+# - any raw data provided by cadvisor monitoring agent
+# - or mock data for virtual pmem node
+#   with exception to:
+#   - machine_nvdimm_read_bandwidth_bytes_per_second (TO be implemented soon)
 # Outputs:
 # - node_capacity
 # - node_mem_mode_size_bytes
@@ -14,15 +24,15 @@ spec:
   - name: cadvisor-node
     rules:
 
-    # ============================ node ===================================
-    # dim: cpu
+    # ============================ node_capacity_unsafe ===================================
+    # ---------------- dim: cpu
     - record: node_capacity_unsafe
       expr: 'sum(machine_cpu_cores) by (node)'
       labels:
         dim: cpu
         source: cadvisor
 
-    # dim: mem
+    # ---------------- dim: mem
     # for 2LM
     - record: node_capacity_unsafe
       expr: 'ceil((sum(machine_nvm_capacity{mode="memory_mode"}) by (node) / 1e9)) and on(node) machine_nvm_capacity{mode="memory_mode"}!=0'
@@ -36,7 +46,8 @@ spec:
         dim: mem
         source: cadvisor
 
-    # dim: mbw_flat NOTE:: uses mocks only
+    # ----------------- dim: mbw_flat 
+    # NOTE: uses mocks only defined for virtual_node_pmem, because rules to calculated bandwidth for cadvisor are missing
     # TODO: should use:  machine_nvm_avg_power_budget_watts,  machine_nvm_capacity, machine_dimm_capacity_bytes, machine_dimm_count
     # and a table defined in wca/pmembw (FOR NOW IT USES DATA PROVIDED BY WCA)
     - record: node_capacity_unsafe
@@ -50,7 +61,7 @@ spec:
         dim: mbw_flat
         source: cadvisor
 
-    # dim: wss
+    # --------------- dim: wss
     # -- 2LM:  0.5, NOTE: wss devaluated to 50% because of direct mapping (that is approximated by us unsafe maximum)
     # -- HMEM: 1.0, NOTE: kernel based managing of DRAM memory
     - record: pmem_mode_wss_weight
@@ -70,7 +81,7 @@ spec:
         dim: wss
         source: cadvisor
 
-    # ----------------------------------- SAFETY WEIGHTS ------------------------
+    # =================================== SAFETY WEIGHTS ========================
     # safety weights: we don't want to fill any resource to it limit;
     - record: safety_weights
       expr: '0.7'
@@ -93,10 +104,14 @@ spec:
         dim: wss
         source: cadvisor
 
+    # =================================== Final: node_capacity ========================
     - record: node_capacity
       expr: node_capacity_unsafe{source="cadvisor"} * on(dim) group_left safety_weights{source="cadvisor"}
 
-    # ------------------------------------  node_mem_mode_size_bytes
+    # =================================== node_mem_mode_size_bytes ====================
+    # used by:
+    # - profile_nodes_by_mem uses (for generic score)
+    # - node_type (for scheduler)
     - record: node_mem_mode_size_bytes
       expr: 'machine_nvm_capacity{mode="memory_mode"}'
       labels:

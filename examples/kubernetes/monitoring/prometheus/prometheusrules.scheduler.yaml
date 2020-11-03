@@ -6,20 +6,28 @@ spec:
   groups:
 
   # ---------------------------- common cluster 
-  # ONLY WORKS FOR WCA 
+  # uses generic node_mem_mode_size_bytes
+  # for wca: alias to: platform_mem_mode_size_bytes
+  # for cadvsior: alias to: machine_nvm_capacity{mode="memory_mode"}
+  #   NOTE: mocked only for virtual_node_pmem
   - name: scheduler-cluster-score-data-provider
     rules:
     - record: node_type
-      expr: 'platform_mem_mode_size_bytes > 0'
+      expr: 'node_mem_mode_size_bytes > 0'
       labels:
         nodetype: pmem
 
     - record: node_type
-      expr: 'platform_mem_mode_size_bytes == 0'
+      expr: 'node_mem_mode_size_bytes == 0'
       labels:
         nodetype: dram
 
     - record: node_type
-      expr: 'platform_mem_mode_size_bytes < 0'
+      expr: 'node_mem_mode_size_bytes < 0'
       labels:
         nodetype: unknown
+
+    # Requested to WSS ratio in %
+    # wca/admission_controller/app_data_provider.py : 21
+    - record: app_wss_to_mem_ratio
+      expr: app_wss / app_mem * 100

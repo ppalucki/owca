@@ -15,12 +15,6 @@ spec:
   groups:
   - name: wca-app
     rules:
-    # REMOVE ME !!!!
-    # TODO: REMOVE FAKE METRIC  jaky ja robila owca
-    - record: platform_mem_mode_size_bytes
-      expr: '1000e9'
-      labels:
-        node: "node102"
 
     # ------------------ Helper metrics - produces task_mbw_flat
     # Note: heuristic for approximation of R/W ratio for a task; 3m set to be sure to have in each range at least 2 points;
