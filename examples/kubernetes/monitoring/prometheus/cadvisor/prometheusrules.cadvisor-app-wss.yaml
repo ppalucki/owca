@@ -1,7 +1,9 @@
 # Requires:
 # - container_referenced_bytes_extended
 # - container_memory_bandwidth_bytes_extended
-# defined by cadvisor/prometheus_rule.app.yaml
+# defined by cadvisor/prometheusrules.app.yaml (but provided by cadvisor)
+# Outputs:
+# - app_wss
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -9,11 +11,6 @@ metadata:
 spec:
   groups:
     - name: wss-cadvisor
-      # TODO:
-      # add missing mapping from cadvisor to referenced_bytes and mem_bandwidth per pod
-      # record: task_wss_referenced_bytes_cadvisor
-      # record: task_mem_bandwidth_bytes_cadvisor
-  
       # v4
       - record: wss_referenced
         expr: avg by (app)(container_referenced_bytes_extended) 

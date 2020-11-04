@@ -4,4 +4,4 @@ resources:
 - prometheusrules.cadvisor-app.yaml
 - prometheusrules.cadvisor-node-pmem.yaml
 - prometheusrules.cadvisor-node.yaml
-#- prometheusrules.cadvisor-wss.yaml 
+# - prometheusrules.cadvisor-app-wss.yaml 
