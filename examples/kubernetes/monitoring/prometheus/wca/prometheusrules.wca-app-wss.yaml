@@ -70,7 +70,7 @@ spec:
     # ignore first 30m:1m >= 1 ignores first minute minutes of initizalition
     # lot - low_over_time
     - record: task_wss_ref_with_ok_ratio_low_over_time
-      expr: 'task_wss_ref_with_ok_ratio_over_time and count_over_time(task_wss_ref_with_ok_ratio_over_time[30m:1m]) >= 1'
+      expr: 'task_wss_ref_with_ok_over_time and count_over_time(task_wss_ref_with_ok_over_time[5m:1m]) >= 1'
       labels:
         source: wca
     # Spatial: aggregate over instances (tasks/pods)
