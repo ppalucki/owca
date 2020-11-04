@@ -14,7 +14,7 @@ resources:
 
   # RULES - generic/other
   # - prometheusrules.16-compatibility-rules-new-to-old.yaml
-  # - prometheusrules.apm.yaml
+  - prometheusrules.apm.yaml
   # - prometheusrules.scheduler.yaml  # e.g. node_type
   - wca
   - cadvisor

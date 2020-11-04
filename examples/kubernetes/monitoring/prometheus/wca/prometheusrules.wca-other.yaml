@@ -12,7 +12,7 @@ spec:
   #  ---------------- DEBUGING and old workload profiling ---------------------
   - name: wca-other
     rules:
-    - record: app_memory_access_rate
+    - record: app_memory_access_rate#
       expr: avg(rate(task_mem_inst_retired_loads[15s]) + rate(task_mem_inst_retired_stores[15s])) by (app) / 1e9
     - record: app_bw # GB/s
       expr: avg(rate(task_mem_bandwidth_bytes[15s])) by (app) / 1e9

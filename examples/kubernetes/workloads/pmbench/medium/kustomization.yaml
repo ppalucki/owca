@@ -23,10 +23,6 @@ images:
 commonAnnotations:
   topologyhints.cri-resource-manager.intel.com/pod: "false"
 
-replicas:
-  - name: pmbench-medium
-    count: 2
-
 patches:
 - target:
     kind: StatefulSet

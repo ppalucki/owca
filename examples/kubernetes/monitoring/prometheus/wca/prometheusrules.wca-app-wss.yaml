@@ -8,69 +8,70 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: wca-wss
+  name: wca-app-wss
 spec:
   groups:
   - name: wca-app-wss
     rules:
     # v3
-    - record: wss_miss_ratio_th
-      expr: "0.01"
-    - record: wssv3
-      expr: | 
-        (
-          avg(task_wss_referenced_bytes) by (app)) 
-          and on(app) 
-          ( 
-            ( 
-              sort( avg( delta(task_wss_referenced_bytes[5s]) ) by (app)) 
-              / 
-              avg( delta(task_mem_bandwidth_bytes[5s])) by (app)
-            ) < wss_miss_ratio_th
-          ) > 0
-
+    # - record: wss_miss_ratio_th
+    #   expr: "0.01"
+    # - record: wssv3
+    #   expr: | 
+    #     (
+    #       avg(task_wss_referenced_bytes) by (app)) 
+    #       and on(app) 
+    #       ( 
+    #         ( 
+    #           sort( avg( delta(task_wss_referenced_bytes[5s]) ) by (app)) 
+    #           / 
+    #           avg( delta(task_mem_bandwidth_bytes[5s])) by (app)
+    #         ) < wss_miss_ratio_th
+    #       ) > 0
+    #
     # v4
-    - record: wss_referenced
-      expr: avg by (app)(task_wss_referenced_bytes) 
-    - record: wss_miss_ratio
-      expr: avg by (app)(delta(task_wss_referenced_bytes[5s])) / avg by (app)(delta(task_mem_bandwidth_bytes[5s])) > 0
-    - record: wss_ok_ratio
-      expr: wss_miss_ratio < wss_miss_ratio_th
-    - record: wss_referenced_with_ok_ratio
-      expr: wss_referenced and wss_ok_ratio
-  
-    # - name: wca-wss-debug
-    #   rules:
-    #   - record: dr
-    #     expr: delta(task_wss_referenced_bytes[4m])
-    #     labels:
-    #       o: '0'
-    #   - record: dr
-    #     expr: delta(task_wss_referenced_bytes[4m] offset 20m)
-    #     labels:
-    #       o: '20m'
-    #   - record: dr
-    #     expr: delta(task_wss_referenced_bytes[4m] offset 40m)
-    #     labels:
-    #       o: '40m'
-    #   - record: dr
-    #     expr: delta(task_wss_referenced_bytes[4m] offset 60m)
-    #     labels:
-    #       o: '60m'
-    #   - record: dt
-    #     expr: delta(task_mem_bandwidth_bytes[4m])
-    #     labels:
-    #       o: '0'
-    #   - record: dt
-    #     expr: delta(task_mem_bandwidth_bytes[4m] offset 20m)
-    #     labels:
-    #       o: '20m'
-    #   - record: dt
-    #     expr: delta(task_mem_bandwidth_bytes[4m] offset 40m)
-    #     labels:
-    #       o: '40m'
-    #   - record: dt
-    #     expr: delta(task_mem_bandwidth_bytes[4m] offset 60m)
-    #     labels:
-    #       o: '60m'
+    # - record: wss_referenced
+    #   expr: avg by (app)(task_wss_referenced_bytes) 
+    # - record: wss_miss_ratio
+    #   expr: avg by (app)(delta(task_wss_referenced_bytes[5s])) / avg by (app)(delta(task_mem_bandwidth_bytes[5s])) > 0
+    # - record: wss_ok_ratio
+    #   expr: wss_miss_ratio < wss_miss_ratio_th
+    # - record: wss_referenced_with_ok_ratio
+    #   expr: wss_referenced and wss_ok_ratio
 
+    # v5
+    # How many misses is accepted (in regard to membw)
+    - record: task_wss_miss_ratio_threshold
+      expr: "0.01"
+      labels:
+        source: wca
+    # How many misses task have
+    - record: task_wss_miss_ratio
+      expr: delta(task_wss_referenced_bytes[30s]) / delta(task_mem_bandwidth_bytes[30s]) > 0
+      labels:
+        source: wca
+    # Filter above misses data only when above accepted threshold
+    - record: task_wss_ok_ratio
+      expr: task_wss_miss_ratio < scalar(task_wss_miss_ratio_threshold)
+      labels:
+        source: wca
+    # What was a value of referended then (when threshold is accepted)
+    - record: task_wss_referenced_with_ok_ratio
+      expr: task_wss_referenced_bytes and task_wss_ok_ratio
+      labels:
+        source: wca
+    # Temporal: aggegate across time (averge by time), find "low" numbers low percentile (5%)
+    # TODO: should period match reset interval 10m or should cover many windows like 30m ?!?
+    - record: task_wss_referenced_with_ok_ratio_low_over_time
+      expr: quantile_over_time(0.05, task_wss_referenced_with_ok_ratio[10m])) by (task_name)
+      labels:
+        source: wca
+    # ignore first 30m:1m >= 1 ignores first minute minutes of initizalition
+    - record: task_wss_referenced_with_ok_ratio_low_over_time_ignore_initialization
+      expr: 'task_wss_referenced_with_ok_ratio_low_over_time_ignore_initialization and count_over_time(task_wss_referenced_with_ok_ratio_low_over_time_ignore_initialization[30m:1m]) >= 1'
+      labels:
+        source: wca
+
+    # spatial: aggregate over instances (tasks/pods)
+    - record: app_wss_v2
+      expr: 'quantile(0.95, task_wss_referenced_with_ok_ratio_low_over_time_ignore_initialization) by (app, source) / 1e9'
