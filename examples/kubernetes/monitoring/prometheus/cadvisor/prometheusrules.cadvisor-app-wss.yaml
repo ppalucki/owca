@@ -11,6 +11,7 @@ metadata:
 spec:
   groups:
     - name: wss-cadvisor
+      rules:
       # v4
       - record: wss_referenced
         expr: avg by (app)(container_referenced_bytes_extended) 
