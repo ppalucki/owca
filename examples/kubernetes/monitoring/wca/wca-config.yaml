@@ -40,7 +40,7 @@ runner: !MeasurementRunner
   # (assuming 1 minute collection interval).
   wss_reset_cycles: 120  # 5s*120 = 600s = 10 minutes
   wss_membw_threshold: 0.01
-  wss_stable_cycles: -12  # 12 stable cycles (1 minute)
+  wss_stable_cycles: -6  # 6 stable cycles (30 seconds)
 
   # Collect metrics from proc/PID/sched to debug numa issues
   # sched: True
