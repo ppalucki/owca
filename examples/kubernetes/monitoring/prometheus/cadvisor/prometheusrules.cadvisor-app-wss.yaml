@@ -64,15 +64,14 @@ spec:
       labels:
         source: cadvisor
 
-    # What was a value of referended then (when threshold is accepted)
+    # What was a value of referenced then (when threshold is accepted)
     - record: container_wss_referenced_with_ok_ratio
       expr: 'container_referenced_bytes_extended and on(id) container_wss_ok_ratio'
       labels:
         source: cadvisor
     
-    # Temporal: aggegate across time (averge by time), find "high" number, high percentile (95%)
+    # Temporal: aggregate across time (average by time), find "high" number, high percentile (95%)
     # TODO: should be as long as reset interval 10m (or many reset intervals)
-    # ot - over_time
     - record: container_wss_ref_with_ok_over_time
       expr: 'quantile_over_time(0.95, container_wss_referenced_with_ok_ratio[10m])'
       labels:
@@ -83,7 +82,7 @@ spec:
       labels:
         source: cadvisor
 
-    # ignore first 30m:1m >= 1 ignores first minute minutes of initizalition
+    # ignore first 30m:1m >= 1 ignores first minute minutes of initialisation
     # lot - low_over_time
     - record: pod_wss_ref_with_ok_ratio_low_over_time
       expr: 'pod_wss_ref_with_ok_over_time and count_over_time(pod_wss_ref_with_ok_over_time[5m:1m]) >= 1'
@@ -96,7 +95,7 @@ spec:
       labels:
         source: cadvisor
 
-    # Spatial: aggregate over instances (tasks/pods)
+    # Spatial: aggregate over instances (tasks/pods) - again take maximum as pessimistic value
     - record: app_wss_v2
       expr: 'quantile(0.95, pod_wss_ref_with_ok_ratio_low_over_time_relabeled) by (app, source) / 1e9'
       labels:

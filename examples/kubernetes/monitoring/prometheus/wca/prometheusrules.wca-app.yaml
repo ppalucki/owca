@@ -63,6 +63,10 @@ spec:
       labels:
         source: wca
 
+    # --------- v0 version of WSS uses python based from wca/wss.py stability rules ----------------
+    - record: app_wss_v1
+      expr: 'quantile(0.95, quantile_over_time(0.95, task_wss_ignore_initialization[5m])) by (app, source) / 1e9'
+
     # ------------------- FINAL app_RESOURCE metrics
     # --- cpu
     - record: app_cpu
@@ -79,5 +83,5 @@ spec:
       expr: 'quantile(0.95, quantile_over_time(0.95, task_mbw_flat_ignore_initialization[5m])) by (app, source)'
     # --- wss
     - record: app_wss
-      expr: 'quantile(0.95, quantile_over_time(0.95, task_wss_ignore_initialization[5m])) by (app, source) / 1e9'
+      expr: 'app_wss_v2'
 

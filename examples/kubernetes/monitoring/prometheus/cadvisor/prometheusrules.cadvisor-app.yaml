@@ -150,7 +150,7 @@ spec:
         source: cadvisor
     - record: app_mbw_flat_
       expr: 'quantile(0.95, quantile_over_time(0.99, task_mbw_flat_ignore_initialization{label_app=~".+"}[5m:10s])) by (label_app, source)'
-    - record: app_wss_
+    - record: app_wss_v1  # only used by maxium value of "current" container_referenced bytes value, probably wrong, left to be compared to v2
       expr: 'quantile(0.95, quantile_over_time(0.95, task_wss_ignore_initialization{label_app=~".+"}[5m:10s])) by (label_app, source)'
 
 
@@ -172,6 +172,6 @@ spec:
         source: cadvisor
     # --- wss
     - record: app_wss
-      expr: 'label_replace(app_wss_, "app", "$1", "label_app", "(.*)+$")'
+      expr: 'app_wss_v2' # from app-wss.yaml rules
       labels:
         source: cadvisor
