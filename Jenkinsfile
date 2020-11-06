@@ -388,11 +388,11 @@ pipeline {
                 KUSTOMIZATION_WORKLOAD='examples/kubernetes/workloads/'
             }
             steps {
-                kustomize_wca_and_workloads_check()
+                kustomize_monitoring_and_workloads_check()
             }
             post {
                 always {
-                    print('Cleaning workloads and wca...')
+                    print('Cleaning workloads and monitoring...')
                     sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_WORKLOAD} | kubectl delete -f - --wait=false || true"
                     sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_MONITORING} | kubectl delete -f -  --wait=false || true"
                     sh "kubectl delete svc prometheus-nodeport-service --namespace prometheus || true" 
@@ -463,8 +463,8 @@ pipeline {
 /* Helper function */
 /*----------------------------------------------------------------------------------------------------------*/
 
-def kustomize_wca_and_workloads_check() {
-    print('-kustomize_wca_and_workloads_check-')
+def kustomize_monitoring_and_workloads_check() {
+    print('-kustomize_monitoring_and_workloads_check-')
     sh "echo GIT_COMMIT=$GIT_COMMIT"
 
     print('Image checks wca and workloads...')
@@ -475,6 +475,9 @@ def kustomize_wca_and_workloads_check() {
         image_check("wca/$image")
     }
 
+    print('Check prometheus rules (wca/cadvisor/prometheus) ...')
+    sh "cd ${WORKSPACE}/${KUSTOMIZATION_MONITORING}/prometheus/; ./check_rules.sh"
+
     print('Configure workloads...')
     kustomize_replace_commit_in_wca()
     def workloads = ["memcached-mutilate", "mysql-hammerdb", "redis-memtier", "stress", "sysbench-memory", "specjbb"]
@@ -482,7 +485,7 @@ def kustomize_wca_and_workloads_check() {
         kustomize_configure_workload_to_test("$workload")
     }
 
-    print('Starting wca...')
+    print('Starting monitoring (wca/cadvisor/prometheus) ...')
     sh "kustomize build ${WORKSPACE}/${KUSTOMIZATION_MONITORING} | kubectl apply -f -"
     sleep 40
 

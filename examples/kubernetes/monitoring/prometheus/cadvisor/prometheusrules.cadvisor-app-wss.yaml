@@ -43,12 +43,12 @@ spec:
 
 
     - record: container_total_memory_bandwidth_delta_bytes
-      expr: 'sum(delta(container_memory_bandwidth_bytes_extended{container_label_io_kubernetes_pod_namespace="default", container_label_io_cri_containerd_kind="container"}[30s])) without (node_id)'
+      expr: 'sum(delta(container_memory_bandwidth_bytes_extended[30s])) without (node_id)'
       labels:
         source: cadvisor
 
     - record: container_referenced_bytes_delta_bytes
-      expr: 'delta(container_referenced_bytes_extended{container_label_io_kubernetes_pod_namespace="default", container_label_io_cri_containerd_kind="container"}[30s])'
+      expr: 'delta(container_referenced_bytes_extended[30s])'
       labels:
         source: cadvisor
 
