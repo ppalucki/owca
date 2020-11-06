@@ -5,7 +5,7 @@ namespace: cadvisor
 images:
   - name: cadvisor
     newName: 100.64.176.12:80/cadvisor
-    newTag: '7520012'
+    newTag: '3aae36d'
 
 resources:
 - serviceaccount.yaml

@@ -27,7 +27,12 @@ spec:
       labels:
         nodetype: unknown
 
+    # Not needed anymore (in Marta branch)
     # Requested to WSS ratio in %
     # wca/admission_controller/app_data_provider.py : 21
     - record: app_wss_to_mem_ratio
       expr: app_wss / app_mem * 100
+
+    #### Required by annotator
+    # - task_working_set_size_bytes
+    # - task_mem_usage_bytes
