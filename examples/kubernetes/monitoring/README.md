@@ -7,7 +7,8 @@ Files in this folder will deploy:
 - **grafana** for visualization
 - **prometheus** using (prometheus-opearator) with custom rules for metrics collection, storage and 
   evaluation
-- **wca** as daemonset (on nodes marked with label goal=service) - image build instructions [here](wca/README.md)
+- **wca** as daemonset (on nodes marked with label monitoring=wca) - image build instructions [here](wca/README.md)
+- **cadvisor** as daemonset (on nodes marked with label monitoring=cadvisor) - image build instructions [here](cadvisor/README.md)
 - **Kubernetes dashboard** for graphic cluster interface
 
 1. You need to create dedicated namespaces for those applications like this:
