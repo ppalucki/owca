@@ -87,6 +87,6 @@ spec:
 
     # Spatial: aggregate over instances (tasks/pods) - again take maximum as pessimistic value
     - record: app_wss_v2
-      expr: 'quantile(0.95, pod_wss_ref_with_ok_ratio_low_over_time_relabeled_namespace) by (app, source) / 1e9'
+      expr: 'quantile(0.95, pod_wss_ref_with_ok_ratio_low_over_time_relabeled_namespace) by (app_namespace, app, source) / 1e9'
       labels:
         source: cadvisor
