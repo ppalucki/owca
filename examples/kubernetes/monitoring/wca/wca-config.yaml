@@ -10,7 +10,7 @@
 #  wca.wss: debug
 
 runner: !MeasurementRunner
-  interval: 5.
+  interval: 60.0
   node: !KubernetesNode
     cgroup_driver: cgroupfs
     monitored_namespaces: ["default"]
@@ -36,11 +36,11 @@ runner: !MeasurementRunner
     - platform_pmm_bandwidth_reads
     - platform_pmm_bandwidth_writes
 
-  # WorkingSetSize configuration: reset every 10 minutes, require 1 minutes of stable increase less then 1%)
+  # WorkingSetSize configuration: reset every 20 minutes, require 5 minutes of stable increase less then 1%)
   # (assuming 1 minute collection interval).
-  wss_reset_cycles: 120  # 5s*120 = 600s = 10 minutes
+  wss_reset_cycles: 20
   wss_membw_threshold: 0.01
-  wss_stable_cycles: -6  # 6 stable cycles (30 seconds)
+  wss_stable_cycles: -5
 
   # Collect metrics from proc/PID/sched to debug numa issues
   # sched: True
