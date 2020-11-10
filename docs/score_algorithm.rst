@@ -240,7 +240,9 @@ Please use Prometheus query to list potential candidates (those with smaller val
 Grafana dashboard
 #################
 
-We prepared Grafana dashboard `grafana dashboard <../examples/kubernetes/monitoring/grafana/2lm_dashboards/2lm_score_dashboard.json>`_
+We prepared Grafana dashboards:
+- `WCA only solution <../examples/kubernetes/monitoring/grafana/2lm_dashboards/2lm_score_dashboard.json>`_
+- `WCA/cAdvisor only solution <../examples/kubernetes/monitoring/grafana/hmem/hmem_score_dashboard.json>`_
 
 for visualization of the results mentioned in `Scores for our testing workloads`_.
 The dashboard requires Grafana with `boom table plugin <https://grafana.com/grafana/plugins/yesoreyeram-boomtable-panel>`_.
