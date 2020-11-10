@@ -5,9 +5,9 @@
 # - app_profile
 #
 # Based on (should be proived by wca/cadvisor rules)
-# - node_capacity
-# - node_mem_mode_size_bytes
-# - app_cpu, app_mem, app_mbw_flat and app_wss
+# - node: node_capacity, node_mem_mode_size_bytes from (cadvisor/wca)/*_node.yaml
+# - app: app_cpu, app_mem, app_mbw_flat and app_wss from (cadvisor/wca)/*_app.yaml
+
 
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
