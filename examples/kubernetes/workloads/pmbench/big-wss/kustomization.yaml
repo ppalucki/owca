@@ -13,7 +13,7 @@ configMapGenerator:
 - name: pmbench
   behavior: merge
   literals:
-    - extra='--setsize 80000 --mapsize 80000 2000000 --initialize -a touch -j 1'
+    - extra='--setsize 80000 --mapsize 80000 2000000 --initialize -a touch -j 4'
 
 patches:
 - target:
@@ -30,8 +30,8 @@ patches:
           - name: generator
             resources:
               requests:
-                cpu: 0.1
+                cpu: 8
                 memory: 90G
               limits:
-                cpu: 0.1
+                cpu: 8
                 memory: 90G
