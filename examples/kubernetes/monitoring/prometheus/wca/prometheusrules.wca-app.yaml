@@ -2,9 +2,19 @@
 # - app_cpu
 # - app_mem
 # - app_mbw_flat
-# - app_wss
+# - app_wss (based on two version app_wss_v1 and app_wss_v2)
 # with per "application" granulation ("app" label)
 #
+# Inputes (wca with enabled):
+# - events: task_offcore_requests_demand_data_rd, task_offcore_requests_demand_rfo
+# - RDT/MBM: task_mem_bandwidth_bytes
+# - ipmctl: platform_nvdimm_read_bandwidth_bytes_per_second, platform_nvdimm_write_bandwidth_bytes_per_second
+
+# Parameters (assuming wca interval set to 1m):
+# - task_memory_rw_ratio = 3m (rate for events)
+# - ignore initialization = 10m (expect at least 10 x 1m samples)
+# - wss/mbw over time = 1h
+
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 
@@ -56,32 +66,32 @@ spec:
 
     # ------------------- Ignore first 30m=3m*10=30m of run of each task for mbw_flat and task_wss_ignore_initialization
     - record: task_mbw_flat_ignore_initialization
-      expr: 'task_mbw_flat and count_over_time(task_mbw_flat[30m:1m]) >= 1'
+      expr: 'task_mbw_flat and count_over_time(task_mbw_flat[30m:1m]) >= 10'
       labels:
         source: wca
     - record: task_wss_ignore_initialization
-      expr: 'task_working_set_size_bytes and count_over_time(task_working_set_size_bytes[30m:1m]) >= 1'
+      expr: 'task_working_set_size_bytes and count_over_time(task_working_set_size_bytes[30m:1m]) >= 10'
       labels:
         source: wca
 
     # --------- v0 version of WSS uses python based from wca/wss.py stability rules ----------------
     - record: app_wss_v1
-      expr: 'quantile(0.95, quantile_over_time(0.95, task_wss_ignore_initialization[5m])) by (app, source) / 1e9'
+      expr: 'quantile(0.95, quantile_over_time(0.95, task_wss_ignore_initialization[1h])) by (app, source) / 1e9'
 
     # ------------------- FINAL app_RESOURCE metrics
     # --- cpu
     - record: app_cpu
-      expr: 'max(max_over_time(task_requested_cpus[5m])) by (app)'
+      expr: 'max(max_over_time(task_requested_cpus[1h])) by (app)'
       labels:
         source: wca
     # --- mem
     - record: app_mem
-      expr: 'max(max_over_time(task_requested_mem_bytes[5m])) by (app) / 1e9'
+      expr: 'max(max_over_time(task_requested_mem_bytes[1h])) by (app) / 1e9'
       labels:
         source: wca
     # --- mbw_flat
     - record: app_mbw_flat
-      expr: 'quantile(0.95, quantile_over_time(0.95, task_mbw_flat_ignore_initialization[5m])) by (app, source)'
+      expr: 'quantile(0.95, quantile_over_time(0.95, task_mbw_flat_ignore_initialization[1h])) by (app, source)'
     # --- wss
     - record: app_wss
       expr: 'app_wss_v2'

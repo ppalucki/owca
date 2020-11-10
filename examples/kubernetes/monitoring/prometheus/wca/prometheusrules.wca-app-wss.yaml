@@ -1,7 +1,13 @@
-# Inputs:
+# Inputs (from wca, wss with interval 1m/reset 10m):
 # - task_wss_referenced_bytes
 # - task_mem_bandwidth_bytes
-# provided by WCA
+#
+# Parameters:
+# - task_wss_miss_ratio_threshold = 1% - threshold to treat referenced increased as stable
+# - mbw delta = 3m (3 samples)
+# - miss stable = 10m (5 samples)
+# - wss over time = 1h
+#
 # Outputs:
 # - app_wss
 
@@ -13,33 +19,6 @@ spec:
   groups:
   - name: wca-app-wss
     rules:
-    # v3
-    # - record: wss_miss_ratio_th
-    #   expr: "0.01"
-    # - record: wssv3
-    #   expr: | 
-    #     (
-    #       avg(task_wss_referenced_bytes) by (app)) 
-    #       and on(app) 
-    #       ( 
-    #         ( 
-    #           sort( avg( delta(task_wss_referenced_bytes[5s]) ) by (app)) 
-    #           / 
-    #           avg( delta(task_mem_bandwidth_bytes[5s])) by (app)
-    #         ) < wss_miss_ratio_th
-    #       ) > 0
-    #
-    # v4
-    # - record: wss_referenced
-    #   expr: avg by (app)(task_wss_referenced_bytes) 
-    # - record: wss_miss_ratio
-    #   expr: avg by (app)(delta(task_wss_referenced_bytes[5s])) / avg by (app)(delta(task_mem_bandwidth_bytes[5s])) > 0
-    # - record: wss_ok_ratio
-    #   expr: wss_miss_ratio < wss_miss_ratio_th
-    # - record: wss_referenced_with_ok_ratio
-    #   expr: wss_referenced and wss_ok_ratio
-
-    # v5
     # How many misses is accepted (in regard to membw)
     - record: task_wss_miss_ratio_threshold
       expr: "0.01"
@@ -47,12 +26,12 @@ spec:
         source: wca
     # How many misses task has
     - record: task_wss_miss_ratio
-      expr: 'delta(task_wss_referenced_bytes[30s]) / delta(task_mem_bandwidth_bytes[30s]) > 0'
+      expr: 'delta(task_wss_referenced_bytes[10m]) / delta(task_mem_bandwidth_bytes[3m]) > 0'
       labels:
         source: wca
     # Filter above misses data only when above accepted threshold
     - record: task_wss_ok_ratio
-      expr: 'max_over_time(task_wss_ok_ratio[30s]) < scalar(task_wss_miss_ratio_threshold)'
+      expr: 'max_over_time(task_wss_ok_ratio[10m]) < scalar(task_wss_miss_ratio_threshold)'
       labels:
         source: wca
     # What was a value of referended then (when threshold is accepted)
@@ -61,16 +40,16 @@ spec:
       labels:
         source: wca
     # Temporal: aggegate across time (averge by time), find "high" but not max over many or on reset intervals
-    # TODO: should be as long as reset interval 10m (or many reset intervals)
+    # TODO: should be as long as reset interval 1h (or many reset intervals)
     # ot - over_time
     - record: task_wss_ref_with_ok_over_time
-      expr: 'quantile_over_time(0.95, task_wss_referenced_with_ok_ratio[10m])'
+      expr: 'quantile_over_time(0.95, task_wss_referenced_with_ok_ratio[1h])'
       labels:
         source: wca
-    # ignore first 30m:1m >= 1 ignores first minute minutes of initizalition
+    # ignore first 10 minutes of initizalition
     # lot - low_over_time
     - record: task_wss_ref_with_ok_ratio_low_over_time
-      expr: 'task_wss_ref_with_ok_over_time and count_over_time(task_wss_ref_with_ok_over_time[5m:1m]) >= 1'
+      expr: 'task_wss_ref_with_ok_over_time and count_over_time(task_wss_ref_with_ok_over_time[30m:1m]) >= 10'
       labels:
         source: wca
     # Spatial: aggregate over instances (tasks/pods)
