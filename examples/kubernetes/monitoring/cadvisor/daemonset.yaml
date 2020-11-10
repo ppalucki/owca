@@ -42,9 +42,9 @@ spec:
           # below are metrics disabled by default + metric aggregation over CPU + some metrics not required to limit amount of data
           - --disable_metrics=advtcp,process,sched,hugetlb,cpu_topology,tcp,udp,percpu,accelerator,disk,diskIO,network
           - --port=9101
-          # one minute read interval and 10 minutes reset interval to match WCA
+          # one minute read interval and 20 minutes reset interval to match WCA
           - --referenced_read_interval=60s
-          - --referenced_reset_interval=600s
+          - --referenced_reset_interval=1200s
           - --store_container_labels=true
           - --raw_cgroup_prefix_whitelist=kubepods
         volumeMounts:

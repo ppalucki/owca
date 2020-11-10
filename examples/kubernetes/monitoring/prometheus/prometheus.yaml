@@ -5,7 +5,7 @@ metadata:
   namespace: prometheus
 spec:
   version: v2.12.0
-  evaluationInterval: 1s
+  evaluationInterval: 60s
   retention: 60d
   serviceAccountName: prometheus
   serviceMonitorNamespaceSelector:

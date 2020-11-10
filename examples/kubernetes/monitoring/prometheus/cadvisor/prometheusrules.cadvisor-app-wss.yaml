@@ -1,9 +1,20 @@
-# Requires:
+# Inputes:
 # - container_referenced_bytes_extended
 # - container_memory_bandwidth_bytes_extended
 # defined by cadvisor/prometheusrules.app.yaml (but provided by cadvisor)
+#
+# Parameters
+# - delta membw = 3m
+# - delta referenced_bytes = 3m
+# - stability check (5 samples) = 5m
+# - aggegrate max over time (20 samples) = 20m (equals to reset interval)
+#
 # Outputs:
 # - app_wss
+#
+# FOR TESTING filter
+# {container_label_io_kubernetes_pod_namespace="default", container_label_io_cri_containerd_kind="container"}
+  
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -12,29 +23,7 @@ spec:
   groups:
   - name: wss-cadvisor
     rules:
-    # v4
-    #- record: wss_referenced
-    #  expr: avg by (app)(container_referenced_bytes_extended) 
-    #  labels:
-    #    source: cadvisor
-    #- record: wss_miss_ratio
-    #  expr: avg by (app)(delta(container_referenced_bytes_extended[5s])) / avg by (app)(delta(container_memory_bandwidth_bytes_extended[5s])) > 0
-    #  labels:
-    #    source: cadvisor
-    #- record: wss_ok_ratio
-    #  expr: wss_miss_ratio < wss_miss_ratio_th
-    #  labels:
-    #    source: cadvisor
-    #- record: wss_referenced_with_ok_ratio
-    #  expr: wss_referenced and wss_ok_ratio
-    #  labels:
-    #    source: cadvisor
 
-
-    # FOR TESTING filter
-    # {container_label_io_kubernetes_pod_namespace="default", container_label_io_cri_containerd_kind="container"}
-  
-      # v5
     # How many misses is accepted (in regard to membw)
     - record: container_wss_miss_ratio_threshold
       expr: "0.01"
@@ -43,12 +32,12 @@ spec:
 
 
     - record: container_total_memory_bandwidth_delta_bytes
-      expr: 'sum(delta(container_memory_bandwidth_bytes_extended[30s])) without (node_id)'
+      expr: 'sum(delta(container_memory_bandwidth_bytes_extended[3m])) without (node_id)'
       labels:
         source: cadvisor
 
     - record: container_referenced_bytes_delta_bytes
-      expr: 'delta(container_referenced_bytes_extended[30s])'
+      expr: 'delta(container_referenced_bytes_extended[3m])'
       labels:
         source: cadvisor
 
@@ -60,7 +49,7 @@ spec:
 
     # Filter above misses data only when above accepted threshold
     - record: container_wss_ok_ratio
-      expr: 'max_over_time(container_wss_miss_ratio[30s]) < scalar(container_wss_miss_ratio_threshold)'
+      expr: 'max_over_time(container_wss_miss_ratio[5m]) < scalar(container_wss_miss_ratio_threshold)'
       labels:
         source: cadvisor
 
@@ -71,29 +60,30 @@ spec:
         source: cadvisor
     
     # Temporal: aggregate across time (average by time), find "high" number, high percentile (95%)
-    # TODO: should be as long as reset interval 10m (or many reset intervals)
+    # TODO: should be as long as reset interval 20m (or many reset intervals)
     - record: container_wss_ref_with_ok_over_time
-      expr: 'quantile_over_time(0.95, container_wss_referenced_with_ok_ratio[10m])'
+      expr: 'quantile_over_time(0.95, container_wss_referenced_with_ok_ratio[20m])'
       labels:
         source: cadvisor
 
     - record: pod_wss_ref_with_ok_over_time
-      expr: 'sum(container_wss_ref_with_ok_over_time) by (exported_pod, label_app)'
+      expr: 'sum(container_wss_ref_with_ok_over_time) by (container_label_io_kubernetes_pod_namespace, exported_pod, label_app)'
       labels:
         source: cadvisor
 
     # ignore first 30m:1m >= 1 ignores first minute minutes of initialisation
     # lot - low_over_time
     - record: pod_wss_ref_with_ok_ratio_low_over_time
-      expr: 'pod_wss_ref_with_ok_over_time and count_over_time(pod_wss_ref_with_ok_over_time[5m:1m]) >= 1'
+      expr: 'pod_wss_ref_with_ok_over_time and count_over_time(pod_wss_ref_with_ok_over_time[10m:1m]) >= 5'
       labels:
         source: cadvisor
 
     # label_app -> app
-    - record: pod_wss_ref_with_ok_ratio_low_over_time_relabeled
-      expr: 'label_replace(pod_wss_ref_with_ok_ratio_low_over_time, "app", "$1", "label_app", "(.*)+$")'
-      labels:
-        source: cadvisor
+    - record: pod_wss_ref_with_ok_ratio_low_over_time_relabeled_app
+      expr: 'label_replace(pod_wss_ref_with_ok_ratio_low_over_time, "app", "$0", "label_app", "(.*)+$")'
+    # container_label_io_kubernetes_pod_namespace -> app_namespace
+    - record: pod_wss_ref_with_ok_ratio_low_over_time_relabeled_namespace
+      expr: 'label_replace(pod_wss_ref_with_ok_ratio_low_over_time_relabeled_app, "app_namespace", "$0", "container_label_io_kubernetes_pod_namespace", ".*")'
 
     # Spatial: aggregate over instances (tasks/pods) - again take maximum as pessimistic value
     - record: app_wss_v2

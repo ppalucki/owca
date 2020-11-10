@@ -2,7 +2,7 @@
 # - task_wss_referenced_bytes
 # - task_mem_bandwidth_bytes
 #
-# Parameters:
+# Parameters (wss_reset_cycles 20*1m):
 # - task_wss_miss_ratio_threshold = 1% - threshold to treat referenced increased as stable
 # - mbw delta = 3m (3 samples)
 # - miss stable = 10m (5 samples)

@@ -10,7 +10,7 @@
 # - RDT/MBM: task_mem_bandwidth_bytes
 # - ipmctl: platform_nvdimm_read_bandwidth_bytes_per_second, platform_nvdimm_write_bandwidth_bytes_per_second
 
-# Parameters (assuming wca interval set to 1m):
+# Parameters (assuming wca interval is set to 1m):
 # - task_memory_rw_ratio = 3m (rate for events)
 # - ignore initialization = 10m (expect at least 10 x 1m samples)
 # - wss/mbw over time = 1h

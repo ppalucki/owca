@@ -38,9 +38,9 @@ runner: !MeasurementRunner
 
   # WorkingSetSize configuration: reset every 20 minutes, require 5 minutes of stable increase less then 1%)
   # (assuming 1 minute collection interval).
-  wss_reset_cycles: 20
+  wss_reset_cycles: 20   # 20 minutes
   wss_membw_threshold: 0.01
-  wss_stable_cycles: -5
+  wss_stable_cycles: -5  # 5 minutes
 
   # Collect metrics from proc/PID/sched to debug numa issues
   # sched: True

@@ -4,6 +4,15 @@
 # - app_mbw_flat
 # - app_wss
 # with per "application" granulation ("app" label)
+#
+# Parameters (assuming scrape interval set to 1m):
+# - rate for offcore/bandwidth bytes = 3m (3 samples)
+# - task ignored initialization period = 10m
+# - cpu,mem,wss,mbw over_time = 5m
+#
+# Inputs:
+# - perf: offcore_requests.demand_data_rd, offcore_requests.demand_rfo
+# - RDT: container_memory_bandwidth_bytes
 
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -24,74 +33,65 @@ spec:
 
     # Perf events
     - record: container_perf_events_total_relabeled
-      expr: label_replace(container_perf_events_total, "exported_pod", "$1", "container_label_io_kubernetes_pod_name", "(.*)+$")
+      expr: 'label_replace(container_perf_events_total, "exported_pod", "$1", "container_label_io_kubernetes_pod_name", "(.*)+$")'
       labels:
-        source: cadvisor
+        source: 'cadvisor'
     - record: container_perf_events_total_extended
-      expr: container_perf_events_total_relabeled * on(exported_pod) group_left(label_app) kube_pod_labels
+      expr: 'container_perf_events_total_relabeled * on(exported_pod) group_left(label_app) kube_pod_labels'
 
     # Memory bandwidth
     - record: container_memory_bandwidth_bytes_relabeled
-      expr: label_replace(container_memory_bandwidth_bytes, "exported_pod", "$1", "container_label_io_kubernetes_pod_name", "(.*)+$")
+      expr: 'label_replace(container_memory_bandwidth_bytes, "exported_pod", "$1", "container_label_io_kubernetes_pod_name", "(.*)+$")'
       labels:
-        source: cadvisor
+        source: 'cadvisor'
     - record: container_memory_bandwidth_bytes_extended
-      expr: container_memory_bandwidth_bytes_relabeled * on(exported_pod) group_left(label_app) kube_pod_labels
+      expr: 'container_memory_bandwidth_bytes_relabeled * on(exported_pod) group_left(label_app) kube_pod_labels'
 
     # Referenced bytes
     - record: container_referenced_bytes_relabeled
-      expr: label_replace(container_referenced_bytes, "exported_pod", "$1", "container_label_io_kubernetes_pod_name", "(.*)+$")
+      expr: 'label_replace(container_referenced_bytes, "exported_pod", "$1", "container_label_io_kubernetes_pod_name", "(.*)+$")'
       labels:
-        source: cadvisor
+        source: 'cadvisor'
     - record: container_referenced_bytes_extended
-      expr: container_referenced_bytes_relabeled * on(exported_pod) group_left(label_app) kube_pod_labels
+      expr: 'container_referenced_bytes_relabeled * on(exported_pod) group_left(label_app) kube_pod_labels'
 
     # ---------------------------- aggregate by pod
     - record: container_offcore_requests_demand_data_rd_rate
-      expr: rate(container_perf_events_total_extended{event="offcore_requests.demand_data_rd",container_label_io_kubernetes_pod_uid=~".+",node=~".+",label_app=~".+",source="cadvisor"}[30s])
+      expr: 'rate(container_perf_events_total_extended{event="offcore_requests.demand_data_rd",container_label_io_kubernetes_pod_uid=~".+",node=~".+",label_app=~".+",source="cadvisor"}[3m])'
     - record: pod_offcore_requests_demand_data_rd
-      expr: sum(container_offcore_requests_demand_data_rd_rate) by(container_label_io_kubernetes_pod_uid,container_label_io_kubernetes_pod_name,node,label_app,source)
+      expr: 'sum(container_offcore_requests_demand_data_rd_rate) by(container_label_io_kubernetes_pod_namespace,container_label_io_kubernetes_pod_uid,container_label_io_kubernetes_pod_name,node,label_app,source)'
 
     - record: container_offcore_requests_demand_rfo_rate
-      expr: rate(container_perf_events_total_extended{event="offcore_requests.demand_rfo",container_label_io_kubernetes_pod_uid=~".+",node=~".+",label_app=~".+",source="cadvisor"}[30s])
+      expr: 'rate(container_perf_events_total_extended{event="offcore_requests.demand_rfo",container_label_io_kubernetes_pod_uid=~".+",node=~".+",label_app=~".+",source="cadvisor"}[3m])'
     - record: pod_offcore_requests_demand_rfo
-      expr: sum(container_offcore_requests_demand_rfo_rate) by(container_label_io_kubernetes_pod_uid,container_label_io_kubernetes_pod_name,node,label_app,source)
+      expr: 'sum(container_offcore_requests_demand_rfo_rate) by(container_label_io_kubernetes_pod_namespace,container_label_io_kubernetes_pod_uid,container_label_io_kubernetes_pod_name,node,label_app,source)'
 
     - record: container_mbw_rate
-      expr: rate(container_memory_bandwidth_bytes_extended{container_label_io_kubernetes_pod_uid=~".+",node=~".+",label_app=~".+",source="cadvisor"}[30s])
+      expr: 'rate(container_memory_bandwidth_bytes_extended{container_label_io_kubernetes_pod_uid=~".+",node=~".+",label_app=~".+",source="cadvisor"}[3m])'
 
-    - record: pod_mbw
-      expr: sum(container_mbw_rate) by(container_label_io_kubernetes_pod_uid,container_label_io_kubernetes_pod_name,node,label_app,source) / 1e9
-
-    - record: pod_wss
-      expr: sum(container_referenced_bytes_extended{container_label_io_kubernetes_pod_uid=~".+",node=~".+",label_app=~".+",source="cadvisor"}) by(container_label_io_kubernetes_pod_uid,container_label_io_kubernetes_pod_name,node,label_app,source) / 1e9
+    - record: pod_mbw # GBs
+      expr: 'sum(container_mbw_rate) by(container_label_io_kubernetes_pod_namespace,container_label_io_kubernetes_pod_uid,container_label_io_kubernetes_pod_name,node,label_app,source) / 1e9'
+      labels:
+        source: 'cadvisor'
+    - record: pod_wss # GB
+      expr: 'sum(container_referenced_bytes_extended{container_label_io_kubernetes_pod_uid=~".+",node=~".+",label_app=~".+",source="cadvisor"}) by(container_label_io_kubernetes_pod_namespace,container_label_io_kubernetes_pod_uid,container_label_io_kubernetes_pod_name,node,label_app,source) / 1e9'
     # ============================ apps ===================================
     # -------------------------- memory bandwidth (flat)
     # Helper metrics
-    # Note: heuristic for approximation of R/W ratio for a task; 30s set to be sure to have in each range at least 2 points;
-    - record: task_memory_rw_ratio
+    # Note: heuristic for approximation of R/W ratio for a task; make sure to have in each range at least 2 points;
+    - record: pod_memory_rw_ratio
       expr: '(pod_offcore_requests_demand_data_rd + pod_offcore_requests_demand_rfo) / (pod_offcore_requests_demand_data_rd + 2*pod_offcore_requests_demand_rfo)'
+    - record: pod_memory_rw_ratio_2lm
+      expr: 'pod_memory_rw_ratio'
       labels:
-        source: cadvisor
-    - record: task_memory_rw_ratio_
-      expr: 'task_memory_rw_ratio'
-      labels:
-        memory: 2lm
-        source: cadvisor
+        memory: '2lm'
 
-    - record: task_mbw
+    - record: pod_mbw_2lm
       expr: 'pod_mbw'
       labels:
-        source: cadvisor
-    - record: task_mbw_
-      expr: 'task_mbw'
-      labels:
-        memory: 2lm
-        source: cadvisor
-    - record: task_mbw_read
-      expr: 'task_mbw_{source="cadvisor"} * task_memory_rw_ratio_{source="cadvisor"}'
-      labels:
-        source: cadvisor
+        memory: '2lm'
+    - record: pod_mbw_read
+      expr: 'pod_mbw_2lm * pod_memory_rw_ratio_2lm'
 
     # Additional metric: read/write assymetry ratio (on 1lm equal to 1, on 2lm ~= 4)
     # For now only used for: vritual_pmem_node
@@ -99,75 +99,83 @@ spec:
       expr: '(avg(ceil(sum(machine_nvdimm_read_bandwidth_bytes_per_second{source="cadvisor"})  by (node)) and on(node) machine_nvm_capacity{mode="memory_mode",source="cadvisor"}!=0) by (node)) /
              (avg(ceil(sum(machine_nvdimm_write_bandwidth_bytes_per_second{source="cadvisor"}) by (node)) and on(node) machine_nvm_capacity{mode="memory_mode",source="cadvisor"}!=0) by (node))'
       labels:
-        memory: 2lm
-        source: cadvisor
+        memory: '2lm'
+        source: 'cadvisor'
 
-    - record: task_mbw_write
-      expr: '(1 - task_memory_rw_ratio_{source="cadvisor"}) * task_mbw_{source="cadvisor"} * on(memory) group_left node_mbw_write_weight{source="cadvisor"}'
+    - record: pod_mbw_write
+      expr: '(1 - pod_memory_rw_ratio_2lm) * pod_mbw_2lm * on(memory) group_left node_mbw_write_weight{source="cadvisor"}'
       labels:
-        source: cadvisor
-    - record: task_mbw_flat
-      expr: 'task_mbw_read{source="cadvisor"} + task_mbw_write{source="cadvisor"}'
-      labels:
-        source: cadvisor
+        source: 'cadvisor'
+    - record: pod_mbw_flat
+      expr: 'pod_mbw_read + pod_mbw_write'
 
     # ---------------------- mbw ignore initiliation
     # Ignore first 30m=3m*10=30m of run of each task for WSS, MBW.
-    - record: task_mbw_flat_ignore_initialization
-      expr: 'task_mbw_flat and count_over_time(task_mbw_flat[30m:1m]) >= 1'
-      labels:
-        source: cadvisor
+    - record: pod_mbw_flat_ignore_initialization
+      expr: 'pod_mbw_flat and count_over_time(pod_mbw_flat[30m:1m]) >= 10'
 
     # ---------------------- wss ignore initiliation
     # @TODO to be replaced by proper way of calculating WSS, similar to wca/wss.py
-    - record: task_working_set_size_bytes
+    - record: pod_working_set_size_bytes
       expr: 'pod_wss'
-    - record: task_wss_ignore_initialization
-      expr: 'task_working_set_size_bytes and count_over_time(task_working_set_size_bytes[30m:1m]) >= 1'
+    - record: pod_wss_ignore_initialization
+      expr: 'pod_working_set_size_bytes and count_over_time(pod_working_set_size_bytes[30m:1m]) >= 10'
 
     # --------------------- cpu and memory
     # Kubernetes limites and requests using from kube-state-metrics linked together with kube_pod_labels
     - record: app_limits_cpu
-      expr: kube_pod_container_resource_limits_cpu_cores * on(exported_pod,exported_namespace) group_left(label_app) kube_pod_labels
+      expr: 'kube_pod_container_resource_limits_cpu_cores * on(exported_pod,exported_namespace) group_left(label_app) kube_pod_labels'
     - record: app_requests_cpu
-      expr: kube_pod_container_resource_requests_cpu_cores * on(exported_pod,exported_namespace) group_left(label_app) kube_pod_labels
+      expr: 'kube_pod_container_resource_requests_cpu_cores * on(exported_pod,exported_namespace) group_left(label_app) kube_pod_labels'
     - record: app_requests_cpu_
-      expr: sum(app_requests_cpu) by (label_app,exported_pod)
+      expr: 'sum(app_requests_cpu) by (exported_namespace,label_app,exported_pod)'
+
     - record: app_requests_memory_bytes
-      expr: kube_pod_container_resource_requests_memory_bytes * on(exported_pod,exported_namespace) group_left(label_app) kube_pod_labels
+      expr: 'kube_pod_container_resource_requests_memory_bytes * on(exported_pod,exported_namespace) group_left(label_app) kube_pod_labels'
     - record: app_requests_memory_bytes_
-      expr: sum(app_requests_memory_bytes) by (label_app,exported_pod)
+      expr: 'sum(app_requests_memory_bytes) by (exported_namespace,label_app,exported_pod)'
 
 
       # ----------------------- all resources aggregated by app (still with label_app) : quantiles/max over pods and time
     - record: app_cpu_
-      expr: 'max(max_over_time(app_requests_cpu_{label_app=~".+"}[5m])) by (label_app)'
+      expr: 'max(max_over_time(app_requests_cpu_{label_app=~".+"}[5m])) by (exported_namespace,label_app)'
       labels:
-        source: cadvisor
+        source: 'cadvisor'
+    - record: app_cpu_relabeled
+      expr: 'label_replace(app_cpu_, "app_namespace", "$0", "exported_namespace", ".*")'
+
     - record: app_mem_
-      expr: 'max(max_over_time(app_requests_memory_bytes_{label_app=~".+"}[5m])) by (label_app) / 1e9'
+      expr: 'max(max_over_time(app_requests_memory_bytes_{label_app=~".+"}[5m])) by (exported_namespace,label_app) / 1e9'
       labels:
-        source: cadvisor
+        source: 'cadvisor'
+    - record: app_mem_relabeled
+      expr: 'label_replace(app_mem_, "app_namespace", "$0", "exported_namespace", ".*")'
+
     - record: app_mbw_flat_
-      expr: 'quantile(0.95, quantile_over_time(0.99, task_mbw_flat_ignore_initialization{label_app=~".+"}[5m:10s])) by (label_app, source)'
+      expr: 'quantile(0.95, quantile_over_time(0.99, pod_mbw_flat_ignore_initialization{label_app=~".+"}[5m:10s])) by (container_label_io_kubernetes_pod_namespace,label_app, source)'
+    - record: app_mbw_flat_relabeled
+      expr: 'label_replace(app_mbw_flat_, "app_namespace", "$0", "container_label_io_kubernetes_pod_namespace", ".*")'
+
+    - record: app_wss_v1_  # only used by maxium value of "current" container_referenced bytes value, probably wrong, left to be compared to v2
+      expr: 'quantile(0.95, quantile_over_time(0.95, pod_wss_ignore_initialization{label_app=~".+"}[5m:10s])) by (container_label_io_kubernetes_pod_namespace,label_app, source)'
     - record: app_wss_v1  # only used by maxium value of "current" container_referenced bytes value, probably wrong, left to be compared to v2
-      expr: 'quantile(0.95, quantile_over_time(0.95, task_wss_ignore_initialization{label_app=~".+"}[5m:10s])) by (label_app, source)'
+      expr: 'label_replace(app_wss_v1_, "app_namespace", "$0", "container_label_io_kubernetes_pod_namespace", ".*")'
 
 
     # =================== FINAL app_RESOURCE metrics =====================
     # --- cpu
     - record: app_cpu
-      expr: 'label_replace(app_cpu_, "app", "$1", "label_app", "(.*)+$")'
+      expr: 'label_replace(app_cpu_relabeled, "app", "$1", "label_app", "(.*)+$")'
       labels:
         source: cadvisor
     # --- mem
     - record: app_mem
-      expr: 'label_replace(app_mem_, "app", "$1", "label_app", "(.*)+$")'
+      expr: 'label_replace(app_mem_relabeled, "app", "$1", "label_app", "(.*)+$")'
       labels:
         source: cadvisor
     # --- mbw_flat
     - record: app_mbw_flat
-      expr: 'label_replace(app_mbw_flat_, "app", "$1", "label_app", "(.*)+$")'
+      expr: 'label_replace(app_mbw_flat_relabeled, "app", "$1", "label_app", "(.*)+$")'
       labels:
         source: cadvisor
     # --- wss
