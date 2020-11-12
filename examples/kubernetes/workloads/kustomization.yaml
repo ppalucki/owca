@@ -1,8 +1,8 @@
 bases:
-# - mysql-hammerdb
-# - stress
-# - redis-memtier
-# - memcached-mutilate
-# - sysbench-memory
-# - specjbb
+- mysql-hammerdb
+- stress
+- redis-memtier
+- memcached-mutilate
+- sysbench-memory
+- specjbb
 - pmbench
