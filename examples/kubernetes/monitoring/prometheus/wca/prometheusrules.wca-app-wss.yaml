@@ -24,9 +24,16 @@ spec:
       expr: "0.01"
       labels:
         source: wca
+
+    # add app_namespace based on task_name
+    - record: task_wss_referenced_bytes_relabeled
+      expr: 'label_replace(task_wss_referenced_bytes, "app_namespace", "$1", "task_name", "(.*)/.*")'
+    - record: task_mem_bandwidth_bytes_relabeled
+      expr: 'label_replace(task_mem_bandwidth_bytes, "app_namespace", "$1", "task_name", "(.*)/.*")'
+
     # How many misses task has
     - record: task_wss_miss_ratio
-      expr: 'delta(task_wss_referenced_bytes[10m]) / delta(task_mem_bandwidth_bytes[3m]) > 0'
+      expr: 'delta(task_wss_referenced_bytes_relabeled[10m]) / delta(task_mem_bandwidth_bytes_relabeled[3m]) > 0'
       labels:
         source: wca
     # Filter above misses data only when above accepted threshold
@@ -36,7 +43,7 @@ spec:
         source: wca
     # What was a value of referended then (when threshold is accepted)
     - record: task_wss_referenced_with_ok_ratio
-      expr: 'task_wss_referenced_bytes and on(task_name) task_wss_ok_ratio'
+      expr: 'task_wss_referenced_bytes_relabeled and on(task_name) task_wss_ok_ratio'
       labels:
         source: wca
     # Temporal: aggegate across time (averge by time), find "high" but not max over many or on reset intervals

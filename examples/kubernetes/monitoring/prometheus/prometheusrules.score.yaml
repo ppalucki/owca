@@ -83,7 +83,7 @@ spec:
 
     # ------------------------ SCORE calculation
     - record: profile_app_score_max # lower is better for 2lm
-      expr: 'max(profile_app_by_mem_norm_3dim{index=~"cpu|mbw_flat|wss"}) by (app, source)'
+      expr: 'max(profile_app_by_mem_norm_3dim{index=~"cpu|mbw_flat|wss"}) by (app, source, app_namespace)'
 
     # ------------------------ FINAL metric "app_profile" just alias for profile_app_score_max
     - record: app_profile

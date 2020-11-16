@@ -27,14 +27,22 @@ spec:
     rules:
 
     # ------------------ Helper metrics - produces task_mbw_flat
+    # add app_namespace based on task_name
+    - record: task_mem_bandwidth_bytes_relabeled
+      expr: 'label_replace(task_mem_bandwidth_bytes, "app_namespace", "$1", "task_name", "(.*)/.*")'
+    - record: task_offcore_requests_demand_rfo_relabeled
+      expr: 'label_replace(task_offcore_requests_demand_rfo, "app_namespace", "$1", "task_name", "(.*)/.*")'
+    - record: task_offcore_requests_demand_data_rd_relabeled
+      expr: 'label_replace(task_offcore_requests_demand_data_rd, "app_namespace", "$1", "task_name", "(.*)/.*")'
+
     # Note: heuristic for approximation of R/W ratio for a task; 3m set to be sure to have in each range at least 2 points;
     - record: task_memory_rw_ratio
-      expr: '(rate(task_offcore_requests_demand_data_rd[3m]) + rate(task_offcore_requests_demand_rfo[3m])) /
-             (rate(task_offcore_requests_demand_data_rd[3m]) + 2*rate(task_offcore_requests_demand_rfo[3m]))'
+      expr: '(rate(task_offcore_requests_demand_data_rd_relabeled[3m]) + rate(task_offcore_requests_demand_rfo_relabeled[3m])) /
+             (rate(task_offcore_requests_demand_data_rd_relabeled[3m]) + 2*rate(task_offcore_requests_demand_rfo_relabeled[3m]))'
       labels:
         source: wca
     - record: task_mbw  # GB/s
-      expr: 'rate(task_mem_bandwidth_bytes[3m]) / 1e9'
+      expr: 'rate(task_mem_bandwidth_bytes_relabeled[3m]) / 1e9'
       labels:
         source: wca
     # task_memory_rw_ratio with added 2lm label
@@ -69,29 +77,44 @@ spec:
       expr: 'task_mbw_flat and count_over_time(task_mbw_flat[30m:1m]) >= 10'
       labels:
         source: wca
+
+    # add app_namespace based on task_name
+    - record: task_working_set_size_bytes_relabeled
+      expr: 'label_replace(task_working_set_size_bytes, "app_namespace", "$1", "task_name", "(.*)/.*")'
+
     - record: task_wss_ignore_initialization
-      expr: 'task_working_set_size_bytes and count_over_time(task_working_set_size_bytes[30m:1m]) >= 10'
+      expr: 'task_working_set_size_bytes_relabeled and count_over_time(task_working_set_size_bytes_relabeled[30m:1m]) >= 10'
       labels:
         source: wca
 
     # --------- v0 version of WSS uses python based from wca/wss.py stability rules ----------------
     - record: app_wss_v1
-      expr: 'quantile(0.95, quantile_over_time(0.95, task_wss_ignore_initialization[1h])) by (app, source) / 1e9'
+      expr: 'quantile(0.95, quantile_over_time(0.95, task_wss_ignore_initialization[1h])) by (app, source, app_namespace) / 1e9'
+
+    # add app_namespace based on task_name
+    - record: task_requested_cpus_relabeled
+      expr: 'label_replace(task_requested_cpus, "app_namespace", "$1", "task_name", "(.*)/.*")'
+
+    # add app_namespace based on task_name
+    - record: task_requested_mem_bytes_relabeled
+      expr: 'label_replace(task_requested_mem_bytes, "app_namespace", "$1", "task_name", "(.*)/.*")'
+
+
 
     # ------------------- FINAL app_RESOURCE metrics
     # --- cpu
     - record: app_cpu
-      expr: 'max(max_over_time(task_requested_cpus[1h])) by (app)'
+      expr: 'max(max_over_time(task_requested_cpus_relabeled[1h])) by (app, app_namespace)'
       labels:
         source: wca
     # --- mem
     - record: app_mem
-      expr: 'max(max_over_time(task_requested_mem_bytes[1h])) by (app) / 1e9'
+      expr: 'max(max_over_time(task_requested_mem_bytes_relabeled[1h])) by (app, app_namespace) / 1e9'
       labels:
         source: wca
     # --- mbw_flat
     - record: app_mbw_flat
-      expr: 'quantile(0.95, quantile_over_time(0.95, task_mbw_flat_ignore_initialization[1h])) by (app, source)'
+      expr: 'quantile(0.95, quantile_over_time(0.95, task_mbw_flat_ignore_initialization[1h])) by (app, source, app_namespace)'
     # --- wss
     - record: app_wss
       expr: 'app_wss_v2'
