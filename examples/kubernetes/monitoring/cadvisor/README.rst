@@ -57,7 +57,7 @@ cAdvisor in docker image with changes required for Workload Collocation Agent ca
 
 .. code-block:: shell
 
-  export CADVISOR_TAG=$(git ls-remote git://github.com/wacuuu/cadvisor.git jwalecki/merged-features | cut -c -7)
+  export CADVISOR_TAG=$(git ls-remote git://github.com/Creatone/cadvisor.git creatone/merged-features | cut -c -7)
   docker build --no-cache -t cadvisor:$CADVISOR_TAG -f Dockerfile.cadvisor .
 
 **NOTICE:** Not all required changes are now available in `google/cadvisor <https://github.com/google/cadvisor>`_ so command above builds cAdvisor image from

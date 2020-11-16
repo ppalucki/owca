@@ -27,7 +27,7 @@ RUN wget https://golang.org/dl/go1.13.15.linux-amd64.tar.gz && \
   rm -f go1.13.15.linux-amd64.tar.gz
 
 ENV PATH=$PATH::/usr/local/go/bin
-RUN git clone --depth=1 --single-branch --branch jwalecki/merged-features https://github.com/wacuuu/cadvisor.git
+RUN git clone --depth=1 --single-branch --branch creatone/merged-features https://github.com/Creatone/cadvisor.git
 WORKDIR cadvisor
 
 ENV GOROOT /usr/local/go/

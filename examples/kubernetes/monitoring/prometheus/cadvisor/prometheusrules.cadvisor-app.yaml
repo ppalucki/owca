@@ -8,7 +8,7 @@
 # Parameters (assuming scrape interval set to 1m):
 # - rate for offcore/bandwidth bytes = 3m (3 samples)
 # - task ignored initialization period = 10m
-# - cpu,mem,wss,mbw over_time = 5m
+# - cpu,mem,wss,mbw over_time = 1h
 #
 # Inputs:
 # - perf: offcore_requests.demand_data_rd, offcore_requests.demand_rfo
@@ -138,26 +138,26 @@ spec:
 
       # ----------------------- all resources aggregated by app (still with label_app) : quantiles/max over pods and time
     - record: app_cpu_
-      expr: 'max(max_over_time(app_requests_cpu_{label_app=~".+"}[5m])) by (exported_namespace,label_app)'
+      expr: 'max(max_over_time(app_requests_cpu_{label_app=~".+"}[1h])) by (exported_namespace,label_app)'
       labels:
         source: 'cadvisor'
     - record: app_cpu_relabeled
       expr: 'label_replace(app_cpu_, "app_namespace", "$0", "exported_namespace", ".*")'
 
     - record: app_mem_
-      expr: 'max(max_over_time(app_requests_memory_bytes_{label_app=~".+"}[5m])) by (exported_namespace,label_app) / 1e9'
+      expr: 'max(max_over_time(app_requests_memory_bytes_{label_app=~".+"}[1h])) by (exported_namespace,label_app) / 1e9'
       labels:
         source: 'cadvisor'
     - record: app_mem_relabeled
       expr: 'label_replace(app_mem_, "app_namespace", "$0", "exported_namespace", ".*")'
 
     - record: app_mbw_flat_
-      expr: 'quantile(0.95, quantile_over_time(0.99, pod_mbw_flat_ignore_initialization{label_app=~".+"}[5m:10s])) by (container_label_io_kubernetes_pod_namespace,label_app, source)'
+      expr: 'quantile(0.95, quantile_over_time(0.99, pod_mbw_flat_ignore_initialization{label_app=~".+"}[1h:10s])) by (container_label_io_kubernetes_pod_namespace,label_app, source)'
     - record: app_mbw_flat_relabeled
       expr: 'label_replace(app_mbw_flat_, "app_namespace", "$0", "container_label_io_kubernetes_pod_namespace", ".*")'
 
     - record: app_wss_v1_  # only used by maxium value of "current" container_referenced bytes value, probably wrong, left to be compared to v2
-      expr: 'quantile(0.95, quantile_over_time(0.95, pod_wss_ignore_initialization{label_app=~".+"}[5m:10s])) by (container_label_io_kubernetes_pod_namespace,label_app, source)'
+      expr: 'quantile(0.95, quantile_over_time(0.95, pod_wss_ignore_initialization{label_app=~".+"}[1h:10s])) by (container_label_io_kubernetes_pod_namespace,label_app, source)'
     - record: app_wss_v1  # only used by maxium value of "current" container_referenced bytes value, probably wrong, left to be compared to v2
       expr: 'label_replace(app_wss_v1_, "app_namespace", "$0", "container_label_io_kubernetes_pod_namespace", ".*")'
 

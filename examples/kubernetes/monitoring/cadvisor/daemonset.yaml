@@ -38,7 +38,7 @@ spec:
             cpu: 1
         args:
           - --perf_events_config=/etc/config/perf-hmem-cascadelake.json
-          - --v=5
+          - --v=4
           # below are metrics disabled by default + metric aggregation over CPU + some metrics not required to limit amount of data
           - --disable_metrics=advtcp,process,sched,hugetlb,cpu_topology,tcp,udp,percpu,accelerator,disk,diskIO,network
           - --port=9101
