@@ -38,7 +38,7 @@ spec:
         source: wca
     # Filter above misses data only when above accepted threshold
     - record: task_wss_ok_ratio
-      expr: 'max_over_time(task_wss_ok_ratio[10m]) < scalar(task_wss_miss_ratio_threshold)'
+      expr: 'max_over_time(task_wss_miss_ratio[10m]) < scalar(task_wss_miss_ratio_threshold)'
       labels:
         source: wca
     # What was a value of referended then (when threshold is accepted)

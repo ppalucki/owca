@@ -56,8 +56,7 @@ spec:
       labels:
         memory: 2lm
     - record: task_mbw_read
-      expr: 'task_mbw_ * 0.5'
-      # expr: 'task_mbw_ * task_memory_rw_ratio_'
+      expr: 'task_mbw_ * task_memory_rw_ratio_'
 
 
     # Additional metric: read/write assymetry ratio (on 1lm equal to 1, on 2lm ~= 4)
