@@ -65,12 +65,14 @@ def set_numa_balancing(turned_on=True):
     numa_balancing_value = '2'
     if not turned_on:
         numa_balancing_value = '0'
+    logging.debug('Setting numa_balancing to >>{}<<'.format(numa_balancing_value))
     with open(NUMA_BALANCING_FILE, 'w') as numa_balancing_file:
         numa_balancing_file.write(numa_balancing_value)
 
 
 def set_toptier_scale_factor(value='2000'):
-    '''Set toptier scale factor in /proc/sys/vm/toptier_scale_factor
-       file. The default kernel value for this file is 2000.'''
+    """Set toptier scale factor in /proc/sys/vm/toptier_scale_factor
+       file. The default kernel value for this file is 2000."""
+    logging.debug('Setting toptier scale factor to >>{}<<'.format(value))
     with open(TOPTIER_BALANCING_FILE, 'w') as toptier_scale_factor_file:
         toptier_scale_factor_file.write(value)

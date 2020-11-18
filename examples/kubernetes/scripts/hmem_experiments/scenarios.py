@@ -39,6 +39,7 @@ class Scenario:
     # If for some reason you do not want to scale workloads to 0 replicas
     # after each step set this flag to false
     reset_workloads_between_steps: bool = True
+    modify_toptier_limit: Dict = None
 
 
 # ----------------- REDIS WORKLOADS --------------------------
@@ -185,6 +186,23 @@ BASE_REDIS_SCENARIOS = [    # Dram redis memtier big
     Scenario(name='redis-memtier-toptier-coldstart',
              workloads_count=[{REDIS_MEMTIER_BIG_COLDSTART_TOPTIER: 1}],
              sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER_WITH_COLDSTART)]
+
+REDIS_MEMTIER_TOPTIER_CHANGES_SCENARIO = [
+    # Smaller toptier limit for redis-memtier-big
+    Scenario(name='redis-memtier-big-toptier-30',
+             workloads_count=[{REDIS_MEMTIER_BIG_TOPTIER: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER,
+             modify_toptier_limit={REDIS_MEMTIER_BIG_TOPTIER: "30G"}),
+    # Bigger toptier limit for redis-memtier-big
+    Scenario(name='redis-memtier-big-toptier-45',
+             workloads_count=[{REDIS_MEMTIER_BIG_TOPTIER: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER,
+             modify_toptier_limit={REDIS_MEMTIER_BIG_TOPTIER: "45G"}),
+    # Base toptier limit for redis-memtier-big
+    Scenario(name='redis-memtier-big-toptier-40',
+             workloads_count=[{REDIS_MEMTIER_BIG_TOPTIER: 1}],
+             sleep_duration=SLEEP_DURATION, experiment_type=ExperimentType.TOPTIER,
+             modify_toptier_limit={REDIS_MEMTIER_BIG_TOPTIER: "40G"})]
 
 BASE_REDIS_WSS_SCENARIOS = [
     # Dram redis memtier big wss
