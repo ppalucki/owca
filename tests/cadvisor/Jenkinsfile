@@ -30,16 +30,13 @@ pipeline {
         string(name: 'WCA_URL', defaultValue: 'https://github.com/intel/workload-collocation-agent')
         string(name: 'REQUIREMENTS_FILE', defaultValue: 'workload-collocation-agent/tests/cadvisor/requirements.txt')
         string(name: 'PMBENCH_IMAGE', defaultValue: '100.64.176.12:80/wca/pmbench:master')
-
     }
     stages {
         stage('Build cadvisor and run pmbench') {
             steps {
                     sh "git clone ${params.WCA_URL}"
                     sh "sudo docker build --network=host -t ${CADVISOR_IMAGE} -f deploy/Dockerfile ${WORKSPACE}"
-                    sh '''
-                    sudo docker run --name=${PMBENCH_CONTAINER_NAME} --cidfile=pmbench_container_id.txt ${params.PMBENCH_IMAGE} ./pmbench ${TEST_LENGTH} &
-                    '''
+                    sh "sudo docker run --name=${PMBENCH_CONTAINER_NAME} --cidfile=pmbench_container_id.txt ${params.PMBENCH_IMAGE} ./pmbench ${TEST_LENGTH} & "
             }
         }
         stage('Deploy cadvisor and run perf stat') {
