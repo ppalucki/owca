@@ -57,11 +57,11 @@ cAdvisor in docker image with changes required for Workload Collocation Agent ca
 
 .. code-block:: shell
 
-  export CADVISOR_TAG=$(git ls-remote git://github.com/wacuuu/cadvisor.git jwalecki/merged-features | cut -c -7)
+  export CADVISOR_TAG=$(git ls-remote git@github.com:Creatone/cadvisor.git creatone/merged-features | cut -c -7)
   docker build --no-cache -t cadvisor:$CADVISOR_TAG -f Dockerfile.cadvisor .
 
 **NOTICE:** Not all required changes are now available in `google/cadvisor <https://github.com/google/cadvisor>`_ so command above builds cAdvisor image from
-`private fork <https://github.com/wacuuu/cadvisor/tree/jwalecki/merged-features`_.
+`private fork <https://github.com/wacuuu/cadvisor/tree/creatone/merged-features`_.
 
 
 Perf stats in cAdvisor output
@@ -102,7 +102,7 @@ As perf is under heavy development, be advised, that more types will soon be add
 Running cAdvisor in docker
 ==========================
 
-Assuming that command is executed from this directory(in which ``perf-prm-skylake.json`` is located) and previous step was executed to obtain container image named cadvisor, 
+Assuming that command is executed from this directory(in which ``perf-prm-skylake.json`` is located) and previous step was executed to obtain container image named cadvisor,
 which contains cAdvisor with perf support, a way to run cAdvisor with perf events and referenced bytes measurements is
 
 .. code-block:: shell
@@ -143,3 +143,36 @@ On production like systems, where on a single node a lot of containers are runni
   --disable_metrics=tcp,advtcp,udp,sched,process,hugetlb
 
 to the execution(in case of example of running cAdvisor mentioned in this document it would require simply adding this argument). Value presented here is the default value of the parameter. To get values to disable different metrics, see `list of metrics served by prometheus and their groups <https://github.com/google/cadvisor/blob/master/docs/storage/prometheus.md#prometheus-container-metrics>`_.
+
+
+Referenced bytes performance overhead
+=====================================
+
+It's important to point out, that counting(and reseting) referenced bytes introduces extra overhead to cAdvisor and the system it's running on. In production environment this may result in slowing down aplication. Let's consider an example:
+Workload is a memtier with redis, working on 4 threads with 50 clients each. The system had around 150GB of DRAM. Besides the workload, on the same node there were 30 pmbench benchmarks running, 4GB WSS each. For various parameters for reading and reseting referenced bytes, the results are the following:
+
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+| Read Interval | Reset Interval | Ops/sec   | Avg. latency | 90c   | 99c   | 99.9c   | 99.99c  |
++===============+================+===========+==============+=======+=======+=========+=========+
+|none           |none            |37879.64   |2.63689       |2.847  |5.055  |6.143    |21.503   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|15             | 30             |38087.16   |2.61939       |2.799  |5.055  |6.143    |27.391   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|30             |45              |38253.35   |2.61152       |2.815  |4.927  |6.047    |14.399   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|15             |45              |37447.42   |2.66537       |2.831  |5.119  |6.047    |23.551   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|15             |60              |38254.91   |2.61261       |2.783  |5.023  |5.983    |17.151   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|5              |60              |34383.69   |2.90683       |3.119  |5.599  |7.839    |39.423   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|5              |15              |35225.35   |2.83431       |3.087  |5.503  |6.719    |32.511   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|55             |none            |38669.86   |2.58347       |2.751  |5.023  |5.983    |20.479   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|5              |none            |38065.59   |2.62622       |2.815  |5.055  |6.527    |23.935   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+|none           |30              |37544.72   |2.66124       |2.831  |5.087  |5.951    |21.631   |
++---------------+----------------+-----------+--------------+-------+-------+---------+---------+
+
+As the numbers will differ between workloads/platform/all variables that alter machine performance, this table points out what to expect. Measuring referenced bytes will almost always introduce overhead. Measuring and reseting will introduce even a bigger one. It may turn out, that frequent reseting will have positive effect for latency. Those are observations taken based on this particular workload in this particular setup and should be taken as indicators.
