@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pmbench-normal
+spec:
+  replicas: 0
+  serviceName: pmbench
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: pmbench
+  template:
+    metadata:
+      labels:
+        app: pmbench
+    spec:
+      terminationGracePeriodSeconds: 0
+      nodeSelector:
+        goal: service
+      containers:
+        - name: generator
+          image: pmbench
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: pmbench-normal
+          command:
+            - sh
+            - -c
+            - >
+              ./pmbench $extra
+
+  # required for workaround bug with kustomize https://github.com/kubernetes-sigs/kustomize/issues/504
+  # when using commonLabels
+  # fixed in 2.1.0 https://github.com/kubernetes-sigs/kustomize/commit/c470982ce5b96da82a757f088a842bb05d3bcdb4
+  volumeClaimTemplates: []

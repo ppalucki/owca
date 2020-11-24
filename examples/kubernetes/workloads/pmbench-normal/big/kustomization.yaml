@@ -1,0 +1,77 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+nameSuffix: -big
+
+resources:
+- ../base
+
+commonLabels:
+  app: pmbench-normal-big
+
+configMapGenerator:
+- name: pmbench-normal
+  behavior: merge
+  literals:
+    - extra='--pattern normal --shape 1280000 --setsize 80000 --mapsize 80000 2000000 --initialize -a touch -j 4'
+
+  # mapsize - all allocated memory in MB
+  # setsize - for normal distributions influence two features: 1) amount of data accessed (if less than mapsize, then some part of data is not accessed at all) 2) setsize/2 defines mean value for the normal distribution
+
+  # shape defines standard deviation (sigma); defined in pages 4kB (4096b) in contrast to mapsize/setsize (MB)
+  # 1MiB = 256 pages
+
+  # shape is one sigma, where access in both side of mean
+  # ex. --shape 256 --setsize 1024 is access to 512 pages (2MiB) between 1023Mib - 1025Mib
+
+  # --shape 256 ==
+  # 1sigma(68%)   offset=1MiB  accessed memory=2MiB  512pages
+  # 2sigma(95%)   offset=2MiB  accessed memory=4MiB 1024pages
+  # 3sigma(99%)   offset=3MiB  accessed memory=6MiB 1536pages
+
+  # for --shape 1536
+  # 1sigma(68%)   offset=6MiB   accessed memory=12MiB (3072pages)
+  # 2sigma(95%)   offset=12MiB  accessed memory=24MiB (6144pages)
+  # 3sigma(99%)   offset=18MiB  accessed memory=36MiB (9216pages)
+  # 6sigma(~100%)                accessed memory=200MiB 12Mib * 16 + 8MiB (49152pages)
+
+  # wss for 40GB or 40960MiB
+  # 1sigma(68%) offset= 5000MiB 1280000pages   accessed memory=10000MiB  2560000pages
+  # 2sigma(95%) offset=10000MiB 2560000pages   accessed memory=20000MiB  5120000pages
+  # 3sigma(99%) offset=20000MiB 5120000pages   accessed memory=40000MiB 10240000pages
+
+  # You should use --shape 1280000 for 40GB wss
+
+  # 6sigma(100%) for 40GB
+  # 40 000MiB / 200MiB = 200
+  # 1536pages * 200 = 307200 pages
+
+  #  offset=  625MiB   160000pages   accessed memory= 1250MiB   320000pages
+  #  offset= 1250MiB   320000pages   accessed memory= 2500MiB   640000pages
+  #  offset= 2500MiB   640000pages   accessed memory= 5000MiB  1280000pages
+  #  offset= 5000MiB  1280000pages   accessed memory=10000MiB  2560000pages
+  #  offset=10000MiB  2560000pages   accessed memory=20000MiB  5120000pages
+  #  offset=20000MiB  5120000pages   accessed memory=40000MiB 10240000pages
+  #  offset=40000MiB 10240000pages   accessed memory=80000MiB 20480000pages
+
+
+patches:
+- target:
+    kind: StatefulSet
+  patch: |-
+    apiVersion: foo
+    kind: foo
+    metadata:
+      name: foo
+    spec:
+      template:
+        spec:
+          containers:
+          - name: generator
+            resources:
+              requests:
+                cpu: 8
+                memory: 90G
+              limits:
+                cpu: 8
+                memory: 90G

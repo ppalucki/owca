@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+nameSuffix: -small
+
+resources:
+- ../base
+
+commonLabels:
+  app: pmbench-normal-small
+
+configMapGenerator:
+- name: pmbench-normal
+  behavior: merge
+  literals:
+    - extra='--pattern normal --shape 320000 --setsize 20000 --mapsize 20000 2000000 --initialize -a touch -j 4'
+
+  # for 10GB wss, you should use --shape 320000
+  # 1sigma(68%) offset= 1250MiB  320000pages   accessed memory= 2500MiB   640000pages
+  # 2sigma(95%) offset= 2500MiB  640000pages   accessed memory= 5000MiB  1280000pages
+  # 3sigma(99%) offset= 5000MiB 1280000pages   accessed memory=10000MiB  2560000pages
+
+patches:
+- target:
+    kind: StatefulSet
+  patch: |-
+    apiVersion: foo
+    kind: foo
+    metadata:
+      name: foo
+    spec:
+      template:
+        spec:
+          containers:
+          - name: generator
+            resources:
+              requests:
+                cpu: 8
+                memory: 22G
+              limits:
+                cpu: 8
+                memory: 22G

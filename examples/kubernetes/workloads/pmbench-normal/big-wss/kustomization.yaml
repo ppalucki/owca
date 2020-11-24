@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+nameSuffix: -big-wss
+
+resources:
+- ../base
+
+commonLabels:
+  app: pmbench-normal-big-wss
+
+configMapGenerator:
+- name: pmbench-normal
+  behavior: merge
+  literals:
+    - extra='--pattern normal --shape 2560000 --setsize 80000 --mapsize 80000 2000000 --initialize -a touch -j 4'
+
+  # for 80GB wss, you should use --shape 2560000
+  # 1sigma(68%) offset=10000MiB 2560000pages   accessed memory=20000MiB  5120000pages
+  # 2sigma(95%) offset=20000MiB 5120000pages   accessed memory=40000MiB 10240000pages
+  # 3sigma(99%) offset=40000MiB 10240000pages  accessed memory=80000MiB 20480000pages
+
+patches:
+- target:
+    kind: StatefulSet
+  patch: |-
+    apiVersion: foo
+    kind: foo
+    metadata:
+      name: foo
+    spec:
+      template:
+        spec:
+          containers:
+          - name: generator
+            resources:
+              requests:
+                cpu: 8
+                memory: 90G
+              limits:
+                cpu: 8
+                memory: 90G
