@@ -7,27 +7,24 @@ loggers:
 kubeapi: &kubeapi !Kubeapi
   host: !Env KUBERNETES_SERVICE_HOST
   port: !Env KUBERNETES_SERVICE_PORT
-algorithm: !Score
-  score_target: 1.5
-  max_node_score: 10000.
+monitored_namespaces: [ 'default' ]
+data_provider: &data_provider !ClusterDataProvider
+  kubeapi: *kubeapi
+  prometheus: !Prometheus
+    # Note: our internal cluster address.
+    host: http://prometheus.prometheus.svc.cluster.local
+    port: 9090
+    timeout: 5.0
+  queries: !Queries
+    APP_REQUESTED_RESOURCES_QUERY_MAP:
+      cpu: 'app_req{dim="cpu"}'
+      mem: 'app_req{dim="mem"}'
+      wss: 'app_req{dim="wss"}'
+    NODE_CAPACITY_RESOURCES_QUERY_MAP:
+      wss: 'node_capacity{dim="wss"}'
+algorithm: !Fit
   dimensions:
     - mem
     - cpu
-    - membw_flat
     - wss
-  data_provider: !ClusterScoreDataProvider
-    kubeapi: *kubeapi
-    prometheus: !Prometheus
-      # Note: our internal cluster address.
-      host: http://prometheus.prometheus.svc.cluster.local
-      port: 9090
-      timeout: 5.0
-    queries: !Queries
-      APP_REQUESTED_RESOURCES_QUERY_MAP:
-        cpu: 'app_req{dim="cpu"}'
-        mem: 'app_req{dim="mem"}'
-        membw_flat: 'app_req{dim="mbw_flat"}'
-        wss: 'app_req{dim="wss"}'
-      NODE_CAPACITY_RESOURCES_QUERY_MAP:
-        membw_flat: 'node_capacity{dim="mbw_flat"}'
-        wss: 'node_capacity{dim="wss"}'
+  data_provider: *data_provider

@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: wca-scheduler-service
+  name: wca-scheduler
 spec:
   selector:
     app: wca-scheduler
@@ -13,6 +13,9 @@ spec:
     - name: scheduler-http
       port: 30181
       targetPort: 30181
+    - name: mutate-https
+      port: 443
+      targetPort: 443
 
 ---
 apiVersion: apps/v1

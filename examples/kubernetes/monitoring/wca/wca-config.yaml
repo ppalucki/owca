@@ -10,7 +10,7 @@
 #  wca.wss: debug
 
 runner: !MeasurementRunner
-  interval: 60.0 
+  interval: 60.0
   node: !KubernetesNode
     cgroup_driver: cgroupfs
     monitored_namespaces: ["default"]
@@ -44,5 +44,5 @@ runner: !MeasurementRunner
 
   # Collect metrics from proc/PID/sched to debug numa issues
   # sched: True
-  
+
   gather_hw_mm_topology: True
