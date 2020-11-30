@@ -13,7 +13,7 @@ configMapGenerator:
 - name: pmbench
   behavior: merge
   literals:
-    - extra='--setsize 40000 --mapsize 80000 2000000 --initialize -a touch -j 4'
+    - extra='--setsize 30000 --mapsize 80000 2000000 --initialize -a touch -j 4'
 
 patches:
 - target:

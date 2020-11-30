@@ -32,7 +32,7 @@ DEMOTION_RATELIMIT = '/proc/sys/vm/demotion_ratelimit_mbytes_per_sec'
 PROMOTION_RATELIMIT = '/proc/sys/vm/promotion_ratelimit_mbytes_per_sec'
 
 PARAMETER_VALUES = {NUMA_BALANCING_HOT_THRESHOLD: '1000',
-                    NUMA_BALANCING_RATE_LIMIT: '0',
+                    NUMA_BALANCING_RATE_LIMIT: '30',
                     NUMA_BALANCING_SCAN_DELAY: '1000',
                     NUMA_BALANCING_SCAN_PERIOD_MAX: '60000',
                     NUMA_BALANCING_SCAN_PERIOD_MIN: '1000',

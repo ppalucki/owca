@@ -19,7 +19,9 @@ from datetime import datetime
 from workload_runner import run_experiment, experiment_to_json, scale_down_all_workloads
 from scenarios import Scenario, REDIS_SCENARIOS, BASE_REDIS_SCENARIOS, \
     PMBENCH_SCENARIOS, BASE_PMBENCH_SCENARIOS, \
-    MEMCACHED_MUTILATE_SCENARIOS, BASE_MEMCACHED_MUTILATE_SCENARIOS
+    MEMCACHED_MUTILATE_SCENARIOS, BASE_MEMCACHED_MUTILATE_SCENARIOS, \
+    PMBENCH_NORMAL_SCENARIOS, BASE_PMBENCH_NORMAL_SCENARIOS, \
+    REDIS_LATENCY_SCENARIOS, BASE_REDIS_LATENCY_SCENARIOS
 from kernel_parameters import show_frequency, set_necessary_parameters,\
     check_if_pmem_nodes_are_present
 
@@ -42,21 +44,32 @@ def main():
     set_necessary_parameters()
 
     date = datetime.today().strftime('%Y-%m-%d-%H-%M')
+
     # pmbench
     for scenario in BASE_PMBENCH_SCENARIOS:
         run_scenario(scenario, 'pmbench_base_results_'+date)
     for scenario in PMBENCH_SCENARIOS:
         run_scenario(scenario, 'pmbench_advanced_results_'+date)
-    # redis
-    for scenario in BASE_REDIS_SCENARIOS:
-        run_scenario(scenario, 'redis_base_results_'+date)
-    for scenario in REDIS_SCENARIOS:
-        run_scenario(scenario, 'redis_advanced_results_'+date)
+    # pmbench normal
+    for scenario in BASE_PMBENCH_NORMAL_SCENARIOS:
+        run_scenario(scenario, 'pmbench_normal_base_results_'+date)
+    for scenario in PMBENCH_NORMAL_SCENARIOS:
+        run_scenario(scenario, 'pmbench_normal_advanced_results_'+date)
     # memcached
     for scenario in BASE_MEMCACHED_MUTILATE_SCENARIOS:
         run_scenario(scenario, 'memcached_base_results_'+date)
     for scenario in MEMCACHED_MUTILATE_SCENARIOS:
         run_scenario(scenario, 'memcached_advanced_results_'+date)
+    # redis
+    for scenario in BASE_REDIS_SCENARIOS:
+        run_scenario(scenario, 'redis_base_results_'+date)
+    for scenario in REDIS_SCENARIOS:
+        run_scenario(scenario, 'redis_advanced_results_'+date)
+    # redis latency
+    for scenario in BASE_REDIS_LATENCY_SCENARIOS:
+        run_scenario(scenario, 'redis_latency_base_results_'+date)
+    for scenario in REDIS_LATENCY_SCENARIOS:
+        run_scenario(scenario, 'redis_latency_advanced_results_'+date)
 
 
 if __name__ == '__main__':

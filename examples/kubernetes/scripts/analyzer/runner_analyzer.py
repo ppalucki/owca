@@ -36,18 +36,25 @@ def read_experiment_data(file: str):
 
 
 def main():
-    experiment_name = ['pmbench_base_results_', 'pmbench_advanced_results_',
-                       'redis_base_results_', 'redis_advanced_results_',
-                       'memcached_base_results_', 'memcached_advanced_results_']
+    experiment_name = [
+        'pmbench_base_results_', 'pmbench_advanced_results_',
+        'pmbench_normal_base_results_', 'pmbench_normal_advanced_results_',
+        'memcached_base_results_', 'memcached_advanced_results_',
+        'redis_base_results_', 'redis_advanced_results_',
+        'redis_latency_base_results_', 'redis_latency_advanced_results_',
+    ]
     # example date
-    date = '2020-10-21-16-55'
+    date = '2020-11-08-23-58'
+
+    if not os.path.exists(date):
+        os.makedirs(date)
 
     for exp in experiment_name:
         name = exp + date
         results_dir = '../hmem_experiments/' + name
-        latex_file = ExperimentResults('Experiment-' + name)
+        latex_file = ExperimentResults(date + '/' + 'Experiment-' + name)
 
-        analyzer_queries = AnalyzerQueries('http://100.64.176.36:30900')
+        analyzer_queries = AnalyzerQueries('http://100.64.176.35:30900')
 
         for file in os.listdir(results_dir):
             experiment_data = read_experiment_data(os.path.join(results_dir, file))

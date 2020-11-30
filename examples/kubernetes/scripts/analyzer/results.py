@@ -163,6 +163,18 @@ class ExperimentResults:
         table.add_hline()
         return table
 
+    @staticmethod
+    def create_migration_nodes_table():
+        row = ['node']
+        for metric in metrics.migration_platform_metrics:
+            row.append(metrics.MetricLegends[metric]['name'])
+        tabular = len(metrics.migration_platform_metrics) + 1
+        table = Tabular('|' + 'c|' * tabular)
+        table.add_hline()
+        table.add_row(row)
+        table.add_hline()
+        return table
+
     def discover_experiment_data(self, experiment_name, experiment_type,
                                  tasks, nodes: List[Node], description, start_time):
         if experiment_name not in self.sections.keys():
@@ -200,23 +212,54 @@ class ExperimentResults:
                 node_table.add_row(row)
                 node_table.add_hline()
 
+        node_migration_table = self.create_migration_nodes_table()
+        for node in nodes:
+            row = ['rate', ]
+            for metric in metrics.migration_platform_metrics:
+                row.append(
+                    self.round_metric(
+                        float(node.node_performance_metrics[metric.name]) /
+                        float(metrics.MetricLegends[metric]['helper'])
+                    )
+                )
+            node_migration_table.add_row(row)
+            node_migration_table.add_hline()
+
+            row = ['delta', ]
+            for metric in metrics.migration_platform_metrics:
+                row.append(
+                    self.round_metric(
+                        float(node.delta_node_performance_metrics[metric.name]) /
+                        float(metrics.MetricLegends[metric]['helper'])
+                    )
+                )
+            node_migration_table.add_row(row)
+            node_migration_table.add_hline()
+
         workloads_results.append(table)
         workloads_results.append(VerticalSpace("10pt"))
         workloads_results.append(LineBreak())
         workloads_results.append(node_table)
+        workloads_results.append(VerticalSpace("10pt"))
+        workloads_results.append(LineBreak())
+        workloads_results.append(node_migration_table)
         self.sections[experiment_name].append(workloads_results)
 
     def _generate_document(self):
         legend = self.create_unit_legend()
-        node_legend = self.create_platform_unit_legend()
+        node_legend, node_legend2 = self.create_platform_unit_legend()
         self.doc.append(legend)
         self.doc.append(VerticalSpace("10pt"))
         self.doc.append(LineBreak())
         self.doc.append(node_legend)
+        self.doc.append(VerticalSpace("10pt"))
+        self.doc.append(LineBreak())
+        self.doc.append(node_legend2)
         for section in self.sections.values():
             self.doc.append(section)
 
-    def create_unit_legend(self):
+    @staticmethod
+    def create_unit_legend():
         rows = '|c|'
         for _ in RESULTS_METADATA:
             rows += 'c|'
@@ -236,20 +279,38 @@ class ExperimentResults:
     @staticmethod
     def create_platform_unit_legend():
         rows = '|c|'
-        for _ in metrics.MetricLegends:
-            rows += 'c|'
-        table = Tabular(rows)
         title_row = [bold('Metric')]
         unit_row = [bold('Unit')]
+
+        rows2 = '|c|'
+        title_row2 = [bold('Metric')]
+        unit_row2 = [bold('Unit')]
+        i = 0
         for metric in metrics.MetricLegends:
-            title_row.append(metrics.MetricLegends[metric]['name'])
-            unit_row.append(metrics.MetricLegends[metric]['unit'])
+            if i < 10:
+                rows += 'c|'
+                title_row.append(metrics.MetricLegends[metric]['name'])
+                unit_row.append(metrics.MetricLegends[metric]['unit'])
+            else:
+                rows2 += 'c|'
+                title_row2.append(metrics.MetricLegends[metric]['name'])
+                unit_row2.append(metrics.MetricLegends[metric]['unit'])
+            i += 1
+        table = Tabular(rows)
         table.add_hline()
         table.add_row(tuple(title_row))
         table.add_hline()
         table.add_row(tuple(unit_row))
         table.add_hline()
-        return table
+
+        table2 = Tabular(rows2)
+        table2.add_hline()
+        table2.add_row(tuple(title_row2))
+        table2.add_hline()
+        table2.add_row(tuple(unit_row2))
+        table2.add_hline()
+
+        return table, table2
 
     def generate_pdf(self):
         self._generate_document()

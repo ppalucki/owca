@@ -36,3 +36,6 @@ class Node:
     name: str
     # per socket performance_metrics [socket][metric_name]
     performance_metrics: Dict[int, Dict[str, float]] = field(default_factory=lambda: {})
+    # per server
+    node_performance_metrics: Dict[str, float] = field(default_factory=lambda: {})
+    delta_node_performance_metrics: Dict[str, float] = field(default_factory=lambda: {})
