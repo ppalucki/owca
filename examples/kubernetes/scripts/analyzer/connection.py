@@ -13,10 +13,8 @@
 # limitations under the License.
 
 import requests
-from collections import defaultdict
 from urllib import parse
 import logging
-import pandas as pd
 
 
 logger = logging.getLogger(__name__)
@@ -53,29 +51,3 @@ class PrometheusClient:
         assert j['data']['resultType'] == 'vector'
         data = j['data']['result']
         return data
-
-    @staticmethod
-    def convert_result_to_dict(result):
-        """ Very memory inefficient!"""
-        d = defaultdict(list)
-        for series in result:
-            metric = series['metric']
-            # instant query
-            if 'value' in series:
-                for label_name, label_value in metric.items():
-                    d[label_name].append(label_value)
-                timestamp, value = series['value']
-                d['value'].append(value)
-                d['timestamp'].append(pd.Timestamp(timestamp, unit='s'))
-            # range query
-            elif 'values' in series:
-                for value in series['values']:
-                    for label_name, label_value in metric.items():
-                        d[label_name].append(label_value)
-                    timestamp, value = value
-                    d['value'].append(value)
-                    d['timestamp'].append(pd.Timestamp(timestamp, unit='s'))
-            else:
-                raise Exception('unsupported result type! (only matrix and instant are supported!)')
-        d = dict(d)
-        return d

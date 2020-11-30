@@ -16,8 +16,7 @@ import os
 from time import time
 from datetime import datetime
 
-from runner import scale_down_all_workloads
-from workload_runner import run_experiment, experiment_to_json
+from workload_runner import run_experiment, experiment_to_json, scale_down_all_workloads
 from scenarios import Scenario, REDIS_SCENARIOS, BASE_REDIS_SCENARIOS, \
     PMBENCH_SCENARIOS, BASE_PMBENCH_SCENARIOS, \
     MEMCACHED_MUTILATE_SCENARIOS, BASE_MEMCACHED_MUTILATE_SCENARIOS

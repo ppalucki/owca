@@ -13,17 +13,23 @@
 # limitations under the License.
 
 import json
+import logging
 import subprocess
 
 from dataclasses import dataclass
 from typing import Dict
-
-from runner import default_shell_run, annotate
-from kernel_parameters import set_numa_balancing, set_toptier_scale_factor
-
 from time import sleep, time
 
+from kernel_parameters import set_numa_balancing, set_toptier_scale_factor
 from scenarios import Scenario, ExperimentType
+
+
+FORMAT = "%(asctime)-15s:%(levelname)s %(module)s %(message)s"
+logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+
+DRY_RUN = False
+if DRY_RUN:
+    logging.info("[DRY_RUN] Running in DRY_RUN mode!")
 
 
 EXPERIMENT_DESCRIPTION = {
@@ -128,16 +134,17 @@ def run_experiment(scenario: Scenario, number_of_workloads):
             patch_toptier_limit(workload_name, base_toptier_value)
 
     _set_configuration(EXPERIMENT_CONFS[scenario.experiment_type])
-    for worklad_name, toptier_value in scenario.modify_toptier_limit.items():
-        patch_toptier_limit(worklad_name, toptier_value)
+    if scenario.modify_toptier_limit:
+        for worklad_name, toptier_value in scenario.modify_toptier_limit.items():
+            patch_toptier_limit(worklad_name, toptier_value)
     start_timestamp = time()
-    annotate('Running experiment: {}'.format(scenario.name))
     _run_workloads(number_of_workloads, scenario.sleep_duration,
                    scenario.reset_workloads_between_steps)
     stop_timestamp = time()
     # restore old toptier value
-    for workload_name in scenario.modify_toptier_limit.keys():
-        patch_toptier_limit(workload_name, get_base_toptier_limit(workload_name))
+    if scenario.modify_toptier_limit:
+        for workload_name in scenario.modify_toptier_limit.keys():
+            patch_toptier_limit(workload_name, get_base_toptier_limit(workload_name))
     return Experiment(scenario.name, number_of_workloads, scenario.experiment_type,
                       EXPERIMENT_DESCRIPTION[scenario.experiment_type],
                       start_timestamp, stop_timestamp)
@@ -171,3 +178,22 @@ def patch_toptier_limit(workload_name, toptier_value):
     json_patch = json.dumps(patch)
     patch_cmd = 'kubectl patch statefulset {} -p \'{}\''.format(workload_name, json_patch)
     default_shell_run(patch_cmd)
+
+
+def default_shell_run(command, verbose=True):
+    """Default way of running commands."""
+    if verbose:
+        logging.debug('command run in shell >>{}<<'.format(command))
+    if not DRY_RUN:
+        r = subprocess.run(command, shell=True, check=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return r.stdout.decode('utf-8'), r.stderr.decode('utf-8')
+    else:
+        return None, None
+
+
+def scale_down_all_workloads(wait_time: int):
+    """Kill all workloads"""
+    command = "kubectl scale sts --all --replicas=0 && sleep {wait_time}".format(
+        wait_time=wait_time)
+    default_shell_run(command)

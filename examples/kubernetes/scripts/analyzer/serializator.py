@@ -77,19 +77,6 @@ class AnalyzerQueries:
         else:
             return 0, 0
 
-    def query_platform_performance_metrics(self, time: int, nodes: Dict[str, Node]):
-        # very important parameter - window_length [s]
-        # Stopped working: Metric.PLATFORM_MBW_TOTAL, Metric.POD_SCHEDULED,
-        metrics = (Metric.PLATFORM_MEM_USAGE, Metric.PLATFORM_CPU_REQUESTED,
-                   Metric.PLATFORM_CPU_UTIL, Metric.PLATFORM_DRAM_HIT_RATIO,
-                   Metric.PLATFORM_WSS_USED)
-
-        for metric in metrics:
-            query_results = self.prometheus_client.instant_query(MetricsQueries[metric], time)
-            for result in query_results:
-                nodes[result['metric']['nodename']].performance_metrics[metric] = \
-                    {'instant': result['value'][1]}
-
     def query_performance_metrics(self, time: int, functions_args: Dict[Metric, List[Tuple]],
                                   metrics: List[Metric], window_length: int) -> Dict[Metric, Dict]:
         """performance metrics which needs aggregation over time"""
