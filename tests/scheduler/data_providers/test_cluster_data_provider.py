@@ -54,10 +54,6 @@ def do_query_side_effect(*args):
 
     if args[0] == TEST_QUERIES.NODES_PMM_MEMORY_MODE:
         return create_json_fixture_mock('prometheus_nodes_pmm_memory_mode').json()['data']['result']
-    elif args[0] == TEST_QUERIES.NODE_CAPACITY_RESOURCES_QUERY_MAP[ResourceType.MEMBW_READ]:
-        return create_json_fixture_mock('prometheus_membw_capacity_read').json()['data']['result']
-    elif args[0] == TEST_QUERIES.NODE_CAPACITY_RESOURCES_QUERY_MAP[ResourceType.MEMBW_WRITE]:
-        return create_json_fixture_mock('prometheus_membw_capacity_write').json()['data']['result']
     elif args[0] == TEST_QUERIES.NODE_CAPACITY_RESOURCES_QUERY_MAP[ResourceType.WSS]:
         return create_json_fixture_mock('prometheus_node_capacity_mem_wss').json()['data']['result']
     elif args[0] == TEST_QUERIES.APP_REQUESTED_RESOURCES_QUERY_MAP[ResourceType.CPU]:
@@ -66,12 +62,6 @@ def do_query_side_effect(*args):
     elif args[0] == TEST_QUERIES.APP_REQUESTED_RESOURCES_QUERY_MAP[ResourceType.MEM]:
         return create_json_fixture_mock(
                 'prometheus_app_requested_mem').json()['data']['result']
-    elif args[0] == TEST_QUERIES.APP_REQUESTED_RESOURCES_QUERY_MAP[ResourceType.MEMBW_READ]:
-        return create_json_fixture_mock(
-                'prometheus_app_requested_membw_read').json()['data']['result']
-    elif args[0] == TEST_QUERIES.APP_REQUESTED_RESOURCES_QUERY_MAP[ResourceType.MEMBW_WRITE]:
-        return create_json_fixture_mock(
-                'prometheus_app_requested_membw_write').json()['data']['result']
     elif args[0] == TEST_QUERIES.APP_REQUESTED_RESOURCES_QUERY_MAP[ResourceType.WSS]:
         return create_json_fixture_mock(
                 'prometheus_app_requested_wss').json()['data']['result']
@@ -84,8 +74,7 @@ def do_query_side_effect(*args):
 @pytest.mark.parametrize('resources', [
     [],
     [ResourceType.CPU],
-    [ResourceType.MEM],
-    [ResourceType.MEMBW_READ, ResourceType.MEMBW_WRITE]])
+    [ResourceType.MEM]])
 def test_get_nodes_capacities_raise_exception_no_cpu_or_mem(resources):
     cluster_dp = get_mocked_cluster_data_provider()
 
@@ -138,10 +127,7 @@ for node in CLUSTER_CPU_MEM_CAPACITIES:
 
 
 @pytest.mark.parametrize('resources, nodes_capacities', [
-    ([ResourceType.CPU, ResourceType.MEM], CLUSTER_CPU_MEM_CAPACITIES),
-    ([ResourceType.CPU, ResourceType.MEM, ResourceType.MEMBW_READ,
-        ResourceType.MEMBW_WRITE], CLUSTER_CAPACITIES),
-    ])
+    ([ResourceType.CPU, ResourceType.MEM], CLUSTER_CPU_MEM_CAPACITIES)])
 def test_get_nodes_capacities(resources, nodes_capacities):
     cluster_dp = get_mocked_cluster_data_provider()
     cp = cluster_dp.get_nodes_capacities(resources)
@@ -248,11 +234,10 @@ APP_REQUESTED_ALL_RESOURCES = {app: {**APP_REQUESTED_CPU_MEM_MEMBW[app], **APP_R
 
 @pytest.mark.parametrize('resource_types, resources', [
     ([ResourceType.CPU, ResourceType.MEM], APP_REQUESTED_CPU_MEM),
-    ([ResourceType.MEMBW_READ, ResourceType.MEMBW_WRITE], APP_REQUESTED_MEMBW),
-    ([ResourceType.CPU, ResourceType.MEM, ResourceType.MEMBW_READ, ResourceType.MEMBW_WRITE],
+    ([ResourceType.CPU, ResourceType.MEM],
         APP_REQUESTED_CPU_MEM_MEMBW),
     ([ResourceType.WSS], APP_REQUESTED_WSS),
-    ([ResourceType.CPU, ResourceType.MEM, ResourceType.MEMBW_READ, ResourceType.MEMBW_WRITE,
+    ([ResourceType.CPU, ResourceType.MEM,
       ResourceType.WSS], APP_REQUESTED_ALL_RESOURCES),
     ])
 def test_get_apps_requested_resources(resource_types, resources):

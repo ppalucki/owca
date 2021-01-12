@@ -49,6 +49,23 @@ Apply wca-scheduler deployment:
 ``kubectl apply -k examples/kubernetes/wca-scheduler/``
 
 
+annotator
+---------
+
+Optionally it is possible to create mutating webhook which can be used to annotate pods with toptier limit value,
+memory type or coldstart.
+Execute command below and copy its output use to replace ${CA_BUNDLE} field in mutating-webhook.yaml:
+
+``kubectl get configmap -n kube-system extension-apiserver-authentication -o=jsonpath='{.data.client-ca-file}' | base64 | tr -d '\n'``
+
+Create webhook:
+
+``kubectl apply -f examples/kubernetes/wca-scheduler/mutating-webhook.yaml``
+
+Deleting webhook:
+
+``kubectl delete -f examples/kubernetes/wca-scheduler/mutating-webhook.yaml``
+
 TLS connection of wca-scheduler with kube-scheduler
 ------------------------------------------------
 

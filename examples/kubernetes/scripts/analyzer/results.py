@@ -19,7 +19,7 @@
 # https://jeltef.github.io/PyLaTeX/current/examples/multirow.html
 
 from typing import List
-from pylatex import Document, Section, Subsection, Tabular, Figure, VerticalSpace, LineBreak
+from pylatex import Document, Section, Subsection, Tabular, VerticalSpace, LineBreak
 from pylatex.utils import bold
 from datetime import datetime
 
@@ -27,8 +27,7 @@ import metrics
 from metrics import Metric
 from model import Node
 
-import matplotlib.pyplot as plt
-import numpy as np
+import logging
 
 AVG = 'avg'
 Q09 = 'q0.9,'
@@ -74,6 +73,7 @@ class ExperimentResults:
                                NUMA_NODE_2: {}, NUMA_NODE_3: {}, MBW_LOCAL: {},
                                MBW_REMOTE: {}}
         self.experiment_types = []
+        self.name = name
 
     @staticmethod
     def _get_task_index(task_name):
@@ -151,26 +151,6 @@ class ExperimentResults:
         table.add_hline()
         return table
 
-    def _keep_task_results(self, task, task_name, task_count, experiment_type,
-                           average_latency, average_throughput, q09_latency, q09_throughput):
-        task_results = {AVG_LATENCY: average_latency,
-                        AVG_THROUGHPUT: average_throughput,
-                        Q09_LATENCY: q09_latency,
-                        Q09_THROUGHPUT: q09_throughput}
-        task_index = self._get_task_index(task)
-        task_name_with_index = self._strip_memory_suffix(task_name + '-' + task_index)
-        for metric_name, metric_value in task_results.items():
-            if task_count in self.results_values[metric_name]:
-                if task_name_with_index in self.results_values[metric_name][task_count]:
-                    self.results_values[metric_name][task_count][task_name_with_index].update(
-                        {experiment_type: metric_value})
-                else:
-                    self.results_values[metric_name][task_count][task_name_with_index] = \
-                        {experiment_type: metric_value}
-            else:
-                self.results_values[metric_name][task_count] = \
-                    {task_name_with_index: {experiment_type: metric_value}}
-
     @staticmethod
     def create_nodes_table():
         row = ['node', 'socket']
@@ -183,8 +163,20 @@ class ExperimentResults:
         table.add_hline()
         return table
 
+    @staticmethod
+    def create_migration_nodes_table():
+        row = ['node']
+        for metric in metrics.migration_platform_metrics:
+            row.append(metrics.MetricLegends[metric]['name'])
+        tabular = len(metrics.migration_platform_metrics) + 1
+        table = Tabular('|' + 'c|' * tabular)
+        table.add_hline()
+        table.add_row(row)
+        table.add_hline()
+        return table
+
     def discover_experiment_data(self, experiment_name, experiment_type,
-                                 tasks, task_counts, nodes: List[Node], description, start_time):
+                                 tasks, nodes: List[Node], description, start_time):
         if experiment_name not in self.sections.keys():
             self.sections[experiment_name] = Section(experiment_name)
             self.sections[experiment_name].append(description)
@@ -196,8 +188,6 @@ class ExperimentResults:
         # create table with results
         table = self.create_table()
         for task in tasks:
-            task_name = self._strip_task_name(task)
-            task_count = task_counts[task_name]
             average_latency, average_throughput, q09_latency, q09_throughput,\
                 numa_nodes, mbw_local, mbw_remote = self.get_metrics(tasks[task])
             table.add_row(
@@ -206,8 +196,6 @@ class ExperimentResults:
                  numa_nodes[1], numa_nodes[2], numa_nodes[3], mbw_local, mbw_remote)
             )
             table.add_hline()
-            self._keep_task_results(task, task_name, task_count, experiment_type, average_latency,
-                                    average_throughput, q09_latency, q09_throughput)
 
         # create table with node metrics
         node_table = self.create_nodes_table()
@@ -224,61 +212,54 @@ class ExperimentResults:
                 node_table.add_row(row)
                 node_table.add_hline()
 
+        node_migration_table = self.create_migration_nodes_table()
+        for node in nodes:
+            row = ['rate', ]
+            for metric in metrics.migration_platform_metrics:
+                row.append(
+                    self.round_metric(
+                        float(node.node_performance_metrics[metric.name]) /
+                        float(metrics.MetricLegends[metric]['helper'])
+                    )
+                )
+            node_migration_table.add_row(row)
+            node_migration_table.add_hline()
+
+            row = ['delta', ]
+            for metric in metrics.migration_platform_metrics:
+                row.append(
+                    self.round_metric(
+                        float(node.delta_node_performance_metrics[metric.name]) /
+                        float(metrics.MetricLegends[metric]['helper'])
+                    )
+                )
+            node_migration_table.add_row(row)
+            node_migration_table.add_hline()
+
         workloads_results.append(table)
         workloads_results.append(VerticalSpace("10pt"))
         workloads_results.append(LineBreak())
         workloads_results.append(node_table)
+        workloads_results.append(VerticalSpace("10pt"))
+        workloads_results.append(LineBreak())
+        workloads_results.append(node_migration_table)
         self.sections[experiment_name].append(workloads_results)
 
     def _generate_document(self):
         legend = self.create_unit_legend()
-        node_legend = self.create_platform_unit_legend()
+        node_legend, node_legend2 = self.create_platform_unit_legend()
         self.doc.append(legend)
         self.doc.append(VerticalSpace("10pt"))
         self.doc.append(LineBreak())
         self.doc.append(node_legend)
+        self.doc.append(VerticalSpace("10pt"))
+        self.doc.append(LineBreak())
+        self.doc.append(node_legend2)
         for section in self.sections.values():
             self.doc.append(section)
 
-    def generate_bar_graph(self, metric_name, metric_values):
-        labels = self.experiment_types
-        for workload_data in metric_values.values():
-            workload_names = []
-            x = np.arange(len(labels))
-            width = 0.1
-            fig, ax = plt.subplots(figsize=(15, 15))
-
-            data_per_workload = []
-            for _ in workload_data:
-                data_per_workload.append([])
-
-            for label in labels:
-                i = 0
-                for workload_name, workload in workload_data.items():
-                    if label in workload:
-                        data_per_workload[i].append(workload[label])
-                        workload_names.append(workload_name)
-                    else:
-                        data_per_workload[i].append(0)
-                    i += 1
-
-            for i in range(len(data_per_workload)):
-                ax.bar(x - width + i * width, data_per_workload[i],
-                       width, label=workload_names[i])
-
-            ax.set_ylabel('{} ({})'.format(RESULTS_METADATA[metric_name][NAME],
-                                           RESULTS_METADATA[metric_name][UNIT]))
-            ax.set_xticks(x)
-            ax.set_xticklabels(labels)
-            plt.legend(labels=workload_names, title='Legend',
-                       bbox_to_anchor=(1.05, 1), loc='lower right')
-
-            with self.doc.create(Figure(position='htbp')) as plot:
-                plot.add_plot()
-                caption = '{} workload(s)'.format(str(len(data_per_workload)))
-                plot.add_caption(caption)
-
-    def create_unit_legend(self):
+    @staticmethod
+    def create_unit_legend():
         rows = '|c|'
         for _ in RESULTS_METADATA:
             rows += 'c|'
@@ -298,21 +279,40 @@ class ExperimentResults:
     @staticmethod
     def create_platform_unit_legend():
         rows = '|c|'
-        for _ in metrics.MetricLegends:
-            rows += 'c|'
-        table = Tabular(rows)
         title_row = [bold('Metric')]
         unit_row = [bold('Unit')]
+
+        rows2 = '|c|'
+        title_row2 = [bold('Metric')]
+        unit_row2 = [bold('Unit')]
+        i = 0
         for metric in metrics.MetricLegends:
-            title_row.append(metrics.MetricLegends[metric]['name'])
-            unit_row.append(metrics.MetricLegends[metric]['unit'])
+            if i < 10:
+                rows += 'c|'
+                title_row.append(metrics.MetricLegends[metric]['name'])
+                unit_row.append(metrics.MetricLegends[metric]['unit'])
+            else:
+                rows2 += 'c|'
+                title_row2.append(metrics.MetricLegends[metric]['name'])
+                unit_row2.append(metrics.MetricLegends[metric]['unit'])
+            i += 1
+        table = Tabular(rows)
         table.add_hline()
         table.add_row(tuple(title_row))
         table.add_hline()
         table.add_row(tuple(unit_row))
         table.add_hline()
-        return table
+
+        table2 = Tabular(rows2)
+        table2.add_hline()
+        table2.add_row(tuple(title_row2))
+        table2.add_hline()
+        table2.add_row(tuple(unit_row2))
+        table2.add_hline()
+
+        return table, table2
 
     def generate_pdf(self):
         self._generate_document()
         self.doc.generate_pdf(clean_tex=True)
+        logging.info('Created file: {}'.format(self.name))

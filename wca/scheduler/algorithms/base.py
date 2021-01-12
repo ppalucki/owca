@@ -27,14 +27,12 @@ QueryDataProviderInfo = Tuple[
     Dict[NodeName, Resources],  # nodes_capacities
     Dict[NodeName, Apps],  # assigned_app count
     Dict[AppName, Resources],  # apps_spec
-    AppsCount  # unassigend apps cout
+    AppsCount  # unassigned apps count
 ]
 
 DEFAULT_DIMENSIONS: List[ResourceType] = [
     ResourceType.CPU,
-    ResourceType.MEM,
-    ResourceType.MEMBW_READ,
-    ResourceType.MEMBW_WRITE
+    ResourceType.MEM
 ]
 
 

@@ -1,0 +1,113 @@
+// Copyright (c) 2020 Intel Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+pipeline {
+    agent {label 'Skylake'}
+    environment {
+        CADVISOR_IMAGE = "cadvisor"
+        CADVISOR_PORT = 8080
+        WCA_DIR = "workload-collocation-agent"
+        CADVISOR_LOGS_FILE = "cadvisor_logs.txt"
+        PMBENCH_CONTAINER_NAME = "pmbench_container"
+        TEST_LENGTH  = 90
+        CADVISOR_CONTAINER_NAME = "cadvisor_container"
+        PROXY_ADDRESS = "proxy-mu.intel.com:911"
+
+    }
+    parameters{
+        string(name: 'WCA_URL', defaultValue: 'https://github.com/intel/workload-collocation-agent')
+        string(name: 'REQUIREMENTS_FILE', defaultValue: 'workload-collocation-agent/tests/cadvisor/requirements.txt')
+        string(name: 'PMBENCH_IMAGE', defaultValue: '100.64.176.12:80/wca/pmbench:master')
+    }
+    stages {
+        stage('Build cadvisor and run pmbench') {
+            steps {
+                    sh "git clone ${params.WCA_URL}"
+                    sh "sudo docker build --network=host -t ${CADVISOR_IMAGE} -f deploy/Dockerfile ${WORKSPACE}"
+                    sh "sudo docker run --name=${PMBENCH_CONTAINER_NAME} --cidfile=pmbench_container_id.txt ${params.PMBENCH_IMAGE} ./pmbench ${TEST_LENGTH} & "
+            }
+        }
+        stage('Deploy cadvisor and run perf stat') {
+            parallel{
+                stage('Deploy cadvisor') {
+                    steps {
+                        sh '''
+                        sudo docker run -p ${CADVISOR_PORT}:8080 \
+                         --name ${CADVISOR_CONTAINER_NAME} \
+                         --volume=/:/rootfs:ro \
+                         --volume=/var/run:/var/run:ro \
+                         --volume=/sys:/sys:ro \
+                         --volume=/var/lib/docker/:/var/lib/docker:ro \
+                         --volume=/dev/disk/:/dev/disk:ro \
+                         --privileged \
+                         --volume=${WORKSPACE}/${WCA_DIR}/tests/cadvisor/perf.json:/perf.json:ro \
+                          ${CADVISOR_IMAGE} -housekeeping_interval=3s  -v 4  '-perf_events_config=/perf.json' >> ${CADVISOR_LOGS_FILE} & '''
+                    }
+                }
+                    stage("Run perf stat"){
+                        steps{
+                            wait_for_container_id("$PMBENCH_CONTAINER_NAME")
+                            sh "sleep 1"
+                            sh "sudo perf stat -e cycles,instructions,cpu/config=0x5300c0/ -x , --cgroup=docker/\$(cat pmbench_container_id.txt) -o core.csv -a sleep ${TEST_LENGTH} &"
+                            sh "sudo perf stat -e uncore_imc_0/cas_count_read/,uncore_imc_0/config=0xc04/ -x , -o uncore.csv -a sleep ${TEST_LENGTH}"
+
+                        }
+                    }
+                }
+            }
+        stage("Test perf"){
+            steps {
+                sh "date +'%s' > perf_ending_timestamp.txt"
+                sh "python3.6 -m venv env; source env/bin/activate; pip install -r ${params.REQUIREMENTS_FILE}"
+                sh "source env/bin/activate; pytest ${WORKSPACE}/${WCA_DIR}/tests/cadvisor/test_cadvisor_perf.py::test_core_perf --log-level=debug --log-cli-level=debug -v && \
+                pytest ${WORKSPACE}/${WCA_DIR}/tests/cadvisor/test_cadvisor_perf.py::test_uncore_perf --log-level=debug --log-cli-level=debug -v "
+            }
+        }
+    }
+    post {
+        always {
+            script{
+                sh "sudo docker stop ${CADVISOR_CONTAINER_NAME} || true && sudo docker rm ${CADVISOR_CONTAINER_NAME} || true"
+                sh "sudo docker stop ${PMBENCH_CONTAINER_NAME} || true && sudo docker rm ${PMBENCH_CONTAINER_NAME} || true"
+                if (fileExists("${CADVISOR_LOGS_FILE}")){
+                    sh "cat ${CADVISOR_LOGS_FILE}"
+                }
+                sh "rm -rf *"
+            }
+        }
+
+
+    }
+}
+def wait_for_container_id(String container_name){
+    while(sh(script: "sudo docker ps -aqf 'name=${container_name}'", returnStdout: true).trim() == "") {
+        sh "sleep 0.5"
+    }
+}
+
+def wait_for_cadvisor() {
+    def count = 1
+    while(count <= 15) {
+        check_image = sh(script: "curl localhost:${CADVISOR_PORT}/api/v1.3", returnStatus:true)
+        if (check_image == 0) {
+            print("cadvisor is running")
+            return
+        }
+        echo "Attempt $count. Sleeping for 1 second..."
+        sleep(1)
+        count++
+    }
+    throw error("cadvisor could not start running")
+}

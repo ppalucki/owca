@@ -1,0 +1,26 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: wca-scheduler
+webhooks:
+  - name: webhook.k8s.io
+    sideEffects: None
+    admissionReviewVersions:
+        - v1beta1
+    clientConfig:
+      service:
+        name: wca-scheduler
+        namespace: wca-scheduler
+        path: "/mutate"
+      caBundle: ${CA_BUNDLE}
+    rules:
+      - operations:
+          - CREATE
+          - UPDATE
+        apiGroups:
+          - "*"
+        apiVersions:
+          - "*"
+        resources:
+          - "pods"
+    failurePolicy: Fail

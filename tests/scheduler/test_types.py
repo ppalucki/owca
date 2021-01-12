@@ -70,7 +70,7 @@ def test_extender_args_improper_data(nodes, pod, node_names):
         ExtenderArgs(nodes, pod, node_names)
 
 
-FAILED_NODES = {'node3': 'Unsufficient memory bandwidth!',
+FAILED_NODES = {'node3': 'Insufficient memory bandwidth!',
                 'node4': 'Power off!'}
 ERROR = 'TEST ERROR'
 

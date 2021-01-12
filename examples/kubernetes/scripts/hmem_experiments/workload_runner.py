@@ -13,15 +13,23 @@
 # limitations under the License.
 
 import json
+import logging
+import subprocess
+
 from dataclasses import dataclass
 from typing import Dict
-
-from runner import default_shell_run, annotate
-from kernel_parameters import set_numa_balancing, set_toptier_scale_factor
-
 from time import sleep, time
 
+from kernel_parameters import set_numa_balancing, set_toptier_scale_factor
 from scenarios import Scenario, ExperimentType
+
+
+FORMAT = "%(asctime)-15s:%(levelname)s %(module)s %(message)s"
+logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+
+DRY_RUN = False
+if DRY_RUN:
+    logging.info("[DRY_RUN] Running in DRY_RUN mode!")
 
 
 EXPERIMENT_DESCRIPTION = {
@@ -115,12 +123,77 @@ def _run_workloads(number_of_workloads: Dict,
 
 
 def run_experiment(scenario: Scenario, number_of_workloads):
+    # making sure that toptier limit value is as should be
+    # even if previous toptier limit experiment was stopped before
+    # restoring the old value
+    if not scenario.modify_toptier_limit and (
+            scenario.experiment_type == ExperimentType.TOPTIER_WITH_COLDSTART or
+            scenario.experiment_type == ExperimentType.TOPTIER):
+        for workload_name in scenario.workloads_count.keys():
+            base_toptier_value = get_base_toptier_limit(workload_name)
+            patch_toptier_limit(workload_name, base_toptier_value)
+
     _set_configuration(EXPERIMENT_CONFS[scenario.experiment_type])
+    if scenario.modify_toptier_limit:
+        for worklad_name, toptier_value in scenario.modify_toptier_limit.items():
+            patch_toptier_limit(worklad_name, toptier_value)
     start_timestamp = time()
-    annotate('Running experiment: {}'.format(scenario.name))
     _run_workloads(number_of_workloads, scenario.sleep_duration,
                    scenario.reset_workloads_between_steps)
     stop_timestamp = time()
+    # restore old toptier value
+    if scenario.modify_toptier_limit:
+        for workload_name in scenario.modify_toptier_limit.keys():
+            patch_toptier_limit(workload_name, get_base_toptier_limit(workload_name))
     return Experiment(scenario.name, number_of_workloads, scenario.experiment_type,
                       EXPERIMENT_DESCRIPTION[scenario.experiment_type],
                       start_timestamp, stop_timestamp)
+
+
+TOPTIER_ANNOTATION_KEY = 'toptierlimit.cri-resource-manager.intel.com/pod'
+SPEC = 'spec'
+TEMPLATE = 'template'
+METADATA = 'metadata'
+ANNOTATIONS = 'annotations'
+
+
+def get_base_toptier_limit(workload_name):
+    """Returns toptier limit as declared in original stateful set definition.
+    Patching stateful set's toptier limit value for pod template WILL NOT change this value"""
+    get_sts_cmd = 'kubectl get sts {} -o json'.format(workload_name)
+    statefulset_spec = subprocess.run([get_sts_cmd], stdout=subprocess.PIPE, shell=True)
+    json_output = json.loads(statefulset_spec.stdout.decode('utf-8'))
+    # this value should never change for the stateful set, that is why we use it
+    # to read base toptier limit for given stateful set
+    toptier_limit = json_output[METADATA][ANNOTATIONS][TOPTIER_ANNOTATION_KEY]
+    return toptier_limit
+
+
+def patch_toptier_limit(workload_name, toptier_value):
+    patch = {SPEC:
+             {TEMPLATE:
+              {METADATA:
+               {ANNOTATIONS:
+                {TOPTIER_ANNOTATION_KEY: toptier_value}}}}}
+    json_patch = json.dumps(patch)
+    patch_cmd = 'kubectl patch statefulset {} -p \'{}\''.format(workload_name, json_patch)
+    default_shell_run(patch_cmd)
+
+
+def default_shell_run(command, verbose=True):
+    """Default way of running commands."""
+    if verbose:
+        logging.debug('command run in shell >>{}<<'.format(command))
+    if not DRY_RUN:
+        r = subprocess.run(command, shell=True, check=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return r.stdout.decode('utf-8'), r.stderr.decode('utf-8')
+    else:
+        return None, None
+
+
+def scale_down_all_workloads(wait_time: int):
+    """Kill all workloads"""
+    command = "kubectl scale sts --all --replicas=0 && sleep {wait_time}".format(
+        wait_time=wait_time)
+    default_shell_run(command)

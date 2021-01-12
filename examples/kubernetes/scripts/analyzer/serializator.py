@@ -15,7 +15,8 @@
 from typing import Dict, List, Tuple
 from connection import PrometheusClient
 from model import Task, Node
-from metrics import Metric, MetricsQueries, Function, FunctionsDescription, platform_metrics
+from metrics import Metric, MetricsQueries, Function, FunctionsDescription, \
+    platform_metrics, migration_platform_metrics, MetricLegends
 
 
 def build_function_call_id(function: Function, arg: str):
@@ -50,7 +51,14 @@ class AnalyzerQueries:
                         time, metric, node_name)
                 new_node.performance_metrics[0][metric.name], \
                     new_node.performance_metrics[1][metric.name] = socket0, socket1
+
+            for metric in migration_platform_metrics:
+                result, delta = self.query_platform_node_performance_metric(
+                    time, metric, node_name)
+                new_node.node_performance_metrics[metric.name] = result
+                new_node.delta_node_performance_metrics[metric.name] = delta
             nodes.append(new_node)
+
         return nodes
 
     def query_tasks_list(self, time) -> Dict[str, Task]:
@@ -77,18 +85,29 @@ class AnalyzerQueries:
         else:
             return 0, 0
 
-    def query_platform_performance_metrics(self, time: int, nodes: Dict[str, Node]):
-        # very important parameter - window_length [s]
-        # Stopped working: Metric.PLATFORM_MBW_TOTAL, Metric.POD_SCHEDULED,
-        metrics = (Metric.PLATFORM_MEM_USAGE, Metric.PLATFORM_CPU_REQUESTED,
-                   Metric.PLATFORM_CPU_UTIL, Metric.PLATFORM_DRAM_HIT_RATIO,
-                   Metric.PLATFORM_WSS_USED)
+    def query_platform_node_performance_metric(self, time: int,
+                                               metric: Metric, node: str = "",
+                                               duration: int = 900):
+        # duration in seconds
 
-        for metric in metrics:
-            query_results = self.prometheus_client.instant_query(MetricsQueries[metric], time)
-            for result in query_results:
-                nodes[result['metric']['nodename']].performance_metrics[metric] = \
-                    {'instant': result['value'][1]}
+        parametrize_rate_query = MetricLegends[metric]['rate']
+        parametrize_rate_query = parametrize_rate_query\
+            .replace('[]', '[{duration}s]'.format(duration=duration))
+
+        parametrize_delta_query = MetricLegends[metric]['delta']
+        parametrize_delta_query = parametrize_delta_query\
+            .replace('[]', '[{duration}s]'.format(duration=duration))
+
+        if node != "":
+            parametrize_rate_query = parametrize_rate_query\
+                .replace('}', ', nodename="' + node + '"}')
+            parametrize_delta_query = parametrize_delta_query\
+                .replace('}', ', nodename="' + node + '"}')
+
+        rate_result = self.prometheus_client.instant_query(parametrize_rate_query, time)
+        delta__result = self.prometheus_client.instant_query(parametrize_delta_query, time)
+
+        return rate_result[0]['value'][1], delta__result[0]['value'][1]
 
     def query_performance_metrics(self, time: int, functions_args: Dict[Metric, List[Tuple]],
                                   metrics: List[Metric], window_length: int) -> Dict[Metric, Dict]:

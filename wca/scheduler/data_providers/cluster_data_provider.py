@@ -39,12 +39,10 @@ class Queries:
     """
 
     APP_REQUESTED_RESOURCES_QUERY_MAP: Dict[ResourceType, str] = field(default_factory=lambda: {
-        ResourceType.CPU: 'app_cpu',
-        ResourceType.MEM: 'app_mem',
-        ResourceType.MEMBW_READ: 'app_mbw_read',
-        ResourceType.MEMBW_WRITE: 'app_mbw_write',
-        ResourceType.MEMBW_FLAT: 'app_mbw_flat',
-        ResourceType.WSS: 'app_wss',
+        ResourceType.CPU: 'app_req{dim="cpu"}',
+        ResourceType.MEM: 'app_req{dim="mem"}',
+        ResourceType.MEMBW_FLAT: 'app_req{dim="mbw_flat"}',
+        ResourceType.WSS: 'app_req{dim="wss"}',
     })
     NODE_CAPACITY_RESOURCES_QUERY_MAP: Dict[ResourceType, str] = field(default_factory=lambda: {
         # CPU and MEM are fetched directly from kubeapi.

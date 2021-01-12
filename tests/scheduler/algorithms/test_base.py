@@ -86,8 +86,8 @@ def test_used_free_requested_and_requested_fraction():
 TEST_DIMENSIONS = set([
     rt.CPU,
     rt.MEM,
+    rt.MEMBW_WRITE,
     rt.MEMBW_READ,
-    rt.MEMBW_WRITE
 ])
 
 TEST_APP_SPEC = {

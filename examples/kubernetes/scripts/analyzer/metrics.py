@@ -61,6 +61,19 @@ class Metric(Enum):
     PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND = 'platform_upi_bandwidth_bytes_per_second'
     PLATFORM_RPQ_READ_LATENCY_SECONDS = 'platform_rpq_read_latency_seconds'
 
+    # vmstat
+    PLATFORM_VMSTAT_NUMA_HINT_FAULTS = 'platform_vmstat_numa_hint_faults'
+    PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL = 'platform_vmstat_numa_hint_faults_local'
+    PLATFORM_VMSTAT_PGMIGRATE_SUCCESS = 'platform_vmstat_pgmigrate_success'
+    PLATFORM_VMSTAT_PGMIGRATE_FAIL = 'platform_vmstat_pgmigrate_fail'
+
+    HMEM_RECLAIM_DEMOTE_SRC_0 = 'hmem_reclaim_demote_src:0'
+    HMEM_RECLAIM_DEMOTE_SRC_1 = 'hmem_reclaim_demote_src:1'
+    HMEM_RECLAIM_PROMOTE_DST_0 = 'hmem_reclaim_promote_dst:0'
+    HMEM_RECLAIM_PROMOTE_DST_1 = 'hmem_reclaim_promote_dst:1'
+
+    NUMA_PAGES_MIGRATED = 'numa_pages_migrated'
+
 
 platform_metrics = [
     Metric.PLATFORM_PMM_READS_BYTES_PER_SECOND,
@@ -72,6 +85,14 @@ platform_metrics = [
     Metric.PLATFORM_DRAM_HIT_RATIO,
     Metric.PLATFORM_UPI_BANDWIDTH_BYTES_PER_SECOND,
     Metric.PLATFORM_RPQ_READ_LATENCY_SECONDS,
+]
+
+migration_platform_metrics = [
+    Metric.HMEM_RECLAIM_DEMOTE_SRC_0,
+    Metric.HMEM_RECLAIM_DEMOTE_SRC_1,
+    Metric.HMEM_RECLAIM_PROMOTE_DST_0,
+    Metric.HMEM_RECLAIM_PROMOTE_DST_1,
+    Metric.NUMA_PAGES_MIGRATED,
 ]
 
 MetricLegends = {
@@ -93,8 +114,58 @@ MetricLegends = {
         {'unit': 'GB/s', 'helper': '1e9', 'name': 'upi bandwidth '},
     Metric.PLATFORM_RPQ_READ_LATENCY_SECONDS:
         {'unit': 'nanosecond', 'helper': '1e-12', 'name': 'rpq read latency'},
+    Metric.PLATFORM_VMSTAT_NUMA_HINT_FAULTS:
+        {'unit': 'ops', 'helper': '1', 'name': 'vmstat hint faults'},
+    Metric.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL:
+        {'unit': 'ops', 'helper': '1', 'name': 'vmstat hint faults local'},
+    Metric.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS:
+        {'unit': 'ops', 'helper': '1', 'name': 'vmstat pgmigrate success'},
+    Metric.PLATFORM_VMSTAT_PGMIGRATE_FAIL:
+        {'unit': 'ops', 'helper': '1', 'name': 'vmstat pgmigrate fail'},
+    Metric.NUMA_PAGES_MIGRATED:
+        {'unit': 'MB', 'helper': '1e6', 'name': 'numa pages migrated',
+         'rate': 'rate(platform_vmstat{'
+                 'key="numa_pages_migrated"}[]) * 4096',
+         'delta': 'delta(platform_vmstat{'
+                  'key="numa_pages_migrated"}[]) * 4096',
+         },
+    Metric.HMEM_RECLAIM_DEMOTE_SRC_0:
+        {'unit': 'MB', 'helper': '1e6', 'name': 'hmem demote_src:0',
+         'rate': 'rate(platform_zoneinfo{'
+                 'key="hmem_reclaim_demote_src",'
+                 'numa_node="0",zone="Normal"}[]) * 4096',
+         'delta': 'delta(platform_zoneinfo{'
+                  'key="hmem_reclaim_demote_src",'
+                  'numa_node="0",zone="Normal"}[]) * 4096',
+         },
+    Metric.HMEM_RECLAIM_DEMOTE_SRC_1:
+        {'unit': 'MB', 'helper': '1e6', 'name': 'hmem demote_src:1',
+         'rate': 'rate(platform_zoneinfo{'
+                 'key="hmem_reclaim_demote_src",'
+                 'numa_node="1",zone="Normal"}[]) * 4096',
+         'delta': 'delta(platform_zoneinfo{'
+                  'key="hmem_reclaim_demote_src",'
+                  'numa_node="1",zone="Normal"}[]) * 4096',
+         },
+    Metric.HMEM_RECLAIM_PROMOTE_DST_0:
+        {'unit': 'MB', 'helper': '1e6', 'name': 'hmem promote_dst:0',
+         'rate': 'rate(platform_zoneinfo{'
+                 'key="hmem_reclaim_promote_dst",'
+                 'numa_node="0",zone="Normal"}[]) * 4096',
+         'delta': 'delta(platform_zoneinfo{'
+                  'key="hmem_reclaim_promote_dst",'
+                  'numa_node="0",zone="Normal"}[]) * 4096',
+         },
+    Metric.HMEM_RECLAIM_PROMOTE_DST_1:
+        {'unit': 'MB', 'helper': '1e6', 'name': 'hmem promote_dst:1',
+         'rate': 'rate(platform_zoneinfo{'
+                 'key="hmem_reclaim_promote_dst",'
+                 'numa_node="1",zone="Normal"}[]) * 4096',
+         'delta': 'delta(platform_zoneinfo{'
+                  'key="hmem_reclaim_promote_dst",'
+                  'numa_node="1",zone="Normal"}[]) * 4096',
+         },
 }
-
 
 MetricsQueries = {
     Metric.TASK_THROUGHPUT: 'apm_sli2',
@@ -154,6 +225,15 @@ MetricsQueries = {
         'sum(platform_upi_bandwidth_bytes_per_second{}) by (__name__, nodename, socket)',
     Metric.PLATFORM_RPQ_READ_LATENCY_SECONDS:
         'avg(platform_rpq_read_latency_seconds{}) by (__name__, nodename, socket)',
+
+    Metric.PLATFORM_VMSTAT_NUMA_HINT_FAULTS:
+        'platform_vmstat_numa_hint_faults',
+    Metric.PLATFORM_VMSTAT_NUMA_HINT_FAULTS_LOCAL:
+        'platform_vmstat_numa_hint_faults_local',
+    Metric.PLATFORM_VMSTAT_PGMIGRATE_SUCCESS:
+        'platform_vmstat_pgmigrate_success',
+    Metric.PLATFORM_VMSTAT_PGMIGRATE_FAIL:
+        'platform_vmstat_pgmigrate_fail',
 }
 
 

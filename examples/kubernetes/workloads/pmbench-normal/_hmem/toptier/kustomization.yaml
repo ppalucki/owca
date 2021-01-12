@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+nameSuffix: -toptier
+
+resources:
+- _coldstart
+- small
+- small-wss
+- medium
+- medium-wss
+- big
+- big-wss
+
+
+commonAnnotations:
+  cri-resource-manager.intel.com/memory-type: |
+    generator: dram,pmem
