@@ -241,6 +241,7 @@ Grafana dashboard
 #################
 
 We prepared Grafana dashboards:
+
 - `WCA only solution <../examples/kubernetes/monitoring/grafana/2lm_dashboards/2lm_score_dashboard.json>`_
 - `WCA/cAdvisor only solution <../examples/kubernetes/monitoring/grafana/hmem/hmem_score_dashboard.json>`_
 
